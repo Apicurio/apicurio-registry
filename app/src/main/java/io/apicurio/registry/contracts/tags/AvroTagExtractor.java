@@ -118,23 +118,7 @@ public class AvroTagExtractor implements TagExtractor {
 
         switch (schema.getType()) {
         case RECORD:
-            String fullName = schema.getFullName();
-            if (visited.contains(fullName)) {
-                return;
-            }
-            visited.add(fullName);
-
-            for (Schema.Field field : schema.getFields()) {
-                String fieldPath = pathPrefix.isEmpty() ? field.name()
-                        : pathPrefix + "." + field.name();
-
-                Set<String> tags = extractFieldTags(field);
-                if (!tags.isEmpty()) {
-                    result.put(fieldPath, tags);
-                }
-
-                extractTagsFromSchema(field.schema(), fieldPath, result, visited);
-            }
+            extractTagsFromRecord(schema, pathPrefix, result, visited);
             break;
 
         case ARRAY:
@@ -156,6 +140,27 @@ public class AvroTagExtractor implements TagExtractor {
 
         default:
             break;
+        }
+    }
+
+    private void extractTagsFromRecord(Schema schema, String pathPrefix,
+            Map<String, Set<String>> result, Set<String> visited) {
+        String fullName = schema.getFullName();
+        if (visited.contains(fullName)) {
+            return;
+        }
+        visited.add(fullName);
+
+        for (Schema.Field field : schema.getFields()) {
+            String fieldPath = pathPrefix.isEmpty() ? field.name()
+                    : pathPrefix + "." + field.name();
+
+            Set<String> tags = extractFieldTags(field);
+            if (!tags.isEmpty()) {
+                result.put(fieldPath, tags);
+            }
+
+            extractTagsFromSchema(field.schema(), fieldPath, result, visited);
         }
     }
 

@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -18,12 +19,15 @@ class RegistryUrlValidationTest {
     })
     void testValidUrlsAreAccepted(String url) {
         var options = RegistryClientOptions.create().rawRegistryUrl(url);
+        IllegalArgumentException rejection = null;
         try {
             RegistryClientRequestAdapterFactory.createRequestAdapter(options, Version.V3);
         } catch (IllegalArgumentException ex) {
-            throw new AssertionError("URL '" + url + "' should be accepted but was rejected: " + ex.getMessage(), ex);
+            rejection = ex;
         } catch (IllegalStateException ignored) {
+            // URL validation passed; failing later (e.g. no HTTP adapter available) is irrelevant here
         }
+        assertNull(rejection, () -> "URL '" + url + "' should be accepted but was rejected");
     }
 
     @ParameterizedTest

@@ -10,7 +10,7 @@ public class UnresolvedReferencesException extends RuntimeException {
 
     private static final long serialVersionUID = 1L;
 
-    private final List<UnresolvedReference> unresolved;
+    private final transient List<UnresolvedReference> unresolved;
 
     /**
      * Creates the exception.

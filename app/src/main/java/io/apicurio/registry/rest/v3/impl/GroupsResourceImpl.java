@@ -146,6 +146,12 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
     private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
     private static final String EMPTY_CONTENT_ERROR_MESSAGE = "Empty content is not allowed.";
+    private static final String COMPATIBILITY_GROUP_FIELD = "compatibilityGroup";
+    private static final String RECORD_FIELD = "record";
+    private static final String CONTRACT_ID_PARAM = "contractId";
+    private static final String ARTIFACT_ID_PARAM = "artifactId";
+    private static final String GROUP_ID_PARAM = "groupId";
+    private static final String VERSION_PARAM = "version";
     @SuppressWarnings("unused")
     private static final Integer GET_GROUPS_LIMIT = 1000;
 
@@ -272,8 +278,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     public ReferenceGraph getArtifactVersionReferencesGraph(String groupId, String artifactId,
             String versionExpression, ReferenceGraphDirection direction, BigInteger depth) {
 
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
         ParameterValidationUtils.requireParameter("versionExpression", versionExpression);
 
         // Check if the artifact exists first to provide the correct exception type
@@ -410,16 +416,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         }
 
         try {
-            List<ArtifactReferenceDto> references = outboundReferences.get(sourceNodeId);
-            if (references == null) {
-                StoredArtifactVersionDto content = storage.getArtifactVersionContent(groupId, artifactId,
-                        version);
-                references = content.getReferences();
-                if (references == null) {
-                    references = Collections.emptyList();
-                }
-                outboundReferences.put(sourceNodeId, references);
-            }
+            List<ArtifactReferenceDto> references = loadOutboundReferences(groupId, artifactId, version,
+                    sourceNodeId, outboundReferences);
 
             if (references.isEmpty()) {
                 return;
@@ -447,42 +445,13 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 edges.add(edge);
 
                 // Check for cycle: same artifact appears in current path (not just visited globally)
-                boolean isArtifactCycle = currentPath.contains(targetArtifactKey);
-                if (isArtifactCycle) {
-                    cycleNodes.add(targetNodeId);
-                    cycleNodes.add(sourceNodeId);
-                }
+                boolean isArtifactCycle = markCycle(currentPath, targetArtifactKey, cycleNodes, targetNodeId,
+                        sourceNodeId);
 
-                // Add the node the first time this exact version is seen (avoid duplicate nodes)
-                if (!expandedAt.containsKey(targetNodeId)) {
-                    expandedAt.put(targetNodeId, Integer.MAX_VALUE);
-                    ArtifactVersionMetaDataDto refMetadata = readable
-                            ? findVersionMetaData(refGroupId, refArtifactId, refVersion) : null;
-                    if (refMetadata != null) {
-                        ReferenceGraphNode node = ReferenceGraphNode.builder()
-                                .id(targetNodeId)
-                                .groupId(refGroupId != null ? refGroupId : "default")
-                                .artifactId(refArtifactId)
-                                .version(refVersion)
-                                .artifactType(refMetadata.getArtifactType())
-                                .name(refMetadata.getName())
-                                .isRoot(false)
-                                .isCycleNode(isArtifactCycle)
-                                .build();
-                        nodes.add(node);
-                    } else {
-                        // Reference does not exist or is not readable: add a placeholder node
-                        ReferenceGraphNode node = ReferenceGraphNode.builder()
-                                .id(targetNodeId)
-                                .groupId(refGroupId != null ? refGroupId : "default")
-                                .artifactId(refArtifactId)
-                                .version(refVersion)
-                                .isRoot(false)
-                                .isCycleNode(isArtifactCycle)
-                                .build();
-                        nodes.add(node);
-                    }
-                }
+                // Add the node the first time this exact version is seen (avoid duplicate nodes).
+                // A reference that does not exist or is not readable gets a placeholder node.
+                addNodeIfNew(nodes, expandedAt, targetNodeId, refGroupId, refArtifactId, refVersion,
+                        isArtifactCycle, readable);
 
                 // Don't traverse through a cycle node, or into an artifact the caller may not read
                 if (isArtifactCycle || !readable) {
@@ -536,18 +505,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         }
 
         try {
-            List<ArtifactReferenceDto> inboundRefs = inboundReferences.get(targetNodeId);
-            if (inboundRefs == null) {
-                inboundRefs = storage.getInboundArtifactReferences(groupId, artifactId, version);
-                if (inboundRefs == null) {
-                    inboundRefs = Collections.emptyList();
-                }
-                // Inbound references point from other artifacts: only include those the caller may read
-                inboundRefs = inboundRefs.stream()
-                        .filter(ref -> searchAuthorizer.canReadArtifact(ref.getGroupId(), ref.getArtifactId()))
-                        .toList();
-                inboundReferences.put(targetNodeId, inboundRefs);
-            }
+            List<ArtifactReferenceDto> inboundRefs = loadInboundReferences(groupId, artifactId, version,
+                    targetNodeId, inboundReferences);
 
             if (inboundRefs.isEmpty()) {
                 return;
@@ -571,43 +530,13 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 edges.add(edge);
 
                 // Check for cycle: same artifact appears in current path (not just visited globally)
-                boolean isArtifactCycle = currentPath.contains(sourceArtifactKey);
-                if (isArtifactCycle) {
-                    cycleNodes.add(sourceNodeId);
-                    cycleNodes.add(targetNodeId);
-                }
+                boolean isArtifactCycle = markCycle(currentPath, sourceArtifactKey, cycleNodes, sourceNodeId,
+                        targetNodeId);
 
-                // Add the node the first time this exact version is seen (avoid duplicate nodes)
-                if (!expandedAt.containsKey(sourceNodeId)) {
-                    expandedAt.put(sourceNodeId, Integer.MAX_VALUE);
-                    try {
-                        ArtifactVersionMetaDataDto refMetadata = storage.getArtifactVersionMetaData(
-                                refGroupId, refArtifactId, refVersion);
-
-                        ReferenceGraphNode node = ReferenceGraphNode.builder()
-                                .id(sourceNodeId)
-                                .groupId(refGroupId != null ? refGroupId : "default")
-                                .artifactId(refArtifactId)
-                                .version(refVersion)
-                                .artifactType(refMetadata.getArtifactType())
-                                .name(refMetadata.getName())
-                                .isRoot(false)
-                                .isCycleNode(isArtifactCycle)
-                                .build();
-                        nodes.add(node);
-                    } catch (Exception e) {
-                        // Reference might not exist, add a placeholder node
-                        ReferenceGraphNode node = ReferenceGraphNode.builder()
-                                .id(sourceNodeId)
-                                .groupId(refGroupId != null ? refGroupId : "default")
-                                .artifactId(refArtifactId)
-                                .version(refVersion)
-                                .isRoot(false)
-                                .isCycleNode(isArtifactCycle)
-                                .build();
-                        nodes.add(node);
-                    }
-                }
+                // Add the node the first time this exact version is seen (avoid duplicate nodes).
+                // A reference that might not exist gets a placeholder node.
+                addNodeIfNew(nodes, expandedAt, sourceNodeId, refGroupId, refArtifactId, refVersion,
+                        isArtifactCycle, true);
 
                 // Don't traverse through a cycle node
                 if (isArtifactCycle) {
@@ -633,6 +562,90 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             // Inbound references might not be accessible. Remember that, so re-expanding this node
             // does not retry the same failing lookup.
             inboundReferences.putIfAbsent(targetNodeId, Collections.emptyList());
+        }
+    }
+
+    private List<ArtifactReferenceDto> loadOutboundReferences(String groupId, String artifactId,
+            String version, String sourceNodeId, Map<String, List<ArtifactReferenceDto>> outboundReferences) {
+        List<ArtifactReferenceDto> references = outboundReferences.get(sourceNodeId);
+        if (references == null) {
+            StoredArtifactVersionDto content = storage.getArtifactVersionContent(groupId, artifactId,
+                    version);
+            references = content.getReferences();
+            if (references == null) {
+                references = Collections.emptyList();
+            }
+            outboundReferences.put(sourceNodeId, references);
+        }
+        return references;
+    }
+
+    private List<ArtifactReferenceDto> loadInboundReferences(String groupId, String artifactId,
+            String version, String targetNodeId, Map<String, List<ArtifactReferenceDto>> inboundReferences) {
+        List<ArtifactReferenceDto> inboundRefs = inboundReferences.get(targetNodeId);
+        if (inboundRefs == null) {
+            inboundRefs = storage.getInboundArtifactReferences(groupId, artifactId, version);
+            if (inboundRefs == null) {
+                inboundRefs = Collections.emptyList();
+            }
+            // Inbound references point from other artifacts: only include those the caller may read
+            inboundRefs = inboundRefs.stream()
+                    .filter(ref -> searchAuthorizer.canReadArtifact(ref.getGroupId(), ref.getArtifactId()))
+                    .toList();
+            inboundReferences.put(targetNodeId, inboundRefs);
+        }
+        return inboundRefs;
+    }
+
+    /**
+     * Checks for a cycle: the same artifact appears in the current path (not just visited globally).
+     * When it does, both nodes of the edge are marked as cycle nodes.
+     */
+    private static boolean markCycle(Set<String> currentPath, String artifactKey, Set<String> cycleNodes,
+            String firstNodeId, String secondNodeId) {
+        boolean isArtifactCycle = currentPath.contains(artifactKey);
+        if (isArtifactCycle) {
+            cycleNodes.add(firstNodeId);
+            cycleNodes.add(secondNodeId);
+        }
+        return isArtifactCycle;
+    }
+
+    /**
+     * Adds a graph node the first time this exact version is seen. When {@code lookUpMetadata} is
+     * {@code false}, or the version metadata cannot be found, a placeholder node is added.
+     */
+    private void addNodeIfNew(List<ReferenceGraphNode> nodes, Map<String, Integer> expandedAt, String nodeId,
+            String refGroupId, String refArtifactId, String refVersion, boolean isArtifactCycle,
+            boolean lookUpMetadata) {
+        if (expandedAt.containsKey(nodeId)) {
+            return;
+        }
+        expandedAt.put(nodeId, Integer.MAX_VALUE);
+        ArtifactVersionMetaDataDto refMetadata = lookUpMetadata
+                ? findVersionMetaData(refGroupId, refArtifactId, refVersion) : null;
+        if (refMetadata != null) {
+            ReferenceGraphNode node = ReferenceGraphNode.builder()
+                    .id(nodeId)
+                    .groupId(refGroupId != null ? refGroupId : "default")
+                    .artifactId(refArtifactId)
+                    .version(refVersion)
+                    .artifactType(refMetadata.getArtifactType())
+                    .name(refMetadata.getName())
+                    .isRoot(false)
+                    .isCycleNode(isArtifactCycle)
+                    .build();
+            nodes.add(node);
+        } else {
+            ReferenceGraphNode node = ReferenceGraphNode.builder()
+                    .id(nodeId)
+                    .groupId(refGroupId != null ? refGroupId : "default")
+                    .artifactId(refArtifactId)
+                    .version(refVersion)
+                    .isRoot(false)
+                    .isCycleNode(isArtifactCycle)
+                    .build();
+            nodes.add(node);
         }
     }
 
@@ -668,8 +681,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                     (String[]) null);
         }
 
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
 
         String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
         String artifactType = null;
@@ -689,8 +702,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public ArtifactMetaData getArtifactMetaData(String groupId, String artifactId) {
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
 
         ArtifactMetaDataDto dto = storage.getArtifactMetaData(new GroupId(groupId).getRawGroupIdWithNull(),
                 artifactId);
@@ -707,8 +720,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void updateArtifactMetaData(String groupId, String artifactId, EditableArtifactMetaData data) {
         ParameterValidationUtils.requireParameter("body", data);
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
 
         String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
         if (data.getOwner() != null) {
@@ -761,7 +774,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public void updateGroupById(String groupId, EditableGroupMetaData data) {
         ParameterValidationUtils.requireParameter("body", data);
-        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
 
         String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
         if (data.getOwner() != null) {
@@ -832,7 +845,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Override
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Read)
     public List<RuleType> listGroupRules(String groupId) {
-        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
 
         return storage.getGroupRules(new GroupId(groupId).getRawGroupIdWithNull());
     }
@@ -843,7 +856,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public void createGroupRule(String groupId, CreateRule data) {
         ParameterValidationUtils.requireParameter("body", data);
-        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
         ParameterValidationUtils.requireParameter("ruleType", data.getRuleType());
         ParameterValidationUtils.requireParameter("config", data.getConfig());
 
@@ -871,7 +884,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public Rule updateGroupRuleConfig(String groupId, RuleType ruleType, Rule data) {
         ParameterValidationUtils.requireParameter("body", data);
-        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
         ParameterValidationUtils.requireParameter("ruleType", ruleType);
         ParameterValidationUtils.requireParameter("config", data.getConfig());
 
@@ -892,7 +905,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Audited
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public void deleteGroupRules(String groupId) {
-        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
 
         storage.deleteGroupRules(new GroupId(groupId).getRawGroupIdWithNull());
     }
@@ -900,7 +913,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Override
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Read)
     public Rule getGroupRuleConfig(String groupId, RuleType ruleType) {
-        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
         ParameterValidationUtils.requireParameter("ruleType", ruleType);
 
         RuleConfigurationDto dto = storage.getGroupRule(new GroupId(groupId).getRawGroupIdWithNull(),
@@ -916,7 +929,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Audited
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public void deleteGroupRule(String groupId, RuleType rule) {
-        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
         ParameterValidationUtils.requireParameter("rule", rule);
 
         storage.deleteGroupRule(new GroupId(groupId).getRawGroupIdWithNull(), rule);
@@ -928,8 +941,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public List<RuleType> listArtifactRules(String groupId, String artifactId) {
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
 
         return storage.getArtifactRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId);
     }
@@ -943,8 +956,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void createArtifactRule(String groupId, String artifactId, CreateRule data) {
         ParameterValidationUtils.requireParameter("body", data);
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
         ParameterValidationUtils.requireParameter("ruleType", data.getRuleType());
         ParameterValidationUtils.requireParameter("config", data.getConfig());
 
@@ -972,8 +985,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Audited
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void deleteArtifactRules(String groupId, String artifactId) {
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
 
         storage.deleteArtifactRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId);
     }
@@ -985,8 +998,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public Rule getArtifactRuleConfig(String groupId, String artifactId, RuleType ruleType) {
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
         ParameterValidationUtils.requireParameter("ruleType", ruleType);
 
         RuleConfigurationDto dto = storage.getArtifactRule(new GroupId(groupId).getRawGroupIdWithNull(),
@@ -1008,8 +1021,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public Rule updateArtifactRuleConfig(String groupId, String artifactId, RuleType ruleType, Rule data) {
         ParameterValidationUtils.requireParameter("body", data);
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
         ParameterValidationUtils.requireParameter("ruleType", ruleType);
         ParameterValidationUtils.requireParameter("config", data.getConfig());
 
@@ -1034,8 +1047,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Audited
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void deleteArtifactRule(String groupId, String artifactId, RuleType rule) {
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
         ParameterValidationUtils.requireParameter("rule", rule);
 
         storage.deleteArtifactRule(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, rule);
@@ -1049,8 +1062,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public Response getArtifactVersionContent(String groupId, String artifactId, String versionExpression,
             HandleReferencesType references, Boolean canonical) {
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
         ParameterValidationUtils.requireParameter("versionExpression", versionExpression);
 
         if (references == null) {
@@ -1119,8 +1132,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void updateArtifactVersionContent(String groupId, String artifactId, String versionExpression,
             VersionContent data) {
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
         ParameterValidationUtils.requireParameter("versionExpression", versionExpression);
 
         if (!restConfig.isArtifactVersionMutabilityEnabled()) {
@@ -1182,9 +1195,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                     HttpMethod.GET, (String[]) null);
         }
 
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
-        ParameterValidationUtils.requireParameter("version", version);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
+        ParameterValidationUtils.requireParameter(VERSION_PARAM, version);
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), version,
                 (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.ALL_STATES));
@@ -1200,9 +1213,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public VersionMetaData getArtifactVersionMetaData(String groupId, String artifactId, String version) {
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
-        ParameterValidationUtils.requireParameter("version", version);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
+        ParameterValidationUtils.requireParameter(VERSION_PARAM, version);
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), version,
                 (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.SKIP_DISABLED_LATEST));
@@ -1223,8 +1236,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void updateArtifactVersionMetaData(String groupId, String artifactId, String versionExpression,
             EditableVersionMetaData data) {
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
         ParameterValidationUtils.requireParameter("versionExpression", versionExpression);
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
@@ -1242,9 +1255,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public WrappedVersionState getArtifactVersionState(String groupId, String artifactId,
             String versionExpression) {
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
-        ParameterValidationUtils.requireParameter("version", versionExpression);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
+        ParameterValidationUtils.requireParameter(VERSION_PARAM, versionExpression);
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
                 (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.ALL_STATES));
@@ -1261,8 +1274,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     public void updateArtifactVersionState(String groupId, String artifactId, String versionExpression,
             Boolean dryRun, WrappedVersionState data) {
         ParameterValidationUtils.requireParameter("body", data);
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
         ParameterValidationUtils.requireParameter("versionExpression", versionExpression);
         ParameterValidationUtils.requireParameter("body.state", data.getState());
 
@@ -1323,8 +1336,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public Comment addArtifactVersionComment(String groupId, String artifactId, String versionExpression,
             NewComment data) {
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
         ParameterValidationUtils.requireParameter("versionExpression", versionExpression);
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
@@ -1346,8 +1359,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void deleteArtifactVersionComment(String groupId, String artifactId, String versionExpression,
             String commentId) {
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
         ParameterValidationUtils.requireParameter("versionExpression", versionExpression);
         ParameterValidationUtils.requireParameter("commentId", commentId);
 
@@ -1365,9 +1378,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public List<Comment> getArtifactVersionComments(String groupId, String artifactId, String version) {
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
-        ParameterValidationUtils.requireParameter("version", version);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
+        ParameterValidationUtils.requireParameter(VERSION_PARAM, version);
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), version,
                 (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.ALL_STATES));
@@ -1388,8 +1401,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void updateArtifactVersionComment(String groupId, String artifactId, String versionExpression,
             String commentId, NewComment data) {
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
         ParameterValidationUtils.requireParameter("versionExpression", versionExpression);
         ParameterValidationUtils.requireParameter("commentId", commentId);
         ParameterValidationUtils.requireParameter("value", data.getValue());
@@ -1405,7 +1418,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Read)
     public ArtifactSearchResults listArtifactsInGroup(String groupId, BigInteger limit, BigInteger offset,
             SortOrder order, ArtifactSortBy orderby, Boolean skipCount) {
-        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
 
         if (orderby == null) {
             orderby = ArtifactSortBy.name;
@@ -1442,7 +1455,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                     (String[]) null);
         }
 
-        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
 
         accessGuard.requireWriteOnAllArtifacts(groupId);
         storage.deleteArtifacts(new GroupId(groupId).getRawGroupIdWithNull());
@@ -1454,42 +1467,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write, dryRunParam = 3)
     public CreateArtifactResponse createArtifact(String groupId, IfArtifactExists ifExists, Boolean canonical,
             Boolean dryRun, CreateArtifact data) {
-        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
         ParameterValidationUtils.requireParameter("body", data);
-        if (data.getFirstVersion() != null) {
-            boolean contentRequired = true;
-            if (data.getArtifactType() != null) {
-                if (!factory.getAllArtifactTypes().contains(data.getArtifactType())) {
-                    throw new InvalidArtifactTypeException("Invalid or unknown artifact type: " + data.getArtifactType());
-                }
-                Set<String> contentTypes = factory.getArtifactTypeProvider(data.getArtifactType()).getContentTypes();
-                contentRequired = !contentTypes.isEmpty();
-            }
-            if (contentRequired) {
-                ParameterValidationUtils.requireParameter("body.firstVersion.content", data.getFirstVersion().getContent());
-                ParameterValidationUtils.requireParameter("body.firstVersion.content.content",
-                        data.getFirstVersion().getContent().getContent());
-                ParameterValidationUtils.requireParameter("body.firstVersion.content.contentType",
-                        data.getFirstVersion().getContent().getContentType());
-            } else {
-                if (data.getFirstVersion().getContent() == null) {
-                    data.getFirstVersion().setContent(new VersionContent());
-                }
-                if (data.getFirstVersion().getContent().getContent() == null) {
-                    data.getFirstVersion().getContent().setContent("");
-                }
-                if (data.getFirstVersion().getContent().getContentType() == null) {
-                    data.getFirstVersion().getContent().setContentType(ContentTypes.APPLICATION_EMPTY);
-                }
-                ParameterValidationUtils.requireParameterValue("body.firstVersion.content.contentType", ContentTypes.APPLICATION_EMPTY,
-                        data.getFirstVersion().getContent().getContentType());
-            }
-            if (data.getFirstVersion().getBranches() == null) {
-                data.getFirstVersion().setBranches(Collections.emptyList());
-            }
-        } else {
-            ParameterValidationUtils.requireParameter("body.artifactType", data.getArtifactType());
-        }
+        validateCreateArtifactData(data);
 
         if (!ArtifactIdValidator.isGroupIdAllowed(groupId)) {
             throw new InvalidGroupIdException(ArtifactIdValidator.GROUP_ID_ERROR_MESSAGE);
@@ -1526,14 +1506,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         // If a first version is included, the content must not be empty (unless content is not
         // required for the artifact type).
-        if (data.getFirstVersion() != null) {
-            final boolean isEmptyContent = ContentTypes.isEmptyContentType(contentType);
-            if (!isEmptyContent) {
-                if (content == null || content.bytes().length == 0) {
-                    throw new BadRequestException(EMPTY_CONTENT_ERROR_MESSAGE);
-                }
-            }
-        }
+        requireFirstVersionContent(data, contentType, content);
 
         try {
             if (artifactId == null || artifactId.trim().isEmpty()) {
@@ -1640,17 +1613,10 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
             Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> storageResult = storage.createArtifact(
                     new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType, artifactMetaData,
-                    firstVersion, firstVersionContent, firstVersionMetaData, firstVersionBranches,
-                    firstVersionIsDraft, dryRun != null && dryRun, owner);
+                    firstVersion, firstVersionContent, firstVersionMetaData,
+                    firstVersionBranches, firstVersionIsDraft, dryRun != null && dryRun, owner);
 
-            if (isNotDryRun(dryRun)) {
-                String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
-                otelMetrics.recordArtifactCreated(rawGroupId, artifactType);
-                if (storageResult.getRight() != null) {
-                    otelMetrics.recordVersionCreated(rawGroupId, artifactType);
-                }
-                afterPublish.forEach(Runnable::run);
-            }
+            recordArtifactCreated(groupId, artifactType, dryRun, storageResult, afterPublish);
 
             // Now return both the artifact metadata and (if available) the version metadata
             CreateArtifactResponse rval = CreateArtifactResponse.builder()
@@ -1665,12 +1631,79 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         }
     }
 
+    private void validateCreateArtifactData(CreateArtifact data) {
+        if (data.getFirstVersion() != null) {
+            if (isFirstVersionContentRequired(data)) {
+                ParameterValidationUtils.requireParameter("body.firstVersion.content", data.getFirstVersion().getContent());
+                ParameterValidationUtils.requireParameter("body.firstVersion.content.content",
+                        data.getFirstVersion().getContent().getContent());
+                ParameterValidationUtils.requireParameter("body.firstVersion.content.contentType",
+                        data.getFirstVersion().getContent().getContentType());
+            } else {
+                applyEmptyFirstVersionContent(data);
+            }
+            if (data.getFirstVersion().getBranches() == null) {
+                data.getFirstVersion().setBranches(Collections.emptyList());
+            }
+        } else {
+            ParameterValidationUtils.requireParameter("body.artifactType", data.getArtifactType());
+        }
+    }
+
+    private boolean isFirstVersionContentRequired(CreateArtifact data) {
+        if (data.getArtifactType() == null) {
+            return true;
+        }
+        if (!factory.getAllArtifactTypes().contains(data.getArtifactType())) {
+            throw new InvalidArtifactTypeException("Invalid or unknown artifact type: " + data.getArtifactType());
+        }
+        Set<String> contentTypes = factory.getArtifactTypeProvider(data.getArtifactType()).getContentTypes();
+        return !contentTypes.isEmpty();
+    }
+
+    private static void applyEmptyFirstVersionContent(CreateArtifact data) {
+        if (data.getFirstVersion().getContent() == null) {
+            data.getFirstVersion().setContent(new VersionContent());
+        }
+        if (data.getFirstVersion().getContent().getContent() == null) {
+            data.getFirstVersion().getContent().setContent("");
+        }
+        if (data.getFirstVersion().getContent().getContentType() == null) {
+            data.getFirstVersion().getContent().setContentType(ContentTypes.APPLICATION_EMPTY);
+        }
+        ParameterValidationUtils.requireParameterValue("body.firstVersion.content.contentType", ContentTypes.APPLICATION_EMPTY,
+                data.getFirstVersion().getContent().getContentType());
+    }
+
+    private static void requireFirstVersionContent(CreateArtifact data, String contentType, ContentHandle content) {
+        if (data.getFirstVersion() != null) {
+            final boolean isEmptyContent = ContentTypes.isEmptyContentType(contentType);
+            if (!isEmptyContent) {
+                if (content == null || content.bytes().length == 0) {
+                    throw new BadRequestException(EMPTY_CONTENT_ERROR_MESSAGE);
+                }
+            }
+        }
+    }
+
+    private void recordArtifactCreated(String groupId, String artifactType, Boolean dryRun,
+            Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> storageResult, List<Runnable> afterPublish) {
+        if (isNotDryRun(dryRun)) {
+            String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
+            otelMetrics.recordArtifactCreated(rawGroupId, artifactType);
+            if (storageResult.getRight() != null) {
+                otelMetrics.recordVersionCreated(rawGroupId, artifactType);
+            }
+            afterPublish.forEach(Runnable::run);
+        }
+    }
+
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public VersionSearchResults listArtifactVersions(String groupId, String artifactId, BigInteger offset,
             BigInteger limit, SortOrder order, VersionSortBy orderby, Boolean skipCount) {
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
         if (orderby == null) {
             orderby = VersionSortBy.createdOn;
         }
@@ -1704,8 +1737,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write, dryRunParam = 2)
     public VersionMetaData createArtifactVersion(String groupId, String artifactId, Boolean dryRun,
             CreateVersion data) {
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
         ParameterValidationUtils.requireParameter("body", data);
 
         String artifactType = lookupArtifactType(groupId, artifactId);
@@ -1794,8 +1827,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public BranchMetaData createBranch(String groupId, String artifactId, CreateBranch data) {
         ParameterValidationUtils.requireParameter("body", data);
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
         ParameterValidationUtils.requireParameter("branchId", data.getBranchId());
 
         GA ga = new GA(groupId, artifactId);
@@ -1809,8 +1842,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public BranchSearchResults listBranches(String groupId, String artifactId, BigInteger offset,
             BigInteger limit) {
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
 
         if (offset == null) {
             offset = BigInteger.valueOf(0);
@@ -1827,8 +1860,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public BranchMetaData getBranchMetaData(String groupId, String artifactId, String branchId) {
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
 
         BranchMetaDataDto branch = storage.getBranchMetaData(new GA(groupId, artifactId),
                 new BranchId(branchId));
@@ -1841,8 +1874,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void updateBranchMetaData(String groupId, String artifactId, String branchId,
             EditableBranchMetaData data) {
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
         ParameterValidationUtils.requireParameter("branchId", branchId);
 
         EditableBranchMetaDataDto dto = EditableBranchMetaDataDto.builder().description(data.getDescription())
@@ -1855,8 +1888,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Audited
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void deleteBranch(String groupId, String artifactId, String branchId) {
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
         ParameterValidationUtils.requireParameter("branchId", branchId);
 
         storage.deleteBranch(new GA(groupId, artifactId), new BranchId(branchId));
@@ -1866,8 +1899,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public VersionSearchResults listBranchVersions(String groupId, String artifactId, String branchId,
             BigInteger offset, BigInteger limit) {
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
         ParameterValidationUtils.requireParameter("branchId", branchId);
 
         if (offset == null) {
@@ -1894,8 +1927,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void replaceBranchVersions(String groupId, String artifactId, String branchId,
             ReplaceBranchVersions data) {
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
         ParameterValidationUtils.requireParameter("branchId", branchId);
         ParameterValidationUtils.requireParameter("versions", data.getVersions());
 
@@ -1914,8 +1947,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void addVersionToBranch(String groupId, String artifactId, String branchId,
             AddVersionToBranch data) {
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
         ParameterValidationUtils.requireParameter("branchId", branchId);
 
         GA ga = new GA(groupId, artifactId);
@@ -2238,8 +2271,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Audited
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public McpToolImportResult importMcpTools(String groupId, String artifactId, McpToolImportRequest data) {
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
         if (!mcpToolImportHandler.isResolvable()) {
             throw new ConflictException("Importing tools from MCP servers is not available.");
         }
@@ -2255,8 +2288,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     public RenderPromptResponse renderPromptTemplate(String groupId, String artifactId,
             String versionExpression, RenderPromptRequest data) {
 
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
         ParameterValidationUtils.requireParameter("versionExpression", versionExpression);
         ParameterValidationUtils.requireParameter("data", data);
         ParameterValidationUtils.requireParameter("variables", data.getVariables());
@@ -2366,8 +2399,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public Response exportArtifactVersion(String groupId, String artifactId, String versionExpression) {
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
         ParameterValidationUtils.requireParameter("versionExpression", versionExpression);
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
@@ -2397,8 +2430,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public ContractMetadata getContractMetadata(String groupId, String artifactId) {
 
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
 
         ArtifactMetaDataDto dto = storage.getArtifactMetaData(
                 new GroupId(groupId).getRawGroupIdWithNull(), artifactId);
@@ -2412,8 +2445,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     public ContractMetadata updateContractMetadata(String groupId, String artifactId,
             EditableContractMetadata data) {
 
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
         ParameterValidationUtils.requireParameter("data", data);
 
         String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
@@ -2489,8 +2522,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public ContractRuleSet getArtifactContractRuleset(String groupId, String artifactId) {
 
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
 
         ContractRuleSetDto dto = storage.getArtifactContractRuleset(
                 new GroupId(groupId).getRawGroupIdWithNull(), artifactId);
@@ -2503,8 +2536,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     public ContractRuleSet setArtifactContractRuleset(String groupId, String artifactId,
             ContractRuleSet data) {
 
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
 
         ContractRuleSetDto dto = toContractRuleSetDto(data);
         String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
@@ -2519,8 +2552,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void deleteArtifactContractRuleset(String groupId, String artifactId) {
 
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
 
         String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
         storage.deleteArtifactContractRuleset(rawGroupId, artifactId);
@@ -2533,8 +2566,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     public ContractRuleSet getVersionContractRuleset(String groupId, String artifactId,
             String versionExpression) {
 
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
         ParameterValidationUtils.requireParameter("versionExpression", versionExpression);
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
@@ -2551,8 +2584,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     public ContractRuleSet setVersionContractRuleset(String groupId, String artifactId,
             String versionExpression, ContractRuleSet data) {
 
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
         ParameterValidationUtils.requireParameter("versionExpression", versionExpression);
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
@@ -2573,8 +2606,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     public void deleteVersionContractRuleset(String groupId, String artifactId,
             String versionExpression) {
 
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
         ParameterValidationUtils.requireParameter("versionExpression", versionExpression);
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
@@ -2598,8 +2631,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     public ContractMetadata transitionContractStatus(String groupId, String artifactId,
             ContractStatusTransition data) {
 
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
         ParameterValidationUtils.requireParameter("data", data);
         ParameterValidationUtils.requireParameter("status", data.getStatus());
 
@@ -2740,7 +2773,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public OdcsContractResult submitContract(String groupId, String data) {
 
-        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
         ParameterValidationUtils.requireParameter("data", data);
 
         OdcsContract contract;
@@ -2794,7 +2827,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     public List<OdcsContractSummary> listContracts(String groupId, Integer limit,
             Integer offset) {
 
-        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
 
         int effectiveLimit = limit != null ? Math.min(limit, 500) : 20;
         int effectiveOffset = offset != null ? offset : 0;
@@ -2822,8 +2855,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public String getContract(String groupId, String contractId) {
 
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("contractId", contractId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(CONTRACT_ID_PARAM, contractId);
 
         String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
         var gav = VersionExpressionParser.parse(new GA(rawGroupId, contractId), "branch=latest",
@@ -2838,8 +2871,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public OdcsContractResult updateContract(String groupId, String contractId, String data) {
 
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("contractId", contractId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(CONTRACT_ID_PARAM, contractId);
         ParameterValidationUtils.requireParameter("data", data);
 
         OdcsContract contract;
@@ -2865,8 +2898,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void deleteContract(String groupId, String contractId) {
 
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("contractId", contractId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(CONTRACT_ID_PARAM, contractId);
 
         String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
         // Remove the projection first, from every schema any version of the contract targeted:
@@ -3087,8 +3120,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public String exportContractAsOdcs(String groupId, String artifactId) {
 
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
 
         String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
         var meta = storage.getArtifactMetaData(rawGroupId, artifactId);
@@ -3108,8 +3141,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     public Response promoteContract(String groupId, String artifactId,
             InputStream data) {
 
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
 
         JsonNode json;
         try {
@@ -3117,12 +3150,12 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         } catch (Exception e) {
             throw new BadRequestException("Invalid JSON: " + e.getMessage());
         }
-        if (json == null || !json.has("contractId") || !json.has("targetStage")) {
+        if (json == null || !json.has(CONTRACT_ID_PARAM) || !json.has("targetStage")) {
             throw new BadRequestException(
                     "Request must include contractId and targetStage");
         }
 
-        String contractId = json.get("contractId").asText();
+        String contractId = json.get(CONTRACT_ID_PARAM).asText();
         String targetStageStr = json.get("targetStage").asText();
         PromotionStage targetStage;
         try {
@@ -3148,9 +3181,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     public Response getContractQuality(String groupId, String artifactId,
             String contractId) {
 
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
-        ParameterValidationUtils.requireParameter("contractId", contractId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
+        ParameterValidationUtils.requireParameter(CONTRACT_ID_PARAM, contractId);
 
         String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
         var score = qualityScoreCalculator.calculate(rawGroupId, artifactId,
@@ -3168,8 +3201,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     public Response executeContractRules(String groupId, String artifactId,
             String versionExpression, InputStream data) {
 
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
 
         JsonNode json;
         try {
@@ -3177,14 +3210,14 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         } catch (Exception e) {
             throw new BadRequestException("Invalid JSON: " + e.getMessage());
         }
-        if (json == null || !json.has("mode") || !json.has("record")) {
+        if (json == null || !json.has("mode") || !json.has(RECORD_FIELD)) {
             throw new BadRequestException(
                     "Request must include mode and record");
         }
 
         String mode = json.get("mode").asText();
         Map<String, Object> record = JSON_MAPPER.convertValue(
-                json.get("record"), Map.class);
+                json.get(RECORD_FIELD), Map.class);
 
         String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
         var gav = VersionExpressionParser.parse(
@@ -3213,8 +3246,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     public Response getContractAuditLog(String groupId, String artifactId,
             BigInteger offset, BigInteger limit) {
 
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
 
         int off = offset != null ? offset.intValue() : 0;
         int lim = limit != null ? Math.min(limit.intValue(), 500) : 20;
@@ -3225,9 +3258,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         var result = entries.stream().map(e -> {
             var map = new LinkedHashMap<String, Object>();
             map.put("auditId", e.getAuditId());
-            map.put("groupId", e.getGroupId());
-            map.put("artifactId", e.getArtifactId());
-            map.put("version", e.getVersion());
+            map.put(GROUP_ID_PARAM, e.getGroupId());
+            map.put(ARTIFACT_ID_PARAM, e.getArtifactId());
+            map.put(VERSION_PARAM, e.getVersion());
             map.put("action", e.getAction());
             map.put("principal", e.getPrincipal());
             map.put("details", e.getDetails());
@@ -3247,8 +3280,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     public Response migrateContractRecord(String groupId, String artifactId,
             InputStream data) {
 
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
 
         JsonNode json;
         try {
@@ -3257,7 +3290,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             throw new BadRequestException("Invalid JSON: " + e.getMessage());
         }
         if (json == null || !json.has("fromVersion") || !json.has("toVersion")
-                || !json.has("record")) {
+                || !json.has(RECORD_FIELD)) {
             throw new BadRequestException(
                     "Request must include fromVersion, toVersion, and record");
         }
@@ -3265,7 +3298,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         String fromVersion = json.get("fromVersion").asText();
         String toVersion = json.get("toVersion").asText();
         Map<String, Object> record = JSON_MAPPER.convertValue(
-                json.get("record"), Map.class);
+                json.get(RECORD_FIELD), Map.class);
 
         String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
 
@@ -3290,16 +3323,16 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     public Response getCompatibilityGroup(String groupId, String artifactId,
             String contractId) {
 
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
-        ParameterValidationUtils.requireParameter("contractId", contractId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
+        ParameterValidationUtils.requireParameter(CONTRACT_ID_PARAM, contractId);
 
         String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
         String group = compatibilityGroupService.getCompatibilityGroup(
                 rawGroupId, artifactId, contractId);
 
         var responseMap = new LinkedHashMap<String, Object>();
-        responseMap.put("compatibilityGroup", group);
+        responseMap.put(COMPATIBILITY_GROUP_FIELD, group);
         return Response.ok(responseMap).build();
     }
 
@@ -3310,8 +3343,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     public void setCompatibilityGroup(String groupId, String artifactId,
             InputStream data) {
 
-        ParameterValidationUtils.requireParameter("groupId", groupId);
-        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
 
         JsonNode json;
         try {
@@ -3319,13 +3352,13 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         } catch (Exception e) {
             throw new BadRequestException("Invalid JSON: " + e.getMessage());
         }
-        if (json == null || !json.has("contractId") || !json.has("compatibilityGroup")) {
+        if (json == null || !json.has(CONTRACT_ID_PARAM) || !json.has(COMPATIBILITY_GROUP_FIELD)) {
             throw new BadRequestException(
                     "Request must include contractId and compatibilityGroup");
         }
 
-        String contractId = json.get("contractId").asText();
-        String compatGroup = json.get("compatibilityGroup").asText();
+        String contractId = json.get(CONTRACT_ID_PARAM).asText();
+        String compatGroup = json.get(COMPATIBILITY_GROUP_FIELD).asText();
         String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
 
         compatibilityGroupService.setCompatibilityGroup(

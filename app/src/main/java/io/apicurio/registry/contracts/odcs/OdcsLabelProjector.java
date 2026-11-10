@@ -137,34 +137,42 @@ public class OdcsLabelProjector {
 
         var sl = contract.getServiceLevel();
         if (sl != null) {
-            if (sl.getAvailability() != null) {
-                labels.put(prefix + ContractLabels.SUFFIX_SLA_AVAILABILITY,
-                        String.valueOf(sl.getAvailability()));
-            }
-            var lat = sl.getLatency();
-            if (lat != null) {
-                put(labels, prefix + ContractLabels.SUFFIX_SLA_LATENCY_P50, lat.getP50());
-                put(labels, prefix + ContractLabels.SUFFIX_SLA_LATENCY_P99, lat.getP99());
-            }
+            collectServiceLevelLabels(sl, prefix, labels);
         }
 
         var q = contract.getQuality();
         if (q != null) {
-            if (q.getFreshness() != null) {
-                put(labels, prefix + ContractLabels.SUFFIX_QUALITY_FRESHNESS_MAX_STALENESS,
-                        q.getFreshness().getMaxStaleness());
-            }
-            if (q.getCompleteness() != null) {
-                for (var rule : q.getCompleteness()) {
-                    if (rule.getField() != null && rule.getThreshold() != null) {
-                        labels.put(prefix + "quality.completeness." + rule.getField(),
-                                String.valueOf(rule.getThreshold()));
-                    }
-                }
-            }
+            collectQualityLabels(q, prefix, labels);
         }
 
         labels.put(prefix + ContractLabels.SUFFIX_ID, contractId);
+    }
+
+    private void collectServiceLevelLabels(OdcsServiceLevel sl, String prefix, Map<String, String> labels) {
+        if (sl.getAvailability() != null) {
+            labels.put(prefix + ContractLabels.SUFFIX_SLA_AVAILABILITY,
+                    String.valueOf(sl.getAvailability()));
+        }
+        var lat = sl.getLatency();
+        if (lat != null) {
+            put(labels, prefix + ContractLabels.SUFFIX_SLA_LATENCY_P50, lat.getP50());
+            put(labels, prefix + ContractLabels.SUFFIX_SLA_LATENCY_P99, lat.getP99());
+        }
+    }
+
+    private void collectQualityLabels(OdcsQuality q, String prefix, Map<String, String> labels) {
+        if (q.getFreshness() != null) {
+            put(labels, prefix + ContractLabels.SUFFIX_QUALITY_FRESHNESS_MAX_STALENESS,
+                    q.getFreshness().getMaxStaleness());
+        }
+        if (q.getCompleteness() != null) {
+            for (var rule : q.getCompleteness()) {
+                if (rule.getField() != null && rule.getThreshold() != null) {
+                    labels.put(prefix + "quality.completeness." + rule.getField(),
+                            String.valueOf(rule.getThreshold()));
+                }
+            }
+        }
     }
 
     static String mapStatus(String odcsStatus) {

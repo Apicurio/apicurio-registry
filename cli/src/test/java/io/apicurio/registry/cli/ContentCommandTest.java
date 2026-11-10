@@ -12,6 +12,8 @@ import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.util.Locale;
 
+import static io.apicurio.registry.cli.common.CliException.SERVER_ERROR_RETURN_CODE;
+import static io.apicurio.registry.cli.common.CliException.VALIDATION_ERROR_RETURN_CODE;
 import static io.apicurio.registry.cli.utils.Mapper.MAPPER;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -40,8 +42,10 @@ public class ContentCommandTest extends AbstractCLITest {
         final Path tempFile = Files.createTempFile("content-test", ".json");
         Files.writeString(tempFile, TEST_CONTENT);
         try {
-            executeAndAssertSuccess("artifact", "create", "-g", TEST_GROUP,
-                    "--type", "JSON", "--file", tempFile.toString(), TEST_ARTIFACT);
+            assertThat(cmd.execute("artifact", "create", "-g", TEST_GROUP,
+                    "--type", "JSON", "--file", tempFile.toString(), TEST_ARTIFACT))
+                    .as(withCliOutput("Artifact creation should succeed"))
+                    .isZero();
         } finally {
             Files.deleteIfExists(tempFile);
         }
@@ -111,43 +115,57 @@ public class ContentCommandTest extends AbstractCLITest {
     @Test
     @Order(6)
     public void testContentNoArgs() {
-        executeAndAssertFailure("content");
+        assertThat(cmd.execute("content"))
+                .as(withCliOutput("Command should fail with the expected exit code"))
+                .isEqualTo(VALIDATION_ERROR_RETURN_CODE);
     }
 
     @Test
     @Order(7)
     public void testContentMultipleArgs() {
-        executeAndAssertFailure("content", "--global-id", "1", "--content-id", "1");
+        assertThat(cmd.execute("content", "--global-id", "1", "--content-id", "1"))
+                .as(withCliOutput("Command should fail with the expected exit code"))
+                .isEqualTo(VALIDATION_ERROR_RETURN_CODE);
     }
 
     @Test
     @Order(8)
     public void testNegativeGlobalId() {
-        executeAndAssertFailure("content", "--global-id", "-1");
+        assertThat(cmd.execute("content", "--global-id", "-1"))
+                .as(withCliOutput("Command should fail with the expected exit code"))
+                .isEqualTo(VALIDATION_ERROR_RETURN_CODE);
     }
 
     @Test
     @Order(9)
     public void testZeroContentId() {
-        executeAndAssertFailure("content", "--content-id", "0");
+        assertThat(cmd.execute("content", "--content-id", "0"))
+                .as(withCliOutput("Command should fail with the expected exit code"))
+                .isEqualTo(VALIDATION_ERROR_RETURN_CODE);
     }
 
     @Test
     @Order(10)
     public void testGetByNonExistentGlobalId() {
-        executeAndAssertFailure("content", "--global-id", "999999999");
+        assertThat(cmd.execute("content", "--global-id", "999999999"))
+                .as(withCliOutput("Command should fail with the expected exit code"))
+                .isEqualTo(SERVER_ERROR_RETURN_CODE);
     }
 
     @Test
     @Order(11)
     public void testGetByNonExistentContentId() {
-        executeAndAssertFailure("content", "--content-id", "999999999");
+        assertThat(cmd.execute("content", "--content-id", "999999999"))
+                .as(withCliOutput("Command should fail with the expected exit code"))
+                .isEqualTo(SERVER_ERROR_RETURN_CODE);
     }
 
     @Test
     @Order(12)
     public void testGetByNonExistentHash() {
-        executeAndAssertFailure("content", "--hash", "0".repeat(64));
+        assertThat(cmd.execute("content", "--hash", "0".repeat(64)))
+                .as(withCliOutput("Command should fail with the expected exit code"))
+                .isEqualTo(SERVER_ERROR_RETURN_CODE);
     }
 
     // -- Helpers --

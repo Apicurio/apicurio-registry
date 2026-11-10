@@ -560,15 +560,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             ? EditableArtifactMetaDataDto.builder().build() : artifactMetaData;
 
         // Create the group if it doesn't exist yet.
-        if (groupId != null && !isGroupExists(groupId)) {
-            if (enableAutomaticGroupCreation) {
-                // Only create group metadata for non-default groups.
-                ensureGroup(GroupMetaDataDto.builder().groupId(groupId).createdOn(createdOn.getTime())
-                        .modifiedOn(createdOn.getTime()).owner(owner).modifiedBy(owner).build());
-            } else {
-                throw new GroupNotFoundException(groupId);
-            }
-        }
+        ensureGroupForNewArtifact(groupId, createdOn, owner);
 
         // Ensure the content exists. If this is a dryRun, or if the create fails, this
         // could result in orphaned content. That's OK because we have an async process
@@ -599,14 +591,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .bind(8, limitStr(amd.getDescription(), 1024, true)).bind(9, labelsStr).execute();
 
                 // Insert labels into the "artifact_labels" table
-                if (labels != null && !labels.isEmpty()) {
-                    labels.forEach((k, v) -> {
-                        handle.createUpdate(sqlStatements.insertArtifactLabel())
-                                .bind(0, normalizeGroupId(groupId)).bind(1, artifactId)
-                                .bind(2, limitStr(asLowerCase(k), 256))
-                                .bind(3, limitStr(asLowerCase(v), 512)).execute();
-                    });
-                }
+                insertNewArtifactLabelsRaw(handle, groupId, artifactId, labels);
 
                 // Return an artifact metadata dto
                 ArtifactMetaDataDto amdDto = ArtifactMetaDataDto.builder().groupId(groupId)
@@ -644,6 +629,30 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 throw new ArtifactAlreadyExistsException(groupId, artifactId);
             }
             throw ex;
+        }
+    }
+
+    private void ensureGroupForNewArtifact(String groupId, Date createdOn, String owner) {
+        if (groupId != null && !isGroupExists(groupId)) {
+            if (enableAutomaticGroupCreation) {
+                // Only create group metadata for non-default groups.
+                ensureGroup(GroupMetaDataDto.builder().groupId(groupId).createdOn(createdOn.getTime())
+                        .modifiedOn(createdOn.getTime()).owner(owner).modifiedBy(owner).build());
+            } else {
+                throw new GroupNotFoundException(groupId);
+            }
+        }
+    }
+
+    private void insertNewArtifactLabelsRaw(Handle handle, String groupId, String artifactId,
+            Map<String, String> labels) {
+        if (labels != null && !labels.isEmpty()) {
+            labels.forEach((k, v) -> {
+                handle.createUpdate(sqlStatements.insertArtifactLabel())
+                        .bind(0, normalizeGroupId(groupId)).bind(1, artifactId)
+                        .bind(2, limitStr(asLowerCase(k), 256))
+                        .bind(3, limitStr(asLowerCase(v), 512)).execute();
+            });
         }
     }
 

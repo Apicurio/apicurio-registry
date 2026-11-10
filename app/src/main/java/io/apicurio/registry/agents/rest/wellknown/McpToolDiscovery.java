@@ -70,6 +70,8 @@ public class McpToolDiscovery {
     static final ObjectMapper mapper = new ObjectMapper();
 
     private static final String PROPERTIES_FIELD = "properties";
+    private static final String BRANCH_LATEST = "branch=latest";
+    private static final String TITLE_FIELD = "title";
 
     /**
      * Maximum number of MCP-tool candidates evaluated per compatible-tools request.
@@ -107,7 +109,7 @@ public class McpToolDiscovery {
         GA ga = new GA(rawGroupId, artifactId);
 
         try {
-            String versionExpression = StringUtil.isEmpty(version) ? "branch=latest" : version;
+            String versionExpression = StringUtil.isEmpty(version) ? BRANCH_LATEST : version;
             GAV gav = VersionExpressionParser.parse(ga, versionExpression,
                     (g, branchId) -> storage.getBranchTip(g, branchId,
                             RetrievalBehavior.SKIP_DISABLED_LATEST));
@@ -295,7 +297,7 @@ public class McpToolDiscovery {
         GA ga = new GA(rawGroupId, artifactId);
 
         try {
-            String versionExpression = StringUtil.isEmpty(version) ? "branch=latest" : version;
+            String versionExpression = StringUtil.isEmpty(version) ? BRANCH_LATEST : version;
             GAV gav = VersionExpressionParser.parse(ga, versionExpression,
                     (g, branchId) -> storage.getBranchTip(g, branchId,
                             RetrievalBehavior.SKIP_DISABLED_LATEST));
@@ -383,7 +385,7 @@ public class McpToolDiscovery {
     private Optional<StoredArtifactVersionDto> fetchLatestCandidateContent(SearchedArtifactDto candidate) {
         try {
             GA candidateGa = new GA(candidate.getGroupId(), candidate.getArtifactId());
-            GAV candidateGav = VersionExpressionParser.parse(candidateGa, "branch=latest",
+            GAV candidateGav = VersionExpressionParser.parse(candidateGa, BRANCH_LATEST,
                     (g, branchId) -> storage.getBranchTip(g, branchId,
                             RetrievalBehavior.SKIP_DISABLED_LATEST));
             return Optional.of(storage.getArtifactVersionContent(candidateGav.getRawGroupIdWithNull(),
@@ -463,7 +465,7 @@ public class McpToolDiscovery {
 
         try {
             GA ga = new GA(artifact.getGroupId(), artifact.getArtifactId());
-            GAV gav = VersionExpressionParser.parse(ga, "branch=latest",
+            GAV gav = VersionExpressionParser.parse(ga, BRANCH_LATEST,
                     (g, branchId) -> storage.getBranchTip(g, branchId,
                             RetrievalBehavior.SKIP_DISABLED_LATEST));
             StoredArtifactVersionDto stored = storage.getArtifactVersionContent(
@@ -503,8 +505,8 @@ public class McpToolDiscovery {
         List<String> parameters = new ArrayList<>();
 
         // Extract title
-        if (root.has("title") && root.get("title").isTextual()) {
-            title = root.get("title").asText();
+        if (root.has(TITLE_FIELD) && root.get(TITLE_FIELD).isTextual()) {
+            title = root.get(TITLE_FIELD).asText();
         }
 
         // Extract parameter names from inputSchema

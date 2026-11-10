@@ -27,6 +27,8 @@ public class ConsolePluginManager {
     private static final String CONSOLE_PLUGIN_API_VERSION = "v1";
     private static final String CONSOLE_PLUGIN_KIND = "ConsolePlugin";
     private static final String CONSOLE_PLUGIN_PLURAL = "consoleplugins";
+    private static final String SERVICE = "service";
+    private static final String NAMESPACE = "namespace";
 
     private static final AtomicBoolean openshiftDetected = new AtomicBoolean(false);
     private static volatile boolean detectionDone = false;
@@ -98,9 +100,9 @@ public class ConsolePluginManager {
                         "displayName", "Apicurio Registry",
                         "backend", Map.of(
                                 "type", "Service",
-                                "service", Map.of(
+                                SERVICE, Map.of(
                                         "name", serviceName,
-                                        "namespace", namespace,
+                                        NAMESPACE, namespace,
                                         "port", 9443,
                                         "basePath", "/"
                                 )
@@ -110,9 +112,9 @@ public class ConsolePluginManager {
                                 "authorization", "UserToken",
                                 "endpoint", Map.of(
                                         "type", "Service",
-                                        "service", Map.of(
+                                        SERVICE, Map.of(
                                                 "name", serviceName,
-                                                "namespace", namespace,
+                                                NAMESPACE, namespace,
                                                 "port", 9443
                                         )
                                 )
@@ -225,11 +227,11 @@ public class ConsolePluginManager {
     static boolean belongsTo(GenericKubernetesResource plugin, ApicurioRegistry3 primary) {
         var spec = (Map<String, Object>) plugin.getAdditionalProperties().get("spec");
         var backend = spec == null ? null : (Map<String, Object>) spec.get("backend");
-        var service = backend == null ? null : (Map<String, Object>) backend.get("service");
+        var service = backend == null ? null : (Map<String, Object>) backend.get(SERVICE);
         if (service == null) {
             return false;
         }
         return getServiceName(primary).equals(service.get("name"))
-                && primary.getMetadata().getNamespace().equals(service.get("namespace"));
+                && primary.getMetadata().getNamespace().equals(service.get(NAMESPACE));
     }
 }

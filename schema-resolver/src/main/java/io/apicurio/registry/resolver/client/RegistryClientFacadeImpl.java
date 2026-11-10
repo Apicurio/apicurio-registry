@@ -36,6 +36,8 @@ import static io.apicurio.registry.rest.client.models.VersionState.DISABLED;
  */
 public class RegistryClientFacadeImpl implements RegistryClientFacade {
 
+    private static final String DEFAULT_GROUP = "default";
+
     private static final Logger LOG = LoggerFactory.getLogger(RegistryClientFacadeImpl.class);
     private static final String CLIENT_ID_HEADER = "X-Registry-Client-Id";
     private static final String OPERATION_HEADER = "X-Registry-Operation";
@@ -134,7 +136,7 @@ public class RegistryClientFacadeImpl implements RegistryClientFacade {
         InputStream is = new ByteArrayInputStream(schemaString.getBytes(StandardCharsets.UTF_8));
         String ct = ArtifactTypeToContentType.toContentType(artifactType);
         VersionSearchResults results = client.search().versions().post(is, ct, config -> {
-            config.queryParameters.groupId = reference.getGroupId() == null ? "default"
+            config.queryParameters.groupId = reference.getGroupId() == null ? DEFAULT_GROUP
                     : reference.getGroupId();
             config.queryParameters.artifactId = reference.getArtifactId();
             config.queryParameters.canonical = canonical;
@@ -201,7 +203,7 @@ public class RegistryClientFacadeImpl implements RegistryClientFacade {
     @Override
     public io.apicurio.registry.rest.client.models.ContractRuleSet getContractRuleset(
             String groupId, String artifactId) {
-        String g = groupId != null ? groupId : "default";
+        String g = groupId != null ? groupId : DEFAULT_GROUP;
         return fetchRuleset(() -> client.groups().byGroupId(g).artifacts().byArtifactId(artifactId)
                 .contract().ruleset().get(), "the contract ruleset of " + g + "/" + artifactId);
     }
@@ -209,7 +211,7 @@ public class RegistryClientFacadeImpl implements RegistryClientFacade {
     @Override
     public io.apicurio.registry.rest.client.models.ContractRuleSet getVersionContractRuleset(
             String groupId, String artifactId, String version) {
-        String g = groupId != null ? groupId : "default";
+        String g = groupId != null ? groupId : DEFAULT_GROUP;
         String ver = version != null ? version : "branch=latest";
         return fetchRuleset(() -> client.groups().byGroupId(g).artifacts().byArtifactId(artifactId)
                 .versions().byVersionExpression(ver).contract().ruleset().get(),
@@ -248,7 +250,7 @@ public class RegistryClientFacadeImpl implements RegistryClientFacade {
     @Override
     public List<String> getArtifactVersions(String groupId, String artifactId) {
         try {
-            String g = groupId != null ? groupId : "default";
+            String g = groupId != null ? groupId : DEFAULT_GROUP;
             var result = client.groups().byGroupId(g).artifacts().byArtifactId(artifactId)
                     .versions().get(config -> {
                         config.queryParameters.limit = 500;

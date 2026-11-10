@@ -46,6 +46,8 @@ import java.util.stream.Stream;
 @Mojo(name = "register", requiresProject = false)
 public class RegisterRegistryMojo extends AbstractRegistryMojo {
 
+    private static final String VERSION = "version";
+
     /**
      * The list of pre-registered artifacts that can be used as references.
      */
@@ -246,7 +248,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
             case "contentType":
                 artifact.setContentType(value);
                 break;
-            case "version":
+            case VERSION:
                 artifact.setVersion(value);
                 break;
             case "versionStrategy":
@@ -336,7 +338,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
             case "artifactId":
                 existingReference.setArtifactId(value);
                 break;
-            case "version":
+            case VERSION:
                 existingReference.setVersion(value);
                 break;
             case "resourceName":
@@ -445,40 +447,9 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                 RegistryClient registryClient = createClient(vertx);
 
                 for (RegisterArtifact artifact : artifacts) {
-                    String groupId = artifact.getGroupId();
-                    String artifactId = artifact.getArtifactId();
-                    try {
-                        if (artifact.getAutoRefs() != null && artifact.getAutoRefs()) {
-                            registerWithAutoRefs(registryClient, artifact);
-                        } else {
-                            List<ArtifactReference> references = new ArrayList<>();
-                            // First, we check if the artifact being processed has references defined
-                            if (hasReferences(artifact)) {
-                                references = processArtifactReferences(registryClient, artifact.getReferences());
-                            }
-                            registerArtifact(registryClient, artifact, references);
-                        }
-                    } catch (Exception e) {
-                        // The registry client wraps an InterruptedException (e.g. RuntimeException from
-                        // Kiota's Vert.x adapter) and clears the interrupt flag, so look for it in the cause
-                        // chain rather than relying on a bare InterruptedException reaching this loop.
-                        InterruptedException interrupt = findCause(e, InterruptedException.class);
-                        if (interrupt != null) {
-                            Thread.currentThread().interrupt();
-                            // keep the registrar's message, which names the exact (possibly child) artifact
-                            RegistrationException registration = findCause(e, RegistrationException.class);
-                            String message = String.format("Interrupted while registering artifact [%s] / [%s]",
-                                    groupId, artifactId);
-                            if (registration != null) {
-                                message += ": " + registration.getMessage();
-                            }
-                            throw new MojoExecutionException(message, interrupt);
-                        }
+                    if (!registerSingleArtifact(registryClient, artifact)) {
                         errorCount++;
-                        getLog().error(String.format("Exception while registering artifact [%s] / [%s]", groupId,
-                                artifactId), e);
                     }
-
                 }
 
                 if (errorCount > 0) {
@@ -487,6 +458,50 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
             } finally {
                 vertx.close();
             }
+        }
+    }
+
+    /**
+     * Registers one configured artifact.
+     *
+     * @return {@code true} on success, {@code false} if the failure was logged and should be counted
+     * @throws MojoExecutionException if registration was interrupted
+     */
+    private boolean registerSingleArtifact(RegistryClient registryClient, RegisterArtifact artifact)
+            throws MojoExecutionException {
+        String groupId = artifact.getGroupId();
+        String artifactId = artifact.getArtifactId();
+        try {
+            if (artifact.getAutoRefs() != null && artifact.getAutoRefs()) {
+                registerWithAutoRefs(registryClient, artifact);
+            } else {
+                List<ArtifactReference> references = new ArrayList<>();
+                // First, we check if the artifact being processed has references defined
+                if (hasReferences(artifact)) {
+                    references = processArtifactReferences(registryClient, artifact.getReferences());
+                }
+                registerArtifact(registryClient, artifact, references);
+            }
+            return true;
+        } catch (Exception e) {
+            // The registry client wraps an InterruptedException (e.g. RuntimeException from
+            // Kiota's Vert.x adapter) and clears the interrupt flag, so look for it in the cause
+            // chain rather than relying on a bare InterruptedException reaching this loop.
+            InterruptedException interrupt = findCause(e, InterruptedException.class);
+            if (interrupt != null) {
+                Thread.currentThread().interrupt();
+                // keep the registrar's message, which names the exact (possibly child) artifact
+                RegistrationException registration = findCause(e, RegistrationException.class);
+                String message = String.format("Interrupted while registering artifact [%s] / [%s]",
+                        groupId, artifactId);
+                if (registration != null) {
+                    message += ": " + registration.getMessage();
+                }
+                throw new MojoExecutionException(message, interrupt);
+            }
+            getLog().error(String.format("Exception while registering artifact [%s] / [%s]", groupId,
+                    artifactId), e);
+            return false;
         }
     }
 
@@ -604,18 +619,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         Boolean canonicalize = artifact.getCanonicalize();
         String ct = artifact.getContentType() == null ? ContentTypes.APPLICATION_JSON
                 : artifact.getContentType();
-        String data = null;
-        try {
-            if (artifact.getMinify() != null && artifact.getMinify()) {
-                ObjectMapper objectMapper = new ObjectMapper();
-                JsonNode jsonNode = objectMapper.readValue(artifactContent, JsonNode.class);
-                data = jsonNode.toString();
-            } else {
-                data = new String(artifactContent.readAllBytes(), StandardCharsets.UTF_8);
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        String data = readArtifactData(artifact, artifactContent);
         ResolvedArtifactVersion resolvedArtifactVersion = resolveVersion(artifact, data);
 
         CreateArtifact createArtifact = new CreateArtifact();
@@ -658,32 +662,53 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
 
             return vmd.getVersion();
         } catch (RuleViolationProblemDetails | ProblemDetails e) {
+            return handleRegistrationError(registryClient, groupId, artifactId, content, resolvedArtifactVersion,
+                    e);
+        }
+    }
 
-            if (e.getResponseStatusCode() == 409
-                    && resolvedArtifactVersion.shouldUpdateDraftContentOnConflict()) {
-                try {
-                    registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
-                            .versions().byVersionExpression(resolvedArtifactVersion.version()).content()
-                            .put(content, config -> {
-
-                    });
-                    getLog().info(String.format("Successfully updated artifact [%s] / [%s].",
-                            groupId, artifactId));
-                    // Return version metadata
-                    return registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
-                            .versions().byVersionExpression(resolvedArtifactVersion.version()).get();
-                } catch (RuleViolationProblemDetails | ProblemDetails pd) {
-                    logAndThrow(pd);
-                    return null;
-                }
-            } else if (e.getResponseStatusCode() == 409
-                    && resolvedArtifactVersion.shouldPromoteDraftOnConflict()) {
-                return promoteExistingDraftVersion(registryClient, groupId, artifactId, content,
-                        resolvedArtifactVersion, e);
+    private static String readArtifactData(RegisterArtifact artifact, InputStream artifactContent) {
+        try {
+            if (artifact.getMinify() != null && artifact.getMinify()) {
+                ObjectMapper objectMapper = new ObjectMapper();
+                JsonNode jsonNode = objectMapper.readValue(artifactContent, JsonNode.class);
+                return jsonNode.toString();
             } else {
-                logAndThrow(e);
+                return new String(artifactContent.readAllBytes(), StandardCharsets.UTF_8);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private VersionMetaData handleRegistrationError(RegistryClient registryClient, String groupId,
+            String artifactId, VersionContent content, ResolvedArtifactVersion resolvedArtifactVersion,
+            ApiException e)
+            throws ExecutionException, InterruptedException, MojoFailureException, MojoExecutionException {
+        if (e.getResponseStatusCode() == 409
+                && resolvedArtifactVersion.shouldUpdateDraftContentOnConflict()) {
+            try {
+                registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
+                        .versions().byVersionExpression(resolvedArtifactVersion.version()).content()
+                        .put(content, config -> {
+
+                });
+                getLog().info(String.format("Successfully updated artifact [%s] / [%s].",
+                        groupId, artifactId));
+                // Return version metadata
+                return registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
+                        .versions().byVersionExpression(resolvedArtifactVersion.version()).get();
+            } catch (RuleViolationProblemDetails | ProblemDetails pd) {
+                logAndThrow(pd);
                 return null;
             }
+        } else if (e.getResponseStatusCode() == 409
+                && resolvedArtifactVersion.shouldPromoteDraftOnConflict()) {
+            return promoteExistingDraftVersion(registryClient, groupId, artifactId, content,
+                    resolvedArtifactVersion, e);
+        } else {
+            logAndThrow(e);
+            return null;
         }
     }
 
@@ -751,7 +776,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
     private String extractApiInfoVersion(RegisterArtifact artifact, String data) throws MojoExecutionException {
         try {
             JsonNode root = getVersionExtractionMapper(artifact).readTree(data);
-            JsonNode versionNode = root.path("info").path("version");
+            JsonNode versionNode = root.path("info").path(VERSION);
             if (versionNode.isTextual()) {
                 String version = versionNode.asText();
                 if (!version.isBlank()) {

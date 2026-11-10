@@ -245,21 +245,70 @@ public class ProtobufFile {
         }
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
     private void processMessageElement(String scope, MessageElement messageElement) {
+        String messageName = scope + messageElement.getName();
 
         // Identify synthetic map entry messages nested in this message (map fields in their
         // desugared descriptor form) so that repeated fields referencing them can be recognized
         // as map fields during compatibility checks.
+        Map<String, MessageElement> mapEntries = collectMapEntries(messageName, messageElement);
+
+        // reservedFields
+        Set<Object> reservedFieldSet = collectReservedFields(messageElement);
+        if (!reservedFieldSet.isEmpty()) {
+            reservedFields.put(messageName, reservedFieldSet);
+        }
+
+        // fieldMap, mapMap, FieldsIDName
+        Map<String, FieldElement> fieldTypeMap = new HashMap<>();
+        Map<String, FieldElement> mapMap = new HashMap<>();
+        Map<Integer, String> idsToNames = new HashMap<>();
+        for (FieldElement fieldElement : messageElement.getFields()) {
+            indexField(fieldElement, fieldTypeMap, mapMap, idsToNames);
+        }
+        for (OneOfElement oneOfElement : messageElement.getOneOfs()) {
+            for (FieldElement fieldElement : oneOfElement.getFields()) {
+                indexField(fieldElement, fieldTypeMap, mapMap, idsToNames);
+            }
+        }
+
+        // mapEntryTypes: entry message simple name -> equivalent map<KeyType, ValueType> type
+        recordMapEntryTypes(messageName, mapEntries);
+
+        // Always add to fieldMap, even if empty, so that empty messages can be found during type resolution
+        fieldMap.put(messageName, fieldTypeMap);
+        if (!mapMap.isEmpty()) {
+            this.mapMap.put(messageName, mapMap);
+        }
+        if (!idsToNames.isEmpty()) {
+            fieldsById.put(messageName, idsToNames);
+        }
+
+        // Always add to nonReservedFields, even if empty, for type existence checking
+        nonReservedFields.put(messageName, collectFieldKeys(messageElement));
+
+        for (TypeElement typeElement : messageElement.getNestedTypes()) {
+            if (typeElement instanceof MessageElement) {
+                processMessageElement(messageName + ".", (MessageElement) typeElement);
+            } else if (typeElement instanceof EnumElement) {
+                processEnumElement(messageName + ".", (EnumElement) typeElement);
+            }
+        }
+    }
+
+    private Map<String, MessageElement> collectMapEntries(String messageName, MessageElement messageElement) {
         Map<String, MessageElement> mapEntries = new HashMap<>();
         for (TypeElement nestedType : messageElement.getNestedTypes()) {
             if (nestedType instanceof MessageElement && isMapEntry((MessageElement) nestedType)) {
                 mapEntries.put(nestedType.getName(), (MessageElement) nestedType);
-                mapEntryMessages.add(scope + messageElement.getName() + "." + nestedType.getName());
+                mapEntryMessages.add(messageName + "." + nestedType.getName());
             }
         }
+        return mapEntries;
+    }
 
-        // reservedFields
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    private static Set<Object> collectReservedFields(MessageElement messageElement) {
         Set<Object> reservedFieldSet = new HashSet<>();
         for (ReservedElement reservedElement : messageElement.getReserveds()) {
             for (Object value : reservedElement.getValues()) {
@@ -276,55 +325,35 @@ public class ProtobufFile {
                 }
             }
         }
-        if (!reservedFieldSet.isEmpty()) {
-            reservedFields.put(scope + messageElement.getName(), reservedFieldSet);
-        }
+        return reservedFieldSet;
+    }
 
-        // fieldMap, mapMap, FieldsIDName
-        Map<String, FieldElement> fieldTypeMap = new HashMap<>();
-        Map<String, FieldElement> mapMap = new HashMap<>();
-        Map<Integer, String> idsToNames = new HashMap<>();
-        for (FieldElement fieldElement : messageElement.getFields()) {
-            fieldTypeMap.put(fieldElement.getName(), fieldElement);
-            if (fieldElement.getType().startsWith("map<")) {
-                mapMap.put(fieldElement.getName(), fieldElement);
-            }
-            idsToNames.put(fieldElement.getTag(), fieldElement.getName());
+    private static void indexField(FieldElement fieldElement, Map<String, FieldElement> fieldTypeMap,
+            Map<String, FieldElement> mapMap, Map<Integer, String> idsToNames) {
+        fieldTypeMap.put(fieldElement.getName(), fieldElement);
+        if (fieldElement.getType().startsWith("map<")) {
+            mapMap.put(fieldElement.getName(), fieldElement);
         }
-        for (OneOfElement oneOfElement : messageElement.getOneOfs()) {
-            for (FieldElement fieldElement : oneOfElement.getFields()) {
-                fieldTypeMap.put(fieldElement.getName(), fieldElement);
-                if (fieldElement.getType().startsWith("map<")) {
-                    mapMap.put(fieldElement.getName(), fieldElement);
-                }
-                idsToNames.put(fieldElement.getTag(), fieldElement.getName());
-            }
-        }
+        idsToNames.put(fieldElement.getTag(), fieldElement.getName());
+    }
 
-        // mapEntryTypes: entry message simple name -> equivalent map<KeyType, ValueType> type
-        if (!mapEntries.isEmpty()) {
-            Map<String, String> entryTypes = new HashMap<>();
-            for (Map.Entry<String, MessageElement> mapEntry : mapEntries.entrySet()) {
-                String mapType = toMapType(mapEntry.getValue());
-                if (mapType != null) {
-                    entryTypes.put(mapEntry.getKey(), mapType);
-                }
-            }
-            if (!entryTypes.isEmpty()) {
-                this.mapEntryTypes.put(scope + messageElement.getName(), entryTypes);
+    private void recordMapEntryTypes(String messageName, Map<String, MessageElement> mapEntries) {
+        if (mapEntries.isEmpty()) {
+            return;
+        }
+        Map<String, String> entryTypes = new HashMap<>();
+        for (Map.Entry<String, MessageElement> mapEntry : mapEntries.entrySet()) {
+            String mapType = toMapType(mapEntry.getValue());
+            if (mapType != null) {
+                entryTypes.put(mapEntry.getKey(), mapType);
             }
         }
-
-        // Always add to fieldMap, even if empty, so that empty messages can be found during type resolution
-        fieldMap.put(scope + messageElement.getName(), fieldTypeMap);
-        if (!mapMap.isEmpty()) {
-            this.mapMap.put(scope + messageElement.getName(), mapMap);
+        if (!entryTypes.isEmpty()) {
+            this.mapEntryTypes.put(messageName, entryTypes);
         }
-        if (!idsToNames.isEmpty()) {
-            fieldsById.put(scope + messageElement.getName(), idsToNames);
-        }
+    }
 
-        // nonReservedFields
+    private static Set<Object> collectFieldKeys(MessageElement messageElement) {
         Set<Object> fieldKeySet = new HashSet<>();
         for (FieldElement fieldElement : messageElement.getFields()) {
             fieldKeySet.add(fieldElement.getTag());
@@ -336,17 +365,7 @@ public class ProtobufFile {
                 fieldKeySet.add(fieldElement.getName());
             }
         }
-
-        // Always add to nonReservedFields, even if empty, for type existence checking
-        nonReservedFields.put(scope + messageElement.getName(), fieldKeySet);
-
-        for (TypeElement typeElement : messageElement.getNestedTypes()) {
-            if (typeElement instanceof MessageElement) {
-                processMessageElement(scope + messageElement.getName() + ".", (MessageElement) typeElement);
-            } else if (typeElement instanceof EnumElement) {
-                processEnumElement(scope + messageElement.getName() + ".", (EnumElement) typeElement);
-            }
-        }
+        return fieldKeySet;
     }
 
     /**

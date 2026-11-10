@@ -47,7 +47,6 @@ import static io.apicurio.registry.utils.StringUtil.sanitizeForLog;
 public class GrantsAccessController extends AbstractAccessController {
 
     private static final Logger LOG = LoggerFactory.getLogger(GrantsAccessController.class);
-    private static final Logger AUDIT = LoggerFactory.getLogger("io.apicurio.registry.audit.authz");
 
     /**
      * Role given to unauthenticated callers, so access rules can allow anonymous access explicitly
@@ -266,8 +265,8 @@ public class GrantsAccessController extends AbstractAccessController {
         if (!allowed) {
             // user and resource are not fully registry-controlled (IdP principal name; a resource
             // name embeds group/artifact IDs), so sanitize before writing them to the audit log
-            AUDIT.info("authz.denied user=\"{}\" operation=\"{}\" resource_type=\"{}\" resource=\"{}\"",
-                    sanitizeForLog(getUsername()), operation, resourceType, sanitizeForLog(resource));
+            AuthzAuditLog.denied(sanitizeForLog(getUsername()), operation, resourceType,
+                    sanitizeForLog(resource));
         }
     }
 

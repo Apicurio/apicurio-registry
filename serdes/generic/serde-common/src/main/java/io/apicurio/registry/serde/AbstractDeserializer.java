@@ -256,15 +256,7 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
             List<RuleDefinition> rules = ruleLoader.domainRules(ref.getGroupId(), ref.getArtifactId(),
                     ref.getVersion());
             if (!rules.isEmpty()) {
-                Map<String, Object> recordMap = dataToMap(data);
-                RuleExecutionResult result = ruleEngine.execute(rules, "READ", recordMap);
-                if (!result.isPassed()) {
-                    String msg = "Contract rule validation failed (READ): " + result.getViolations();
-                    if (contractRulesFailOnError) {
-                        throw new RuntimeException(msg);
-                    }
-                    LOG.warning(msg);
-                }
+                validateReadRules(rules, data);
             }
 
             // Migration transforms
@@ -280,6 +272,18 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
                 throw e;
             }
             LOG.warning("Contract rule execution failed: " + e.getMessage());
+        }
+    }
+
+    private void validateReadRules(List<RuleDefinition> rules, U data) {
+        Map<String, Object> recordMap = dataToMap(data);
+        RuleExecutionResult result = ruleEngine.execute(rules, "READ", recordMap);
+        if (!result.isPassed()) {
+            String msg = "Contract rule validation failed (READ): " + result.getViolations();
+            if (contractRulesFailOnError) {
+                throw new RuntimeException(msg);
+            }
+            LOG.warning(msg);
         }
     }
 

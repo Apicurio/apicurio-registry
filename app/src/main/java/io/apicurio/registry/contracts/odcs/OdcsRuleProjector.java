@@ -65,7 +65,7 @@ public class OdcsRuleProjector {
             return 0;
         }
 
-        String source = "odcs:" + contractId + ":"
+        String source = ODCS_RULE_PREFIX + contractId + ":"
                 + (contract != null && contract.getInfo() != null && contract.getInfo().getVersion() != null
                         ? contract.getInfo().getVersion()
                         : "unknown");

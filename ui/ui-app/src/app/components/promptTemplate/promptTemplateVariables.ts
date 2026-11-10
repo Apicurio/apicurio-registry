@@ -59,11 +59,11 @@ const stripTagBraces = (tag: string): string => {
 };
 
 /**
- * Strip braces, trim, and remove Handlebars whitespace-control tildes
- * from the edges of a tag body. Used for block detection only.
+ * Strip braces and trim a tag body. Whitespace-control tildes are kept, so
+ * `{{~#if x~}}` is not treated as a block: the backend does not process it.
  */
 export const parseHandlebarsTagInner = (tag: string): { inner: string; head: string } => {
-    const inner = stripTagBraces(tag).replace(/^~+|~+$/g, "").trim();
+    const inner = stripTagBraces(tag);
     const head = inner.split(/\s+/, 1)[0];
     return { inner, head };
 };
@@ -72,7 +72,7 @@ const isBlockHelperHead = (head: string): boolean => {
     return head.startsWith("#") || head.startsWith("/") || head.startsWith("^") || head === "else";
 };
 
-export const isBlockHelperTag = (tag: string): boolean => {
+const isBlockHelperTag = (tag: string): boolean => {
     return isBlockHelperHead(parseHandlebarsTagInner(tag).head);
 };
 
@@ -88,7 +88,7 @@ const isSubstitutablePlainVariableTag = (tag: string): boolean => {
 
 /**
  * Classify a single handlebars tag for Template preview highlighting.
- * Mirrors extractTemplateVariableNames() / Test Prompt panel scope for variables.
+ * Variables match extractTemplateVariableNames().
  */
 export function classifyHandlebarsTag(tag: string): HandlebarsTagKind {
     if (isBlockHelperTag(tag)) {
@@ -98,14 +98,6 @@ export function classifyHandlebarsTag(tag: string): HandlebarsTagKind {
         return "variable";
     }
     return "plain";
-}
-
-/**
- * Whether a single handlebars tag is a substitutable variable per
- * extractTemplateVariableNames() / backend `\w+` scope.
- */
-export function isSubstitutableVariableTag(tag: string): boolean {
-    return classifyHandlebarsTag(tag) === "variable";
 }
 
 /**

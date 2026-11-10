@@ -119,11 +119,11 @@ describe("tokenizeTemplate", () => {
         });
     });
 
-    it("classifies whitespace-control block tags as blocks", () => {
+    it("renders whitespace-control block tags as plain text", () => {
         expect(tokenizeTemplate("{{~#each items~}}{{item}}{{~/each~}}").map(t => [t.text, t.kind])).toEqual([
-            ["{{~#each items~}}", "block"],
+            ["{{~#each items~}}", "plain"],
             ["{{item}}", "variable"],
-            ["{{~/each~}}", "block"]
+            ["{{~/each~}}", "plain"]
         ]);
     });
 

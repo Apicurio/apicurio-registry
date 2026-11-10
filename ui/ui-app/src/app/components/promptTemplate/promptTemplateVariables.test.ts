@@ -2,59 +2,59 @@ import { describe, expect, it } from "vitest";
 import {
     classifyHandlebarsTag,
     extractTemplateVariableNames,
-    isSubstitutableVariableTag,
     parseHandlebarsTagInner,
     reconcileTemplateVariables,
     VariableSchema
 } from "./promptTemplateVariables";
 
 describe("parseHandlebarsTagInner", () => {
-    it("strips whitespace-control tildes from block tags", () => {
+    it("keeps whitespace-control tildes on block tags", () => {
         expect(parseHandlebarsTagInner("{{~#each items~}}")).toEqual({
-            inner: "#each items",
-            head: "#each"
+            inner: "~#each items~",
+            head: "~#each"
         });
     });
 
-    it("strips whitespace-control tildes from plain variables", () => {
+    it("keeps whitespace-control tildes on plain variables", () => {
         expect(parseHandlebarsTagInner("{{~ name ~}}")).toEqual({
-            inner: "name",
-            head: "name"
+            inner: "~ name ~",
+            head: "~"
         });
     });
 });
 
 describe("classifyHandlebarsTag", () => {
-    it("classifies whitespace-control block tags as blocks", () => {
-        expect(classifyHandlebarsTag("{{~#each items~}}")).toBe("block");
-        expect(classifyHandlebarsTag("{{~/if~}}")).toBe("block");
+    it("classifies plain and triple-stash variables as variables", () => {
+        expect(classifyHandlebarsTag("{{name}}")).toBe("variable");
+        expect(classifyHandlebarsTag("{{ name }}")).toBe("variable");
+        expect(classifyHandlebarsTag("{{{raw}}}")).toBe("variable");
+    });
+
+    it("classifies block helpers as blocks", () => {
+        expect(classifyHandlebarsTag("{{#if user}}")).toBe("block");
+        expect(classifyHandlebarsTag("{{/if}}")).toBe("block");
+        expect(classifyHandlebarsTag("{{else}}")).toBe("block");
+    });
+
+    it("classifies dotted paths and @-prefixed tokens as plain", () => {
+        expect(classifyHandlebarsTag("{{user.email}}")).toBe("plain");
+        expect(classifyHandlebarsTag("{{@index}}")).toBe("plain");
+        expect(classifyHandlebarsTag("{{{user.email}}}")).toBe("plain");
+    });
+
+    it("classifies handlebars keywords as plain", () => {
+        expect(classifyHandlebarsTag("{{this}}")).toBe("plain");
+    });
+
+    it("classifies whitespace-control block tags as plain (not processed)", () => {
+        expect(classifyHandlebarsTag("{{~#each items~}}")).toBe("plain");
+        expect(classifyHandlebarsTag("{{~/if~}}")).toBe("plain");
     });
 
     it("classifies whitespace-control variables as plain (not substituted)", () => {
         expect(classifyHandlebarsTag("{{~ item ~}}")).toBe("plain");
         expect(classifyHandlebarsTag("{{~item}}")).toBe("plain");
         expect(classifyHandlebarsTag("{{item~}}")).toBe("plain");
-    });
-});
-
-describe("isSubstitutableVariableTag", () => {
-    it("accepts plain and triple-stash variables in supported scope", () => {
-        expect(isSubstitutableVariableTag("{{name}}")).toBe(true);
-        expect(isSubstitutableVariableTag("{{ name }}")).toBe(true);
-        expect(isSubstitutableVariableTag("{{{raw}}}")).toBe(true);
-    });
-
-    it("rejects block helpers, dotted paths, and @-prefixed tokens", () => {
-        expect(isSubstitutableVariableTag("{{#if user}}")).toBe(false);
-        expect(isSubstitutableVariableTag("{{/if}}")).toBe(false);
-        expect(isSubstitutableVariableTag("{{else}}")).toBe(false);
-        expect(isSubstitutableVariableTag("{{user.email}}")).toBe(false);
-        expect(isSubstitutableVariableTag("{{@index}}")).toBe(false);
-        expect(isSubstitutableVariableTag("{{{user.email}}}")).toBe(false);
-    });
-
-    it("rejects handlebars keywords that are not substitutable variables", () => {
-        expect(isSubstitutableVariableTag("{{this}}")).toBe(false);
     });
 });
 

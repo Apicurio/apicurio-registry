@@ -26,7 +26,6 @@ import io.apicurio.registry.storage.error.RuleNotFoundException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -39,7 +38,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
 import static java.net.HttpURLConnection.HTTP_CONFLICT;
 import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
 
@@ -50,7 +48,6 @@ public class CCompatExceptionMapperService implements ExceptionMapperService {
 
     static {
         Map<Class<? extends Exception>, Integer> map = new HashMap<>();
-        map.put(BadRequestException.class, HTTP_BAD_REQUEST);
         map.put(AlreadyExistsException.class, HTTP_CONFLICT);
         map.put(ArtifactAlreadyExistsException.class, HTTP_CONFLICT);
         map.put(ArtifactNotFoundException.class, ErrorCode.SUBJECT_NOT_FOUND.value());

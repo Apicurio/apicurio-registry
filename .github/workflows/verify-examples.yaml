@@ -13,7 +13,9 @@ name: Examples
 # MCP_SERVER_IMAGE (UI_IMAGE is also set for older examples), defaulting to latest-snapshot for
 # local runs. Every Apicurio Registry image an example runs must be one built for this commit: the
 # job fails if the stack would use any other (for example a published snapshot).
-# Optional per-example settings live in examples/<name>/ci.env; see examples/TEMPLATE.md.
+# Optional per-example settings live in examples/<name>/ci.env; see examples/TEMPLATE.md. With
+# CI_NEEDS_BUILD=true the job also sets up a JDK and the Maven cache and runs the example's
+# build.sh, so demo.sh can run Java clients built from this commit (snapshots are not published).
 
 on:
   workflow_call:
@@ -89,6 +91,24 @@ jobs:
           image-file: /tmp/apicurio-registry-mcp-server-${{ inputs.image-tag }}.tar
           image-name: apicurio/apicurio-registry-mcp-server
           tag: ${{ inputs.image-tag }}
+
+      - name: Set up JDK ${{ inputs.java-version }}
+        if: matrix.example.build
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
+        with:
+          java-version: ${{ inputs.java-version }}
+          distribution: 'temurin'
+
+      - name: Restore Maven cache
+        if: matrix.example.build
+        uses: ./.github/actions/setup-maven-cache
+
+      - name: Build the example's Java parts (build.sh)
+        if: matrix.example.build
+        env:
+          # Maven 3.9+ reads MAVEN_ARGS: the CI mirrors and quieter output
+          MAVEN_ARGS: -s ${{ github.workspace }}/.github/ci-settings.xml --no-transfer-progress
+        run: ./build.sh
 
       - name: Apply ci.env
         run: |
@@ -204,10 +224,3 @@ jobs:
           # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
           mvn -s ${{ github.workspace }}/.github/ci-settings.xml install -T 1 -DskipTests -Pexamples -Dassembly.skipAssembly=true -Daether.syncContext.named.factory=noop --no-transfer-progress
 
-      # The rules-and-compatibility example's client-side validation needs the in-repo validation
-      # library, which only this job builds; its demo.sh covers the server-side rules.
-      - name: Run the rules-and-compatibility validation client
-        run: |
-          mvn -s ${{ github.workspace }}/.github/ci-settings.xml exec:java --no-transfer-progress \
-            -f examples/rules-and-compatibility/validation-client \
-            -Dregistry.url=http://localhost:8080/apis/registry/v3

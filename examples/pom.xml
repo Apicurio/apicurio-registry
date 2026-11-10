@@ -31,24 +31,14 @@
   </licenses>
 
   <modules>
-    <module>simple-avro</module>
-    <module>simple-json</module>
     <module>confluent-serdes</module>
-    <module>avro-bean</module>
-    <module>custom-resolver</module>
-    <module>custom-strategy</module>
-    <module>simple-avro-maven</module>
     <module>rest-client</module>
-    <module>mix-avro</module>
     <module>serdes-with-references</module>
     <module>avro-maven-with-references</module>
     <module>json-maven-with-references</module>
     <module>avro-maven-with-references-auto</module>
     <module>asyncapi-avro-maven-with-references-auto</module>
     <module>json-maven-with-references-auto</module>
-    <module>simple-protobuf</module>
-    <module>protobuf-find-latest</module>
-    <module>protobuf-bean</module>
     <module>docker-compose</module>
     <module>openshift-template</module>
     <module>mtls-minikube/client</module>
@@ -62,6 +52,8 @@
     <module>odcs-data-contracts</module>
     <module>custom-artifact-types</module>
     <module>rules-and-compatibility/validation-client</module>
+    <module>kafka-serdes/tour</module>
+    <module>kafka-serdes/connect-plugin</module>
   </modules>
 
   <scm>

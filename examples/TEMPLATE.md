@@ -71,7 +71,14 @@ saying why:
 |---|---|---|
 | `CI_TIMEOUT_MINUTES` | `20` | Job timeout |
 | `CI_ENABLED` | `true` | `false` skips the example in CI; say why, and prefer fixing it |
+| `CI_NEEDS_BUILD` | `false` | `true` sets up a JDK and the Maven cache, then runs the example's `build.sh` before `demo.sh` |
 | any other key | | Exported to `docker compose` and `demo.sh`, for example `SKIP_LLM=1` |
+
+**Java clients.** Snapshots of the client libraries (SDK, serdes, validation library) are not
+published, so an example with Java code builds it from the checkout. Give it a `build.sh` that runs
+`./mvnw install -Pexamples -pl examples/<name>/<module> -am -DskipTests` from the repository root,
+call it from `demo.sh` when the classes are missing, and set `CI_NEEDS_BUILD=true`. See
+[`rules-and-compatibility`](rules-and-compatibility/) and [`kafka-serdes`](kafka-serdes/).
 
 To run the same check locally against a local build:
 

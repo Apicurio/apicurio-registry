@@ -139,7 +139,7 @@ However, you can use alternative conventions for the mapping by using a strategy
 
 *DefaultSchemaResolver interface*
 
-The default schema resolver locates and identifies the specific version of the schema registered under the artifact reference provided by the artifact resolver strategy. Every version of every artifact has a single globally unique identifier that can be used to retrieve the content of that artifact. This global ID is included in every Kafka message so that a deserializer can properly fetch the schema from Apicurio Registry.
+The default schema resolver locates and identifies the specific version of the schema registered under the artifact reference provided by the artifact resolver strategy. Every schema has an ID that can be used to retrieve it: by default the content ID, which identical schemas share. This ID is included in every Kafka message, in the payload or in a header, so that a deserializer can fetch the schema from {registry}. Set `apicurio.registry.use-id` to `globalId` to send the global ID, unique to each artifact version, instead.
 
 The default schema resolver can look up an existing artifact version, or it can register one if not found, depending on which strategy is used. You can also provide your own strategy by creating a custom Java class that implements `io.apicurio.registry.resolver.SchemaResolver`. However, it is recommended to use the `DefaultSchemaResolver` and specify configuration properties instead.
 
@@ -151,8 +151,9 @@ The default schema resolver can look up an existing artifact version, or it can 
 [role="_abstract"]
 {registry} provides the following strategies to return a reference to an artifact based on an implementation of `ArtifactReferenceResolverStrategy`:
 
-`RecordIdStrategy`:: Avro-specific strategy that uses the full name of the schema.
-`TopicRecordIdStrategy`:: Avro-specific strategy that uses the topic name and the full name of the schema.
+`RecordIdStrategy`:: Avro-specific strategy that uses the namespace of the schema as the group ID and its name as the artifact ID.
+`TopicRecordIdStrategy`:: Avro-specific strategy that uses the namespace of the schema as the group ID, and the topic name and the name of the schema as the artifact ID.
+`QualifiedRecordIdStrategy`:: Avro-specific strategy that uses the full name of the schema as the artifact ID, in the `default` group.
 `TopicIdStrategy`:: Default strategy that uses the topic name and `key` or `value` suffix.
 `SimpleTopicIdStrategy`:: Simple strategy that only uses the topic name.
 
@@ -180,18 +181,18 @@ When using the `DefaultSchemaResolver`, you can configure its behavior using app
 
 |`apicurio.registry.use-id`
 |`String`
-|Instructs the serializer to write the specified ID to Kafka and instructs the deserializer to use this ID to find the schema.
-|None
+|Instructs the serializer to write the specified ID to Kafka and instructs the deserializer to use this ID to find the schema. Valid values are `contentId` and `globalId`.
+|`contentId`
 
 |`apicurio.registry.auto-register`
 |`boolean`
-|Specify whether the serializer tries to create an artifact in the registry. The JSON Schema serializer does not support this.
+|Specify whether the serializer tries to create an artifact in the registry. The JSON Schema serializer supports this only when `apicurio.registry.artifact.schema.location` is set, because a JSON Schema cannot be derived from the data.
 |`false`
 
 |`apicurio.registry.check-period-ms`
-|`String`
-|Specify how long to cache the global ID in milliseconds. If not configured, the global ID is fetched every time.
-|None
+|`long`
+|Specify how long, in milliseconds, to cache the results of schema lookups by group ID and artifact ID. Lookups by ID are cached without expiry.
+|`30000`
 
 |===
 

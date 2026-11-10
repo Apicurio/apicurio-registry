@@ -1,22 +1,14 @@
 # Builds the Quarkus LangChain4j agent registry sample (weather MCP server, A2A text agents,
-# orchestrator) from a pinned quarkus-langchain4j commit.
-#
-# Pinned because the released extensions (2.0.0.Beta2) predate MCP_SERVER discovery and
-# paging through all agent cards, which the sample needs. Move to a release that has them.
-# The first build takes several minutes; later builds reuse the cached layers.
-ARG QL4J_REF=63d653054647a9f8c36193796727287ab243e343
+# orchestrator) from a Quarkus LangChain4j release, against the released extensions.
+# The first build takes a few minutes; later builds reuse the cached layers.
+ARG QL4J_VERSION=1.15.0
 
 FROM maven:3.9-eclipse-temurin-21 AS build
-ARG QL4J_REF
+ARG QL4J_VERSION
 WORKDIR /src
-RUN git init -q . \
- && git remote add origin https://github.com/quarkiverse/quarkus-langchain4j.git \
- && git fetch -q --depth 1 origin "${QL4J_REF}" \
- && git checkout -q FETCH_HEAD
+RUN git clone -q --depth 1 --branch "${QL4J_VERSION}" https://github.com/quarkiverse/quarkus-langchain4j.git .
 RUN --mount=type=cache,target=/root/.m2 \
-    ./mvnw -B -q -pl agentic/deployment,a2a-apicurio-registry/deployment,mcp-apicurio-registry/deployment,model-providers/ollama/deployment \
-        -am install -DskipTests -Dno-format \
- && ./mvnw -B -q -f samples/agent-registry-workflow/pom.xml package -DskipTests
+    ./mvnw -B -q -f samples/agent-registry-workflow/pom.xml package -DskipTests
 
 FROM eclipse-temurin:21-jre
 WORKDIR /apps

@@ -168,7 +168,7 @@ services:
         condition: service_healthy
 
   # ---------------------------------------------------------------- Quarkus LangChain4j apps
-  # Built from a pinned quarkus-langchain4j commit (see apps/Dockerfile). They use the open
+  # Built from the Quarkus LangChain4j 1.15.0 sample (see apps/Dockerfile). They use the open
   # Registry, and Ollama on the host.
   weather-server:
     image: agent-registry-demo-apps:dev

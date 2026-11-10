@@ -50,8 +50,9 @@ source ./demo-env.sh
 Paths that start with `/apis` or `/.well-known` are used as they are. Other paths are relative to
 the Core Registry API, `/apis/registry/v3`.
 
-> **Presenter note.** The demo has two Registries on purpose. The Quarkus extensions cannot
-> authenticate to a Registry yet, so the applications use one without authentication (port 8180).
+> **Presenter note.** The demo has two Registries on purpose. The released Quarkus extensions
+> cannot authenticate to a Registry yet (see the README), so the applications use one without
+> authentication (port 8180).
 > The secured one (port 8081) shows everything that depends on who is asking. Parts 1 to 9 use the
 > open Registry, parts 10 and 11 the secured one.
 

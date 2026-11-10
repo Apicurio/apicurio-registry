@@ -62,10 +62,12 @@ Every port is bound to `localhost`.
 
 ### Why two Registries
 
-The Quarkus LangChain4j Registry extensions cannot authenticate to a Registry yet
-([quarkiverse/quarkus-langchain4j#3142](https://github.com/quarkiverse/quarkus-langchain4j/issues/3142),
-[#3143](https://github.com/quarkiverse/quarkus-langchain4j/issues/3143)), so the applications use the
-open Registry. The features that depend on who is asking (agent visibility, access rules, and the
+The Quarkus LangChain4j Registry extensions cannot authenticate to a Registry in any released
+version, so the applications use the open Registry. Registry authentication for both extensions
+([quarkiverse/quarkus-langchain4j#3145](https://github.com/quarkiverse/quarkus-langchain4j/pull/3145))
+and credentials for discovered A2A agents
+([#3157](https://github.com/quarkiverse/quarkus-langchain4j/pull/3157)) are in review. Once they are
+released, the applications will use the secured Registry. The features that depend on who is asking (agent visibility, access rules, and the
 Registry MCP server's token forwarding) are shown on the secured one.
 
 ## Users

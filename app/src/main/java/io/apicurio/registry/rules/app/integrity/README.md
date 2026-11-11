@@ -58,8 +58,7 @@ What is already correct, or already known not to be:
   ([#9095][9095], [`IntegrityRuleExecutor.findCycleInReferenceGraph`][findcycle]).
 - The reference-graph endpoint (`GET .../references/graph`) detects a cycle per *version*, not per
   artifact: a cross-version chain through the same artifact (`A@2 -> B@1 -> A@1`) is a valid chain,
-  not a cycle, because `A@1` has no edge back to `A@2` ([#9069][9069], fix open as [#10794][10794],
-  not yet merged).
+  not a cycle, because `A@1` has no edge back to `A@2` ([#9069][9069], fixed in [#10794][10794]).
 - A reference name that resolves to two different targets elsewhere in the same graph is detected
   and warned about ([#9000][9000], `ResolvedReferences.asNameMap()`). Today this is detection only
   — the warning explains what is ambiguous, but resolution still picks one target the same way it
@@ -104,14 +103,28 @@ either behavior, so the registry exposes a switch. Tiers 1 and 2 are never confi
 no "off" position because there is no deployment for which the looser behavior is acceptable.
 
 The *default* a tier-3 check ships with is a separate decision from its tier, with its own
-rationale per check — being tier 3 does not imply "off by default". For example, ccompat's
-subject-delete path already refuses to delete a schema version that other subjects still actively
-reference, unconditionally, because the Confluent API contract requires it
-(`AbstractResource.areAllSchemasDisabled`, fixed to require *all* referrers disabled, not merely
-one — [#10598][10598]); that check has no switch and is not a candidate for tier 3 at all; it is
-really tier 2 for that API, because the Confluent contract makes a wrong answer there a correctness
-bug rather than a policy question. A check that is "opt-out because nobody should realistically turn
-it off" belongs in tier 2 without a switch, not in tier 3 with a switch nobody should use.
+rationale per check — being tier 3 does not imply "off by default". Two principles decide it:
+
+- **Principle A**: a tier-3 check is on by default when an API contract the registry implements
+  requires that behavior. ccompat's subject-delete path already refuses to delete a schema version
+  that other subjects still actively reference, with no switch
+  (`AbstractResource.areAllSchemasDisabled`, fixed to require *all* referrers disabled, not merely
+  one — [#10598][10598]), because the Confluent-compatible API's contract guarantees a referenced
+  schema cannot be deleted. That guarantee is still tier 3, not tier 2: tier 2 is about an
+  *operation's result*, and delete-time referential integrity instead prevents a *registry state*
+  (dangling references), which the registry allows elsewhere — the wrong results that state can
+  cause are the tier-2 rule above, on the operations that depend on the content (see [#11059][11059]).
+  Preventing the state in the first place is policy, the same as `REFS_EXIST` at write time; what
+  makes ccompat's default "on" rather than "off" is principle A, not a different tier.
+- **Principle B**: when a contract guarantees something about *registry state* rather than about one
+  operation's result, the check needs **one switch for all APIs**, because every API shares that
+  state. Users run more than one API against the same registry — Confluent-compatible serdes for
+  older clients, the v3 API for newer ones — so a v3 delete that bypassed the check would break the
+  Confluent-compatible contract for those clients. Separate switches, or a v3 default different from
+  ccompat's, cannot work for a state-level guarantee.
+
+A check that is "opt-out because nobody should realistically turn it off" belongs in tier 2 without
+a switch, not in tier 3 with a switch nobody should use.
 
 Through the `INTEGRITY` rule's `IntegrityLevel`s — off (`NONE`) unless a group or artifact
 explicitly configures the rule, exactly as configured today:
@@ -133,12 +146,16 @@ explicitly configures the rule, exactly as configured today:
   not structurally wrong the way a crash or data corruption would be — some graphs legitimately
   have cycles that the registry can still store and traverse safely (tier 1 guarantees that) — so
   whether to reject one at write time is a policy decision, same as the others in this tier.
-- Delete-time referential integrity for the v3 API ([#10047][10047]; a prior report of the same gap,
-  [#11029][11029], was closed as its duplicate): proposed, not yet implemented. Blocking a delete
-  that would leave another artifact's reference dangling is the mirror image of `REFS_EXIST` at
-  write time, and belongs in this tier for the same reason — forward and dangling references are
-  both legitimate states the registry already tolerates, so preventing one at delete time is a
-  policy choice. Its default (on or off) is still open, to be decided by Carles/Eric.
+- Delete-time referential integrity, shared across all APIs ([#10047][10047]; a prior report of
+  the same gap, [#11029][11029], was closed as its duplicate): proposed, not yet implemented.
+  Blocking a delete that would leave another artifact's reference dangling is the mirror image of
+  `REFS_EXIST` at write time, and belongs in this tier for the same reason — forward and dangling
+  references are both legitimate states the registry already tolerates, so preventing one at delete
+  time is a policy choice. Per principle B, this has to be one check with one switch shared by every
+  API's delete path, since ccompat's existing guarantee is about registry state. Default suggested:
+  on, per principles A and B above (documented as "turn off only if no client relies on the
+  Confluent-compatible API's guarantee that a referenced schema can't be deleted"); final default,
+  an admin-only `force` override, and timing are to be decided in [#10047][10047], not here.
 
 ## Migration: changing what a check accepts by default
 
@@ -156,6 +173,12 @@ At minimum:
 tier-2 guarantee (today: detection only, not resolution) is already unconditional, and a future
 PR that turns detection into enforcement gets its own release-ahead warning period if it ever
 changes what is accepted, via the richer resolution [#10761][10761] is tracked against.
+
+[#10047][10047] is the other shape of this: turning its shared delete-time check on changes v3 and
+v2 behavior (deletes that succeed today would start being refused), even though ccompat already
+enforces the equivalent check today. It needs at least a release note, and preferably a report-only
+period first — surfacing what would newly be refused via [#10048][10048]'s report — before the
+default turns on for v3/v2.
 
 ## Open question 1 (#10635), answered
 
@@ -176,13 +199,19 @@ What the *caller* does once a reference comes back "missing" is not a tier-2 dec
 table in the Correctness section above: an operation whose result depends on the missing content
 fails with a clear error naming it; one that does not proceeds and reports the gap where it can.
 
-A version in the `DISABLED` state is not "missing" for this purpose — it exists and is resolvable,
-just administratively hidden from some read paths. Treating `DISABLED` as equivalent to "does not
-exist" has been a source of bugs before, in the opposite direction: ccompat's delete-time check
-originally let a delete through as soon as *any* one referencing schema happened to be disabled,
-instead of requiring all of them to be ([#10598][10598]). Any new "missing reference" handling that
-also needs to special-case `DISABLED` targets should follow the same rule ccompat was fixed to use:
-disabled is not absent.
+How a version in the `DISABLED` state should count is explicitly **open**, on both sides of this:
+as a resolution target, and as a referrer when something else is being deleted. Today's actual
+behavior, as two separate facts, neither of which this README prescribes going forward:
+
+- As a resolution target, a `DISABLED` version still resolves — it is not treated as "missing".
+- As a referrer, ccompat's delete-time check lets a delete through only when *all* referencing
+  schemas are themselves `DISABLED` ([#10598][10598], `AbstractResource.areAllSchemasDisabled`,
+  `allMatch` not `anyMatch`) — so a `DISABLED` referrer does *not* block a delete, only an `ENABLED`
+  one does.
+
+Whether both of these are the right behavior, and whether [#10047][10047]'s shared delete-time
+check should treat `DISABLED` referrers and targets the same way ccompat does today, is left to be
+settled there, not decided by this classification.
 
 This still leaves dangling references silently unreported day to day, by design — tier 2 only
 requires that *resolving* a reference that happens to be missing not be confused with resolution

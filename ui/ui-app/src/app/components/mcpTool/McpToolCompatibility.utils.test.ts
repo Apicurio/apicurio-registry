@@ -14,6 +14,7 @@ import {
     compatibilitySummary,
     compatibilityViewState,
     showCompatibleToolsTab,
+    verdictFilterLabel,
     verdictLabel
 } from "./McpToolCompatibility.utils";
 
@@ -52,9 +53,15 @@ describe("compatibilityViewState", () => {
     });
 
     it("shows empty when no tool was evaluated, and the results otherwise", () => {
-        expect(compatibilityViewState(false, false, { results: [], limitations: [] })).toBe("empty");
-        expect(compatibilityViewState(false, false, { results: [{ verdict: "COMPATIBLE" }], limitations: [] }))
+        expect(compatibilityViewState(false, false, { evaluated: 0, results: [], limitations: [] })).toBe("empty");
+        expect(compatibilityViewState(false, false, { evaluated: 1, results: [{ verdict: "COMPATIBLE" }], limitations: [] }))
             .toBe("results");
+    });
+
+    it("keeps the results when the selected verdict has none, or while another page loads", () => {
+        const results = { evaluated: 2, results: [], limitations: [] };
+        expect(compatibilityViewState(false, false, results)).toBe("results");
+        expect(compatibilityViewState(true, false, results)).toBe("results");
     });
 });
 
@@ -66,27 +73,33 @@ describe("verdictLabel", () => {
     });
 });
 
+describe("verdictFilterLabel", () => {
+    it("labels each verdict with its own total", () => {
+        const totals = { compatible: 3, incompatible: 2, indeterminate: 1 };
+        expect(verdictFilterLabel("COMPATIBLE", totals)).toBe("Compatible (3)");
+        expect(verdictFilterLabel("INCOMPATIBLE", totals)).toBe("Incompatible (2)");
+        expect(verdictFilterLabel("INDETERMINATE", totals)).toBe("Indeterminate (1)");
+    });
+
+    it("counts zero before the totals are known", () => {
+        expect(verdictFilterLabel("INCOMPATIBLE", undefined)).toBe("Incompatible (0)");
+    });
+});
+
 describe("compatibilitySummary", () => {
-    it("counts the verdicts from the totals", () => {
-        expect(compatibilitySummary({ evaluated: 3, totals: { compatible: 1, incompatible: 1, indeterminate: 1 } }))
-            .toBe("Compared with 3 other MCP tools: 1 compatible, 1 incompatible, 1 indeterminate.");
-        expect(compatibilitySummary({ evaluated: 1, totals: { compatible: 1, incompatible: 0, indeterminate: 0 } }))
-            .toBe("Compared with 1 other MCP tool: 1 compatible, 0 incompatible, 0 indeterminate.");
+    it("counts the evaluated tools", () => {
+        expect(compatibilitySummary({ evaluated: 3 })).toBe("Compared with 3 other MCP tools.");
+        expect(compatibilitySummary({ evaluated: 1 })).toBe("Compared with 1 other MCP tool.");
     });
 });
 
 describe("compatibilityNotices", () => {
-    it("has no notice when every tool was compared and every result is shown", () => {
-        expect(compatibilityNotices({ complete: true, scanLimit: 500, count: 1, results: [{}] })).toEqual([]);
+    it("has no notice when every tool was compared", () => {
+        expect(compatibilityNotices({ complete: true, scanLimit: 500 })).toEqual([]);
     });
 
     it("notices a scan that stopped at the scan limit", () => {
-        expect(compatibilityNotices({ complete: false, scanLimit: 500, count: 1, results: [{}] }))
+        expect(compatibilityNotices({ complete: false, scanLimit: 500 }))
             .toEqual(["Only the newest 500 MCP tools were compared."]);
-    });
-
-    it("notices results beyond the page shown", () => {
-        expect(compatibilityNotices({ complete: true, scanLimit: 500, count: 3, results: [{}, {}] }))
-            .toEqual(["Showing the first 2 of 3 results."]);
     });
 });

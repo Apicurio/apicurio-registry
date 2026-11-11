@@ -224,18 +224,30 @@ public class FederatedSearchResourceTest extends AbstractResourceTestBase {
     }
 
     @Test
-    void perSourceLimitIsBoundedByTheServer() throws Exception {
+    void perSourceLimitAboveTheServersMaximumIsLoweredToIt() throws Exception {
         StubPeer peer = stub((request, response) -> StubPeer.publicAgents(response, 0));
         registerPeer("stub", peer.url());
 
         given().queryParam("perSourceLimit", 100000).get(SEARCH_PATH).then().statusCode(200);
-        given().queryParam("perSourceLimit", 0).get(SEARCH_PATH).then().statusCode(200);
+        given().queryParam("perSourceLimit", 1).get(SEARCH_PATH).then().statusCode(200);
         given().get(SEARCH_PATH).then().statusCode(200);
 
         List<String> queries = peer.requests().stream().map(StubPeer.Seen::query).toList();
         assertTrue(queries.get(0).contains("limit=100&"), queries.get(0));
         assertTrue(queries.get(1).contains("limit=1&"), queries.get(1));
         assertTrue(queries.get(2).contains("limit=20&"), queries.get(2));
+    }
+
+    @Test
+    void perSourceLimitBelowOneIsRefused() throws Exception {
+        StubPeer peer = stub((request, response) -> StubPeer.publicAgents(response, 0));
+        registerPeer("stub", peer.url());
+
+        for (int value : new int[] { 0, -1 }) {
+            given().queryParam("perSourceLimit", value).get(SEARCH_PATH).then().statusCode(400)
+                    .body("title", equalTo("perSourceLimit must be at least 1."));
+        }
+        assertTrue(peer.requests().isEmpty(), "A refused search must not call a peer.");
     }
 
     @Test

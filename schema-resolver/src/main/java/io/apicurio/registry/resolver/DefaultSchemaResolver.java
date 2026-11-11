@@ -324,14 +324,16 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
                 .content(rawSchemaString)
                 .references(references)
                 .build();
+        // A null group is the default group. ArtifactReference.builder() already normalizes it; doing it again here
+        // keeps the cache key identical to the coordinates registered below for any other ArtifactReference.
+        String groupId = artifactReference.getGroupId() == null ? "default" : artifactReference.getGroupId();
         // Key by the target coordinates too: identical content written under other coordinates (e.g. another
         // topic) must still be registered there (#11053).
-        var key = new AutoCreateKey(content, artifactReference.getGroupId(), artifactReference.getArtifactId(),
+        var key = new AutoCreateKey(content, groupId, artifactReference.getArtifactId(),
                 artifactReference.getVersion());
 
         return schemaCache.getByAutoCreateKey(key, autoCreateKey -> {
             String artifactType = schemaParser.artifactType();
-            String groupId = artifactReference.getGroupId() == null ? "default" : artifactReference.getGroupId();
             String artifactId = artifactReference.getArtifactId();
             String version = artifactReference.getVersion();
             String autoCreate = this.autoCreateBehavior;

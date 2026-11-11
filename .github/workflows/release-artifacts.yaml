@@ -192,14 +192,17 @@ jobs:
       # `-Dfull` is required because the `mcp` and `operator` modules exist only in that
       # profile (see the `full` profile in the root pom.xml); `-pl ... -am` still limits
       # the build to the selected modules and their upstream dependencies, so the other
-      # full-only modules are not built. `-Dquarkus.native.enabled=false` overrides the
-      # property set in cli/pom.xml so the CLI builds as a plain JVM module here instead
-      # of invoking a GraalVM native build, which this job neither needs nor has.
+      # full-only modules are not built. `-DcliSkipNative` activates the `cli-skip-native`
+      # profile in cli/pom.xml, which both disables the GraalVM native build this job
+      # neither needs nor has and unbinds the `dist` assembly — that assembly packages the
+      # native runner, so on this job's fresh clone it would otherwise fail the build
+      # before any SBOM is generated. Setting `quarkus.native.enabled=false` alone
+      # disables only the first half and is not sufficient.
       - name: Maven Install
         run: |
           cd registry
           mvn $MVN_SETTINGS install -pl app,cli,mcp,operator/controller -am -Pprod -Dfull -DskipTests \
-            -Dquarkus.native.enabled=false -Dmaven.javadoc.skip=true --no-transfer-progress
+            -DcliSkipNative -Dmaven.javadoc.skip=true --no-transfer-progress
 
       # One tree per shipped component, each generated from its own module POM so it
       # reflects that module's own dependency resolution. The operator targets

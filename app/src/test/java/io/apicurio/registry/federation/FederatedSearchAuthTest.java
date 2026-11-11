@@ -31,7 +31,11 @@ import java.util.UUID;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
@@ -145,9 +149,35 @@ public class FederatedSearchAuthTest extends AbstractResourceTestBase {
                         containsInAnyOrder("public-card", "entitled-card"));
 
         // Whoever asks, the peer is queried anonymously for public cards, so that is all it returns.
-        for (String user : List.of("alice", "bob1", "duncan")) {
+        // Only the administrator, who may list the peers, sees which peer it is.
+        searchAs("alice", skill).body("sources.outcome", contains("ok", "ok"))
+                .body("agents.findAll { it.source == 'self' }.artifactId", contains("public-card"));
+        for (String user : List.of("bob1", "duncan")) {
             searchAs(user, skill).body("sources.outcome", contains("ok", "ok"))
-                    .body("agents.findAll { it.source == 'self' }.artifactId", contains("public-card"));
+                    .body("agents.findAll { it.source == 'peer-1' }.artifactId", contains("public-card"));
+        }
+    }
+
+    @Test
+    void onlyACallerWhoMayListThePeersSeesWhichPeerIsWhichAndWhyItFailed() throws Exception {
+        StubPeer failing = StubPeer.start(vertx, (request, response) -> response.setStatusCode(500).end());
+        stubs.add(failing);
+        registerPeer("failing-peer", failing.url());
+
+        as("alice").get(SEARCH_PATH).then().statusCode(200)
+                .body("sources.source", contains("local", "failing-peer"))
+                .body("sources[1].outcome", equalTo("failed"))
+                .body("sources[1].reason", equalTo("peer_error"));
+
+        // A developer and a read-only user may search but not list the peers.
+        as("bob1").pathParam("peerId", "failing-peer").get(PEERS_PATH + "/{peerId}").then().statusCode(403);
+        as("duncan").pathParam("peerId", "failing-peer").get(PEERS_PATH + "/{peerId}").then().statusCode(403);
+        for (String user : List.of("bob1", "duncan")) {
+            as(user).get(SEARCH_PATH).then().statusCode(200)
+                    .body("sources.source", contains("local", "peer-1"))
+                    .body("sources[1].outcome", equalTo("failed"))
+                    .body("sources[1].reason", nullValue())
+                    .body(not(containsString("failing-peer")));
         }
     }
 

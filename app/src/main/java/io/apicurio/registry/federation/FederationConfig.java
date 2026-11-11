@@ -2,15 +2,23 @@ package io.apicurio.registry.federation;
 
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.rest.ConflictException;
+import io.quarkus.runtime.Startup;
+import jakarta.annotation.PostConstruct;
 import jakarta.inject.Singleton;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_FEDERATION;
 
 /**
- * Configuration properties for federated agent search across peer registries.
+ * Configuration properties for federated agent search across peer registries. When federation is
+ * enabled, the search settings are checked at startup, and the registry does not start if one is
+ * out of range.
  */
 @Singleton
+@Startup
 public class FederationConfig {
 
     private static final String NOT_ENABLED = "Federation is not enabled on this registry instance.";
@@ -66,6 +74,45 @@ public class FederationConfig {
     @ConfigProperty(name = "apicurio.federation.search.breaker.delay-ms", defaultValue = "30000")
     @Info(category = CATEGORY_FEDERATION, description = "Time in milliseconds an open circuit breaker waits before letting a call through to a peer registry again", availableSince = "3.4.0")
     long breakerDelayMs;
+
+    @PostConstruct
+    void validate() {
+        if (!enabled) {
+            return;
+        }
+        List<String> problems = new ArrayList<>();
+        atLeastOne(problems, "apicurio.federation.search.deadline-ms", searchDeadlineMs);
+        atLeastOne(problems, "apicurio.federation.search.peer-timeout-ms", searchPeerTimeoutMs);
+        if (searchPeerTimeoutMs > 0 && searchPeerTimeoutMs >= searchDeadlineMs) {
+            // Otherwise every slow peer is cut off by the deadline first and reported as
+            // deadline_exceeded, and its own timeout is never reported.
+            problems.add("apicurio.federation.search.peer-timeout-ms (" + searchPeerTimeoutMs
+                    + ") must be below apicurio.federation.search.deadline-ms (" + searchDeadlineMs + ")");
+        }
+        atLeastOne(problems, "apicurio.federation.search.max-peers", searchMaxPeers);
+        atLeastOne(problems, "apicurio.federation.search.max-concurrent-calls", searchMaxConcurrentCalls);
+        atLeastOne(problems, "apicurio.federation.search.max-searches-per-caller", searchMaxSearchesPerCaller);
+        atLeastOne(problems, "apicurio.federation.search.max-response-bytes", searchMaxResponseBytes);
+        atLeastOne(problems, "apicurio.federation.search.per-source-limit.max", searchPerSourceLimitMax);
+        atLeastOne(problems, "apicurio.federation.search.breaker.request-volume-threshold",
+                breakerRequestVolumeThreshold);
+        if (!(breakerFailureRatio > 0 && breakerFailureRatio <= 1)) {
+            problems.add("apicurio.federation.search.breaker.failure-ratio (" + breakerFailureRatio
+                    + ") must be above 0 and at most 1");
+        }
+        if (breakerDelayMs < 0) {
+            problems.add("apicurio.federation.search.breaker.delay-ms (" + breakerDelayMs + ") must not be negative");
+        }
+        if (!problems.isEmpty()) {
+            throw new IllegalStateException("Invalid federation configuration: " + String.join("; ", problems) + ".");
+        }
+    }
+
+    private static void atLeastOne(List<String> problems, String name, long value) {
+        if (value < 1) {
+            problems.add(name + " (" + value + ") must be at least 1");
+        }
+    }
 
     public boolean isEnabled() {
         return enabled;

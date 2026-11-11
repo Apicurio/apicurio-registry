@@ -26,10 +26,12 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -48,10 +50,10 @@ class FederatedSearchServiceTest {
     private static final PeerQuery QUERY = new PeerQuery(null, null, null, null, null, 10);
 
     /** A caller who may list the peers. */
-    private static final FederatedSearchCaller ADMIN = new FederatedSearchCaller(true);
+    private static final FederatedSearchCaller ADMIN = new FederatedSearchCaller("admin", true);
 
     /** A caller who may search but not list the peers. */
-    private static final FederatedSearchCaller READER = new FederatedSearchCaller(false);
+    private static final FederatedSearchCaller READER = new FederatedSearchCaller("reader", false);
 
     @Inject
     FederatedSearchService service;
@@ -69,6 +71,7 @@ class FederatedSearchServiceTest {
     private FakePeers peers;
     private long savedDeadlineMs;
     private int savedMaxPeers;
+    private int savedMaxSearchesPerCaller;
     private int savedVolumeThreshold;
     private double savedFailureRatio;
     private long savedDelayMs;
@@ -77,12 +80,14 @@ class FederatedSearchServiceTest {
     void setUp() {
         savedDeadlineMs = config.searchDeadlineMs;
         savedMaxPeers = config.searchMaxPeers;
+        savedMaxSearchesPerCaller = config.searchMaxSearchesPerCaller;
         savedVolumeThreshold = config.breakerRequestVolumeThreshold;
         savedFailureRatio = config.breakerFailureRatio;
         savedDelayMs = config.breakerDelayMs;
 
         config.searchDeadlineMs = 2000;
         config.searchMaxPeers = 16;
+        config.searchMaxSearchesPerCaller = 2;
         config.breakerRequestVolumeThreshold = 4;
         config.breakerFailureRatio = 0.5;
         config.breakerDelayMs = 60_000;
@@ -99,6 +104,7 @@ class FederatedSearchServiceTest {
         service.pruneGuards(List.of());
         config.searchDeadlineMs = savedDeadlineMs;
         config.searchMaxPeers = savedMaxPeers;
+        config.searchMaxSearchesPerCaller = savedMaxSearchesPerCaller;
         config.breakerRequestVolumeThreshold = savedVolumeThreshold;
         config.breakerFailureRatio = savedFailureRatio;
         config.breakerDelayMs = savedDelayMs;
@@ -255,6 +261,60 @@ class FederatedSearchServiceTest {
     private double unreachableCount(String peerId) {
         return meters.find("apicurio.federation.peer.search").tag("peer", peerId).tag("reason", "unreachable")
                 .timers().stream().mapToLong(timer -> timer.count()).sum();
+    }
+
+    @Test
+    void aCallerWithTooManySearchesInProgressStillGetsThisRegistrysResultsButCallsNoPeer() throws Exception {
+        config.searchMaxSearchesPerCaller = 1;
+        registered(peer("alpha", true));
+        CompletableFuture<PeerSearchResponse> held = new CompletableFuture<>();
+        AtomicInteger calls = new AtomicInteger();
+        peers.behaviours.put("alpha", query -> calls.incrementAndGet() == 1 ? held
+                : CompletableFuture.completedFuture(response(1, agent("g", "from-alpha"))));
+        FederatedSearchCaller first = new FederatedSearchCaller("first", false);
+        FederatedSearchCaller second = new FederatedSearchCaller("second", false);
+
+        CompletableFuture<FederatedAgentSearchResults> inProgress = CompletableFuture
+                .supplyAsync(() -> service.search(QUERY, first, (limit, checkpoint) -> local(0)));
+        await().atMost(10, TimeUnit.SECONDS).until(() -> peers.callsTo("alpha") == 1);
+
+        // The same caller again: this registry is searched, the peer is not called.
+        FederatedAgentSearchResults refused = service.search(QUERY, first,
+                (limit, checkpoint) -> local(1, agent("g", "from-local")));
+        assertEquals(List.of("local:from-local"), agentIds(refused));
+        assertEquals(FederatedSearchOutcome.failed, source(refused, "peer-1").getOutcome());
+        assertEquals(1, peers.callsTo("alpha"));
+        FederatedAgentSearchResults refusedAsAdmin = service.search(QUERY,
+                new FederatedSearchCaller("first", true), (limit, checkpoint) -> local(0));
+        assertFailed(refusedAsAdmin, "alpha", FederatedSearchFailureReason.capacity_exceeded);
+        assertEquals(1, peers.callsTo("alpha"));
+
+        // Another caller is not affected.
+        FederatedAgentSearchResults other = service.search(QUERY, second, (limit, checkpoint) -> local(0));
+        assertEquals(List.of("peer-1:from-alpha"), agentIds(other));
+        assertEquals(2, peers.callsTo("alpha"));
+
+        // Once the first search has ended, the caller may search the peers again.
+        held.complete(response(0));
+        assertEquals(FederatedSearchOutcome.ok,
+                source(inProgress.get(10, TimeUnit.SECONDS), "peer-1").getOutcome());
+        FederatedAgentSearchResults again = service.search(QUERY, first, (limit, checkpoint) -> local(0));
+        assertEquals(List.of("peer-1:from-alpha"), agentIds(again));
+        assertEquals(3, peers.callsTo("alpha"));
+    }
+
+    @Test
+    void aSearchThatFailsStillEndsForTheLimitOnSearchesInProgress() {
+        config.searchMaxSearchesPerCaller = 1;
+        registered(peer("alpha", true));
+        peers.answers("alpha", response(1, agent("g", "from-alpha")));
+
+        assertThrows(IllegalStateException.class, () -> service.search(QUERY, READER, (limit, checkpoint) -> {
+            throw new IllegalStateException("The local search failed.");
+        }));
+
+        assertEquals(List.of("peer-1:from-alpha"),
+                agentIds(service.search(QUERY, READER, (limit, checkpoint) -> local(0))));
     }
 
     @Test

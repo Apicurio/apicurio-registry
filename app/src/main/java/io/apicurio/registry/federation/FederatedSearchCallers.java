@@ -28,14 +28,19 @@ public class FederatedSearchCallers {
     /**
      * The caller of the current request.
      * <p>
+     * An authenticated caller is told apart from others by principal name, and an anonymous one by
+     * the network address the request came from.
+     * <p>
      * The list of peers is for administrators only, so only an administrator, by role or by admin
      * override, is shown which peer is which and why one failed. With authentication off everyone
      * may list the peers, and so everyone is shown.
      */
-    public FederatedSearchCaller current() {
+    public FederatedSearchCaller current(String remoteAddress) {
         boolean authenticated = securityIdentity != null && !securityIdentity.isAnonymous();
+        String key = authenticated ? "principal:" + securityIdentity.getPrincipal().getName()
+                : "address:" + remoteAddress;
         boolean admin = !authConfig.isAuthenticationEnabled() || (authenticated
                 && ((authConfig.isRbacEnabled() && rbac.isAdmin()) || adminOverride.isAdmin()));
-        return new FederatedSearchCaller(admin);
+        return new FederatedSearchCaller(key, admin);
     }
 }

@@ -43,6 +43,10 @@ public class FederationConfig {
     @Info(category = CATEGORY_FEDERATION, description = "Maximum number of peer registry calls in progress at once, across all federated searches, from the name lookup until the answer has been read or the call cancelled. Calls beyond it are reported as capacity_exceeded", availableSince = "3.4.0")
     int searchMaxConcurrentCalls;
 
+    @ConfigProperty(name = "apicurio.federation.search.max-searches-per-caller", defaultValue = "2")
+    @Info(category = CATEGORY_FEDERATION, description = "Maximum number of federated searches one caller can have in progress at once. A search beyond it still searches this registry, but calls no peer and reports every peer as capacity_exceeded. Authenticated callers are told apart by principal name and anonymous callers by network address, so all anonymous callers behind a proxy that does not forward the client address share one limit. A search calls every enabled peer, up to max-peers, so with the defaults one caller can hold at most 32 of the 64 peer calls (max-concurrent-calls)", availableSince = "3.4.0")
+    int searchMaxSearchesPerCaller;
+
     @ConfigProperty(name = "apicurio.federation.search.max-response-bytes", defaultValue = "1048576")
     @Info(category = CATEGORY_FEDERATION, description = "Maximum size in bytes of the response accepted from one peer registry. Larger responses are discarded", availableSince = "3.4.0")
     int searchMaxResponseBytes;
@@ -98,6 +102,10 @@ public class FederationConfig {
 
     public int getSearchMaxConcurrentCalls() {
         return searchMaxConcurrentCalls;
+    }
+
+    public int getSearchMaxSearchesPerCaller() {
+        return searchMaxSearchesPerCaller;
     }
 
     public int getSearchMaxResponseBytes() {

@@ -18,6 +18,8 @@ import io.restassured.http.ContentType;
 import io.restassured.response.ValidatableResponse;
 import io.restassured.specification.RequestSpecification;
 import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpServerResponse;
+import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
@@ -27,6 +29,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -37,6 +44,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
@@ -67,6 +75,9 @@ public class FederatedSearchAuthTest extends AbstractResourceTestBase {
             """;
 
     private final List<StubPeer> stubs = new ArrayList<>();
+
+    @Inject
+    FederationConfig config;
 
     @Override
     protected RegistryClient createRestClientV3(Vertx vertx) {
@@ -178,6 +189,50 @@ public class FederatedSearchAuthTest extends AbstractResourceTestBase {
                     .body("sources[1].outcome", equalTo("failed"))
                     .body("sources[1].reason", nullValue())
                     .body(not(containsString("failing-peer")));
+        }
+    }
+
+    @Test
+    void theLimitOnSearchesInProgressIsPerPrincipal() throws Exception {
+        int savedMaxSearches = config.searchMaxSearchesPerCaller;
+        long savedPeerTimeoutMs = config.searchPeerTimeoutMs;
+        long savedDeadlineMs = config.searchDeadlineMs;
+        config.searchMaxSearchesPerCaller = 1;
+        config.searchPeerTimeoutMs = 10_000;
+        config.searchDeadlineMs = 15_000;
+        try {
+            BlockingQueue<HttpServerResponse> held = new LinkedBlockingQueue<>();
+            AtomicBoolean holding = new AtomicBoolean(true);
+            StubPeer peer = StubPeer.start(vertx, (request, response) -> {
+                if (holding.getAndSet(false)) {
+                    held.add(response);
+                } else {
+                    StubPeer.publicAgents(response, 0);
+                }
+            });
+            stubs.add(peer);
+            registerPeer("stub", peer.url());
+
+            CompletableFuture<ValidatableResponse> first = CompletableFuture
+                    .supplyAsync(() -> as("alice").get(SEARCH_PATH).then().statusCode(200));
+            HttpServerResponse heldResponse = held.poll(10, TimeUnit.SECONDS);
+            assertNotNull(heldResponse);
+
+            // Alice already has a search in progress, so this one does not call the peer.
+            as("alice").get(SEARCH_PATH).then().statusCode(200)
+                    .body("sources.source", contains("local", "stub"))
+                    .body("sources[1].reason", equalTo("capacity_exceeded"));
+            // Another principal is not limited by Alice's search.
+            as("duncan").get(SEARCH_PATH).then().statusCode(200).body("sources.outcome", contains("ok", "ok"));
+            assertEquals(2, peer.requests().size());
+
+            StubPeer.publicAgents(heldResponse, 0);
+            first.get(15, TimeUnit.SECONDS).body("sources.outcome", contains("ok", "ok"));
+            as("alice").get(SEARCH_PATH).then().statusCode(200).body("sources.outcome", contains("ok", "ok"));
+        } finally {
+            config.searchMaxSearchesPerCaller = savedMaxSearches;
+            config.searchPeerTimeoutMs = savedPeerTimeoutMs;
+            config.searchDeadlineMs = savedDeadlineMs;
         }
     }
 

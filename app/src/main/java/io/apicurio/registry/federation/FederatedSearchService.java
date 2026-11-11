@@ -64,6 +64,11 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Agents with the same group and artifact id from different sources are all returned: nothing
  * about a peer proves it publishes under the same identity as another source.
  * <p>
+ * A search calls every enabled peer, so one request leads to as many outbound calls. One caller can
+ * have only so many searches in progress; a search beyond that still searches this registry but
+ * calls no peer, and reports every peer as {@code capacity_exceeded}, as when the calls in progress
+ * across all searches are at their limit.
+ * <p>
  * The peers are configuration only administrators may list, so only a caller who may list them is
  * shown which peer is which and why one failed. Any other caller sees each peer as {@code peer-1},
  * {@code peer-2} and so on, numbered in peer id order within the one response, with its outcome
@@ -113,6 +118,8 @@ public class FederatedSearchService {
 
     private final ConcurrentMap<String, PeerGuard> guards = new ConcurrentHashMap<>();
 
+    private final KeyedPermits searchesInProgress = new KeyedPermits();
+
     public FederatedAgentSearchResults search(PeerQuery query, FederatedSearchCaller caller,
             LocalSearch localSearch) {
         long deadlineNanos = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(config.getSearchDeadlineMs());
@@ -120,10 +127,11 @@ public class FederatedSearchService {
         List<PeerDto> peers = enabledPeers();
         pruneGuards(peers);
 
+        boolean admitted = searchesInProgress.tryAcquire(caller.key(), config.getSearchMaxSearchesPerCaller());
         List<Dispatch> dispatches = new ArrayList<>();
         try {
             for (PeerDto peer : peers) {
-                dispatches.add(dispatch(peer, query));
+                dispatches.add(admitted ? dispatch(peer, query) : refused(peer));
             }
             Runnable checkpoint = () -> {
                 if (System.nanoTime() - deadlineNanos > 0) {
@@ -137,6 +145,9 @@ public class FederatedSearchService {
             return assemble(local, dispatches, caller);
         } finally {
             dispatches.forEach(Dispatch::cancelIfRunning);
+            if (admitted) {
+                searchesInProgress.release(caller.key());
+            }
         }
     }
 
@@ -167,6 +178,15 @@ public class FederatedSearchService {
         }
         dispatch.future = future;
         future.whenComplete((response, failure) -> dispatch.endNanos = System.nanoTime());
+        return dispatch;
+    }
+
+    /** A peer that is not called because the caller has too many searches in progress. */
+    private static Dispatch refused(PeerDto peer) {
+        Dispatch dispatch = new Dispatch(peer);
+        dispatch.future = CompletableFuture.failedFuture(new PeerSearchException.CapacityExceeded(
+                "The caller has too many federated searches in progress."));
+        dispatch.endNanos = System.nanoTime();
         return dispatch;
     }
 

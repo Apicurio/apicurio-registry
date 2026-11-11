@@ -100,6 +100,7 @@ Full contribution guidelines are in [CONTRIBUTING.md](CONTRIBUTING.md).
 - [ ] **Don't assume APIs exist** — before proposing a system property, annotation parameter, or config mechanism, verify it actually works by checking the library source. Hallucinated flags (e.g., `-Dawaitility.defaultTimeout`) waste review cycles.
 - [ ] **No redundant guards** — don't add null checks for methods that already handle null (e.g., `Boolean.parseBoolean(null)` returns `false`). Don't call the same method twice when caching the result suffices.
 - [ ] Don't change default config values unless that is the explicit goal of the PR.
+- [ ] **Upgrade impact** — if users who upgrade will notice the change (REST or serdes behavior, CRD fields, deprecated properties or changed defaults, database upgrades that change data or add constraints, abstract methods on SPIs implemented outside Registry, stricter limits or validation), add an entry to the version's upgrade page (e.g. `assembly-upgrading-to-3-4.adoc`) in the same PR. See `docs/dev/compatibility.md` and `.claude/rules/upgrade-impact.md`.
 - [ ] Use Fabric8 Kubernetes client API idiomatically (`ex.getStatus().getReason()`, not `ex.getMessage().contains(...)`).
 - [ ] No `synchronized` in reactive/async code paths (`Uni<>`, Mutiny) — use `AtomicReference` + CAS or framework-provided mechanisms.
 

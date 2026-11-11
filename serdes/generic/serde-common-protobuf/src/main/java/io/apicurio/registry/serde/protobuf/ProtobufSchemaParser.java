@@ -206,4 +206,13 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
     public ProtoFileElement toProtoFileElement(FileDescriptor fileDescriptor) {
         return FileDescriptorUtils.fileDescriptorToProtoFile(fileDescriptor.toProto());
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String referenceNamespace(ParsedSchema<ProtobufSchema> schema) {
+        String pkg = schema.getParsedSchema().getFileDescriptor().getPackage();
+        return pkg == null || pkg.isBlank() ? null : pkg;
+    }
 }

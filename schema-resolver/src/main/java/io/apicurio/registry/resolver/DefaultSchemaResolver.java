@@ -195,12 +195,9 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         final List<SchemaLookupResult<S>> referencesLookup = new ArrayList<>();
 
         for (ParsedSchema<S> referencedSchema : parsedSchema.getSchemaReferences()) {
-
+            ArtifactReference reference = resolveReferenceArtifactReference(data, referencedSchema);
             List<SchemaLookupResult<S>> nestedReferences = handleArtifactReferences(data, referencedSchema);
-
-            referencesLookup.add(handleAutoCreateArtifact(referencedSchema,
-                    resolveArtifactReference(data, referencedSchema, true, referencedSchema.referenceName()),
-                    nestedReferences));
+            referencesLookup.add(handleAutoCreateArtifact(referencedSchema, reference, nestedReferences));
         }
         return referencesLookup;
     }

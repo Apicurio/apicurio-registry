@@ -1,5 +1,9 @@
 import { ArtifactTypes } from "@services/useArtifactTypesService.ts";
-import { McpToolCompatibilityResults, McpToolCompatibilityVerdict } from "@sdk/lib/generated-client/models";
+import {
+    McpToolCompatibilityResults,
+    McpToolCompatibilityTotals,
+    McpToolCompatibilityVerdict
+} from "@sdk/lib/generated-client/models";
 
 /**
  * What the compatibility panel shows.
@@ -26,23 +30,21 @@ export const showCompatibleToolsTab = (artifactType: string | null | undefined,
 /**
  * Selects what to show for a compatibility request.  The results are undefined when the API has
  * no compatibility information for the tool, and top-level limitations mean that the tool itself
- * could not be compared with any other.
+ * could not be compared with any other.  Results already loaded stay shown while another verdict
+ * or page loads.
  */
 export const compatibilityViewState = (isLoading: boolean, isError: boolean,
     results: McpToolCompatibilityResults | undefined): CompatibilityViewState => {
-    if (isLoading) {
-        return "loading";
-    }
     if (isError) {
         return "error";
     }
     if (!results) {
-        return "unavailable";
+        return isLoading ? "loading" : "unavailable";
     }
     if ((results.limitations?.length ?? 0) > 0) {
         return "notComparable";
     }
-    if ((results.results?.length ?? 0) === 0) {
+    if ((results.evaluated ?? 0) === 0) {
         return "empty";
     }
     return "results";
@@ -60,28 +62,35 @@ export const verdictLabel = (verdict: McpToolCompatibilityVerdict | null | undef
 };
 
 /**
- * Summarizes the verdicts of every evaluated tool, from the totals of the response.
+ * The label of a verdict filter, with the number of evaluated tools that have that verdict.
  */
-export const compatibilitySummary = (results: McpToolCompatibilityResults): string => {
-    const evaluated: number = results.evaluated ?? 0;
-    const totals = results.totals;
-    return `Compared with ${evaluated} other MCP ${evaluated === 1 ? "tool" : "tools"}: `
-        + `${totals?.compatible ?? 0} compatible, ${totals?.incompatible ?? 0} incompatible, `
-        + `${totals?.indeterminate ?? 0} indeterminate.`;
+export const verdictFilterLabel = (verdict: McpToolCompatibilityVerdict,
+    totals: McpToolCompatibilityTotals | null | undefined): string => {
+    let count: number | null | undefined;
+    switch (verdict) {
+        case "COMPATIBLE":
+            count = totals?.compatible;
+            break;
+        case "INCOMPATIBLE":
+            count = totals?.incompatible;
+            break;
+        default:
+            count = totals?.indeterminate;
+    }
+    return `${verdictLabel(verdict).text} (${count ?? 0})`;
 };
 
 /**
- * Says what the listed results leave out: the tools beyond the scan limit, and the results
- * beyond the page shown.
+ * Says how many other tools were evaluated.
+ */
+export const compatibilitySummary = (results: McpToolCompatibilityResults): string => {
+    const evaluated: number = results.evaluated ?? 0;
+    return `Compared with ${evaluated} other MCP ${evaluated === 1 ? "tool" : "tools"}.`;
+};
+
+/**
+ * Says what the results leave out: the tools beyond the scan limit.
  */
 export const compatibilityNotices = (results: McpToolCompatibilityResults): string[] => {
-    const notices: string[] = [];
-    if (results.complete === false) {
-        notices.push(`Only the newest ${results.scanLimit} MCP tools were compared.`);
-    }
-    const shown: number = results.results?.length ?? 0;
-    if ((results.count ?? 0) > shown) {
-        notices.push(`Showing the first ${shown} of ${results.count} results.`);
-    }
-    return notices;
+    return results.complete === false ? [`Only the newest ${results.scanLimit} MCP tools were compared.`] : [];
 };

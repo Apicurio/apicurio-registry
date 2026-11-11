@@ -204,3 +204,14 @@
     color: var(--pf-t--global--color--status--danger--default, #c9190b);
     font-weight: 500;
 }
+
+.reference-graph-controls .reference-graph-control-label {
+    margin-right: var(--pf-t--global--spacer--sm, 8px);
+    font-weight: var(--pf-t--global--font--weight--body--bold, 600);
+}
+
+.node-details-panel .node-details-note {
+    color: var(--pf-t--global--text--color--subtle, #6a6e73);
+    font-size: var(--pf-t--global--font--size--sm, 0.875rem);
+    padding: var(--pf-t--global--spacer--xs, 4px) 0;
+}

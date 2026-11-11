@@ -1,5 +1,7 @@
 package io.apicurio.registry.resolver.client;
 
+import com.microsoft.kiota.ApiException;
+
 import io.apicurio.registry.resolver.ArtifactTypeToContentType;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.ArtifactReference;
@@ -18,9 +20,9 @@ import io.apicurio.registry.utils.IoUtil;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.function.Supplier;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -34,13 +36,14 @@ import static io.apicurio.registry.rest.client.models.VersionState.DISABLED;
  */
 public class RegistryClientFacadeImpl implements RegistryClientFacade {
 
+    private static final String DEFAULT_GROUP = "default";
+
     private static final Logger LOG = LoggerFactory.getLogger(RegistryClientFacadeImpl.class);
     private static final String CLIENT_ID_HEADER = "X-Registry-Client-Id";
     private static final String OPERATION_HEADER = "X-Registry-Operation";
 
     private final RegistryClient client;
     private final String baseUrl;
-    private static final HttpClient HTTP = HttpClient.newHttpClient();
     private final String clientId;
 
     public RegistryClientFacadeImpl(RegistryClient client) {
@@ -133,7 +136,7 @@ public class RegistryClientFacadeImpl implements RegistryClientFacade {
         InputStream is = new ByteArrayInputStream(schemaString.getBytes(StandardCharsets.UTF_8));
         String ct = ArtifactTypeToContentType.toContentType(artifactType);
         VersionSearchResults results = client.search().versions().post(is, ct, config -> {
-            config.queryParameters.groupId = reference.getGroupId() == null ? "default"
+            config.queryParameters.groupId = reference.getGroupId() == null ? DEFAULT_GROUP
                     : reference.getGroupId();
             config.queryParameters.artifactId = reference.getArtifactId();
             config.queryParameters.canonical = canonical;
@@ -193,37 +196,61 @@ public class RegistryClientFacadeImpl implements RegistryClientFacade {
     }
 
     @Override
+    public io.apicurio.registry.rest.client.models.ContractRuleSet getGlobalContractRuleset() {
+        return fetchRuleset(() -> client.admin().contracts().ruleset().get(), "the global contract ruleset");
+    }
+
+    @Override
     public io.apicurio.registry.rest.client.models.ContractRuleSet getContractRuleset(
             String groupId, String artifactId) {
-        try {
-            String g = groupId != null ? groupId : "default";
-            return client.groups().byGroupId(g).artifacts().byArtifactId(artifactId)
-                    .contract().ruleset().get();
-        } catch (Exception e) {
-            LOG.warn("Failed to fetch contract ruleset for {}/{}: {}", groupId, artifactId, e.getMessage());
-            return null;
-        }
+        String g = groupId != null ? groupId : DEFAULT_GROUP;
+        return fetchRuleset(() -> client.groups().byGroupId(g).artifacts().byArtifactId(artifactId)
+                .contract().ruleset().get(), "the contract ruleset of " + g + "/" + artifactId);
     }
 
     @Override
     public io.apicurio.registry.rest.client.models.ContractRuleSet getVersionContractRuleset(
             String groupId, String artifactId, String version) {
+        String g = groupId != null ? groupId : DEFAULT_GROUP;
+        String ver = version != null ? version : "branch=latest";
+        return fetchRuleset(() -> client.groups().byGroupId(g).artifacts().byArtifactId(artifactId)
+                .versions().byVersionExpression(ver).contract().ruleset().get(),
+                "the contract ruleset of " + g + "/" + artifactId + "/" + ver);
+    }
+
+    /**
+     * Fetches a ruleset: {@code null} when the registry answers 404 (there is nothing to fetch), and
+     * an exception for any other failure, so that a caller never mistakes a failed fetch for a
+     * ruleset without rules.
+     */
+    private static io.apicurio.registry.rest.client.models.ContractRuleSet fetchRuleset(
+            Supplier<io.apicurio.registry.rest.client.models.ContractRuleSet> fetch, String what) {
         try {
-            String g = groupId != null ? groupId : "default";
-            String ver = version != null ? version : "branch=latest";
-            return client.groups().byGroupId(g).artifacts().byArtifactId(artifactId)
-                    .versions().byVersionExpression(ver).contract().ruleset().get();
-        } catch (Exception e) {
-            LOG.warn("Failed to fetch version contract ruleset for {}/{}/{}: {}",
-                    groupId, artifactId, version, e.getMessage());
-            return null;
+            return fetch.get();
+        } catch (RuntimeException e) {
+            if (Integer.valueOf(404).equals(responseStatus(e))) {
+                return null;
+            }
+            throw new IllegalStateException("Failed to fetch " + what + ": " + e.getMessage(), e);
         }
+    }
+
+    private static Integer responseStatus(Throwable e) {
+        for (Throwable current = e; current != null; current = current.getCause()) {
+            if (current instanceof ApiException api && api.getResponseStatusCode() != 0) {
+                return api.getResponseStatusCode();
+            }
+            if (current.getCause() == current) {
+                break;
+            }
+        }
+        return null;
     }
 
     @Override
     public List<String> getArtifactVersions(String groupId, String artifactId) {
         try {
-            String g = groupId != null ? groupId : "default";
+            String g = groupId != null ? groupId : DEFAULT_GROUP;
             var result = client.groups().byGroupId(g).artifacts().byArtifactId(artifactId)
                     .versions().get(config -> {
                         config.queryParameters.limit = 500;

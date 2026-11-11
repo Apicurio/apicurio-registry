@@ -9,6 +9,8 @@ import io.apicurio.registry.rest.v3.beans.ArdExploreRequest;
 import io.apicurio.registry.rest.v3.beans.ArdExploreResponse;
 import io.apicurio.registry.rest.v3.beans.ArdSearchRequest;
 import io.apicurio.registry.rest.v3.beans.ArdSearchResponse;
+import io.apicurio.registry.rest.v3.beans.McpCompatibleToolsResults;
+import io.apicurio.registry.rest.v3.beans.McpToolCompatibilityResults;
 import io.apicurio.registry.rest.v3.beans.McpToolSearchResults;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -63,6 +65,18 @@ public class V3WellKnownResource implements WellResource {
     @Override
     public Response getRegisteredMcpTool(String groupId, String artifactId, String version) {
         return delegate.getRegisteredMcpTool(groupId, artifactId, version);
+    }
+
+    @Override
+    public McpCompatibleToolsResults findCompatibleTools(String groupId, String artifactId,
+            String version, BigInteger offset, BigInteger limit) {
+        return delegate.findCompatibleTools(groupId, artifactId, version, offset, limit);
+    }
+
+    @Override
+    public McpToolCompatibilityResults getToolCompatibility(String groupId, String artifactId,
+            String version, List<String> verdict, BigInteger offset, BigInteger limit) {
+        return delegate.getToolCompatibility(groupId, artifactId, version, verdict, offset, limit);
     }
 
     @Override

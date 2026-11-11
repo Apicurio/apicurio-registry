@@ -7,6 +7,9 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
+import static io.apicurio.registry.cli.common.CliException.APPLICATION_ERROR_RETURN_CODE;
+import static io.apicurio.registry.cli.common.CliException.SERVER_ERROR_RETURN_CODE;
+import static io.apicurio.registry.cli.common.CliException.VALIDATION_ERROR_RETURN_CODE;
 import static io.apicurio.registry.cli.utils.Mapper.MAPPER;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -34,41 +37,55 @@ public class RoleMappingCommandTest extends AbstractCLITest {
 
     @Test
     public void testCreateMissingArgs() {
-        executeAndAssertFailure("role", "create");
+        assertThat(cmd.execute("role", "create"))
+                .as(withCliOutput("Command should fail with the expected exit code"))
+                .isEqualTo(VALIDATION_ERROR_RETURN_CODE);
     }
 
     @Test
     public void testCreateInvalidRole() {
-        executeAndAssertFailure("role", "create", TEST_PRINCIPAL, "INVALID_ROLE");
+        assertThat(cmd.execute("role", "create", TEST_PRINCIPAL, "INVALID_ROLE"))
+                .as(withCliOutput("Command should fail with the expected exit code"))
+                .isEqualTo(VALIDATION_ERROR_RETURN_CODE);
     }
 
     @Test
     public void testGetNonExistent() {
-        executeAndAssertFailure("role", "get", "non-existent-principal");
+        assertThat(cmd.execute("role", "get", "non-existent-principal"))
+                .as(withCliOutput("Command should fail with the expected exit code"))
+                .isEqualTo(SERVER_ERROR_RETURN_CODE);
     }
 
     @Test
     public void testUpdateNonExistent() {
-        executeAndAssertFailure("role", "update", "non-existent-principal",
-                "--role", TEST_ROLE);
+        assertThat(cmd.execute("role", "update", "non-existent-principal",
+                "--role", TEST_ROLE))
+                .as(withCliOutput("Command should fail with the expected exit code"))
+                .isEqualTo(SERVER_ERROR_RETURN_CODE);
     }
 
     @Test
     public void testUpdateInvalidRole() {
-        executeAndAssertFailure("role", "update", TEST_PRINCIPAL,
-                "--role", "INVALID_ROLE");
+        assertThat(cmd.execute("role", "update", TEST_PRINCIPAL,
+                "--role", "INVALID_ROLE"))
+                .as(withCliOutput("Command should fail with the expected exit code"))
+                .isEqualTo(VALIDATION_ERROR_RETURN_CODE);
     }
 
     @Test
     public void testDeleteNonExistent() {
-        executeAndAssertFailure("role", "delete", "non-existent-principal");
+        assertThat(cmd.execute("role", "delete", "non-existent-principal"))
+                .as(withCliOutput("Command should fail with the expected exit code"))
+                .isEqualTo(SERVER_ERROR_RETURN_CODE);
     }
 
     @Test
     @Order(9)
     public void testCreateDuplicate() {
         executeAndAssertSuccess("role", "create", "dup-user", TEST_ROLE);
-        executeAndAssertFailure("role", "create", "dup-user", TEST_ROLE);
+        assertThat(cmd.execute("role", "create", "dup-user", TEST_ROLE))
+                .as(withCliOutput("Command should fail with the expected exit code"))
+                .isEqualTo(APPLICATION_ERROR_RETURN_CODE);
         executeAndAssertSuccess("role", "delete", "dup-user");
     }
 

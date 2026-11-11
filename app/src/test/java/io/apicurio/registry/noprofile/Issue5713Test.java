@@ -1,6 +1,5 @@
 package io.apicurio.registry.noprofile;
 
-import com.microsoft.kiota.RequestAdapter;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.v2.RegistryClient;
 import io.apicurio.registry.rest.client.v2.models.ArtifactContent;
@@ -10,10 +9,8 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.MutabilityEnabledProfile;
 import io.confluent.kafka.schemaregistry.client.rest.entities.Schema;
 import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaString;
-import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
-import io.vertx.core.Vertx;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -56,14 +53,6 @@ message Decimal {
   int32 mode = 5;
 }
 """;
-
-    protected RegistryClient createRestClientV2(Vertx vertx) {
-        String registryV2ApiUrl = registryApiBaseUrl + "/registry/v2";
-        RequestAdapter anonymousAdapter = new VertXRequestAdapter(vertx);
-        anonymousAdapter.setBaseUrl(registryV2ApiUrl);
-        var client = new io.apicurio.registry.rest.client.v2.RegistryClient(anonymousAdapter);
-        return client;
-    }
 
     @Test
     public void testIssue5713() throws Exception {

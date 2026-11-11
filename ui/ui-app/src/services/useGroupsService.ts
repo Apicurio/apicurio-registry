@@ -32,7 +32,9 @@ import {
     VersionMetaData,
     VersionSearchResults,
     VersionSortBy,
-    VersionState
+    VersionState,
+    McpToolImportRequest,
+    McpToolImportResult
 } from "@sdk/lib/generated-client/models";
 
 
@@ -168,6 +170,14 @@ const testArtifactVersion = async (config: ConfigService, auth: AuthService, gro
             dryRun: true
         }
     }).then(() => undefined);
+};
+
+const importMcpTools = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, data: McpToolImportRequest): Promise<McpToolImportResult> => {
+    groupId = normalizeGroupId(groupId);
+    // Pass the request configuration explicitly. Given only a body, the Kiota client also uses the
+    // body as the configuration, and would send its "headers" field, meant for the MCP server, as
+    // HTTP headers to the registry.
+    return getRegistryClient(config, auth).groups.byGroupId(groupId).artifacts.byArtifactId(artifactId).mcpImport.post(data, {}).then(v => v!);
 };
 
 const getArtifactMetaData = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string): Promise<ArtifactMetaData> => {
@@ -548,6 +558,7 @@ export interface GroupsService {
     getArtifactVersions(groupId: string|null, artifactId: string, sortBy: VersionSortBy, sortOrder: SortOrder, paging: Paging): Promise<VersionSearchResults>;
     createArtifactVersion(groupId: string|null, artifactId: string, data: CreateVersion): Promise<VersionMetaData>;
     testArtifactVersion(groupId: string|null, artifactId: string, data: CreateVersion): Promise<void>;
+    importMcpTools(groupId: string|null, artifactId: string, data: McpToolImportRequest): Promise<McpToolImportResult>;
     getArtifactVersionMetaData(groupId: string|null, artifactId: string, version: string): Promise<VersionMetaData>;
     getArtifactVersionContent(groupId: string|null, artifactId: string, version: string): Promise<string>;
     getArtifactVersionContentWithType(groupId: string|null, artifactId: string, version: string): Promise<ArtifactVersionContent>;
@@ -665,6 +676,9 @@ export const useGroupsService: () => GroupsService = (): GroupsService => {
         },
         testArtifactVersion(groupId: string|null, artifactId: string, data: CreateVersion): Promise<void> {
             return testArtifactVersion(config, auth, groupId, artifactId, data);
+        },
+        importMcpTools(groupId: string|null, artifactId: string, data: McpToolImportRequest): Promise<McpToolImportResult> {
+            return importMcpTools(config, auth, groupId, artifactId, data);
         },
         getArtifactVersionMetaData(groupId: string|null, artifactId: string, version: string): Promise<VersionMetaData> {
             return getArtifactVersionMetaData(config, auth, groupId, artifactId, version);

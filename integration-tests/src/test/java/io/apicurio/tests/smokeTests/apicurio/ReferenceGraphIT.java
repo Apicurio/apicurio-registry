@@ -415,10 +415,12 @@ class ReferenceGraphIT extends ApicurioRegistryBaseIT {
     }
 
     /**
-     * Test the graph endpoint with circular references (cycle detection).
+     * Test the graph endpoint with a cross-version chain through the same artifact: A@2 -> B@1 -> A@1.
+     * This is not a cycle - A@1 and A@2 are different nodes, and A@1 has no reference back to A@2 - even
+     * though both nodes share an artifactId (#9069).
      */
     @Test
-    void testReferenceGraphWithCycles() throws Exception {
+    void testReferenceGraphCrossVersionChainIsNotACycle() throws Exception {
         String groupId = TestUtils.generateGroupId();
 
         // Create artifact A first (no references initially)
@@ -445,7 +447,8 @@ class ReferenceGraphIT extends ApicurioRegistryBaseIT {
                 });
         String versionB = responseB.getVersion().getVersion();
 
-        // Create a new version of A with reference back to B (creating a cycle)
+        // Create a new version of A with a reference to B: A@2 -> B@1 -> A@1 - not a cycle, since A@1
+        // has no reference back to A@2.
         String contentA2 = String.format(AVRO_SCHEMA_TEMPLATE, "RecordAv2");
         List<ArtifactReference> refsA2 = new ArrayList<>();
         ArtifactReference refB = new ArtifactReference();
@@ -469,9 +472,68 @@ class ReferenceGraphIT extends ApicurioRegistryBaseIT {
         // Wait for sync
         Thread.sleep(1000);
 
-        // Get the graph from A v2 - should detect cycle
+        // Get the graph from A v2 - should not detect a cycle
         ReferenceGraph graph = registryClient.groups().byGroupId(groupId).artifacts()
                 .byArtifactId(artifactA).versions().byVersionExpression(versionA2).references().graph()
+                .get(config -> {
+                    config.queryParameters.depth = 3;
+                });
+
+        assertNotNull(graph);
+        assertFalse(graph.getMetadata().getHasCycles(),
+                "A@2 -> B@1 -> A@1 is a valid cross-version chain, not a cycle");
+        boolean foundCycleNode = graph.getNodes().stream()
+                .anyMatch(node -> Boolean.TRUE.equals(node.getIsCycleNode()));
+        assertFalse(foundCycleNode, "no node should be marked as a cycle node");
+    }
+
+    /**
+     * Test the graph endpoint with a genuine two-hop, version-level cycle: A@1 -> B@1 -> A@1. B does not
+     * exist yet when A@1 is created (no INTEGRITY rule is configured in this test, so a reference to a
+     * not-yet-existing version is accepted); B@1 then closes the cycle back to A@1.
+     */
+    @Test
+    void testReferenceGraphWithCycles() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String artifactA = TestUtils.generateArtifactId();
+        String artifactB = TestUtils.generateArtifactId();
+
+        ArtifactReference refB = new ArtifactReference();
+        refB.setGroupId(groupId);
+        refB.setArtifactId(artifactB);
+        refB.setVersion("1");
+        refB.setName("b.avsc");
+        List<ArtifactReference> refsA = new ArrayList<>();
+        refsA.add(refB);
+
+        String contentA = String.format(AVRO_SCHEMA_TEMPLATE, "RecordA");
+        createArtifact(groupId, artifactA, ArtifactType.AVRO, contentA, ContentTypes.APPLICATION_JSON, null,
+                createArtifact -> {
+                    createArtifact.getFirstVersion().setVersion("1");
+                    createArtifact.getFirstVersion().getContent().setReferences(refsA);
+                });
+
+        ArtifactReference refA = new ArtifactReference();
+        refA.setGroupId(groupId);
+        refA.setArtifactId(artifactA);
+        refA.setVersion("1");
+        refA.setName("a.avsc");
+        List<ArtifactReference> refsB = new ArrayList<>();
+        refsB.add(refA);
+
+        String contentB = String.format(AVRO_SCHEMA_TEMPLATE, "RecordB");
+        createArtifact(groupId, artifactB, ArtifactType.AVRO, contentB, ContentTypes.APPLICATION_JSON, null,
+                createArtifact -> {
+                    createArtifact.getFirstVersion().setVersion("1");
+                    createArtifact.getFirstVersion().getContent().setReferences(refsB);
+                });
+
+        // Wait for sync
+        Thread.sleep(1000);
+
+        // Get the graph from A v1 - should detect the cycle
+        ReferenceGraph graph = registryClient.groups().byGroupId(groupId).artifacts()
+                .byArtifactId(artifactA).versions().byVersionExpression("1").references().graph()
                 .get(config -> {
                     config.queryParameters.depth = 3;
                 });

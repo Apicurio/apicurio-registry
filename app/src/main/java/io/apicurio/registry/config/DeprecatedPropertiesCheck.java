@@ -26,6 +26,9 @@ import java.util.Optional;
 @Singleton
 public class DeprecatedPropertiesCheck {
 
+    private static final String VERSION_3_1_0 = "3.1.0";
+    private static final String VERSION_4_0_0 = "4.0.0";
+
     public static class DeprecatedPropertyDef {
         private final String oldName;
         private final String replacementName;
@@ -88,17 +91,17 @@ public class DeprecatedPropertiesCheck {
     @Inject
     public DeprecatedPropertiesCheck() {
         this(List.of(
-                new DeprecatedPropertyDef("apicurio.compat.json-schema.use-apitomy", null, "3.4.0", "4.0.0", false,
+                new DeprecatedPropertyDef("apicurio.compat.json-schema.use-apitomy", null, "3.4.0", VERSION_4_0_0, false,
                         "It no longer has any effect: JSON Schema compatibility is always checked with Apitomy Data Models,"
                                 + " because the legacy everit-based checker was removed."),
-                new DeprecatedPropertyDef("apicurio.usage.dead-threshold-days", null, "3.4.0", "4.0.0", false,
+                new DeprecatedPropertyDef("apicurio.usage.dead-threshold-days", null, "3.4.0", VERSION_4_0_0, false,
                         "It has no effect: a schema version whose last fetch is older than the stale threshold"
                                 + " (apicurio.usage.stale-threshold-days) is classified as DEAD."),
-                new DeprecatedPropertyDef("apicurio.kafkasql.ssl.truststore.password", "apicurio.kafkasql.security.ssl.truststore.password", "3.1.0", "4.0.0", false),
-                new DeprecatedPropertyDef("apicurio.kafkasql.ssl.keystore.location", "apicurio.kafkasql.security.ssl.keystore.location", "3.1.0", "4.0.0", false),
-                new DeprecatedPropertyDef("apicurio.kafkasql.ssl.keystore.type", "apicurio.kafkasql.security.ssl.keystore.type", "3.1.0", "4.0.0", false),
-                new DeprecatedPropertyDef("apicurio.kafkasql.ssl.keystore.password", "apicurio.kafkasql.security.ssl.keystore.password", "3.1.0", "4.0.0", false),
-                new DeprecatedPropertyDef("apicurio.kafkasql.ssl.key.password", "apicurio.kafkasql.security.ssl.key.password", "3.1.0", "4.0.0", false)
+                new DeprecatedPropertyDef("apicurio.kafkasql.ssl.truststore.password", "apicurio.kafkasql.security.ssl.truststore.password", VERSION_3_1_0, VERSION_4_0_0, false),
+                new DeprecatedPropertyDef("apicurio.kafkasql.ssl.keystore.location", "apicurio.kafkasql.security.ssl.keystore.location", VERSION_3_1_0, VERSION_4_0_0, false),
+                new DeprecatedPropertyDef("apicurio.kafkasql.ssl.keystore.type", "apicurio.kafkasql.security.ssl.keystore.type", VERSION_3_1_0, VERSION_4_0_0, false),
+                new DeprecatedPropertyDef("apicurio.kafkasql.ssl.keystore.password", "apicurio.kafkasql.security.ssl.keystore.password", VERSION_3_1_0, VERSION_4_0_0, false),
+                new DeprecatedPropertyDef("apicurio.kafkasql.ssl.key.password", "apicurio.kafkasql.security.ssl.key.password", VERSION_3_1_0, VERSION_4_0_0, false)
         ));
     }
 
@@ -128,28 +131,9 @@ public class DeprecatedPropertiesCheck {
 
             if (isOldPresent) {
                 if (def.isRemoved()) {
-                    if (def.getReplacementName() != null) {
-                        log.error("Property '{}' was removed in {}. Use '{}' instead.",
-                                def.getOldName(), def.getRemoveInVersion(), def.getReplacementName());
-                        violations.add(String.format("Property '%s' was removed in %s. Use '%s' instead.",
-                                def.getOldName(), def.getRemoveInVersion(), def.getReplacementName()));
-                    } else {
-                        log.error("Property '{}' was removed in {}.", def.getOldName(), def.getRemoveInVersion());
-                        violations.add(String.format("Property '%s' was removed in %s.",
-                                def.getOldName(), def.getRemoveInVersion()));
-                    }
+                    reportRemoved(def, violations);
                 } else {
-                    if (isReplacementPresent) {
-                        log.warn("Both '{}' (deprecated since {}) and '{}' are configured. '{}' will take precedence.",
-                                def.getOldName(), def.getDeprecatedSince(), def.getReplacementName(), def.getReplacementName());
-                    } else if (def.getReplacementName() != null) {
-                        log.warn("Property '{}' is deprecated since {} and will be removed in {}. Use '{}' instead.",
-                                def.getOldName(), def.getDeprecatedSince(), def.getRemoveInVersion(), def.getReplacementName());
-                    } else {
-                        log.warn("Property '{}' is deprecated since {} and will be removed in {}.{}",
-                                def.getOldName(), def.getDeprecatedSince(), def.getRemoveInVersion(),
-                                def.getNote() != null ? " " + def.getNote() : "");
-                    }
+                    warnDeprecated(def, isReplacementPresent);
                 }
             }
         }
@@ -157,6 +141,33 @@ public class DeprecatedPropertiesCheck {
         if (!violations.isEmpty()) {
             String combinedViolations = String.join(", ", violations);
             throw new IllegalStateException("The following configuration properties were removed and are no longer supported: " + combinedViolations);
+        }
+    }
+
+    private void reportRemoved(DeprecatedPropertyDef def, List<String> violations) {
+        if (def.getReplacementName() != null) {
+            log.error("Property '{}' was removed in {}. Use '{}' instead.",
+                    def.getOldName(), def.getRemoveInVersion(), def.getReplacementName());
+            violations.add(String.format("Property '%s' was removed in %s. Use '%s' instead.",
+                    def.getOldName(), def.getRemoveInVersion(), def.getReplacementName()));
+        } else {
+            log.error("Property '{}' was removed in {}.", def.getOldName(), def.getRemoveInVersion());
+            violations.add(String.format("Property '%s' was removed in %s.",
+                    def.getOldName(), def.getRemoveInVersion()));
+        }
+    }
+
+    private void warnDeprecated(DeprecatedPropertyDef def, boolean isReplacementPresent) {
+        if (isReplacementPresent) {
+            log.warn("Both '{}' (deprecated since {}) and '{}' are configured. '{}' will take precedence.",
+                    def.getOldName(), def.getDeprecatedSince(), def.getReplacementName(), def.getReplacementName());
+        } else if (def.getReplacementName() != null) {
+            log.warn("Property '{}' is deprecated since {} and will be removed in {}. Use '{}' instead.",
+                    def.getOldName(), def.getDeprecatedSince(), def.getRemoveInVersion(), def.getReplacementName());
+        } else {
+            log.warn("Property '{}' is deprecated since {} and will be removed in {}.{}",
+                    def.getOldName(), def.getDeprecatedSince(), def.getRemoveInVersion(),
+                    def.getNote() != null ? " " + def.getNote() : "");
         }
     }
 }

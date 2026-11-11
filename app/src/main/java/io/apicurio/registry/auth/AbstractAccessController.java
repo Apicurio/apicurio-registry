@@ -166,8 +166,8 @@ public abstract class AbstractAccessController implements IAccessController {
         if (globalId == null) {
             return Optional.of(unknownId());
         }
-        return Optional.of(lookups().version(storage, globalId)
-                .map(vmd -> AuthorizedResource.artifact(vmd.getGroupId(), vmd.getArtifactId()))
+        return Optional.of(lookups().coordinates(storage, globalId)
+                .map(gid -> AuthorizedResource.artifact(gid.groupId(), gid.artifactId()))
                 .orElse(unknownId()));
     }
 

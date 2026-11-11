@@ -61,7 +61,7 @@ public class SerdeConfig {
 
 [source,java,subs="+quotes,attributes"]
 ----
-public class SerdeBasedConverter<S, T> extends SchemaResolverConfigurer<S, T> implements Converter, Closeable {
+public class SerdeBasedConverter<S, T> implements Converter, Closeable {
 
    public static final String REGISTRY_CONVERTER_SERIALIZER_PARAM = "apicurio.registry.converter.serializer";
    public static final String REGISTRY_CONVERTER_DESERIALIZER_PARAM = "apicurio.registry.converter.deserializer";
@@ -291,6 +291,11 @@ The `DefaultSchemaResolver` uses the following properties to configure how to lo
 |Used by serializers only. Fully qualified Java class name that implements `ArtifactReferenceResolverStrategy` and maps each Kafka message to an `ArtifactReference` (`groupId`, `artifactId`, and version). For example, the default strategy uses the topic name as the schema `artifactId`.
 |`String`
 |`io.apicurio.registry.serde.strategy.TopicIdStrategy`
+|`REFERENCE_NAMING_STRATEGY`
+|`apicurio.registry.reference-naming-strategy`
+|Used by serializers only. Fully qualified Java class name that implements `ReferenceNamingStrategy` and decides the `groupId` and `artifactId` under which schemas referenced by another schema are auto-registered. The reference name is not changed. `io.apicurio.registry.resolver.strategy.NamespaceGroupReferenceNamingStrategy` registers each referenced schema in a group named after its Avro namespace or Protobuf package.
+|`String`
+|`io.apicurio.registry.resolver.strategy.DefaultReferenceNamingStrategy`
 |`EXPLICIT_ARTIFACT_GROUP_ID`
 |`apicurio.registry.artifact.group-id`
 |Used by serializers only. Sets the `groupId` used for querying or creating an artifact. Overrides the `groupId` returned by the `ArtifactResolverStrategy`.
@@ -404,7 +409,7 @@ The `DefaultSchemaResolver` uses the following properties to configure how artif
 |`apicurio.registry.headers.handler`
 |Used by serializers and deserializers. Fully qualified Java class name that implements `HeadersHandler` and writes and reads the artifact identifier to and from the Kafka message headers.
 |`String`
-|`io.apicurio.registry.serde.headers.DefaultHeadersHandler`
+|`io.apicurio.registry.serde.kafka.headers.DefaultHeadersHandler`
 |`ID_HANDLER`
 |`apicurio.registry.id-handler`
 |Used by serializers and deserializers. Fully qualified Java class name of a class that implements `IdHandler` and writes and reads the artifact identifier to and from the message payload. Defaults to a 4-byte format that includes the `contentId` in the message payload.
@@ -541,9 +546,9 @@ private static KafkaConsumer<Long, GenericRecord> createKafkaConsumer() {
     // Configure the {registry} location
     props.putIfAbsent(SerdeConfig.REGISTRY_URL, REGISTRY_URL);
 
-    // No other configuration needed because the schema globalId the deserializer uses is sent
-    // in the payload. The deserializer extracts the globalId and uses it to look up the schema
-    // from the registry.
+    // No other configuration needed because the schema ID the deserializer uses (the content ID by
+    // default) is sent in the payload. The deserializer extracts the ID and uses it to look up the
+    // schema from the registry.
 
     // Create the Kafka consumer
     KafkaConsumer<Long, GenericRecord> consumer = new KafkaConsumer<>(props);
@@ -595,10 +600,9 @@ The property name is `apicurio.registry.headers.enabled`.
 
 You can customize how the SerDes encode the schema ID when they pass it in the Kafka message body. Set the `apicurio.registry.id-handler` configuration property to a class that implements the `io.apicurio.registry.serde.IdHandler` interface. {registry} provides the following implementations:
 
-* `io.apicurio.registry.serde.Default4ByteIdHandler`: Stores the ID as a 4-byte integer
-* `io.apicurio.registry.serde.Legacy8ByteIdHandler`: Stores the ID as an 8-byte long
-
-{registry} represents the schema ID as a long, but for legacy reasons, or for compatibility with other registries or SerDe classes, you might want to use 4 bytes when sending the ID.
+* `io.apicurio.registry.serde.Default4ByteIdHandler`: Stores the ID as a 4-byte integer. This is the default, and the format used by Confluent SerDe classes.
+* `io.apicurio.registry.serde.Legacy8ByteIdHandler`: Stores the ID as an 8-byte long, as {registry} 2.x did by default.
+* `io.apicurio.registry.serde.OptimisticFallbackIdHandler`: Writes 4 bytes, and reads both 4-byte and 8-byte IDs. Use it in consumers while producers move from 8-byte to 4-byte IDs.
 
 **Avro datum provider**
 
@@ -686,6 +690,43 @@ The nested `Exchange` schema is defined as follows:
 ----
 
 When you use these schemas with Avro SerDes, {registry} creates two artifacts, one for the `TradeKey` schema and one for the `Exchange` schema. Whenever a message that uses the `TradeKey` schema is serialized or deserialized, both schemas are retrieved, allowing you to split your definitions into different files.
+
+**Choosing where referenced schemas are registered**
+
+When a serializer auto-registers a schema that references other schemas, it also registers the referenced
+schemas. By default, each referenced schema is registered in the group that the artifact resolver strategy
+chooses for it, or in the group set by `apicurio.registry.artifact.group-id`, and its artifact ID is the
+reference name, for example `com.example.Address` for an Avro record or `common/address.proto` for a Protobuf
+import.
+
+To register referenced schemas elsewhere, set `apicurio.registry.reference-naming-strategy`. For example,
+`io.apicurio.registry.resolver.strategy.NamespaceGroupReferenceNamingStrategy` registers the Avro record
+`com.example.Address` as artifact `Address` in group `com.example`, and the Protobuf import
+`common/address.proto` with package `example.common` as artifact `common/address.proto` in group
+`example.common`. Avro schemas registered this way are also found when you create an artifact with
+`autoReferences` set to `true`, because {registry} also looks for an Avro reference in the group named after
+its namespace. Protobuf imports are matched only in the group of the artifact that you create, so for a
+Protobuf dependency in another group, list the reference explicitly.
+
+You can also implement `io.apicurio.registry.resolver.strategy.ReferenceNamingStrategy`:
+
+[source,java]
+----
+import io.apicurio.registry.resolver.strategy.ReferenceCoordinates;
+import io.apicurio.registry.resolver.strategy.ReferenceNamingContext;
+import io.apicurio.registry.resolver.strategy.ReferenceNamingStrategy;
+
+public class SharedGroupStrategy implements ReferenceNamingStrategy {
+    @Override
+    public ReferenceCoordinates name(ReferenceNamingContext context) {
+        return new ReferenceCoordinates("shared-types", context.referenceName());
+    }
+}
+----
+
+The strategy is not used when `apicurio.registry.dereference-schema` is `true` for Avro, because the schema is
+registered without references. JSON Schema SerDes do not auto-register referenced schemas (see
+https://github.com/Apicurio/apicurio-registry/issues/11051).
 
 **Custom logical type conversions for the Avro Kafka Connect converter**
 
@@ -993,6 +1034,10 @@ COMMAND = 4;
 ----
 
 In this example, {registry} stores two Protobuf artifacts, one for `TableInfo` and one for `Mode`. However, because `Mode` is part of `TableInfo`, whenever `TableInfo` is fetched to check a message in the SerDes, `Mode` is also returned as an artifact referenced by `TableInfo`.
+
+To choose the group and artifact ID under which imported Protobuf files are registered, set
+`apicurio.registry.reference-naming-strategy`, as described for Avro in
+xref:registry-serdes-types-avro_{context}[] under "Choosing where referenced schemas are registered".
 
 [role="_additional-resources"]
 .Additional resources

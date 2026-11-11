@@ -13,7 +13,9 @@ public class MsSqlEmbeddedTestResource implements QuarkusTestResourceLifecycleMa
 
     private static final String DB_PASSWORD = "P4ssw0rd!#";
 
-    private static final DockerImageName IMAGE = DockerImageName.parse("mcr.microsoft.com/mssql/server")
+    // Bump the tag in lockstep with app/src/test/resources/container-license-acceptance.txt; the
+    // ContainerLicenseAcceptanceTest in app fails when the two drift apart.
+    public static final DockerImageName IMAGE = DockerImageName.parse("mcr.microsoft.com/mssql/server")
             .withTag("2022-latest");
     private MSSQLServerContainer database = new MSSQLServerContainer(IMAGE).withPassword(DB_PASSWORD)
             .acceptLicense();

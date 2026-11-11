@@ -22,6 +22,7 @@ class RequestAuthorizationLookups {
     private final Map<String, Optional<GroupMetaDataDto>> groups = new ConcurrentHashMap<>();
     private final Map<Long, Optional<ArtifactVersionMetaDataDto>> versions = new ConcurrentHashMap<>();
     private final Map<Long, Optional<List<ArtifactVersionMetaDataDto>>> contentUsers = new ConcurrentHashMap<>();
+    private final Map<Long, Optional<GlobalIdCoordinates>> coordinates = new ConcurrentHashMap<>();
 
     Map<List<String>, Optional<ArtifactMetaDataDto>> artifacts() {
         return artifacts;
@@ -37,5 +38,9 @@ class RequestAuthorizationLookups {
 
     Map<Long, Optional<List<ArtifactVersionMetaDataDto>>> contentUsers() {
         return contentUsers;
+    }
+
+    Map<Long, Optional<GlobalIdCoordinates>> coordinates() {
+        return coordinates;
     }
 }

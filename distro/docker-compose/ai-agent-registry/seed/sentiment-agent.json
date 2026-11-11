@@ -1,0 +1,73 @@
+{
+  "name": "Sentiment Analysis Agent",
+  "description": "AI-powered sentiment analysis agent that detects emotions, urgency, and escalation risk in customer communications.",
+  "version": "1.0.0",
+  "protocolVersion": "1.0",
+  "supportedInterfaces": [
+    {
+      "url": "https://agents.example.com/sentiment-agent",
+      "protocolBinding": "http+json",
+      "protocolVersion": "1.0"
+    }
+  ],
+  "provider": {
+    "organization": "A2A Demo",
+    "url": "https://agents.example.com"
+  },
+  "capabilities": {
+    "streaming": false,
+    "pushNotifications": false
+  },
+  "skills": [
+    {
+      "id": "sentiment-analysis",
+      "name": "Sentiment Analysis",
+      "description": "Skill: sentiment-analysis",
+      "tags": [
+        "sentiment-analysis"
+      ],
+      "examples": [
+        "How upset is this customer about the late delivery?"
+      ]
+    },
+    {
+      "id": "emotion-detection",
+      "name": "Emotion Detection",
+      "description": "Skill: emotion-detection",
+      "tags": [
+        "emotion-detection"
+      ],
+      "examples": [
+        "Which emotions are expressed in this support ticket?"
+      ]
+    },
+    {
+      "id": "urgency-assessment",
+      "name": "Urgency Assessment",
+      "description": "Skill: urgency-assessment",
+      "tags": [
+        "urgency-assessment"
+      ],
+      "examples": [
+        "How urgent is this customer complaint?"
+      ]
+    },
+    {
+      "id": "escalation-prediction",
+      "name": "Escalation Prediction",
+      "description": "Skill: escalation-prediction",
+      "tags": [
+        "escalation-prediction"
+      ],
+      "examples": [
+        "Is this conversation likely to need escalation?"
+      ]
+    }
+  ],
+  "defaultInputModes": [
+    "text"
+  ],
+  "defaultOutputModes": [
+    "text"
+  ]
+}

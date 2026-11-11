@@ -1,0 +1,12 @@
+// Auto-registered by the Protobuf serializer (tour step 6).
+syntax = "proto3";
+package com.example.payments;
+
+option java_package = "io.apicurio.registry.examples.serdes.proto";
+option java_multiple_files = true;
+
+message Payment {
+  string payment_id = 1;
+  string order_id = 2;
+  double amount = 3;
+}

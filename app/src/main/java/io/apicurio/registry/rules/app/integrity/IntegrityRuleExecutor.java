@@ -56,8 +56,6 @@ public class IntegrityRuleExecutor implements RuleExecutor {
 
         // Make sure that the user has included mappings for all references in the content of the artifact.
         if (levels.contains(IntegrityLevel.FULL) || levels.contains(IntegrityLevel.ALL_REFS_MAPPED)) {
-            // Not yet implemented - needs artifact type specific logic to extract the full list of
-            // references that must be mapped from the artifact version content
             verifyAllReferencesHaveMappings(context);
         }
 

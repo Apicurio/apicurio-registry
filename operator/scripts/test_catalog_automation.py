@@ -98,10 +98,12 @@ class CatalogChannelsTest(unittest.TestCase):
         self.catalog.write_text(template.read_text())
         before = json.loads(subprocess.check_output([
             os.environ.get("YQ", "yq"), "-o=json", ".", str(self.catalog)]))["entries"]
+        # The development version continues from the newest release in the rolling channel,
+        # read from the template so this does not need updating after every release.
+        newest = [e for e in self.channels(before)["3.x"] if e["name"] != PLACEHOLDER][0]["name"]
         after = self.run_update("3.4.x")
         channels = self.channels(after)
-        self.assertEqual(channels["3.4.x"], [
-            {"name": PLACEHOLDER, "replaces": "apicurio-registry-3.v3.3.3"}])
+        self.assertEqual(channels["3.4.x"], [{"name": PLACEHOLDER, "replaces": newest}])
         for name, entries in self.channels(before).items():
             self.assertEqual([e for e in channels[name] if e["name"] != PLACEHOLDER],
                              [e for e in entries if e["name"] != PLACEHOLDER])

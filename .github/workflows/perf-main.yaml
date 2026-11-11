@@ -70,18 +70,10 @@ jobs:
             -pl app,distro/docker,operator/controller,perf-tests -am -Pprod,perf-tests -DskipTests -Dmaven.javadoc.skip \
             -Daether.syncContext.named.factory=noop
 
-      - name: Build app image
-        run: |
-          docker build -f ./distro/docker/target/docker/Dockerfile.jvm -t "$REGISTRY_APP_IMAGE" ./distro/docker/target/docker
-
-      - name: Build operator image
-        working-directory: operator
-        run: make IMAGE="$OPERATOR_IMAGE" image-build
-
-      - name: Build perf-tests runner image
-        working-directory: perf-tests
-        run: docker build -t "$PERF_TEST_IMAGE" .
-
+      # Minikube has to start before the images are built. With the none driver it rewrites
+      # /etc/docker/daemon.json with "storage-driver": "overlay2" and restarts Docker. On a runner
+      # whose Docker uses the containerd image store (ubuntu-26.04), images built before that are
+      # no longer visible, and the push below fails with "An image does not exist locally".
       - uses: apicurio/apicurio-github-actions/setup-minikube@bd19cbe33797325a571cd7ffd58f639b62e128a2 # v2
         id: minikube-setup
         continue-on-error: true
@@ -100,6 +92,18 @@ jobs:
           ingress-enable: 'false'
           olm-enable: 'false'
           olm-v1-enable: 'false'
+
+      - name: Build app image
+        run: |
+          docker build -f ./distro/docker/target/docker/Dockerfile.jvm -t "$REGISTRY_APP_IMAGE" ./distro/docker/target/docker
+
+      - name: Build operator image
+        working-directory: operator
+        run: make IMAGE="$OPERATOR_IMAGE" image-build
+
+      - name: Build perf-tests runner image
+        working-directory: perf-tests
+        run: docker build -t "$PERF_TEST_IMAGE" .
 
       - name: Start local registry and push images
         run: |

@@ -347,10 +347,18 @@ jobs:
       # committed install files; now that this is a separate job, generate them here,
       # before switching to $BRANCH below — "Sync install files to main" and the
       # branch commit both expect them to already be on disk.
+      #
+      # `build` has to run first: dist-install-file's kustomization reads the CRD at
+      # controller/src/main/deploy/crd/apicurioregistries3.registry.apicur.io-v1.yml,
+      # which is gitignored and only exists after copy-crd (controller/pom.xml) runs
+      # as part of `mvn install`. Without it this step fails on every release, on a
+      # fresh clone of the tag — the exact "housekeeping silently skipped" failure
+      # mode #10841 exists to fix. `dist` itself isn't needed here (it also builds the
+      # tar.gz archive, which only release-post uses), just the two install targets.
       - name: Generate versioned install files
         working-directory: registry/operator
         run: |
-          make OPERAND_IMAGE_TAG=$RELEASE_VERSION dist
+          make BUILD_OPTS=--no-transfer-progress SKIP_TESTS=true OPERAND_IMAGE_TAG=$RELEASE_VERSION build dist-install-file dist-install-file-namespaced
 
       - name: Prepare post-release changes
         working-directory: registry/operator
@@ -360,6 +368,25 @@ jobs:
           git fetch origin
           git checkout "$BRANCH"
           git pull origin "$BRANCH"
+
+          # This job now starts right after release-build, not after release-test, so
+          # there's less time for release.yaml's own snapshot-bump commit to have
+          # landed on $BRANCH by the time we get here. Fail loudly instead of silently
+          # regenerating install files against the just-released (non-snapshot)
+          # version if it somehow hasn't.
+          CURRENT_VERSION=$(make VAR=VERSION variable-get)
+          case "$CURRENT_VERSION" in
+            *-SNAPSHOT)
+              if [ "$CURRENT_VERSION" = "$RELEASE_VERSION-SNAPSHOT" ]; then
+                echo "::error::$BRANCH's version ($CURRENT_VERSION) is still the release's own snapshot name; the post-release version bump hasn't landed yet."
+                exit 1
+              fi
+              ;;
+            *)
+              echo "::error::$BRANCH's version ($CURRENT_VERSION) is not a -SNAPSHOT; expected the post-release bump to already have run."
+              exit 1
+              ;;
+          esac
 
       - name: Update install file
         working-directory: registry/operator
@@ -661,6 +688,7 @@ jobs:
 
           RELEASE_CHANNEL=$(echo "$PACKAGE_VERSION" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
           MAIN_CHANNEL=$(cd operator && make VAR=CHANNEL variable-get)
+          CATALOG_DIR=$(cd operator && make VAR=CATALOG_DIR variable-get)
 
           cd operator
           if [ "$RELEASE_CHANNEL" = "$MAIN_CHANNEL" ]; then
@@ -671,12 +699,12 @@ jobs:
             # Maintenance release from an older minor — only update its channel (and the
             # rolling channel if it is the newest release) and add the bundle image.
             # Do NOT touch PREVIOUS_PACKAGE_VERSION or other minor channels on main.
-            CATALOG_DIR=$(make VAR=CATALOG_DIR variable-get)
             CATALOG_FILE="$CATALOG_DIR/catalog.template.yaml"
             PKG_NAME=$(make VAR=PACKAGE_NAME variable-get)
             LC_VERSION=$(echo "$PACKAGE_VERSION" | tr A-Z a-z)
             BUNDLE_IMG="$(make VAR=IMAGE_REGISTRY variable-get)/$(make VAR=BUNDLE_IMAGE_NAME variable-get):$LC_VERSION"
-            # "Update install file" runs mvn clean, which deletes target/bin/yq.
+            # install-yq is also a dependency of release-catalog-template-update (the "if"
+            # branch above), but that branch doesn't run here, so make sure it's present.
             make install-yq
             YQ=$(make VAR=YQ variable-get)
 
@@ -705,7 +733,12 @@ jobs:
           fi
 
           cd ..
-          git add .
+          # Scoped, not `git add .`: this workspace's own `make dist` (in "Build dist
+          # archive and attach to the release", above) leaves the versioned install
+          # files untracked on disk here too. They're identical to what
+          # release-post-sync already committed to main, so picking them up would be
+          # benign, but this step is only meant to touch the Makefile/catalog bump.
+          git add operator/Makefile "operator/$CATALOG_DIR"
           git commit -m "ci(operator): sync $RELEASE_VERSION catalog bookkeeping from $BRANCH to main"
           git rebase origin/main
           git push origin main

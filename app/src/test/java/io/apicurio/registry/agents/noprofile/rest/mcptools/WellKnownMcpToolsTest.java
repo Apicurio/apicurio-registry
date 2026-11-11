@@ -14,6 +14,8 @@ import io.apicurio.registry.rest.client.models.McpToolCompatibilityVerdict;
 import io.apicurio.registry.rest.client.models.McpToolSearchResult;
 import io.apicurio.registry.rest.client.models.ProblemDetails;
 import io.apicurio.registry.rest.client.models.VersionContent;
+import io.apicurio.registry.rest.client.models.VersionState;
+import io.apicurio.registry.rest.client.models.WrappedVersionState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.TestUtils;
@@ -659,7 +661,9 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
                 .pathParam("artifactId", "nonexistent-tool")
                 .get("/.well-known/mcp-tools/{groupId}/{artifactId}/compatible")
                 .then()
-                .statusCode(404);
+                .statusCode(404)
+                .body("status", equalTo(404))
+                .body("title", equalTo("MCP tool not found: nonexistent-group/nonexistent-tool"));
     }
 
     @Test
@@ -1077,6 +1081,279 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
                 .body("tools.artifactId", not(hasItem(sourceId)));
     }
 
+    private static final String REPORT_SOURCE = "report-source";
+    private static final String ACCEPTS_EVERY_OUTPUT = "accepts-every-output";
+
+    private static final String REPORT_SOURCE_TOOL = """
+            {
+                "name": "report_source",
+                "title": "Report Source",
+                "description": "Emits a closed object, so every verdict depends only on what it declares",
+                "inputSchema": { "type": "object" },
+                "outputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "id": { "type": "integer" },
+                        "note": { "type": ["string", "null"] },
+                        "tags": { "type": "array", "items": { "type": "string" } },
+                        "owner": {
+                            "type": "object",
+                            "properties": { "name": { "type": "string" } },
+                            "required": ["name"],
+                            "additionalProperties": false
+                        },
+                        "cursor": { "type": "string" }
+                    },
+                    "required": ["id", "note", "tags", "owner"],
+                    "additionalProperties": false
+                }
+            }
+            """;
+
+    private static final String ACCEPTS_EVERY_OUTPUT_TOOL = """
+            {
+                "name": "accepts_every_output",
+                "title": "Accepts Every Output",
+                "description": "Accepts every value the report source emits, its integer id as a nullable number",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "id": { "type": ["number", "null"] },
+                        "note": { "type": ["string", "null"] },
+                        "tags": { "type": "array", "items": { "type": "string" } },
+                        "owner": { "type": "object", "properties": { "name": { "type": "string" } } }
+                    },
+                    "required": ["id"]
+                }
+            }
+            """;
+
+    private static final String REQUIRES_CURSOR_TOOL = """
+            {
+                "name": "requires_cursor",
+                "title": "Requires Cursor",
+                "description": "Requires the cursor, which the report source may leave out",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": { "cursor": { "type": "string" } },
+                    "required": ["cursor"]
+                }
+            }
+            """;
+
+    private static final String REJECTS_CURSOR_TOOL = """
+            {
+                "name": "rejects_cursor",
+                "title": "Rejects Cursor",
+                "description": "Accepts every report field except the cursor",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "id": { "type": "integer" },
+                        "note": { "type": ["string", "null"] },
+                        "tags": { "type": "array" },
+                        "owner": { "type": "object" }
+                    },
+                    "additionalProperties": false
+                }
+            }
+            """;
+
+    private static final String REJECTS_NULL_NOTE_TOOL = """
+            {
+                "name": "rejects_null_note",
+                "title": "Rejects Null Note",
+                "description": "Rejects the null note that the report source may emit",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": { "note": { "type": "string" } }
+                }
+            }
+            """;
+
+    private static final String NESTED_MISMATCH_TOOL = """
+            {
+                "name": "nested_mismatch",
+                "title": "Nested Mismatch",
+                "description": "Expects integer tags and an integer owner name",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "tags": { "type": "array", "items": { "type": "integer" } },
+                        "owner": { "type": "object", "properties": { "name": { "type": "integer" } } }
+                    }
+                }
+            }
+            """;
+
+    private static final String ENUM_INPUT_TOOL = """
+            {
+                "name": "enum_input",
+                "title": "Enum Input",
+                "description": "Restricts the id with enum, which is not evaluated yet",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": { "id": { "type": "integer", "enum": [1, 2] } }
+                }
+            }
+            """;
+
+    private static final String CUSTOM_DIALECT_TOOL = """
+            {
+                "name": "custom_dialect",
+                "title": "Custom Dialect",
+                "description": "Declares a JSON Schema dialect that is not supported",
+                "inputSchema": { "$schema": "https://example.com/custom-dialect", "type": "object" }
+            }
+            """;
+
+    private static final String DEEP_INPUT_TOOL = """
+            {
+                "name": "deep_input",
+                "title": "Deep Input",
+                "description": "Nests an array deeper than the comparison evaluates",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "l1": { "type": "object", "properties": {
+                            "l2": { "type": "object", "properties": {
+                                "l3": { "type": "object", "properties": {
+                                    "l4": { "type": "object", "properties": {
+                                        "l5": { "type": "array", "items": { "type": "string" } }
+                                    } }
+                                } }
+                            } }
+                        } }
+                    }
+                }
+            }
+            """;
+
+    private static final String NO_INPUT_SCHEMA_TOOL = """
+            {
+                "name": "no_input_schema",
+                "title": "No Input Schema",
+                "description": "Declares no inputSchema"
+            }
+            """;
+
+    private static final String TRUNCATED_TOOL = "{\"name\": \"truncated_tool\", \"inputSchema\": ";
+
+    @ParameterizedTest
+    @ValueSource(strings = {ROOT_ROUTES, V3_ROUTES})
+    public void testToolCompatibilityExplainsEveryReason(String routes) throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        createMcpTool(groupId, REPORT_SOURCE, REPORT_SOURCE_TOOL);
+        createMcpTool(groupId, ACCEPTS_EVERY_OUTPUT, ACCEPTS_EVERY_OUTPUT_TOOL);
+        createMcpTool(groupId, "requires-cursor", REQUIRES_CURSOR_TOOL);
+        createMcpTool(groupId, "rejects-cursor", REJECTS_CURSOR_TOOL);
+        createMcpTool(groupId, "rejects-null-note", REJECTS_NULL_NOTE_TOOL);
+        createMcpTool(groupId, "nested-mismatch", NESTED_MISMATCH_TOOL);
+
+        Response response = givenSource(groupId, REPORT_SOURCE).queryParam("limit", 500)
+                .get(routes + COMPATIBILITY);
+
+        assertEquals(200, response.statusCode());
+        assertEquals(Map.of(
+                ACCEPTS_EVERY_OUTPUT, outcome("COMPATIBLE", List.of(), List.of()),
+                "requires-cursor", outcome("INCOMPATIBLE", List.of(reason("REQUIRED_NOT_GUARANTEED",
+                        "/outputSchema/required", "/inputSchema/required/0",
+                        "Required input 'cursor' is declared by the producer but not required")), List.of()),
+                "rejects-cursor", outcome("INCOMPATIBLE", List.of(reason("ADDITIONAL_PROPERTY_NOT_ACCEPTED",
+                        "/outputSchema/properties/cursor", "/inputSchema/additionalProperties",
+                        "The producer may emit 'cursor', which the consumer does not accept")), List.of()),
+                "rejects-null-note", outcome("INCOMPATIBLE", List.of(reason("TYPE_NOT_ACCEPTED",
+                        "/outputSchema/properties/note/type", "/inputSchema/properties/note/type",
+                        "The producer's value for 'note' is not accepted by the consumer")), List.of()),
+                "nested-mismatch", outcome("INCOMPATIBLE", List.of(
+                        reason("TYPE_NOT_ACCEPTED", "/outputSchema/properties/owner/properties/name/type",
+                                "/inputSchema/properties/owner/properties/name/type",
+                                "The producer's value for 'name' is not accepted by the consumer"),
+                        reason("TYPE_NOT_ACCEPTED", "/outputSchema/properties/tags/items/type",
+                                "/inputSchema/properties/tags/items/type",
+                                "The producer may emit array items that the consumer does not accept")), List.of())),
+                outcomesInGroup(response, groupId));
+
+        givenSource(groupId, REPORT_SOURCE)
+                .queryParam("limit", 500)
+                .get(routes + COMPATIBLE)
+                .then()
+                .statusCode(200)
+                .body(artifactIdsInGroup(groupId), contains(ACCEPTS_EVERY_OUTPUT));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {ROOT_ROUTES, V3_ROUTES})
+    public void testToolCompatibilityReportsWhatItCannotCompare(String routes) throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        createMcpTool(groupId, REPORT_SOURCE, REPORT_SOURCE_TOOL);
+        createMcpTool(groupId, ACCEPTS_EVERY_OUTPUT, ACCEPTS_EVERY_OUTPUT_TOOL);
+        createMcpTool(groupId, "enum-input", ENUM_INPUT_TOOL);
+        createMcpTool(groupId, "custom-dialect", CUSTOM_DIALECT_TOOL);
+        createMcpTool(groupId, "deep-input", DEEP_INPUT_TOOL);
+        createMcpTool(groupId, "no-input-schema", NO_INPUT_SCHEMA_TOOL);
+        createMcpTool(groupId, "truncated", TRUNCATED_TOOL);
+
+        Response response = givenSource(groupId, REPORT_SOURCE).queryParam("limit", 500)
+                .get(routes + COMPATIBILITY);
+
+        assertEquals(200, response.statusCode());
+        assertEquals(Map.of(
+                ACCEPTS_EVERY_OUTPUT, outcome("COMPATIBLE", List.of(), List.of()),
+                "enum-input", outcome("INDETERMINATE", List.of(), List.of(consumerLimitation("UNSUPPORTED_KEYWORD",
+                        "/inputSchema/properties/id/enum", "'enum' is not evaluated yet"))),
+                "custom-dialect", outcome("INDETERMINATE", List.of(), List.of(consumerLimitation(
+                        "UNSUPPORTED_DIALECT", "/inputSchema/$schema",
+                        "JSON Schema dialect 'https://example.com/custom-dialect' is not supported"))),
+                "deep-input", outcome("INDETERMINATE", List.of(), List.of(consumerLimitation("DEPTH_LIMIT_REACHED",
+                        "/inputSchema/properties/l1/properties/l2/properties/l3/properties/l4/properties/l5/items",
+                        "'items' nests deeper than the comparison evaluates"))),
+                "no-input-schema", outcome("INDETERMINATE", List.of(), List.of(consumerLimitation(
+                        "COMPARISON_FAILED", "/inputSchema", "The tool declares no inputSchema object"))),
+                "truncated", outcome("INDETERMINATE", List.of(), List.of(consumerLimitation("COMPARISON_FAILED",
+                        "", "The tool definition is not valid JSON")))),
+                outcomesInGroup(response, groupId));
+
+        givenSource(groupId, REPORT_SOURCE)
+                .queryParam("limit", 500)
+                .get(routes + COMPATIBLE)
+                .then()
+                .statusCode(200)
+                .body(artifactIdsInGroup(groupId), contains(ACCEPTS_EVERY_OUTPUT));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {ROOT_ROUTES, V3_ROUTES})
+    public void testCandidatesWithoutAnEnabledVersionAreSkipped(String routes) throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        createMcpTool(groupId, REPORT_SOURCE, REPORT_SOURCE_TOOL);
+        createMcpTool(groupId, ACCEPTS_EVERY_OUTPUT, ACCEPTS_EVERY_OUTPUT_TOOL);
+        createMcpTool(groupId, "disabled-only", ACCEPTS_EVERY_OUTPUT_TOOL);
+        disableVersion(groupId, "disabled-only", "1");
+        createArtifact(groupId, "draft-only", ArtifactType.MCP_TOOL, ACCEPTS_EVERY_OUTPUT_TOOL,
+                ContentTypes.APPLICATION_JSON, artifact -> artifact.getFirstVersion().setIsDraft(true));
+        createMcpTool(groupId, "disabled-latest", ACCEPTS_EVERY_OUTPUT_TOOL);
+        createArtifactVersion(groupId, "disabled-latest", REJECTS_NULL_NOTE_TOOL, ContentTypes.APPLICATION_JSON);
+        disableVersion(groupId, "disabled-latest", "2");
+
+        Response response = givenSource(groupId, REPORT_SOURCE).queryParam("limit", 500)
+                .get(routes + COMPATIBILITY);
+
+        // Every candidate is compatible through its first version, so only the version states
+        // explain which ones are compared: a disabled latest version falls back to the enabled one.
+        assertEquals(200, response.statusCode());
+        assertEquals(Map.of(ACCEPTS_EVERY_OUTPUT, outcome("COMPATIBLE", List.of(), List.of()),
+                "disabled-latest", outcome("COMPATIBLE", List.of(), List.of())),
+                outcomesInGroup(response, groupId));
+
+        givenSource(groupId, REPORT_SOURCE)
+                .queryParam("limit", 500)
+                .get(routes + COMPATIBLE)
+                .then()
+                .statusCode(200)
+                .body(artifactIdsInGroup(groupId), containsInAnyOrder(ACCEPTS_EVERY_OUTPUT, "disabled-latest"));
+    }
+
     @Test
     public void testCompatibilityOperationsThroughTheGeneratedClient() throws Exception {
         String groupId = TestUtils.generateGroupId();
@@ -1319,6 +1596,37 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
 
     private static String artifactIdsInGroup(String groupId) {
         return "tools.findAll { it.groupId == '" + groupId + "' }.artifactId";
+    }
+
+    /**
+     * The verdict, reasons and limitations of every candidate in the group, by artifact ID.
+     */
+    private static Map<String, Map<String, Object>> outcomesInGroup(Response response, String groupId) {
+        List<Map<String, Object>> results = response.path(resultsInGroup(groupId));
+        return results.stream().collect(Collectors.toMap(
+                result -> (String) ((Map<?, ?>) result.get("tool")).get("artifactId"),
+                result -> outcome(result.get("verdict"), result.get("reasons"), result.get("limitations"))));
+    }
+
+    private static Map<String, Object> outcome(Object verdict, Object reasons, Object limitations) {
+        return Map.of("verdict", verdict, "reasons", reasons, "limitations", limitations);
+    }
+
+    private static Map<String, String> reason(String code, String producerPointer, String consumerPointer,
+            String message) {
+        return Map.of("code", code, "producerPointer", producerPointer, "consumerPointer", consumerPointer,
+                "message", message);
+    }
+
+    private static Map<String, String> consumerLimitation(String code, String pointer, String message) {
+        return Map.of("code", code, "side", "CONSUMER", "pointer", pointer, "message", message);
+    }
+
+    private void disableVersion(String groupId, String artifactId, String version) throws Exception {
+        WrappedVersionState disabled = new WrappedVersionState();
+        disabled.setState(VersionState.DISABLED);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .byVersionExpression(version).state().put(disabled);
     }
 
     private void createMcpTool(String groupId, String artifactId, String content) throws Exception {

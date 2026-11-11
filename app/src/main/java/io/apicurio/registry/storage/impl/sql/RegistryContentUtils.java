@@ -7,6 +7,7 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.dereference.DereferencingNotSupportedException;
 import io.apicurio.registry.content.refs.JsonPointerExternalReference;
+import io.apicurio.registry.references.AuthorizingReferenceLoader;
 import io.apicurio.registry.references.ReferenceResolution;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
@@ -76,49 +77,17 @@ public class RegistryContentUtils {
             List<ArtifactReferenceDto> references, Function<ArtifactReferenceDto, ContentWrapperDto> loader,
             Map<String, String> referencesRewrites) {
         if (references != null && !references.isEmpty()) {
+            // The siblings at once, before loading any: one authorizer call per document. Skipped if any
+            // is invalid, so that the loop below still reports it as before.
+            if (references.stream().allMatch(RegistryContentUtils::isValidReference)) {
+                AuthorizingReferenceLoader.authorizeAll(loader, references);
+            }
             for (ArtifactReferenceDto reference : references) {
-                if (reference.getArtifactId() == null || reference.getName() == null
-                        || reference.getVersion() == null) {
+                if (!isValidReference(reference)) {
                     throw new IllegalStateException("Invalid reference: " + reference);
                 } else {
-                    String refName = reference.getName();
-                    JsonPointerExternalReference refPointer = new JsonPointerExternalReference(refName);
-
-                    // Use only the resource part (without JSON pointer component) when building coordinates,
-                    // then reconstruct the full reference with the component to avoid duplication
-                    String resourceOnly = refPointer.getResource() != null ? refPointer.getResource() : refName;
-                    String referenceCoordinates = concatArtifactVersionCoordinatesWithRefName(
-                            reference.getGroupId(), reference.getArtifactId(), reference.getVersion(),
-                            resourceOnly);
-
-                    JsonPointerExternalReference coordinatePointer = new JsonPointerExternalReference(
-                            referenceCoordinates, refPointer.getComponent());
-
-                    String newRefName = coordinatePointer.toString();
-
-                    if (!partialRecursivelyResolvedReferences.containsKey(newRefName)) {
-                        try {
-                            var nested = loader.apply(reference);
-                            if (nested != null) {
-                                ArtifactTypeUtilProvider typeUtilProvider = artifactTypeUtilProviderFactory
-                                        .getArtifactTypeProvider(nested.getArtifactType());
-                                RewrittenContentHolder rewrittenContentHolder = resolveReferencesWithContext(
-                                        artifactTypeUtilProviderFactory,
-                                        TypedContent.create(nested.getContent(), nested.getContentType()),
-                                        nested.getArtifactType(), partialRecursivelyResolvedReferences,
-                                        nested.getReferences(), loader, referencesRewrites);
-                                referencesRewrites.put(refName, newRefName);
-                                TypedContent rewrittenContent = rewriteReferencesIfSupported(typeUtilProvider,
-                                        rewrittenContentHolder.getRewrittenContent(), referencesRewrites);
-                                partialRecursivelyResolvedReferences.put(newRefName, rewrittenContent);
-                            }
-                        } catch (ForbiddenException ex) {
-                            // The caller may not read the referenced artifact: fail, never skip
-                            throw ex;
-                        } catch (Exception ex) {
-                            log.error("Could not resolve reference " + reference + ".", ex);
-                        }
-                    }
+                    resolveReference(artifactTypeUtilProviderFactory, reference,
+                            partialRecursivelyResolvedReferences, loader, referencesRewrites);
                 }
             }
         }
@@ -126,6 +95,53 @@ public class RegistryContentUtils {
         TypedContent rewrittenContent = rewriteReferencesIfSupported(typeUtilProvider, mainContent,
                 referencesRewrites);
         return new RewrittenContentHolder(rewrittenContent, partialRecursivelyResolvedReferences);
+    }
+
+    private static void resolveReference(ArtifactTypeUtilProviderFactory artifactTypeUtilProviderFactory,
+            ArtifactReferenceDto reference, Map<String, TypedContent> partialRecursivelyResolvedReferences,
+            Function<ArtifactReferenceDto, ContentWrapperDto> loader, Map<String, String> referencesRewrites) {
+        String refName = reference.getName();
+        JsonPointerExternalReference refPointer = new JsonPointerExternalReference(refName);
+
+        // Use only the resource part (without JSON pointer component) when building coordinates,
+        // then reconstruct the full reference with the component to avoid duplication
+        String resourceOnly = refPointer.getResource() != null ? refPointer.getResource() : refName;
+        String referenceCoordinates = concatArtifactVersionCoordinatesWithRefName(
+                reference.getGroupId(), reference.getArtifactId(), reference.getVersion(),
+                resourceOnly);
+
+        JsonPointerExternalReference coordinatePointer = new JsonPointerExternalReference(
+                referenceCoordinates, refPointer.getComponent());
+
+        String newRefName = coordinatePointer.toString();
+
+        if (!partialRecursivelyResolvedReferences.containsKey(newRefName)) {
+            try {
+                var nested = loader.apply(reference);
+                if (nested != null) {
+                    ArtifactTypeUtilProvider typeUtilProvider = artifactTypeUtilProviderFactory
+                            .getArtifactTypeProvider(nested.getArtifactType());
+                    RewrittenContentHolder rewrittenContentHolder = resolveReferencesWithContext(
+                            artifactTypeUtilProviderFactory,
+                            TypedContent.create(nested.getContent(), nested.getContentType()),
+                            nested.getArtifactType(), partialRecursivelyResolvedReferences,
+                            nested.getReferences(), loader, referencesRewrites);
+                    referencesRewrites.put(refName, newRefName);
+                    TypedContent rewrittenContent = rewriteReferencesIfSupported(typeUtilProvider,
+                            rewrittenContentHolder.getRewrittenContent(), referencesRewrites);
+                    partialRecursivelyResolvedReferences.put(newRefName, rewrittenContent);
+                }
+            } catch (ForbiddenException ex) {
+                // The caller may not read the referenced artifact: fail, never skip
+                throw ex;
+            } catch (Exception ex) {
+                log.error("Could not resolve reference " + reference + ".", ex);
+            }
+        }
+    }
+
+    private static boolean isValidReference(ArtifactReferenceDto reference) {
+        return reference.getArtifactId() != null && reference.getName() != null && reference.getVersion() != null;
     }
 
     /**

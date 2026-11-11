@@ -1,0 +1,236 @@
+# AI Agent Registry demo: every agent registry feature of Apicurio Registry, plus the
+# Quarkus LangChain4j A2A and MCP Registry extensions. See README.md and GUIDE.md.
+#
+# LOCAL DEMONSTRATION ONLY. Every port is bound to localhost. Keycloak runs in dev mode over
+# HTTP, the token issuer check is relaxed so the browser and the containers can share one
+# Keycloak, and the "open" Registry has no authentication at all.
+#
+# Two Registries, on purpose:
+#   - registry (port 8180) has no authentication. No released Quarkus LangChain4j extension can
+#     authenticate to a Registry yet (fix in review: quarkiverse/quarkus-langchain4j#3145), so the
+#     agents publish to and discover from this one. Most features are shown here.
+#   - registry-secured (port 8081) uses Keycloak. It shows what depends on who is asking:
+#     agent visibility, per-resource access rules, and the Registry MCP server over HTTP.
+#
+# Ollama must run on the host with the model in OLLAMA_MODEL (default qwen2.5:7b). Only the
+# LLM steps of the guide need it.
+services:
+
+  # ---------------------------------------------------------------- identity
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.2
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_HEALTH_ENABLED: "true"
+    command: ["start-dev", "--import-realm", "--hostname-strict=false"]
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      # The shared example realm (users, roles and clients), not a copy
+      - ../../distro/docker-compose/config/realm.json:/opt/keycloak/data/import/realm.json:ro
+    healthcheck:
+      # The image has no curl
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/9000 && printf 'GET /health/ready HTTP/1.0\\r\\n\\r\\n' >&3 && grep -q UP <&3"]
+      interval: 5s
+      timeout: 5s
+      retries: 40
+
+  # Adds the apicurio-mcp client, used by the Registry MCP server, to the realm
+  keycloak-bootstrap:
+    image: quay.io/keycloak/keycloak:26.2
+    entrypoint: ["/bin/bash", "/bootstrap/bootstrap.sh"]
+    volumes:
+      - ./keycloak:/bootstrap:ro
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    restart: "no"
+
+  # ---------------------------------------------------------------- open Registry
+  registry:
+    image: ${REGISTRY_IMAGE:-quay.io/apicurio/apicurio-registry:latest-snapshot}
+    environment: &agent-features
+      APICURIO_FEATURES_EXPERIMENTAL_ENABLED: "true"
+      APICURIO_A2A_ENABLED: "true"
+      APICURIO_A2A_AGENT_NAME: "Apicurio Registry (agent registry demo)"
+      APICURIO_A2A_OPENAPI_INTEGRATION_ENABLED: "true"
+      APICURIO_AI_CATALOG_ENABLED: "true"
+      APICURIO_ARD_ENABLED: "true"
+      APICURIO_MCP_TOOLS_ENABLED: "true"
+      APICURIO_MCP_REGISTRY_ENABLED: "true"
+      APICURIO_UI_FEATURES_AGENTS_ENABLED: "true"
+      # Importing tools from a live MCP server: only the demo's weather server may be reached,
+      # over plain HTTP inside the compose network
+      APICURIO_MCP_IMPORT_ENABLED: "true"
+      APICURIO_MCP_IMPORT_ALLOWED_HOSTS: "weather-server"
+      APICURIO_MCP_IMPORT_INSECURE_HTTP_ENABLED: "true"
+      APICURIO_REST_DELETION_GROUP_ENABLED: "true"
+      APICURIO_REST_DELETION_ARTIFACT_ENABLED: "true"
+      APICURIO_REST_DELETION_ARTIFACT_VERSION_ENABLED: "true"
+      QUARKUS_HTTP_CORS_ORIGINS: "http://localhost:8889"
+    ports:
+      - "127.0.0.1:8180:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:9000/health/ready"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+
+  registry-ui:
+    image: ${REGISTRY_UI_IMAGE:-quay.io/apicurio/apicurio-registry-ui:latest-snapshot}
+    environment:
+      REGISTRY_API_URL: "http://localhost:8180/apis/registry/v3"
+    ports:
+      - "127.0.0.1:8889:8080"
+    depends_on:
+      registry:
+        condition: service_healthy
+
+  # ---------------------------------------------------------------- secured Registry
+  registry-secured:
+    image: ${REGISTRY_IMAGE:-quay.io/apicurio/apicurio-registry:latest-snapshot}
+    environment:
+      <<: *agent-features
+      APICURIO_MCP_IMPORT_ENABLED: "false"
+      APICURIO_MCP_IMPORT_ALLOWED_HOSTS: ""
+      QUARKUS_PROFILE: "prod"
+      QUARKUS_OIDC_TENANT_ENABLED: "true"
+      QUARKUS_OIDC_AUTH_SERVER_URL: "http://keycloak:8080/realms/registry"
+      QUARKUS_OIDC_CLIENT_ID: "registry-api"
+      QUARKUS_OIDC_TOKEN_ISSUER: "any"
+      APICURIO_UI_AUTH_OIDC_CLIENT_ID: "apicurio-registry"
+      APICURIO_UI_AUTH_OIDC_REDIRECT_URI: "http://localhost:8888/"
+      # Keycloak roles (sr-admin, sr-developer, sr-readonly), narrowed by access.rules
+      APICURIO_AUTH_ROLE_BASED_AUTHORIZATION: "true"
+      APICURIO_AUTH_ANONYMOUS_READ_ACCESS_ENABLED: "true"
+      APICURIO_AUTH_RESOURCE_BASED_AUTHORIZATION_ENABLED: "true"
+      APICURIO_AUTH_RESOURCE_BASED_AUTHORIZATION_RULES_PATH: "/opt/apicurio/authz/access.rules"
+      APICURIO_AUTH_RESOURCE_BASED_AUTHORIZATION_RULES_RELOAD_EVERY: "5s"
+      QUARKUS_HTTP_CORS_ORIGINS: "http://localhost:8888"
+    ports:
+      - "127.0.0.1:8081:8080"
+    volumes:
+      # The directory, not the file: editors replace files on save
+      - ./authz:/opt/apicurio/authz:ro
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:9000/health/ready"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+
+  registry-secured-ui:
+    image: ${REGISTRY_UI_IMAGE:-quay.io/apicurio/apicurio-registry-ui:latest-snapshot}
+    environment:
+      REGISTRY_API_URL: "http://localhost:8081/apis/registry/v3"
+      REGISTRY_AUTH_TYPE: "oidc"
+      REGISTRY_AUTH_URL: "http://localhost:8080/realms/registry"
+    ports:
+      - "127.0.0.1:8888:8080"
+    depends_on:
+      registry-secured:
+        condition: service_healthy
+
+  # The Registry MCP server over HTTP, in front of the secured Registry. MCP clients log in
+  # through Keycloak; the server forwards the user's token, so they see what that user may see.
+  registry-mcp:
+    image: ${MCP_SERVER_IMAGE:-quay.io/apicurio/apicurio-registry-mcp-server:latest-snapshot}
+    environment:
+      QUARKUS_PROFILE: "prod"
+      QUARKUS_HTTP_AUTH_PROACTIVE: "true"
+      REGISTRY_URL: "http://registry-secured:8080"
+      APICURIO_MCP_HTTP_ENABLED: "true"
+      APICURIO_MCP_HTTP_FORWARD_TOKEN: "true"
+      QUARKUS_MCP_SERVER_HTTP_ENABLED: "true"
+      QUARKUS_MCP_SERVER_STDIO_ENABLED: "false"
+      QUARKUS_OIDC_TENANT_ENABLED: "true"
+      QUARKUS_OIDC_APPLICATION_TYPE: "service"
+      QUARKUS_OIDC_AUTH_SERVER_URL: "http://keycloak:8080/realms/registry"
+      QUARKUS_OIDC_TOKEN_ISSUER: "any"
+      QUARKUS_OIDC_TOKEN_AUDIENCE: "apicurio-mcp"
+      QUARKUS_OIDC_TENANT_PATHS: "/mcp"
+      QUARKUS_HTTP_AUTH_PERMISSION_AUTHENTICATED_PATHS: "/mcp"
+      QUARKUS_HTTP_AUTH_PERMISSION_AUTHENTICATED_POLICY: "authenticated"
+      QUARKUS_OIDC_RESOURCE_METADATA_ENABLED: "true"
+      QUARKUS_OIDC_RESOURCE_METADATA_AUTHORIZATION_SERVER: "http://localhost:8080/realms/registry"
+      QUARKUS_OIDC_RESOURCE_METADATA_FORCE_HTTPS_SCHEME: "false"
+      QUARKUS_HTTP_CORS_ENABLED: "true"
+      QUARKUS_HTTP_CORS_ORIGINS: "http://localhost:6274"
+    ports:
+      - "127.0.0.1:8082:8080"
+    depends_on:
+      keycloak-bootstrap:
+        condition: service_completed_successfully
+      registry-secured:
+        condition: service_healthy
+
+  # ---------------------------------------------------------------- Quarkus LangChain4j apps
+  # Built from the Quarkus LangChain4j 1.15.0 sample (see apps/Dockerfile). They use the open
+  # Registry, and Ollama on the host.
+  weather-server:
+    image: agent-registry-demo-apps:dev
+    build: ./apps
+    command: ["/apps/weather-server/quarkus-run.jar"]
+    environment:
+      QUARKUS_HTTP_PORT: "11040"
+    healthcheck: &port-open
+      # The image has bash but no curl; /dev/tcp is a bash feature
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/localhost/$${QUARKUS_HTTP_PORT}"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+
+  summarizer:
+    image: agent-registry-demo-apps:dev
+    command: ["/apps/text-agent/quarkus-run.jar"]
+    environment: &text-agent
+      QUARKUS_HTTP_PORT: "11010"
+      REGISTRY_URL: "http://registry:8080/apis/registry/v3"
+      AGENT_URL: "http://summarizer:11010"
+      OLLAMA_URL: "${OLLAMA_URL:-http://host.docker.internal:11434}"
+      OLLAMA_MODEL: "${OLLAMA_MODEL:-qwen2.5:7b}"
+    extra_hosts: &host-gateway
+      - "host.docker.internal:host-gateway"
+    healthcheck: *port-open
+    depends_on:
+      registry:
+        condition: service_healthy
+
+  translator:
+    image: agent-registry-demo-apps:dev
+    command: ["/apps/text-agent/quarkus-run.jar"]
+    environment:
+      <<: *text-agent
+      QUARKUS_PROFILE: "translator"
+      QUARKUS_HTTP_PORT: "11030"
+      AGENT_URL: "http://translator:11030"
+    extra_hosts: *host-gateway
+    healthcheck: *port-open
+    depends_on:
+      registry:
+        condition: service_healthy
+
+  orchestrator:
+    image: agent-registry-demo-apps:dev
+    command: ["/apps/orchestrator/quarkus-run.jar"]
+    environment:
+      QUARKUS_HTTP_PORT: "11020"
+      REGISTRY_URL: "http://registry:8080/apis/registry/v3"
+      OLLAMA_URL: "${OLLAMA_URL:-http://host.docker.internal:11434}"
+      OLLAMA_MODEL: "${OLLAMA_MODEL:-qwen2.5:7b}"
+    extra_hosts: *host-gateway
+    ports:
+      - "127.0.0.1:11020:11020"
+    healthcheck: *port-open
+    depends_on:
+      registry:
+        condition: service_healthy
+      summarizer:
+        condition: service_healthy
+      translator:
+        condition: service_healthy
+      weather-server:
+        condition: service_healthy

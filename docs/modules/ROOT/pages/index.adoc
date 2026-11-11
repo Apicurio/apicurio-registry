@@ -12,6 +12,10 @@ This document introduces {registry}, explains how to install with your chosen st
 
 This document also explains how to enforce schemas using Kafka client serializers and deserializers in your consumer and producer applications. It also describes {registry} content types and rule types, and OpenShift environment variables for health checks.
 
+ifdef::apicurio-registry[]
+To try {registry} as a registry for AI agents and MCP tools, start with the xref:getting-started/assembly-agent-registry-quickstart.adoc[agent registry quick start].
+endif::[]
+
 == Getting help with {registry} 
 
 See the link:https://github.com/Apicurio/apicurio-registry[{registry}] and https://github.com/Apicurio/apicurio-registry-operator[{operator}] projects on GitHub. Any contributions, suggestions, and issue reports are welcome.

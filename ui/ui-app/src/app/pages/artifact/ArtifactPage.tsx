@@ -11,6 +11,7 @@ import {
     CreateBranchModal,
     CreateVersionModal,
     EditMetaDataModal,
+    ImportMcpToolsModal,
     IfFeature,
     InvalidContentModal,
     MetaData,
@@ -57,6 +58,7 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
     const [isAddVersionToBranchModalOpen, setIsAddVersionToBranchModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isChangeOwnerModalOpen, setIsChangeOwnerModalOpen] = useState(false);
+    const [isImportMcpToolsModalOpen, setIsImportMcpToolsModalOpen] = useState(false);
     const [isPleaseWaitModalOpen, setIsPleaseWaitModalOpen] = useState(false);
     const [pleaseWaitMessage, setPleaseWaitMessage] = useState("");
     const [rules, setRules] = useState<Rule[]>([]);
@@ -378,6 +380,14 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
         });
     };
 
+    const onImportMcpToolsModalClose = (imported: boolean): void => {
+        setIsImportMcpToolsModalOpen(false);
+        if (imported) {
+            // The import added a version of this artifact; load the page again to show it.
+            setLoaders(createLoaders(newLoaderGuard()));
+        }
+    };
+
     const pleaseWait = (isOpen: boolean, message: string = ""): void => {
         setIsPleaseWaitModalOpen(isOpen);
         setPleaseWaitMessage(message);
@@ -458,7 +468,8 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
                 <PageSection hasBodyWrapper={false} className="ps_artifact-version-header" >
                     <ArtifactPageHeader
                         artifact={artifact as ArtifactMetaData}
-                        onDeleteArtifact={onDeleteArtifact} />
+                        onDeleteArtifact={onDeleteArtifact}
+                        onImportMcpTools={() => setIsImportMcpToolsModalOpen(true)} />
                 </PageSection>
                 <PageSection hasBodyWrapper={false}  isFilled={true} padding={{ default: "noPadding" }} className="artifact-details-main">
                     <Tabs className="artifact-page-tabs"
@@ -508,6 +519,13 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
                 isOpen={isCreateBranchModalOpen}
                 onClose={() => setIsCreateBranchModalOpen(false)}
                 onCreate={doCreateArtifactBranch}
+            />
+            <ImportMcpToolsModal
+                isOpen={isImportMcpToolsModalOpen}
+                groupId={gid}
+                artifactId={artifactId as string}
+                onClose={onImportMcpToolsModalClose}
+                onImport={data => groups.importMcpTools(groupId as string, artifactId as string, data)}
             />
             <ChangeOwnerModal isOpen={isChangeOwnerModalOpen}
                 onClose={onChangeOwnerModalClose}

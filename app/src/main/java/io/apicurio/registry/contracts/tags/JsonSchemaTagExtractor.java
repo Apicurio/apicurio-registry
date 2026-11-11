@@ -58,7 +58,25 @@ public class JsonSchemaTagExtractor implements TagExtractor {
         }
         visited.add(id);
 
-        JsonNode properties = node.get("properties");
+        extractTagsFromProperties(root, node.get("properties"), pathPrefix, result, visited);
+
+        JsonNode items = node.get("items");
+        if (items != null && items.isObject()) {
+            extractTagsFromNode(root, items, pathPrefix + "[]", result, visited);
+        }
+
+        JsonNode additionalProperties = node.get("additionalProperties");
+        if (additionalProperties != null && additionalProperties.isObject()) {
+            String mapPath = pathPrefix.isEmpty() ? "values" : pathPrefix + ".values";
+            extractTagsFromNode(root, additionalProperties, mapPath, result, visited);
+        }
+
+        extractTagsFromCompositions(root, node, pathPrefix, result, visited);
+        extractTagsFromRef(root, node.get("$ref"), pathPrefix, result, visited);
+    }
+
+    private void extractTagsFromProperties(JsonNode root, JsonNode properties, String pathPrefix,
+            Map<String, Set<String>> result, Set<String> visited) {
         if (properties != null && properties.isObject()) {
             Iterator<Map.Entry<String, JsonNode>> fields = properties.fields();
             while (fields.hasNext()) {
@@ -75,18 +93,10 @@ public class JsonSchemaTagExtractor implements TagExtractor {
                 extractTagsFromNode(root, fieldSchema, fieldPath, result, visited);
             }
         }
+    }
 
-        JsonNode items = node.get("items");
-        if (items != null && items.isObject()) {
-            extractTagsFromNode(root, items, pathPrefix + "[]", result, visited);
-        }
-
-        JsonNode additionalProperties = node.get("additionalProperties");
-        if (additionalProperties != null && additionalProperties.isObject()) {
-            String mapPath = pathPrefix.isEmpty() ? "values" : pathPrefix + ".values";
-            extractTagsFromNode(root, additionalProperties, mapPath, result, visited);
-        }
-
+    private void extractTagsFromCompositions(JsonNode root, JsonNode node, String pathPrefix,
+            Map<String, Set<String>> result, Set<String> visited) {
         for (String compositionKey : List.of("allOf", "oneOf", "anyOf")) {
             JsonNode composition = node.get(compositionKey);
             if (composition != null && composition.isArray()) {
@@ -95,8 +105,10 @@ public class JsonSchemaTagExtractor implements TagExtractor {
                 }
             }
         }
+    }
 
-        JsonNode ref = node.get("$ref");
+    private void extractTagsFromRef(JsonNode root, JsonNode ref, String pathPrefix,
+            Map<String, Set<String>> result, Set<String> visited) {
         if (ref != null && ref.isTextual()) {
             String refPath = ref.asText();
             if (refPath.startsWith("#/")) {

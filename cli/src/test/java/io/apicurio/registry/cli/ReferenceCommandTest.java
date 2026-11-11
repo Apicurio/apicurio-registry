@@ -13,6 +13,8 @@ import org.junit.jupiter.api.TestMethodOrder;
 
 import java.util.List;
 
+import static io.apicurio.registry.cli.common.CliException.SERVER_ERROR_RETURN_CODE;
+import static io.apicurio.registry.cli.common.CliException.VALIDATION_ERROR_RETURN_CODE;
 import static io.apicurio.registry.cli.utils.Mapper.MAPPER;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -129,14 +131,18 @@ public class ReferenceCommandTest extends AbstractCLITest {
     @Test
     @Order(5)
     public void testListNonExistentArtifact() {
-        executeAndAssertFailure("reference", "list",
-                "-g", TEST_GROUP, "-a", "non-existent", "branch=latest");
+        assertThat(cmd.execute("reference", "list",
+                "-g", TEST_GROUP, "-a", "non-existent", "branch=latest"))
+                .as(withCliOutput("Command should fail with the expected exit code"))
+                .isEqualTo(SERVER_ERROR_RETURN_CODE);
     }
 
     @Test
     @Order(6)
     public void testListMissingArtifactNoContext() {
-        executeAndAssertFailure("reference", "list",
-                "-g", TEST_GROUP, "branch=latest");
+        assertThat(cmd.execute("reference", "list",
+                "-g", TEST_GROUP, "branch=latest"))
+                .as(withCliOutput("Command should fail with the expected exit code"))
+                .isEqualTo(VALIDATION_ERROR_RETURN_CODE);
     }
 }

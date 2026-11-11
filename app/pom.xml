@@ -336,6 +336,15 @@
     </dependency>
     <dependency>
       <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-schema-util-references</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-java-sdk-references</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-v2-java-sdk</artifactId>
       <scope>test</scope>
     </dependency>
@@ -935,5 +944,66 @@
     </plugins>
   </build>
 
+  <profiles>
+    <!-- Byteman-based concurrency tests; usage is in DEVELOPING.md. Byteman is LGPL, so neither
+         the dependency nor the test sources may appear in the default build: the license scan
+         reads the POM dependency graph of the profile-less model, and a compiled BMUnit
+         annotation left in target/test-classes would ride into the test-jar produced at
+         process-test-classes. Hence the separate source root, src/test-concurrency/java, which only
+         this profile adds. -->
+    <profile>
+      <!-- Opt-in because it pulls the LGPL Byteman dependency. -->
+      <id>concurrency-tests</id>
+      <dependencies>
+        <dependency>
+          <groupId>org.jboss.byteman</groupId>
+          <artifactId>byteman-bmunit5</artifactId>
+          <version>${byteman.version}</version>
+          <scope>test</scope>
+        </dependency>
+      </dependencies>
+      <properties>
+        <!-- Feeds @{argLine} on the surefire argLine above. -->
+        <argLine>-Djdk.attach.allowAttachSelf=true</argLine>
+      </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-checkstyle-plugin</artifactId>
+            <!-- checkstyle:check is bound to validate in the root POM, which runs before
+                 build-helper adds the source root at generate-test-sources, so both test roots
+                 have to be listed here by hand or the Byteman tests are never scanned.
+                 testSourceDirectories replaces the default rather than appending to it, which
+                 is why src/test/java has to be restated. -->
+            <configuration>
+              <testSourceDirectories>
+                <testSourceDirectory>${project.build.testSourceDirectory}</testSourceDirectory>
+                <testSourceDirectory>${project.basedir}/src/test-concurrency/java</testSourceDirectory>
+              </testSourceDirectories>
+            </configuration>
+          </plugin>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>build-helper-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>add-concurrency-test-source</id>
+                <goals>
+                  <goal>add-test-source</goal>
+                </goals>
+                <phase>generate-test-sources</phase>
+                <configuration>
+                  <sources>
+                    <source>${project.basedir}/src/test-concurrency/java</source>
+                  </sources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 
 </project>

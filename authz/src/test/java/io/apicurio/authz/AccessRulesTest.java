@@ -21,6 +21,7 @@ import io.kroxylicious.proxy.authentication.User;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -246,6 +247,35 @@ class AccessRulesTest {
         }
     }
 
+    /**
+     * Rules after {@code otherwise deny;} would never apply, so the file is rejected rather than read
+     * as if they were not there: a deny rule appended at the end would otherwise be silently ignored.
+     * Kroxylicious's {@code AclAuthorizerService} (0.25.1) ignores them; Registry is stricter, and this
+     * pins the difference so an upstream change is noticed.
+     */
+    @Test
+    void contentAfterOtherwiseDenyIsRejected() throws Exception {
+        String header = "from io.apicurio.authz import Artifact, Role;\n";
+        String rule = "allow Role with name = \"r\" to READ Artifact with name like \"team-a/*\";\n";
+        for (String trailing : List.of(
+                "deny Role with name = \"r\" to * Artifact with name = \"team-a/secret\";\n",
+                rule,
+                "this is not a rule;\n")) {
+            String file = header + rule + "otherwise deny;\n" + trailing;
+            IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> AccessRules.parse(file),
+                    file);
+            assertTrue(e.getMessage().contains("4:0: unexpected"), e.getMessage());
+            assertTrue(e.getMessage().contains("after 'otherwise deny;'"), e.getMessage());
+
+            Authorizer theirs = kroxyliciousAuthorizer(file);
+            Subject r = subject(new Role("r"));
+            // Upstream silently drops the trailing rule: the appended deny does not apply
+            assertTrue(allowed(theirs, r, Artifact.READ, "team-a/secret"), file);
+        }
+        // Comments and blank lines after it are fine
+        AccessRules.parse(header + rule + "otherwise deny;\n\n// the end\n");
+    }
+
     /** The valid neighbours of the invalid files above are accepted by both. */
     @Test
     void validFilesAreAcceptedAsTheKroxyliciousRulesServiceAcceptsThem() throws Exception {
@@ -264,8 +294,8 @@ class AccessRulesTest {
                         + "allow R with name = \"r\" to READ A with name = \"x\";\n" + end,
                 "// a comment\n" + header
                         + "allow User with name * to READ Artifact with name *;\n" + end)) {
-            AccessRules.parse(valid);
-            kroxyliciousAuthorizer(valid);
+            assertDoesNotThrow(() -> AccessRules.parse(valid), valid);
+            assertDoesNotThrow(() -> kroxyliciousAuthorizer(valid), valid);
         }
     }
 

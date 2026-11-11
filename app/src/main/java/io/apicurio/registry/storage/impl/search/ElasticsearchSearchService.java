@@ -59,6 +59,9 @@ public class ElasticsearchSearchService {
     private static final String FIELD_DESCRIPTION = "description";
     private static final String FIELD_CREATED_ON = "createdOn";
     private static final String FIELD_MODIFIED_ON = "modifiedOn";
+    private static final String FIELD_GROUP_ID = "groupId";
+    private static final String FIELD_ARTIFACT_ID = "artifactId";
+    private static final String FIELD_ARTIFACT_TYPE = "artifactType";
 
     @Inject
     ElasticsearchClient client;
@@ -258,13 +261,13 @@ public class ElasticsearchSearchService {
         case groupId:
             String groupValue = filter.getStringValue() == null ? "default"
                     : filter.getStringValue();
-            return buildTermOrWildcardQuery("groupId", groupValue);
+            return buildTermOrWildcardQuery(FIELD_GROUP_ID, groupValue);
 
         case authorization:
             return buildAuthorizationQuery(filter.getAuthorizationValue());
 
         case artifactId:
-            return buildTermOrWildcardQuery("artifactId", filter.getStringValue());
+            return buildTermOrWildcardQuery(FIELD_ARTIFACT_ID, filter.getStringValue());
 
         case version:
             return Query.of(q -> q.term(t -> t
@@ -272,7 +275,7 @@ public class ElasticsearchSearchService {
 
         case artifactType:
             return Query.of(q -> q.term(t -> t
-                    .field("artifactType").value(filter.getStringValue())));
+                    .field(FIELD_ARTIFACT_TYPE).value(filter.getStringValue())));
 
         case state:
             return Query.of(q -> q.term(t -> t
@@ -361,13 +364,13 @@ public class ElasticsearchSearchService {
 
     /** The default group is indexed with the group ID {@code default}. */
     private static Query clauseQuery(AuthorizationNames.Clause clause) {
-        Query group = clause.groupPrefix() ? prefixQuery("groupId", clause.group())
-                : termQuery("groupId", clause.group());
+        Query group = clause.groupPrefix() ? prefixQuery(FIELD_GROUP_ID, clause.group())
+                : termQuery(FIELD_GROUP_ID, clause.group());
         if (clause.artifact() == null) {
             return group;
         }
-        Query artifact = clause.artifactPrefix() ? prefixQuery("artifactId", clause.artifact())
-                : termQuery("artifactId", clause.artifact());
+        Query artifact = clause.artifactPrefix() ? prefixQuery(FIELD_ARTIFACT_ID, clause.artifact())
+                : termQuery(FIELD_ARTIFACT_ID, clause.artifact());
         return Query.of(q -> q.bool(b -> b.must(group).must(artifact)));
     }
 
@@ -391,7 +394,7 @@ public class ElasticsearchSearchService {
                 .should(Query.of(sq -> sq.match(m -> m
                         .field("name").query(value).operator(Operator.And))))
                 .should(Query.of(sq -> sq.term(t -> t
-                        .field("artifactId").value(value))))
+                        .field(FIELD_ARTIFACT_ID).value(value))))
         ));
     }
 
@@ -408,7 +411,7 @@ public class ElasticsearchSearchService {
                 .should(Query.of(sq -> sq.wildcard(w -> w
                         .field("name.keyword").value(escapedValue).caseInsensitive(true))))
                 .should(Query.of(sq -> sq.wildcard(w -> w
-                        .field("artifactId").value(escapedValue).caseInsensitive(true))))
+                        .field(FIELD_ARTIFACT_ID).value(escapedValue).caseInsensitive(true))))
         ));
     }
 
@@ -546,13 +549,13 @@ public class ElasticsearchSearchService {
             fieldName = "version";
             break;
         case groupId:
-            fieldName = "groupId";
+            fieldName = FIELD_GROUP_ID;
             break;
         case artifactId:
-            fieldName = "artifactId";
+            fieldName = FIELD_ARTIFACT_ID;
             break;
         case artifactType:
-            fieldName = "artifactType";
+            fieldName = FIELD_ARTIFACT_TYPE;
             break;
         default:
             return List.of(SortOptions.of(s -> s.score(sc -> sc)));
@@ -585,10 +588,10 @@ public class ElasticsearchSearchService {
         }
 
         // String fields
-        builder.groupId(toStr(source.get("groupId")));
-        builder.artifactId(toStr(source.get("artifactId")));
+        builder.groupId(toStr(source.get(FIELD_GROUP_ID)));
+        builder.artifactId(toStr(source.get(FIELD_ARTIFACT_ID)));
         builder.version(toStr(source.get("version")));
-        builder.artifactType(toStr(source.get("artifactType")));
+        builder.artifactType(toStr(source.get(FIELD_ARTIFACT_TYPE)));
         builder.name(toStr(source.get("name")));
         builder.description(toStr(source.get(FIELD_DESCRIPTION)));
         builder.owner(toStr(source.get("owner")));
@@ -628,11 +631,11 @@ public class ElasticsearchSearchService {
     SearchedArtifactDto mapToSearchedArtifactDto(Map<String, Object> source) {
         SearchedArtifactDto.SearchedArtifactDtoBuilder builder = SearchedArtifactDto.builder();
 
-        builder.groupId(toStr(source.get("groupId")));
-        builder.artifactId(toStr(source.get("artifactId")));
+        builder.groupId(toStr(source.get(FIELD_GROUP_ID)));
+        builder.artifactId(toStr(source.get(FIELD_ARTIFACT_ID)));
         builder.name(toStr(source.get("name")));
         builder.description(toStr(source.get(FIELD_DESCRIPTION)));
-        builder.artifactType(toStr(source.get("artifactType")));
+        builder.artifactType(toStr(source.get(FIELD_ARTIFACT_TYPE)));
         builder.owner(toStr(source.get("owner")));
         builder.modifiedBy(toStr(source.get("modifiedBy")));
 

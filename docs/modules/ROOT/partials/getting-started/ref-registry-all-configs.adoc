@@ -846,7 +846,7 @@ The following {registry} configuration options are available for each component 
 |`long`
 |`-1`
 |`2.2.3.Final`
-|Max artifact labels
+|Max number of labels on a group, artifact or version
 |`apicurio.limits.config.max-artifact-properties`
 |`long`
 |`-1`
@@ -866,7 +866,7 @@ The following {registry} configuration options are available for each component 
 |`long`
 |`-1`
 |`2.1.0.Final`
-|Max artifact label size
+|Max size of one label, in UTF-8 bytes of its key plus its value
 |`apicurio.limits.config.max-name-length`
 |`long`
 |`-1`

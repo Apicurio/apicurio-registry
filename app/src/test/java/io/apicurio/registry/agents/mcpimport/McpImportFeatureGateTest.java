@@ -33,4 +33,10 @@ public class McpImportFeatureGateTest extends AbstractResourceTestBase {
             assertEquals(0, mcp.requests.get());
         }
     }
+
+    @Test
+    void uiConfigDoesNotOfferTheImport() {
+        given().get(registryV3ApiUrl + "/system/uiConfig").then().statusCode(200)
+                .body("features.mcpImport", equalTo(false));
+    }
 }

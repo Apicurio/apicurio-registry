@@ -23,10 +23,12 @@ public class ContentTypeOptionsFilter implements Filter {
     }
 
     public ContentTypeOptionsFilter() {
+        // No state to initialize.
     }
 
     @Override
     public void init(FilterConfig config) throws ServletException {
+        // No configuration required.
     }
 
     // Set before chain.doFilter(), so a downstream response.reset() clears it: the disabled-API 404 path
@@ -41,5 +43,6 @@ public class ContentTypeOptionsFilter implements Filter {
 
     @Override
     public void destroy() {
+        // No resources to release.
     }
 }

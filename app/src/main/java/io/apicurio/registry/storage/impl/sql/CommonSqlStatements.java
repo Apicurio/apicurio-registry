@@ -151,11 +151,13 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String insertVersion(boolean firstVersion) {
         // TODO: Use COALESCE to unify into a single query.
         String query;
+        // NOTE: The caller's artifact row lock, or its uncommitted artifact insert, serializes both
+        // branches, and UQ_versions_3 (groupId, artifactId, versionOrder) rejects a duplicate
+        // versionOrder if it does not.
         if (firstVersion) {
             query = "INSERT INTO versions (globalId, groupId, artifactId, version, versionSortKey, versionOrder, state, name, description, owner, createdOn, modifiedBy, modifiedOn, labels, contentId)"
                     + " VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         } else {
-            // NOTE: Duplicated value of versionOrder is prevented by UQ_versions_2 constraint.
             query = "INSERT INTO versions (globalId, groupId, artifactId, version, versionSortKey, versionOrder, state, name, description, owner, createdOn, modifiedBy, modifiedOn, labels, contentId)"
                     + " VALUES (?, ?, ?, ?, ?, (SELECT maxVer FROM (SELECT MAX(versionOrder) + 1 AS maxVer FROM versions WHERE groupId = ? AND artifactId = ?) temp), ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         }
@@ -494,11 +496,6 @@ public abstract class CommonSqlStatements implements SqlStatements {
     @Override
     public String insertArtifactStructuredContent() {
         return "INSERT INTO artifact_structured_content (groupId, artifactId, elementType, elementValue) VALUES (?, ?, ?, ?)";
-    }
-
-    @Override
-    public String deleteVersionLabelsByPrefix() {
-        return "DELETE FROM version_labels WHERE globalId = ? AND labelKey LIKE ?";
     }
 
     /**
@@ -1646,13 +1643,27 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     @Override
-    public String updateVersionLabels() {
-        return "UPDATE versions SET labels = ? WHERE globalId = ?";
+    public String deleteContractRulesByGroupId() {
+        // Never the global ruleset, stored under the same sentinel for group and artifact
+        return "DELETE FROM contract_rules WHERE groupId = ? AND globalId IS NULL"
+                + " AND NOT (groupId = '__GLOBAL__' AND artifactId = '__GLOBAL__')";
     }
 
     @Override
-    public String selectVersionLabels() {
-        return "SELECT labelKey, labelValue FROM version_labels WHERE globalId = ?";
+    public String deleteContractRulesOfDeletedArtifact() {
+        // Never the global ruleset, stored under the same sentinel for group and artifact
+        return "DELETE FROM contract_rules WHERE groupId = ? AND artifactId = ? AND globalId IS NULL"
+                + " AND NOT (groupId = '__GLOBAL__' AND artifactId = '__GLOBAL__')";
+    }
+
+    @Override
+    public String deleteContractAuditEntriesByArtifact() {
+        return "DELETE FROM contract_audit_log WHERE groupId = ? AND artifactId = ?";
+    }
+
+    @Override
+    public String deleteContractAuditEntriesByGroupId() {
+        return "DELETE FROM contract_audit_log WHERE groupId = ?";
     }
 
     @Override

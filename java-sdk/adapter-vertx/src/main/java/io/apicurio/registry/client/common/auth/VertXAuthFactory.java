@@ -37,13 +37,13 @@ public class VertXAuthFactory {
         WebClient webClient = WebClient.create(vertx, options);
 
         OAuth2Auth oAuth2Options = OAuth2Auth.create(vertx, new OAuth2Options()
-                .setFlow(OAuth2FlowType.CLIENT)
                 .setHttpClientOptions(options)
                 .setClientId(clientId)
                 .setClientSecret(clientSecret)
                 .setTokenPath(tokenUrl));
 
-        Oauth2Credentials oauth2Credentials = new Oauth2Credentials();
+        // Configure the flow on the credentials: OAuth2Options.setFlow was removed in Vert.x 5.
+        Oauth2Credentials oauth2Credentials = new Oauth2Credentials().setFlow(OAuth2FlowType.CLIENT);
         if (scope != null) {
             oauth2Credentials.addScope(scope);
         }

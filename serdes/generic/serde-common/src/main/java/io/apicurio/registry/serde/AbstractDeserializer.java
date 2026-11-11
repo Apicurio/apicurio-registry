@@ -14,7 +14,6 @@ import io.apicurio.registry.resolver.DefaultSchemaResolver;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.utils.Utils;
-import io.apicurio.registry.rest.client.models.ContractRuleSet;
 import io.apicurio.registry.serde.config.SerdeConfig;
 import io.apicurio.registry.serde.config.SerdeDeserializerConfig;
 import io.apicurio.registry.serde.fallback.DefaultFallbackArtifactProvider;
@@ -55,6 +54,7 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
     private String migrationTargetVersion;
     private RuleExecutionEngine ruleEngine;
     private ContractRulesetCache rulesetCache;
+    private ContractRuleLoader ruleLoader;
 
     public AbstractDeserializer() {
         this.baseSerde = new BaseSerde<>();
@@ -101,6 +101,7 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
                 ttl = Long.parseLong(ttlObj.toString());
             }
             rulesetCache = new ContractRulesetCache(ttl);
+            ruleLoader = new ContractRuleLoader(rulesetCache, baseSerde::getClientFacade);
             Object migEnabled = config.originals().get(SerdeConfig.CONTRACT_RULES_MIGRATION_ENABLED);
             if (migEnabled != null) {
                 migrationEnabled = Boolean.parseBoolean(migEnabled.toString());
@@ -252,17 +253,10 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
             }
 
             // Domain rule validation
-            List<RuleDefinition> rules = loadRules(ref.getGroupId(), ref.getArtifactId());
+            List<RuleDefinition> rules = ruleLoader.domainRules(ref.getGroupId(), ref.getArtifactId(),
+                    ref.getVersion());
             if (!rules.isEmpty()) {
-                Map<String, Object> recordMap = dataToMap(data);
-                RuleExecutionResult result = ruleEngine.execute(rules, "READ", recordMap);
-                if (!result.isPassed()) {
-                    String msg = "Contract rule validation failed (READ): " + result.getViolations();
-                    if (contractRulesFailOnError) {
-                        throw new RuntimeException(msg);
-                    }
-                    LOG.warning(msg);
-                }
+                validateReadRules(rules, data);
             }
 
             // Migration transforms
@@ -278,6 +272,18 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
                 throw e;
             }
             LOG.warning("Contract rule execution failed: " + e.getMessage());
+        }
+    }
+
+    private void validateReadRules(List<RuleDefinition> rules, U data) {
+        Map<String, Object> recordMap = dataToMap(data);
+        RuleExecutionResult result = ruleEngine.execute(rules, "READ", recordMap);
+        if (!result.isPassed()) {
+            String msg = "Contract rule validation failed (READ): " + result.getViolations();
+            if (contractRulesFailOnError) {
+                throw new RuntimeException(msg);
+            }
+            LOG.warning(msg);
         }
     }
 
@@ -301,8 +307,7 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
 
         RuleExecutionResult result = migrationExecutor.execute(
                 allVersions, fromVersion, toVersion, recordMap,
-                (version, mode) -> loadMigrationRulesForVersion(
-                        groupId, artifactId, version));
+                (version, mode) -> ruleLoader.migrationRules(groupId, artifactId, version));
 
         if (!result.isPassed()) {
             String msg = "Migration transform failed (" + fromVersion + " -> " + toVersion + "): "
@@ -312,47 +317,6 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
             }
             LOG.warning(msg);
         }
-    }
-
-    private List<RuleDefinition> loadMigrationRulesForVersion(String groupId,
-            String artifactId, String version) {
-        ContractRuleSet versionRules = rulesetCache.get(groupId, artifactId, version);
-        if (versionRules == null) {
-            var facade = baseSerde.getClientFacade();
-            if (facade == null) {
-                return List.of();
-            }
-            versionRules = facade.getVersionContractRuleset(groupId, artifactId, version);
-            if (versionRules == null) {
-                return List.of();
-            }
-            rulesetCache.put(groupId, artifactId, version, versionRules);
-        }
-
-        List<RuleDefinition> migrationRules = new java.util.ArrayList<>();
-        if (versionRules.getMigrationRules() != null) {
-            for (var r : versionRules.getMigrationRules()) {
-                migrationRules.add(AbstractSerializer.toRuleDefinition(r));
-            }
-        }
-        return migrationRules;
-    }
-
-    private List<RuleDefinition> loadRules(String groupId, String artifactId) {
-        ContractRuleSet cached = rulesetCache.get(groupId, artifactId, null);
-        if (cached != null) {
-            return AbstractSerializer.toRuleDefinitions(cached);
-        }
-        var facade = baseSerde.getClientFacade();
-        if (facade == null) {
-            return List.of();
-        }
-        ContractRuleSet ruleset = facade.getContractRuleset(groupId, artifactId);
-        if (ruleset == null) {
-            return List.of();
-        }
-        rulesetCache.put(groupId, artifactId, null, ruleset);
-        return AbstractSerializer.toRuleDefinitions(ruleset);
     }
 
     @SuppressWarnings("unchecked")

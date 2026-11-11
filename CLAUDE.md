@@ -80,7 +80,7 @@ Full contribution guidelines are in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ### Before writing code
 - [ ] **One PR at a time.** Do not open a second PR until your first one is merged. Maintainers will close additional PRs with "one PR at a time" — no exceptions, even if the work is ready.
-- [ ] The linked issue has **maintainer approval** (a comment from a project maintainer). Implementing an unapproved feature request wastes everyone's time. Issues with zero maintainer comments are not approved.
+- [ ] **Larger features are agreed with the maintainers first.** Bug fixes and minor issues the maintainers already know about need no discussion. For a new feature or a significant change in behaviour, describe it in the issue and wait for a maintainer to agree before writing code, so the work doesn't go to a low-priority item or to a feature that doesn't fit the project's direction. If unsure, ask in the issue. See [Choosing what to work on](CONTRIBUTING.md#choosing-what-to-work-on).
 - [ ] Check for **overlapping PRs** — search open PRs for your issue number and keywords. Duplicate work gets the later PR closed.
 - [ ] Check the [Tried & Rejected list](https://github.com/Apicurio/apicurio-registry/discussions/8364) — some optimizations have already been evaluated and rejected with evidence. Don't re-implement them.
 

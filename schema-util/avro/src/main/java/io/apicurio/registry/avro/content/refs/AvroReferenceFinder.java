@@ -76,6 +76,37 @@ public class AvroReferenceFinder implements ReferenceFinder {
         return typeName;
     }
 
+    private static void addExternalType(String type, Set<String> internalTypes, Set<String> externalTypes,
+                                        String namespace) {
+        if (!PRIMITIVE_TYPES.contains(type)) {
+            // Qualify the type name with the current namespace if it's a relative name
+            String qualifiedType = qualifyTypeName(type, namespace);
+            if (!internalTypes.contains(qualifiedType)) {
+                externalTypes.add(qualifiedType);
+            }
+        }
+    }
+
+    private static void findExternalTypesInRecord(JsonNode schema,
+                                                  Set<String> internalTypes,
+                                                  Set<String> externalTypes,
+                                                  String namespace) {
+        // Records can define their own namespace, which becomes the enclosing namespace
+        // for nested types according to Avro specification
+        String recordNamespace = extractNamespace(schema);
+        String effectiveNamespace = recordNamespace != null ? recordNamespace : namespace;
+        JsonNode fieldsNode = schema.get("fields");
+        if (fieldsNode != null && fieldsNode.isArray()) {
+            ArrayNode fields = (ArrayNode) fieldsNode;
+            fields.forEach(fieldNode -> {
+                findExternalTypesIn(fieldNode, internalTypes, externalTypes, effectiveNamespace);
+            });
+        }
+        String qualifiedType = qualifyTypeName(schema.get("name").asText(), effectiveNamespace);
+        internalTypes.add(qualifiedType);
+        externalTypes.remove(qualifiedType);
+    }
+
     private static void findExternalTypesIn(JsonNode schema,
                                             Set<String> internalTypes,
                                             Set<String> externalTypes,
@@ -87,14 +118,7 @@ public class AvroReferenceFinder implements ReferenceFinder {
 
         // Handle primitive/external types
         if (schema.isTextual()) {
-            String type = schema.asText();
-            if (!PRIMITIVE_TYPES.contains(type)) {
-                // Qualify the type name with the current namespace if it's a relative name
-                String qualifiedType = qualifyTypeName(type, namespace);
-                if (!internalTypes.contains(qualifiedType)) {
-                    externalTypes.add(qualifiedType);
-                }
-            }
+            addExternalType(schema.asText(), internalTypes, externalTypes, namespace);
         }
 
         // Handle unions
@@ -107,22 +131,7 @@ public class AvroReferenceFinder implements ReferenceFinder {
         else if (schema.isObject() && schema.has("type") && schema.get("type").isTextual()) {
             String type = schema.get("type").asText();
             switch (type) {
-                case "record" -> {
-                    // Records can define their own namespace, which becomes the enclosing namespace
-                    // for nested types according to Avro specification
-                    String recordNamespace = extractNamespace(schema);
-                    String effectiveNamespace = recordNamespace != null ? recordNamespace : namespace;
-                    JsonNode fieldsNode = schema.get("fields");
-                    if (fieldsNode != null && fieldsNode.isArray()) {
-                        ArrayNode fields = (ArrayNode) fieldsNode;
-                        fields.forEach(fieldNode -> {
-                            findExternalTypesIn(fieldNode, internalTypes, externalTypes, effectiveNamespace);
-                        });
-                    }
-                    String qualifiedType = qualifyTypeName(schema.get("name").asText(), effectiveNamespace);
-                    internalTypes.add(qualifiedType);
-                    externalTypes.remove(qualifiedType);
-                }
+                case "record" -> findExternalTypesInRecord(schema, internalTypes, externalTypes, namespace);
                 case "array" -> {
                     JsonNode items = schema.get("items");
                     findExternalTypesIn(items, internalTypes, externalTypes, namespace);

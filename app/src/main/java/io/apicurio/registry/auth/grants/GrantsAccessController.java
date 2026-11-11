@@ -1,8 +1,11 @@
 package io.apicurio.registry.auth.grants;
 
+import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -10,7 +13,6 @@ import io.apicurio.authz.Artifact;
 import io.apicurio.authz.Group;
 import io.apicurio.authz.AccessRulesAuthorizer;
 import io.apicurio.authz.Role;
-import io.apicurio.authz.SearchFilterData;
 import io.apicurio.registry.auth.AbstractAccessController;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
@@ -19,6 +21,8 @@ import io.apicurio.registry.metrics.OTelMetricsProvider;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.AuthorizationNames;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
+import io.apicurio.scope.ResourceScope;
+import io.apicurio.scope.ResourceScopeProvider;
 import io.kroxylicious.authorizer.service.Action;
 import io.kroxylicious.authorizer.service.AuthorizeResult;
 import io.kroxylicious.authorizer.service.Decision;
@@ -43,7 +47,6 @@ import static io.apicurio.registry.utils.StringUtil.sanitizeForLog;
 public class GrantsAccessController extends AbstractAccessController {
 
     private static final Logger LOG = LoggerFactory.getLogger(GrantsAccessController.class);
-    private static final Logger AUDIT = LoggerFactory.getLogger("io.apicurio.registry.audit.authz");
 
     /**
      * Role given to unauthenticated callers, so access rules can allow anonymous access explicitly
@@ -85,9 +88,11 @@ public class GrantsAccessController extends AbstractAccessController {
      * @return the names the access rules allow the current caller to read, for search
      *         pre-filtering; null if per-resource authorization is not initialized
      */
-    SearchFilterData readScope(ResourceType<?> readOperation) {
-        AccessRulesAuthorizer current = authorizer;
-        return current != null ? current.scope(currentSubject(), readOperation) : null;
+    ResourceScope readScope(ResourceType<?> readOperation) {
+        ResourceScopeProvider current = authorizer;
+        // The access rules are evaluated in memory, so the stage is always complete
+        return current != null ? current.resolveScope(currentSubject(), readOperation).toCompletableFuture().join()
+                : null;
     }
 
     @Override
@@ -156,6 +161,46 @@ public class GrantsAccessController extends AbstractAccessController {
     }
 
     /**
+     * Evaluates grants for many artifacts or groups with a single access rules call, so that remote
+     * authorizers can batch them (Kroxylicious proposal 009). Same decisions as calling
+     * {@link #isAllowed} on each: resources are canonicalized to their stored IDs first, and every
+     * decision is recorded (metrics, and an audit entry for each denial), since this authorizes an
+     * access attempt. Owner bypass is not applied here, as in {@link #isAllowed}.
+     *
+     * @return true if {@code level} is allowed on every resource (vacuously true for none)
+     */
+    public boolean isAllowedForAll(AuthorizedLevel level, Collection<AuthorizedResource> resources) {
+        if (level == AuthorizedLevel.None || resources.isEmpty()) {
+            return true;
+        }
+        if (authorizer == null) {
+            LOG.error("Per-resource authorization is enabled but not initialized, denying access.");
+            return false;
+        }
+        // One action per distinct stored name: two spellings of one artifact are one decision
+        Map<Action, String> actions = new LinkedHashMap<>();
+        for (AuthorizedResource resource : resources) {
+            AuthorizedResource stored = canonical(resource);
+            switch (stored.kind()) {
+                case ARTIFACT -> actions.putIfAbsent(new Action(toArtifactOp(level),
+                        buildResourceName(stored.groupId(), stored.artifactId())), TYPE_ARTIFACT);
+                case GROUP -> actions.putIfAbsent(new Action(toGroupOp(level), normalizeGroup(stored.groupId())),
+                        TYPE_GROUP);
+                case CONTENT -> throw new IllegalArgumentException("Content is authorized through isAllowed");
+            }
+        }
+        AuthorizeResult result = authorize(currentSubject(), List.copyOf(actions.keySet()));
+        boolean allAllowed = true;
+        for (Map.Entry<Action, String> entry : actions.entrySet()) {
+            Action action = entry.getKey();
+            boolean allowed = result.decision(action.operation(), action.resourceName()) == Decision.ALLOW;
+            record(allowed, entry.getValue(), level, action.resourceName());
+            allAllowed &= allowed;
+        }
+        return allAllowed;
+    }
+
+    /**
      * Owner bypass of per-resource authorization, unless disabled by configuration.
      */
     @Override
@@ -186,6 +231,21 @@ public class GrantsAccessController extends AbstractAccessController {
         return allowed;
     }
 
+    /**
+     * Evaluates the access rules for many actions in a single call, without recording the
+     * decisions: this reports what the caller may do (e.g. permissions in search results), it does
+     * not authorize an access attempt, so denials are neither audited nor counted. Resource names
+     * must already be the stored IDs (see {@link #canonical}).
+     *
+     * @return the allowed actions; none if per-resource authorization is not initialized
+     */
+    public Set<Action> allowedActions(List<Action> actions) {
+        if (authorizer == null || actions.isEmpty()) {
+            return Set.of();
+        }
+        return Set.copyOf(authorize(currentSubject(), actions).allowed());
+    }
+
     private boolean decide(Subject subject, ResourceType<?> operation, String resourceType,
             AuthorizedLevel level, String resourceName) {
         boolean allowed = authorize(subject, List.of(new Action(operation, resourceName)))
@@ -205,8 +265,8 @@ public class GrantsAccessController extends AbstractAccessController {
         if (!allowed) {
             // user and resource are not fully registry-controlled (IdP principal name; a resource
             // name embeds group/artifact IDs), so sanitize before writing them to the audit log
-            AUDIT.info("authz.denied user=\"{}\" operation=\"{}\" resource_type=\"{}\" resource=\"{}\"",
-                    sanitizeForLog(getUsername()), operation, resourceType, sanitizeForLog(resource));
+            AuthzAuditLog.denied(sanitizeForLog(getUsername()), operation, resourceType,
+                    sanitizeForLog(resource));
         }
     }
 
@@ -249,7 +309,8 @@ public class GrantsAccessController extends AbstractAccessController {
         return AuthorizationNames.group(groupId);
     }
 
-    private static Artifact toArtifactOp(AuthorizedLevel level) {
+    /** @return the access rules operation on an artifact required by {@code level} */
+    public static Artifact toArtifactOp(AuthorizedLevel level) {
         return switch (level) {
             case Read, None -> Artifact.READ;
             case Write -> Artifact.WRITE;
@@ -257,7 +318,8 @@ public class GrantsAccessController extends AbstractAccessController {
         };
     }
 
-    private static Group toGroupOp(AuthorizedLevel level) {
+    /** @return the access rules operation on a group required by {@code level} */
+    public static Group toGroupOp(AuthorizedLevel level) {
         return switch (level) {
             case Read, None -> Group.READ;
             case Write -> Group.WRITE;

@@ -1,0 +1,13 @@
+// Sent by the serdes client (step 13); imports money.proto.
+syntax = "proto3";
+package com.example.shipping;
+
+import "money.proto";
+
+option java_package = "io.apicurio.registry.examples.references.proto";
+option java_multiple_files = true;
+
+message ShipmentCreated {
+  string shipment_id = 1;
+  com.example.common.Price cost = 2;
+}

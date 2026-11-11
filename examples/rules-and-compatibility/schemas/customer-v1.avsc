@@ -1,0 +1,2 @@
+{"type": "record", "name": "Customer", "namespace": "com.example.orders",
+ "fields": [{"name": "customerId", "type": "string"}]}

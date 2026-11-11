@@ -1,0 +1,11 @@
+{
+  "type": "record",
+  "name": "CustomerDeletedEvent",
+  "namespace": "io.example.api.dtos",
+  "fields": [
+    {
+      "name": "id",
+      "type": "long"
+    }
+  ]
+}

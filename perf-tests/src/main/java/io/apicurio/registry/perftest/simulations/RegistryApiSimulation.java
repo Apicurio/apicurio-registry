@@ -82,6 +82,8 @@ import static io.gatling.javaapi.http.HttpDsl.*;
  */
 public class RegistryApiSimulation extends Simulation {
 
+    private static final String AUTHORIZATION_HEADER = "Authorization";
+
     private static final Logger log = LoggerFactory.getLogger(RegistryApiSimulation.class);
 
     private static final String REGISTRY_URL = envOrDefault("REGISTRY_URL",
@@ -197,7 +199,7 @@ public class RegistryApiSimulation extends Simulation {
                 session -> session.set("groupId", "perf-test-group-" + GROUP_COUNTER.incrementAndGet()))
                 .exec(http("Create artifact").post("/groups/#{groupId}/artifacts")
                         .queryParam("ifExists", "FAIL")
-                        .header("Authorization", RegistryApiSimulation::authHeader)
+                        .header(AUTHORIZATION_HEADER, RegistryApiSimulation::authHeader)
                         .body(StringBody(RegistryApiSimulation::createArtifactBody)).asJson()
                         .check(status().is(200)));
 
@@ -213,7 +215,7 @@ public class RegistryApiSimulation extends Simulation {
         ChainBuilder readChain = feed(seedFeeder)
                 .exec(http("Get artifact content (read path)")
                         .get("/groups/" + SEED_GROUP + "/artifacts/#{seedArtifactId}/versions/branch=latest/content")
-                        .header("Authorization", RegistryApiSimulation::authHeader)
+                        .header(AUTHORIZATION_HEADER, RegistryApiSimulation::authHeader)
                         .check(status().is(200)));
 
         ChainBuilder iteration = exec(session -> session).randomSwitch().on(
@@ -289,7 +291,7 @@ public class RegistryApiSimulation extends Simulation {
                     .POST(HttpRequest.BodyPublishers.ofString(body));
             String token = CACHED_TOKEN.get();
             if (token != null) {
-                requestBuilder.header("Authorization", "Bearer " + token);
+                requestBuilder.header(AUTHORIZATION_HEADER, "Bearer " + token);
             }
             HttpResponse<Void> response = SETUP_HTTP_CLIENT.send(requestBuilder.build(),
                     HttpResponse.BodyHandlers.discarding());

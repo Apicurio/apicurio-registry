@@ -55,6 +55,9 @@ public class GitOps {
     private static final String MOUNT_PATH = "/repos";
     public static final int SSH_PORT = 2222;
     public static final String SSH_PORT_NAME = "ssh";
+    private static final String DEFAULT_REPO_DIR = "default";
+    // Octal 0400 (r--------): read-only for the owner
+    private static final int OWNER_READ_ONLY_MODE = 256;
 
     public static void configureGitOps(ApicurioRegistry3 primary, Deployment deployment,
             Map<String, EnvVar> env) {
@@ -92,7 +95,7 @@ public class GitOps {
             var prefix = APICURIO_GITOPS_REPOS_PREFIX + i;
 
             addEnvVar(env, prefix + APICURIO_GITOPS_REPOS_DIR_SUFFIX,
-                    !isBlank(repo.getDir()) ? repo.getDir() : "default");
+                    !isBlank(repo.getDir()) ? repo.getDir() : DEFAULT_REPO_DIR);
 
             if (!isBlank(repo.getBranch())) {
                 addEnvVar(env, prefix + APICURIO_GITOPS_REPOS_BRANCH_SUFFIX, repo.getBranch());
@@ -136,8 +139,35 @@ public class GitOps {
 
     private static void configureSidecar(GitOpsSpec gitOps, List<GitOpsRepoSpec> repos,
             GitOpsMode mode, Deployment deployment) {
-        var podSpec = deployment.getSpec().getTemplate().getSpec();
+        var sidecarEnv = buildSidecarEnv(repos, mode);
 
+        Container sidecar = getOrCreateSidecar(deployment);
+
+        if (isBlank(sidecar.getImage())) {
+            sidecar.setImage(Configuration.getGitOpsSyncImage());
+        }
+
+        ensureSidecarVolumeMount(sidecar);
+
+        if (mode == GitOpsMode.PUSH) {
+            ensureSshPort(sidecar);
+        }
+
+        // Mount SSH secrets from pull/push spec
+        configureSshSecrets(gitOps, deployment, sidecarEnv);
+
+        if (sidecar.getReadinessProbe() == null) {
+            configureReadinessProbe(sidecar, repos, mode);
+        }
+
+        if (sidecar.getEnv() == null) {
+            sidecar.setEnv(new ArrayList<>());
+        }
+        sidecarEnv.addAll(sidecar.getEnv());
+        sidecar.setEnv(sidecarEnv);
+    }
+
+    private static List<EnvVar> buildSidecarEnv(List<GitOpsRepoSpec> repos, GitOpsMode mode) {
         var sidecarEnv = new ArrayList<EnvVar>();
 
         sidecarEnv.add(new EnvVarBuilder()
@@ -150,7 +180,7 @@ public class GitOps {
 
             sidecarEnv.add(new EnvVarBuilder()
                     .withName(prefix + APICURIO_GITOPS_REPOS_DIR_SUFFIX)
-                    .withValue(!isBlank(repo.getDir()) ? repo.getDir() : "default").build());
+                    .withValue(!isBlank(repo.getDir()) ? repo.getDir() : DEFAULT_REPO_DIR).build());
 
             if (!isBlank(repo.getUrl())) {
                 sidecarEnv.add(new EnvVarBuilder()
@@ -164,6 +194,11 @@ public class GitOps {
                         .withValue(repo.getBranch()).build());
             }
         }
+        return sidecarEnv;
+    }
+
+    private static Container getOrCreateSidecar(Deployment deployment) {
+        var podSpec = deployment.getSpec().getTemplate().getSpec();
 
         Container sidecar = podSpec.getContainers().stream()
                 .filter(c -> GITOPS_SYNC_CONTAINER_NAME.equals(c.getName()))
@@ -176,11 +211,10 @@ public class GitOps {
                     .build();
             podSpec.getContainers().add(sidecar);
         }
+        return sidecar;
+    }
 
-        if (isBlank(sidecar.getImage())) {
-            sidecar.setImage(Configuration.getGitOpsSyncImage());
-        }
-
+    private static void ensureSidecarVolumeMount(Container sidecar) {
         if (sidecar.getVolumeMounts() == null) {
             sidecar.setVolumeMounts(new ArrayList<>());
         }
@@ -192,52 +226,44 @@ public class GitOps {
                     .withMountPath(MOUNT_PATH)
                     .build());
         }
+    }
 
+    private static void ensureSshPort(Container sidecar) {
+        if (sidecar.getPorts() == null) {
+            sidecar.setPorts(new ArrayList<>());
+        }
+        boolean sshPortExists = sidecar.getPorts().stream()
+                .anyMatch(p -> SSH_PORT_NAME.equals(p.getName()));
+        if (!sshPortExists) {
+            sidecar.getPorts().add(new ContainerPortBuilder()
+                    .withName(SSH_PORT_NAME)
+                    .withContainerPort(SSH_PORT)
+                    .withProtocol("TCP")
+                    .build());
+        }
+    }
+
+    private static void configureReadinessProbe(Container sidecar, List<GitOpsRepoSpec> repos,
+            GitOpsMode mode) {
         if (mode == GitOpsMode.PUSH) {
-            if (sidecar.getPorts() == null) {
-                sidecar.setPorts(new ArrayList<>());
-            }
-            boolean sshPortExists = sidecar.getPorts().stream()
-                    .anyMatch(p -> SSH_PORT_NAME.equals(p.getName()));
-            if (!sshPortExists) {
-                sidecar.getPorts().add(new ContainerPortBuilder()
-                        .withName(SSH_PORT_NAME)
-                        .withContainerPort(SSH_PORT)
-                        .withProtocol("TCP")
-                        .build());
-            }
+            sidecar.setReadinessProbe(new ProbeBuilder()
+                    .withTcpSocket(new TCPSocketActionBuilder()
+                            .withPort(new IntOrString(SSH_PORT)).build())
+                    .withInitialDelaySeconds(5)
+                    .withPeriodSeconds(10)
+                    .build());
+        } else {
+            var firstRepoDir = repos.isEmpty() ? DEFAULT_REPO_DIR
+                    : (!isBlank(repos.get(0).getDir()) ? repos.get(0).getDir() : DEFAULT_REPO_DIR);
+            sidecar.setReadinessProbe(new ProbeBuilder()
+                    .withExec(new ExecActionBuilder()
+                            .withCommand("test", "-d",
+                                    MOUNT_PATH + "/" + firstRepoDir + "/.git")
+                            .build())
+                    .withInitialDelaySeconds(5)
+                    .withPeriodSeconds(10)
+                    .build());
         }
-
-        // Mount SSH secrets from pull/push spec
-        configureSshSecrets(gitOps, deployment, sidecarEnv);
-
-        if (sidecar.getReadinessProbe() == null) {
-            if (mode == GitOpsMode.PUSH) {
-                sidecar.setReadinessProbe(new ProbeBuilder()
-                        .withTcpSocket(new TCPSocketActionBuilder()
-                                .withPort(new IntOrString(SSH_PORT)).build())
-                        .withInitialDelaySeconds(5)
-                        .withPeriodSeconds(10)
-                        .build());
-            } else {
-                var firstRepoDir = repos.isEmpty() ? "default"
-                        : (!isBlank(repos.get(0).getDir()) ? repos.get(0).getDir() : "default");
-                sidecar.setReadinessProbe(new ProbeBuilder()
-                        .withExec(new ExecActionBuilder()
-                                .withCommand("test", "-d",
-                                        MOUNT_PATH + "/" + firstRepoDir + "/.git")
-                                .build())
-                        .withInitialDelaySeconds(5)
-                        .withPeriodSeconds(10)
-                        .build());
-            }
-        }
-
-        if (sidecar.getEnv() == null) {
-            sidecar.setEnv(new ArrayList<>());
-        }
-        sidecarEnv.addAll(sidecar.getEnv());
-        sidecar.setEnv(sidecarEnv);
     }
 
     private static void configureSshSecrets(GitOpsSpec gitOps, Deployment deployment,
@@ -245,7 +271,7 @@ public class GitOps {
         // Pull SSH keys
         var sshKeys = new SecretKeyRefTool(
                 ofNullable(gitOps.getPull()).map(GitOpsPullSpec::getSshKeys).orElse(null),
-                "id_ed25519").withDefaultMode(0400);
+                "id_ed25519").withDefaultMode(OWNER_READ_ONLY_MODE);
         if (sshKeys.isValid()) {
             sshKeys.applySecretVolume(deployment, GITOPS_SYNC_CONTAINER_NAME);
             sidecarEnv.add(new EnvVarBuilder()
@@ -278,7 +304,7 @@ public class GitOps {
         // Push host key
         var hostKey = new SecretKeyRefTool(
                 ofNullable(gitOps.getPush()).map(GitOpsPushSpec::getHostKey).orElse(null),
-                "ssh_host_key").withDefaultMode(0400);
+                "ssh_host_key").withDefaultMode(OWNER_READ_ONLY_MODE);
         if (hostKey.isValid()) {
             hostKey.applySecretVolume(deployment, GITOPS_SYNC_CONTAINER_NAME);
             sidecarEnv.add(new EnvVarBuilder()

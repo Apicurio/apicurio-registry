@@ -448,7 +448,7 @@ public class SqlBranchRepository {
      * Remove a version from a branch.
      */
     public void removeVersionFromBranchRaw(Handle handle, GAV gav, BranchId branchId) {
-        handle.createUpdate(sqlStatements.deleteVersionFromBranch()).bind(0, gav.getRawGroupIdWithNull())
+        handle.createUpdate(sqlStatements.deleteVersionFromBranch()).bind(0, gav.getRawGroupId())
                 .bind(1, gav.getRawArtifactId()).bind(2, branchId.getRawBranchId())
                 .bind(3, gav.getRawVersionId()).execute();
     }

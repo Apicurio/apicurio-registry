@@ -81,6 +81,10 @@ public class GitManager extends AbstractPollingDataSourceManager<GitOpsMarker> {
                 // loaded artifacts from this source to disappear on the next switch.
                 log.warn("[{}] Could not collect files, aborting poll to preserve consistent state",
                         source.getId());
+                // The changes detected in this poll were not loaded. Report them again on the next
+                // poll, otherwise a repo that changed while another one was still unavailable (e.g.
+                // repos cloned one after another at startup) is never loaded.
+                sources.values().forEach(GitRepo::resetReportedCommit);
                 return PollingResult.noChanges(currentMarker());
             }
             allFiles.addAll(result.files());

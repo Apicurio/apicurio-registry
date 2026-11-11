@@ -165,6 +165,18 @@ public final class VertxAdapterFactory {
 
         webClientOptions.setVerifyHost(options.isVerifyHost());
 
+        configureTrustOptions(options, webClientOptions);
+
+        configureKeyCertOptions(options, webClientOptions);
+
+        if (hasProxyConfig) {
+            webClientOptions.setProxyOptions(buildProxyOptions(options));
+        }
+
+        return webClientOptions;
+    }
+
+    private static void configureTrustOptions(RegistryClientOptions options, WebClientOptions webClientOptions) {
         switch (options.getTrustStoreType()) {
             case JKS:
                 JksOptions jksOptions = new JksOptions()
@@ -193,7 +205,9 @@ public final class VertxAdapterFactory {
             case NONE:
                 break;
         }
+    }
 
+    private static void configureKeyCertOptions(RegistryClientOptions options, WebClientOptions webClientOptions) {
         switch (options.getKeyStoreType()) {
             case JKS:
                 JksOptions jksKeyStoreOptions = new JksOptions()
@@ -223,22 +237,20 @@ public final class VertxAdapterFactory {
             case NONE:
                 break;
         }
+    }
 
-        if (hasProxyConfig) {
-            ProxyOptions proxyOptions = new ProxyOptions()
-                    .setHost(options.getProxyHost())
-                    .setPort(options.getProxyPort());
+    private static ProxyOptions buildProxyOptions(RegistryClientOptions options) {
+        ProxyOptions proxyOptions = new ProxyOptions()
+                .setHost(options.getProxyHost())
+                .setPort(options.getProxyPort());
 
-            if (options.getProxyUsername() != null && !options.getProxyUsername().isEmpty()) {
-                proxyOptions.setUsername(options.getProxyUsername());
-                if (options.getProxyPassword() != null) {
-                    proxyOptions.setPassword(options.getProxyPassword());
-                }
+        if (options.getProxyUsername() != null && !options.getProxyUsername().isEmpty()) {
+            proxyOptions.setUsername(options.getProxyUsername());
+            if (options.getProxyPassword() != null) {
+                proxyOptions.setPassword(options.getProxyPassword());
             }
-
-            webClientOptions.setProxyOptions(proxyOptions);
         }
 
-        return webClientOptions;
+        return proxyOptions;
     }
 }

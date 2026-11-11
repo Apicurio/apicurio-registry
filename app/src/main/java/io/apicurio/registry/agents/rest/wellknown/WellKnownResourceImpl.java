@@ -1,6 +1,5 @@
 package io.apicurio.registry.agents.rest.wellknown;
 
-import io.apicurio.registry.agents.mcptools.rest.beans.McpCompatibleToolsResults;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
@@ -15,11 +14,14 @@ import io.apicurio.registry.rest.v3.beans.ArdExploreRequest;
 import io.apicurio.registry.rest.v3.beans.ArdExploreResponse;
 import io.apicurio.registry.rest.v3.beans.ArdSearchRequest;
 import io.apicurio.registry.rest.v3.beans.ArdSearchResponse;
+import io.apicurio.registry.rest.v3.beans.McpCompatibleToolsResults;
+import io.apicurio.registry.rest.v3.beans.McpToolCompatibilityResults;
 import io.apicurio.registry.rest.v3.beans.McpToolSearchResults;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
 import jakarta.ws.rs.core.Response;
+import java.math.BigInteger;
 import java.util.List;
 
 /**
@@ -84,8 +86,15 @@ public class WellKnownResourceImpl implements WellKnownResource {
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public McpCompatibleToolsResults findCompatibleTools(String groupId, String artifactId,
-            String version, Integer offset, Integer limit) {
+            String version, BigInteger offset, BigInteger limit) {
         return mcpToolDiscovery.findCompatibleTools(groupId, artifactId, version, offset, limit);
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
+    public McpToolCompatibilityResults getToolCompatibility(String groupId, String artifactId,
+            String version, List<String> verdict, BigInteger offset, BigInteger limit) {
+        return mcpToolDiscovery.getToolCompatibility(groupId, artifactId, version, verdict, offset, limit);
     }
 
     @Override

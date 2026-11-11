@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>io.apicurio</groupId>
+    <artifactId>apicurio-registry-examples</artifactId>
+    <version>3.4.0-SNAPSHOT</version>
+    <relativePath>../../pom.xml</relativePath>
+  </parent>
+
+  <!-- Collects the Apicurio Kafka Connect converters, built from this checkout, and their
+       dependencies into target/plugins/apicurio: the Connect worker's plugin directory. -->
+  <artifactId>apicurio-registry-examples-kafka-serdes-connect-plugin</artifactId>
+  <packaging>pom</packaging>
+  <name>Registry :: Examples :: Kafka Serdes :: Connect Plugin</name>
+
+  <properties>
+    <projectRoot>${project.basedir}/../../..</projectRoot>
+    <!-- The protobuf runtime the converters were built against, not the older one examples/pom.xml
+         pins for other examples (ProtobufConverter would fail to load generated classes) -->
+    <protobuf.version>4.36.2</protobuf.version>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-utils-converter</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>plugin-directory</id>
+            <phase>package</phase>
+            <goals>
+              <goal>copy-dependencies</goal>
+            </goals>
+            <configuration>
+              <outputDirectory>${project.build.directory}/plugins/apicurio</outputDirectory>
+              <!-- Kafka's own libraries come from the Connect worker -->
+              <includeScope>runtime</includeScope>
+              <excludeGroupIds>org.apache.kafka</excludeGroupIds>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

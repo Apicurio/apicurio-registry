@@ -1073,11 +1073,12 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
 
         long start = System.currentTimeMillis();
 
-        Set<SearchFilter> filters = Collections.emptySet();
+        // Filtered to this test's groups, because other tests share the store and add their own.
+        Set<SearchFilter> filters = Collections.singleton(SearchFilter.ofGroupId(groupIdPrefix + "*"));
         GroupSearchResultsDto results = storage().searchGroups(filters, OrderBy.groupId, OrderDirection.asc,
                 0, 10);
         Assertions.assertNotNull(results);
-        Assertions.assertEquals(51, results.getCount());
+        Assertions.assertEquals(50, results.getCount());
         Assertions.assertNotNull(results.getGroups());
         Assertions.assertEquals(10, results.getGroups().size());
 
@@ -1708,4 +1709,62 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         }
     }
 
+    @Test
+    public void testPromoteDraftVersionDefaultAndNonDefaultGroup() throws Exception {
+        doTestPromoteDraftVersion(null);
+        doTestPromoteDraftVersion(GROUP_ID);
+    }
+
+    private void doTestPromoteDraftVersion(String groupId) throws Exception {
+        var content = ContentHandle.create(OPENAPI_CONTENT);
+        var contentWrapper = ContentWrapperDto.builder()
+                .contentType(ContentTypes.APPLICATION_JSON)
+                .content(content)
+                .build();
+
+        String artifactId = "test-promote-draft-" + (groupId == null ? "default" : "custom") + "-" + System.currentTimeMillis();
+        GA ga = new GA(groupId, artifactId);
+        try {
+            var dto = storage().createArtifact(
+                    groupId,
+                    artifactId,
+                    ArtifactType.OPENAPI,
+                    null,
+                    "1.0.0",
+                    contentWrapper,
+                    null,
+                    Collections.emptyList(),
+                    true, // versionIsDraft
+                    false,
+                    null
+            ).getValue();
+
+            Assertions.assertNotNull(dto);
+            Assertions.assertEquals(VersionState.DRAFT, dto.getState());
+
+            // Assert the version is on 'drafts' branch
+            var drafts = storage().getBranchVersions(ga, BranchId.DRAFTS, 0, 10);
+            Assertions.assertEquals(1, drafts.getCount());
+            Assertions.assertEquals(dto.getVersion(), drafts.getVersions().get(0).getVersion());
+
+            // Transition it to ENABLED
+            storage().updateArtifactVersionState(groupId, artifactId, dto.getVersion(), VersionState.ENABLED, false);
+
+            // Assert it is no longer on 'drafts' and is on 'latest'
+            var draftsAfter = storage().getBranchVersions(ga, BranchId.DRAFTS, 0, 10);
+            Assertions.assertEquals(0, draftsAfter.getCount());
+            Assertions.assertTrue(draftsAfter.getVersions().isEmpty());
+
+            var latest = storage().getBranchVersions(ga, BranchId.LATEST, 0, 10);
+            Assertions.assertEquals(1, latest.getCount());
+            Assertions.assertEquals(dto.getVersion(), latest.getVersions().get(0).getVersion());
+        } finally {
+            try {
+                storage().deleteArtifact(groupId, artifactId);
+            } catch (Exception ignored) {
+            }
+        }
+    }
+
 }
+

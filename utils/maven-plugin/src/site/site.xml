@@ -19,7 +19,7 @@
         <menu name="External Links">
             <item name="Source Code" href="https://github.com/Apicurio/apicurio-registry/tree/main/utils/maven-plugin"/>
             <item name="Maven Versions" href="https://search.maven.org/artifact/io.apicurio/apicurio-registry-maven-plugin"/>
-            <item name="Simple Example" href="https://github.com/Apicurio/apicurio-registry/tree/main/examples/simple-avro-maven"/>
+            <item name="Simple Example" href="https://github.com/Apicurio/apicurio-registry/tree/main/examples/kafka-serdes"/>
             <item name="Example With References" href="https://github.com/Apicurio/apicurio-registry/tree/main/examples/json-maven-with-references"/>
         </menu>
     </body>

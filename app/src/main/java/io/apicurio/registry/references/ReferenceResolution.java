@@ -6,7 +6,6 @@ import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.quarkus.security.ForbiddenException;
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,7 +44,9 @@ public final class ReferenceResolution {
      * Resolves {@code references} to a name-to-content map, exactly as the generic walker this replaces
      * did: see {@link ResolvedReferences#asNameMap()} for how same-named collisions and ordering are
      * decided now. {@code loader} is called once per distinct target coordinate in the graph (not once per
-     * reference, and not once per occurrence of a name), via the batching {@link ReferenceGraphWalker}.
+     * reference, and not once per occurrence of a name), via the batching {@link ReferenceGraphWalker}. If it
+     * is an {@link AuthorizingReferenceLoader}, each level of the graph is authorized at once, before any of
+     * it is loaded.
      *
      * @param references the references to resolve; {@code null} or empty returns an empty map
      * @param loader loads one artifact version's content by its coordinates; a {@code null} return means
@@ -55,6 +56,9 @@ public final class ReferenceResolution {
     public static Map<String, TypedContent> recursivelyResolveReferences(List<ArtifactReferenceDto> references,
             Function<ArtifactReferenceDto, ContentWrapperDto> loader) {
         ReferenceLoader batchLoader = coordinates -> {
+            // The whole level at once, before loading any of it: one authorizer call per level
+            AuthorizingReferenceLoader.authorizeAll(loader,
+                    coordinates.stream().map(ReferenceResolution::toReference).toList());
             Map<GAV, ReferenceNode> loaded = new LinkedHashMap<>();
             for (GAV coordinate : coordinates) {
                 ContentWrapperDto content = loadOne(coordinate, loader);
@@ -69,7 +73,8 @@ public final class ReferenceResolution {
             }
             return loaded;
         };
-        ResolvedReferences resolved = ReferenceGraphWalker.walk(references, batchLoader, maxDepth());
+        ResolvedReferences resolved = ReferenceGraphWalker.walk(references, batchLoader,
+                ReferenceResolutionConfig.maxDepth());
         return resolved.asNameMap();
     }
 
@@ -100,7 +105,8 @@ public final class ReferenceResolution {
             return loaded;
         };
         List<ArtifactReferenceDto> rootReferences = root == null ? List.of() : root.getReferences();
-        return ReferenceGraphWalker.walk(rootReferences, batchLoader, maxDepth()).contentIds();
+        return ReferenceGraphWalker.walk(rootReferences, batchLoader, ReferenceResolutionConfig.maxDepth())
+                .contentIds();
     }
 
     /**
@@ -109,9 +115,7 @@ public final class ReferenceResolution {
      * the caller being forbidden to read a reference is never the same as the reference not existing.
      */
     private static <T> T loadOne(GAV coordinates, Function<ArtifactReferenceDto, T> loader) {
-        ArtifactReferenceDto reference = ArtifactReferenceDto.builder()
-                .groupId(coordinates.getRawGroupIdWithNull()).artifactId(coordinates.getRawArtifactId())
-                .version(coordinates.getRawVersionId()).build();
+        ArtifactReferenceDto reference = toReference(coordinates);
         try {
             return loader.apply(reference);
         } catch (ForbiddenException ex) {
@@ -122,17 +126,8 @@ public final class ReferenceResolution {
         }
     }
 
-    /**
-     * Reads {@link ReferenceResolutionConfig#MAX_DEPTH_PROPERTY} directly via {@link ConfigProvider} rather
-     * than injecting it, because this is a static utility called from about twenty places, not all of them
-     * CDI beans with that property already available. See {@code HttpCompressionWriterInterceptor} and
-     * {@code GitOpsConfig} for the same pattern elsewhere in this codebase. The value is re-read on every
-     * call rather than cached, matching how {@code @ConfigProperty}-injected fields pick up config changes
-     * only on redeploy anyway — this is not on a hot enough path for that to matter.
-     */
-    private static int maxDepth() {
-        return ConfigProvider.getConfig()
-                .getOptionalValue(ReferenceResolutionConfig.MAX_DEPTH_PROPERTY, Integer.class)
-                .orElse(ReferenceResolutionConfig.DEFAULT_MAX_DEPTH);
+    private static ArtifactReferenceDto toReference(GAV coordinates) {
+        return ArtifactReferenceDto.builder().groupId(coordinates.getRawGroupIdWithNull())
+                .artifactId(coordinates.getRawArtifactId()).version(coordinates.getRawVersionId()).build();
     }
 }

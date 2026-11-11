@@ -1013,7 +1013,7 @@ Use the following symptoms and fixes to diagnose common Dex authentication probl
 * Role-based authorization for default admin, write, and read-only user roles.
 * Content-based authorization for schema or API artifacts, where only the owner of the artifacts or artifact group can update or delete artifacts.
 
-IMPORTANT: All authentication and authorization options in {registry} are disabled by default. Before enabling the OpenID Connect or HTTP basic options, you must first set the `QUARKUS_OIDC_TENANT_ENABLED` option to `true`. Proxy header and Kubernetes-native authentication do not require OpenID Connect.
+IMPORTANT: All authentication and authorization options in {registry} are disabled by default. OpenID Connect, and HTTP basic authentication that exchanges client credentials for a token, require `QUARKUS_OIDC_TENANT_ENABLED` set to `true`. HTTP basic authentication against users configured in {registry} (`QUARKUS_HTTP_AUTH_BASIC` with a Quarkus identity provider such as `QUARKUS_SECURITY_USERS_EMBEDDED_*`), proxy header authentication, and Kubernetes-native authentication do not require OpenID Connect.
 
 You can configure the options described in the following sections.
 
@@ -1086,7 +1086,9 @@ You can set the following environment variables to configure authentication for 
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-By default, {registry} supports authentication by using OpenID Connect. Users or API clients must obtain an access token to make authenticated calls to the {registry} REST API. However, because some tools do not support OpenID Connect, you can also configure {registry} to support HTTP basic authentication by setting the following configuration options to `true`:
+By default, {registry} supports authentication by using OpenID Connect. Because some tools do not support OpenID Connect, you can also configure {registry} to support HTTP basic authentication.
+
+With OpenID Connect, users or API clients must obtain an access token to make authenticated calls to the {registry} REST API. To enable HTTP basic authentication, set the following configuration options to `true`:
 
 .Configuration for {registry} HTTP basic authentication
 [%header,cols="4,4,1,1"]
@@ -1105,9 +1107,7 @@ By default, {registry} supports authentication by using OpenID Connect. Users or
 |`false`
 |===
 
-*{registry} HTTP basic client credentials cache expiry.* You can also configure the HTTP basic client credentials cache expiry time. By default, when you use HTTP basic authentication, {registry} caches JWT tokens and does not issue a new token when there is no need. You can configure the cache expiry time for JWT tokens, which is set to 10 mins by default.
-
-When you use {keycloak}, set this configuration to your {keycloak} JWT expiry time minus one minute. For example, if you have the expiry time set to `5` mins in {keycloak}, set the following configuration option to `4` mins:
+*{registry} HTTP basic client credentials cache expiry.* You can also configure the HTTP basic client credentials cache expiry time. By default, when you use HTTP basic authentication, {registry} caches JWT tokens and does not issue a new token when there is no need. A token is cached until it expires, minus `cache-expiration-offset` seconds, so you do not need to match the expiry time of your identity provider. `cache-expiration` is the lifetime in minutes used only when the expiry of a token cannot be read:
 
 .Configuration for HTTP basic client credentials cache expiry
 [%header,cols="4,4,1,1"]
@@ -1119,8 +1119,15 @@ When you use {keycloak}, set this configuration to your {keycloak} JWT expiry ti
 |`APICURIO_AUTHN_BASIC_CLIENT_CREDENTIALS_CACHE_EXPIRATION`
 |`apicurio.authn.basic-client-credentials.cache-expiration`
 |Integer
+|`5`
+
+|`APICURIO_AUTHN_BASIC_CLIENT_CREDENTIALS_CACHE_EXPIRATION_OFFSET`
+|`apicurio.authn.basic-client-credentials.cache-expiration-offset`
+|Integer
 |`10`
 |===
+
+Tokens are cached until they expire, minus the offset in seconds. The expiration in minutes is used only when the expiry of a token cannot be read. Failed exchanges are cached for 60 seconds.
 
 // ref-registry-security-authn-chain
 [id="registry-security-authn-chain_{context}"]
@@ -1210,7 +1217,7 @@ The user name header is required for the mechanism to apply; the email and group
 . Optional: To skip authorization checks in {registry} for requests that the proxy authenticated, set `APICURIO_AUTHN_PROXY_HEADER_TRUST_PROXY_AUTHORIZATION=true`. Use this option when the proxy or an external policy engine performs authorization. {registry} then trusts the proxy completely for requests that carry the identity headers.
 
 .Verification
-* A request that includes the user name header is authenticated as that user. A request without the header receives a `401` response with the `WWW-Authenticate: Proxy authentication required` challenge, unless another enabled mechanism authenticates it.
+* A request that includes the user name header is authenticated as that user. A request without the header is not authenticated by this mechanism: the next mechanism in the chain is tried, and if none authenticates it, the request is anonymous. It then receives a `401` response only for operations that require authentication.
 
 ifndef::service-registry-downstream[]
 [role="_additional-resources"]
@@ -1229,7 +1236,18 @@ You can configure {registry} to authenticate clients by validating their Kuberne
 
 IMPORTANT: Kubernetes-native authentication is an *experimental* feature. You must enable the experimental features gate (`APICURIO_FEATURES_EXPERIMENTAL_ENABLED=true`) to use it; otherwise, the application fails at startup. You cannot enable Kubernetes-native authentication and OpenID Connect at the same time, because both use bearer tokens.
 
-NOTE: When you deploy {registry} with the Operator, you can configure this feature with the `spec.app.auth.kubernetesAuth` fields of the `ApicurioRegistry3` custom resource: `enabled`, `apiAudiences`, `cacheExpiration`, and `groupMapping` with `adminGroups`, `developerGroups`, and `readOnlyGroups`. The Operator adds the `kubernetes` mechanism to the priority list and sets the role source automatically.
+NOTE: When you deploy {registry} with the Operator, you can configure this feature with the `spec.app.auth.kubernetesAuth` fields of the `ApicurioRegistry3` custom resource: `enabled`, `apiAudiences`, `cacheExpiration`, and `groupMapping` with `adminGroups`, `developerGroups`, and `readOnlyGroups`. The Operator adds the `kubernetes` mechanism to the priority list, unless you already set the `APICURIO_AUTHN_MECHANISM_PRIORITY` environment variable, and, when `groupMapping` is configured, sets the role source to `kubernetes`.
+
+The Operator does not enable the experimental features gate for this feature. When you deploy {registry} with the Operator, you must also add the `APICURIO_FEATURES_EXPERIMENTAL_ENABLED` environment variable with the value `true` to `spec.app.env`; otherwise, the {registry} pod fails at startup. For example:
+
+[source,yaml]
+----
+spec:
+  app:
+    env:
+      - name: APICURIO_FEATURES_EXPERIMENTAL_ENABLED
+        value: "true"
+----
 
 .Prerequisites
 * {registry} is deployed on a Kubernetes cluster.
@@ -1617,8 +1635,7 @@ endif::[]
 :_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
-Browsers enforce a same-origin policy that prevents a web page served from one origin (for example, `\https://my-app.example.com`) from making HTTP requests to a different origin (for example, `\https://registry.example.com`).
-CORS is the mechanism by which a server explicitly allows cross-origin requests by including specific HTTP response headers such as `Access-Control-Allow-Origin`.
+Browsers enforce a same-origin policy that prevents a web page served from one origin from making HTTP requests to a different origin. CORS is the mechanism by which a server explicitly allows cross-origin requests by including specific HTTP response headers such as `Access-Control-Allow-Origin`.
 
 Consider a typical scenario where your browser application runs at `\https://my-app.example.com` and {registry} runs at `\https://registry.example.com`.
 When your JavaScript code calls the {registry} REST API:
@@ -1822,6 +1839,7 @@ services:
 
 [role="_abstract"]
 When you use OIDC authentication (for example, {keycloak}), CORS and authentication work together.
+
 Your browser application must send an `Authorization` header with a bearer token, and the {registry} CORS configuration must allow that header for authenticated cross-origin requests to succeed.
 
 The `authorization` header is already included in the default allowed headers, so you typically only need to configure the allowed origins.

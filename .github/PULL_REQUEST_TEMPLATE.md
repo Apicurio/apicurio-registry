@@ -6,7 +6,7 @@ Closes #<issue-number>
 
 ## Checklist
 
-- [ ] Linked issue has maintainer approval
+- [ ] A bug fix or minor issue, or a larger feature or significant behaviour change agreed with the maintainers in the linked issue ([details](https://github.com/Apicurio/apicurio-registry/blob/main/CONTRIBUTING.md#choosing-what-to-work-on))
 - [ ] This is my only open PR (each contributor may have one open at a time)
 - [ ] No overlapping open PRs for the same issue
 - [ ] Checked the [Tried & Rejected list](https://github.com/Apicurio/apicurio-registry/discussions/8364)

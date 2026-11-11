@@ -47,8 +47,6 @@ public class GitOpsValidationTaskManager {
     @Inject
     GitOpsConfig gitOpsConfig;
 
-    private static final String JSON_EXTENSION = ".json";
-
     private final ConcurrentHashMap<ValidationTaskId, ValidationTaskState> tasks = new ConcurrentHashMap<>();
 
     /**
@@ -78,7 +76,7 @@ public class GitOpsValidationTaskManager {
             files.filter(Files::isRegularFile)
                     .filter(f -> f.toString().endsWith(JSON_EXTENSION))
                     .filter(f -> {
-                        final String name = f.getFileName().toString().replace(JSON_EXTENSION, "");
+                        final String name = stripJsonExtension(f.getFileName().toString());
                         if (!ValidationTaskId.isValid(name)) {
                             log.warn("Skipping file with invalid task ID format: {}", f.getFileName());
                             return false;
@@ -435,7 +433,7 @@ public class GitOpsValidationTaskManager {
             }
 
             var taskId = new ValidationTaskId(
-                    requestFile.getFileName().toString().replace(JSON_EXTENSION, ""));
+                    stripJsonExtension(requestFile.getFileName().toString()));
 
             var taskState = new ValidationTaskState();
             taskState.setTaskId(taskId);
@@ -470,6 +468,13 @@ public class GitOpsValidationTaskManager {
     }
 
     // ---- Helpers ----
+
+    private static String stripJsonExtension(String fileName) {
+        if (!fileName.endsWith(JSON_EXTENSION)) {
+            throw new IllegalArgumentException("File does not end with " + JSON_EXTENSION);
+        }
+        return fileName.substring(0, fileName.length() - JSON_EXTENSION.length());
+    }
 
     private Path getValidateDir() {
         return Path.of(gitOpsConfig.getWorkspace()).resolve("validate");

@@ -329,6 +329,7 @@ public class GitOpsValidateTest {
         final String validId = ValidationTaskId.random().value();
         final Path validFile = validateDir.resolve(validId + ".json");
         final Path invalidFile = validateDir.resolve("not-a-valid-id.json");
+        final Path traversalFile = validateDir.resolve("...json");
         try {
             final String requestJson = """
                     {"apiVersion": "v1", "kind": "ValidateRequest",
@@ -336,6 +337,7 @@ public class GitOpsValidateTest {
                     """.formatted(repoId());
             Files.writeString(validFile, requestJson);
             Files.writeString(invalidFile, requestJson);
+            Files.writeString(traversalFile, requestJson);
 
             taskManager.loadPendingTasks();
 
@@ -348,9 +350,11 @@ public class GitOpsValidateTest {
 
             assertTrue(tasks.contains(validId));
             assertFalse(tasks.contains("not-a-valid-id"));
+            assertFalse(tasks.contains(".."));
         } finally {
             Files.deleteIfExists(validFile);
             Files.deleteIfExists(invalidFile);
+            Files.deleteIfExists(traversalFile);
             taskManager.deleteTask(validId);
         }
     }

@@ -16,6 +16,14 @@ permissions:
   id-token: write
   contents: read
 
+# Serialize runs for a given release so a re-trigger of the same version cannot
+# race itself when pushing to the shared apicurio-sboms and apicurio.github.io
+# repos. Races *between* different versions are handled by the rebase-and-retry
+# push in the publishing steps, since those runs land in different groups.
+concurrency:
+  group: release-artifacts-${{ github.event.release.tag_name || inputs.tag }}
+  cancel-in-progress: false
+
 env:
   RELEASE_VERSION: ${{ github.event.release.name }}
   BRANCH: ${{ github.event.release.target_commitish }}
@@ -99,7 +107,7 @@ jobs:
             exit 1
           fi
 
-      - name: Set up JDK 21
+      - name: Set up JDK 25
         uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         with:
           java-version: '25'
@@ -142,7 +150,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: prepare
     if: needs.prepare.outputs.release-sboms == 'true'
-    timeout-minutes: 30
+    # Raised from 30: the Maven install now covers cli, mcp and operator/controller in
+    # addition to app (48 -> 53 reactor modules), and the operator pulls the
+    # operator-sdk and Fabric8 trees on a cold CI cache.
+    timeout-minutes: 45
     steps:
       - name: Download Source Code
         run: |
@@ -167,7 +178,7 @@ jobs:
           cd sboms
           echo "SBOM_OUTPUT_DIR=$(pwd)/apicurio-registry/${{ needs.prepare.outputs.release-version }}" >> $GITHUB_ENV
 
-      - name: Set up JDK 21
+      - name: Set up JDK 25
         uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         with:
           java-version: '25'
@@ -178,33 +189,108 @@ jobs:
         with:
           node-version: 24.22.2
 
+      # `-Dfull` is required because the `mcp` and `operator` modules exist only in that
+      # profile (see the `full` profile in the root pom.xml); `-pl ... -am` still limits
+      # the build to the selected modules and their upstream dependencies, so the other
+      # full-only modules are not built. `-Dquarkus.native.enabled=false` overrides the
+      # property set in cli/pom.xml so the CLI builds as a plain JVM module here instead
+      # of invoking a GraalVM native build, which this job neither needs nor has.
       - name: Maven Install
         run: |
           cd registry
-          mvn $MVN_SETTINGS install -pl app -am -Pprod -DskipTests -Dmaven.javadoc.skip=true --no-transfer-progress
+          mvn $MVN_SETTINGS install -pl app,cli,mcp,operator/controller -am -Pprod -Dfull -DskipTests \
+            -Dquarkus.native.enabled=false -Dmaven.javadoc.skip=true --no-transfer-progress
 
+      # One tree per shipped component, each generated from its own module POM so it
+      # reflects that module's own dependency resolution. The operator targets
+      # `operator/controller` (what the operator image runs) rather than the aggregator
+      # POM: the controller's runtime tree already includes `operator/model`
+      # transitively, and a single `dependency:tree -DoutputFile=...` over an aggregator
+      # has each module overwrite the previous one. `olm-tests` is test-only, so it is
+      # deliberately excluded.
       - name: Generate Maven SBOMs
         run: |
           mkdir -p $SBOM_OUTPUT_DIR
           cd registry
-          mvn $MVN_SETTINGS -f app/pom.xml dependency:tree -DoutputType=dot -Dscope=runtime -DoutputFile=$SBOM_OUTPUT_DIR/apicurio-registry-app-${{ needs.prepare.outputs.release-version }}.runtime.sbom.dot
+          VERSION="${{ needs.prepare.outputs.release-version }}"
+
+          generate_sbom() {
+            POM="$1"
+            OUT="$SBOM_OUTPUT_DIR/apicurio-registry-$2-$VERSION.runtime.sbom.dot"
+            mvn $MVN_SETTINGS -f "$POM" dependency:tree -DoutputType=dot -Dscope=runtime \
+              -DoutputFile="$OUT" --no-transfer-progress
+            # dependency:tree can exit 0 having written nothing useful, so confirm the
+            # output is a real graph before it reaches the publishing step.
+            if [ ! -s "$OUT" ] || ! grep -q '^digraph' "$OUT"; then
+              echo "ERROR: $OUT is missing, empty, or not a Graphviz digraph."
+              exit 1
+            fi
+            echo "Generated $(basename "$OUT") ($(wc -c < "$OUT") bytes)"
+          }
+
+          generate_sbom app/pom.xml                   app
+          generate_sbom cli/pom.xml                   cli
+          generate_sbom mcp/pom.xml                   mcp-server
+          generate_sbom operator/controller/pom.xml   operator
 
       - name: Generate npm SBOMs
         run: |
           cd registry/ui
           npm install
+
+          # The clone is pristine, so any lockfile modified by the install above was
+          # resolved outside its committed pins, meaning the SBOM below describes a
+          # tree that may differ from the one the released images were built from.
+          # Surfaced as a warning rather than a failure so it cannot block a release.
+          DRIFT=$(git -C "${{ github.workspace }}/registry" status --porcelain | grep 'package-lock\.json' || true)
+          if [ -n "$DRIFT" ]; then
+            echo "::warning::npm install modified package-lock.json files; the generated npm SBOMs may not match the committed dependency pins."
+            echo "$DRIFT"
+          fi
+
+          VERSION="${{ needs.prepare.outputs.release-version }}"
           for dir in ui-app ui-docs ui-editors; do
-            cd $dir
-            npm list -prod -depth 10 --json > $SBOM_OUTPUT_DIR/apicurio-registry-$dir-${{ needs.prepare.outputs.release-version }}.sbom.npm
-            cd ..
+            OUT="$SBOM_OUTPUT_DIR/apicurio-registry-$dir-$VERSION.sbom.npm"
+            # `npm ls` exits non-zero on any tree problem (ELSPROBLEMS - e.g. an unmet
+            # peer dep) while still writing a complete tree to stdout, so the exit code
+            # is deliberately ignored and the output is validated instead. `--all`
+            # replaces the arbitrary `-depth 10` cap, which silently truncated anything
+            # deeper; `--omit=dev` replaces the deprecated `-prod`.
+            ( cd "$dir" && npm ls --omit=dev --all --json ) > "$OUT" || true
+            if ! jq -e . "$OUT" > /dev/null 2>&1; then
+              echo "ERROR: $OUT is missing or is not valid JSON."
+              exit 1
+            fi
           done
 
       - name: Commit SBOMs to Repo
         run: |
           cd sboms
           git add .
+
+          # Re-running the workflow for a version whose SBOMs are unchanged leaves
+          # nothing staged, and `git commit` treats that as an error. Exit cleanly
+          # instead of failing the job.
+          if git diff --cached --quiet; then
+            echo "No SBOM changes to commit for ${{ needs.prepare.outputs.release-version }}; nothing to push."
+            exit 0
+          fi
+
           git commit -m "Generated SBOMs for release ${{ needs.prepare.outputs.release-version }}"
-          git push origin main
+
+          # A concurrent release may have pushed to the same repo since it was cloned,
+          # which would reject this push as a non-fast-forward. Rebase and retry.
+          for attempt in 1 2 3 4 5; do
+            if git push origin main; then
+              echo "Pushed SBOMs on attempt $attempt."
+              exit 0
+            fi
+            echo "Push rejected (attempt $attempt); rebasing onto origin/main and retrying."
+            git pull --rebase origin main
+          done
+
+          echo "ERROR: failed to push SBOMs after 5 attempts."
+          exit 1
 
   # Maven Site Generation
   release-site:
@@ -240,7 +326,7 @@ jobs:
             exit 1
           fi
 
-      - name: Set up JDK 21
+      - name: Set up JDK 25
         uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         with:
           java-version: '25'

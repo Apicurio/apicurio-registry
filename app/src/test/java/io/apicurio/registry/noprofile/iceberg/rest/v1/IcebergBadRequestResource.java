@@ -1,4 +1,4 @@
-package io.apicurio.registry.services.http;
+package io.apicurio.registry.noprofile.iceberg.rest.v1;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Alternative;

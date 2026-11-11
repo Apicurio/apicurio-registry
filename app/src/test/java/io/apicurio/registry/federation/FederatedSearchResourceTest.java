@@ -9,6 +9,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.restassured.http.ContentType;
 import io.restassured.response.ValidatableResponse;
+import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -54,6 +55,9 @@ public class FederatedSearchResourceTest extends AbstractResourceTestBase {
             """;
 
     private final List<StubPeer> stubs = new ArrayList<>();
+
+    @Inject
+    FederationConfig config;
 
     @AfterEach
     void cleanUp() throws Exception {
@@ -286,5 +290,28 @@ public class FederatedSearchResourceTest extends AbstractResourceTestBase {
 
         search(skill).body("agents.source", contains("local")).body("sources.outcome", contains("ok", "failed"))
                 .body("sources[0].count", equalTo(1));
+    }
+
+    @Test
+    void whenMorePeersAreEnabledThanASearchQueriesTheRestAreReportedAndTheSearchStillAnswers() throws Exception {
+        String skill = "many-" + UUID.randomUUID();
+        card("local-card", skill, "public");
+        StubPeer peer = stub((request, response) -> StubPeer.publicAgents(response, 1, "remote"));
+        registerPeer("peer-a", peer.url());
+        registerPeer("peer-b", peer.url());
+        registerPeer("peer-c", peer.url());
+
+        // The peers were enabled under a higher maximum, as after the setting is lowered.
+        int savedMaxPeers = config.searchMaxPeers;
+        config.searchMaxPeers = 2;
+        try {
+            search(skill).body("agents.source", contains("local", "peer-a", "peer-b"))
+                    .body("sources.source", contains("local", "peer-a", "peer-b", "peer-c"))
+                    .body("sources.outcome", contains("ok", "ok", "ok", "failed"))
+                    .body("sources[3].reason", equalTo("capacity_exceeded"));
+            assertEquals(2, peer.requests().size());
+        } finally {
+            config.searchMaxPeers = savedMaxPeers;
+        }
     }
 }

@@ -36,7 +36,7 @@ public class FederationConfig {
     long searchPeerTimeoutMs;
 
     @ConfigProperty(name = "apicurio.federation.search.max-peers", defaultValue = "16")
-    @Info(category = CATEGORY_FEDERATION, description = "Maximum number of peer registries that can be enabled, and so queried by one federated search", availableSince = "3.4.0")
+    @Info(category = CATEGORY_FEDERATION, description = "Maximum number of peer registries one federated search queries. Enabling more through the peer management API is refused. If more are enabled anyway, for example after this value was lowered or through declarative loading, a search queries the first ones in peer id order and reports the rest as capacity_exceeded", availableSince = "3.4.0")
     int searchMaxPeers;
 
     @ConfigProperty(name = "apicurio.federation.search.max-concurrent-calls", defaultValue = "64")

@@ -1,7 +1,6 @@
 package io.apicurio.registry.federation;
 
 import io.apicurio.registry.cdi.Current;
-import io.apicurio.registry.rest.ConflictException;
 import io.apicurio.registry.rest.v3.beans.AgentSearchResult;
 import io.apicurio.registry.rest.v3.beans.AgentSearchResults;
 import io.apicurio.registry.rest.v3.beans.FederatedAgentSearchResult;
@@ -64,7 +63,12 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Agents with the same group and artifact id from different sources are all returned: nothing
  * about a peer proves it publishes under the same identity as another source.
  * <p>
- * A search calls every enabled peer, so one request leads to as many outbound calls. One caller can
+ * At most {@code max-peers} peers are searched: if more are enabled, which the peer management API
+ * refuses but which a lowered setting, declarative loading or two concurrent updates can still lead
+ * to, the first ones in peer id order are searched and the rest are reported as
+ * {@code capacity_exceeded}, so that the response still says which peers were left out.
+ * <p>
+ * A search calls every peer it searches, so one request leads to as many outbound calls. One caller can
  * have only so many searches in progress; a search beyond that still searches this registry but
  * calls no peer, and reports every peer as {@code capacity_exceeded}, as when the calls in progress
  * across all searches are at their limit.
@@ -120,18 +124,30 @@ public class FederatedSearchService {
 
     private final KeyedPermits searchesInProgress = new KeyedPermits();
 
+    /** How many enabled peers were last found beyond max-peers, so that it is logged once a change. */
+    private final AtomicInteger peersLeftOut = new AtomicInteger();
+
     public FederatedAgentSearchResults search(PeerQuery query, FederatedSearchCaller caller,
             LocalSearch localSearch) {
         long deadlineNanos = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(config.getSearchDeadlineMs());
 
         List<PeerDto> peers = enabledPeers();
         pruneGuards(peers);
+        int maxPeers = config.getSearchMaxPeers();
+        warnIfPeersAreLeftOut(peers.size() - maxPeers);
 
         boolean admitted = searchesInProgress.tryAcquire(caller.key(), config.getSearchMaxSearchesPerCaller());
         List<Dispatch> dispatches = new ArrayList<>();
         try {
-            for (PeerDto peer : peers) {
-                dispatches.add(admitted ? dispatch(peer, query) : refused(peer));
+            for (int i = 0; i < peers.size(); i++) {
+                PeerDto peer = peers.get(i);
+                if (i >= maxPeers) {
+                    dispatches.add(refused(peer, "More peers are enabled than a federated search queries."));
+                } else if (!admitted) {
+                    dispatches.add(refused(peer, "The caller has too many federated searches in progress."));
+                } else {
+                    dispatches.add(dispatch(peer, query));
+                }
             }
             Runnable checkpoint = () -> {
                 if (System.nanoTime() - deadlineNanos > 0) {
@@ -152,15 +168,17 @@ public class FederatedSearchService {
     }
 
     private List<PeerDto> enabledPeers() {
-        List<PeerDto> enabled = storage.getPeers().stream().filter(PeerDto::isEnabled)
+        return storage.getPeers().stream().filter(PeerDto::isEnabled)
                 .sorted(Comparator.comparing(PeerDto::getPeerId)).toList();
-        if (enabled.size() > config.getSearchMaxPeers()) {
-            // Failing is deliberate: silently searching only some of the configured peers would
-            // return results nobody can tell are incomplete.
-            throw new ConflictException(enabled.size() + " peers are enabled, more than the "
-                    + config.getSearchMaxPeers() + " a federated search can query. Disable some peers.");
+    }
+
+    private void warnIfPeersAreLeftOut(int leftOut) {
+        int count = Math.max(0, leftOut);
+        if (peersLeftOut.getAndSet(count) != count && count > 0) {
+            log.warn("{} enabled peers are more than the {} a federated search queries "
+                    + "(apicurio.federation.search.max-peers): the last {} in peer id order are not searched.",
+                    count + config.getSearchMaxPeers(), config.getSearchMaxPeers(), count);
         }
-        return enabled;
     }
 
     private Dispatch dispatch(PeerDto peer, PeerQuery query) {
@@ -181,11 +199,10 @@ public class FederatedSearchService {
         return dispatch;
     }
 
-    /** A peer that is not called because the caller has too many searches in progress. */
-    private static Dispatch refused(PeerDto peer) {
+    /** A peer that is not called, and is reported as capacity_exceeded. */
+    private static Dispatch refused(PeerDto peer, String why) {
         Dispatch dispatch = new Dispatch(peer);
-        dispatch.future = CompletableFuture.failedFuture(new PeerSearchException.CapacityExceeded(
-                "The caller has too many federated searches in progress."));
+        dispatch.future = CompletableFuture.failedFuture(new PeerSearchException.CapacityExceeded(why));
         dispatch.endNanos = System.nanoTime();
         return dispatch;
     }

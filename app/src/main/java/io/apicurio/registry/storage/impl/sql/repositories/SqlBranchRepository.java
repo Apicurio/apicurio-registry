@@ -281,13 +281,7 @@ public class SqlBranchRepository {
             throw new NotAllowedException("System generated branches cannot be modified.");
         }
 
-        Set<String> requestedVersions = new HashSet<>();
-        for (VersionId version : versions) {
-            if (!requestedVersions.add(version.getRawVersionId())) {
-                throw new ConflictException("Version '" + version.getRawVersionId()
-                        + "' is listed more than once in the request.");
-            }
-        }
+        requireNoDuplicateVersions(versions);
 
         handles.withHandle(handle -> {
             handle.createUpdate(sqlStatements.deleteBranchVersions()).bind(0, ga.getRawGroupId())
@@ -316,6 +310,16 @@ public class SqlBranchRepository {
 
             return null;
         });
+    }
+
+    private static void requireNoDuplicateVersions(List<VersionId> versions) {
+        Set<String> requestedVersions = new HashSet<>();
+        for (VersionId version : versions) {
+            if (!requestedVersions.add(version.getRawVersionId())) {
+                throw new ConflictException("Version '" + version.getRawVersionId()
+                        + "' is listed more than once in the request.");
+            }
+        }
     }
 
     /**

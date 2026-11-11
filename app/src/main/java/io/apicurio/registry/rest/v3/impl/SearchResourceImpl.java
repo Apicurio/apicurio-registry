@@ -9,6 +9,7 @@ import io.apicurio.registry.auth.ISearchAuthorizer;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.contracts.ContractLabels;
+import io.apicurio.registry.federation.FederatedSearchCallers;
 import io.apicurio.registry.federation.FederatedSearchService;
 import io.apicurio.registry.federation.FederationConfig;
 import io.apicurio.registry.federation.PeerQuery;
@@ -97,6 +98,9 @@ public class SearchResourceImpl implements SearchResource {
     FederatedSearchService federatedSearch;
 
     @Inject
+    FederatedSearchCallers federatedSearchCallers;
+
+    @Inject
     Instance<AgentSearchHandler> agentSearch;
 
     private static SearchFilter parseLabelFilter(String prop) {
@@ -177,8 +181,9 @@ public class SearchResourceImpl implements SearchResource {
         int limit = perSourceLimit == null ? Math.min(DEFAULT_PER_SOURCE_LIMIT, maxLimit)
             : perSourceLimit.min(BigInteger.valueOf(maxLimit)).max(BigInteger.ONE).intValue();
         PeerQuery query = new PeerQuery(name, skill, capability, inputMode, outputMode, limit);
-        return federatedSearch.search(query, (localLimit, checkpoint) -> agentSearch.get().searchAgents(name,
-                skill, capability, inputMode, outputMode, 0, localLimit, false, checkpoint));
+        return federatedSearch.search(query, federatedSearchCallers.current(),
+                (localLimit, checkpoint) -> agentSearch.get().searchAgents(name, skill, capability, inputMode,
+                        outputMode, 0, localLimit, false, checkpoint));
     }
 
     @Override

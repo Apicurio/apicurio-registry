@@ -47,6 +47,12 @@ class FederatedSearchServiceTest {
 
     private static final PeerQuery QUERY = new PeerQuery(null, null, null, null, null, 10);
 
+    /** A caller who may list the peers. */
+    private static final FederatedSearchCaller ADMIN = new FederatedSearchCaller(true);
+
+    /** A caller who may search but not list the peers. */
+    private static final FederatedSearchCaller READER = new FederatedSearchCaller(false);
+
     @Inject
     FederatedSearchService service;
 
@@ -176,7 +182,7 @@ class FederatedSearchServiceTest {
     }
 
     private FederatedAgentSearchResults search(AgentSearchResults local) {
-        return service.search(QUERY, (limit, checkpoint) -> local);
+        return service.search(QUERY, ADMIN, (limit, checkpoint) -> local);
     }
 
     private static FederatedSearchSource source(FederatedAgentSearchResults results, String id) {
@@ -216,6 +222,42 @@ class FederatedSearchServiceTest {
     }
 
     @Test
+    void aCallerWhoMayNotListThePeersSeesThemNumberedAndWithoutTheReasonForAFailure() {
+        registered(peer("zeta", true), peer("alpha", true), peer("mid", true));
+        peers.fails("alpha", new PeerSearchException.Unreachable("x", null));
+        peers.answers("mid", response(1, agent("g", "from-mid")));
+        peers.fails("zeta", new PeerSearchException.Unsupported("x"));
+        double unreachableBefore = unreachableCount("alpha");
+
+        FederatedAgentSearchResults results = service.search(QUERY, READER,
+                (limit, checkpoint) -> local(1, agent("g", "from-local")));
+
+        // Numbered in peer id order: alpha, mid, zeta.
+        assertEquals(List.of("local:from-local", "peer-2:from-mid"), agentIds(results));
+        assertEquals(List.of("local", "peer-1", "peer-2", "peer-3"),
+                results.getSources().stream().map(FederatedSearchSource::getSource).collect(Collectors.toList()));
+        FederatedSearchSource failed = source(results, "peer-1");
+        assertEquals(FederatedSearchOutcome.failed, failed.getOutcome());
+        assertNull(failed.getReason());
+        assertEquals(FederatedSearchOutcome.ok, source(results, "peer-2").getOutcome());
+        assertEquals(1, source(results, "peer-2").getCount());
+        assertEquals(FederatedSearchOutcome.unsupported, source(results, "peer-3").getOutcome());
+        // The metrics, which are not for the caller, still name the peer and the reason.
+        assertEquals(unreachableBefore + 1, unreachableCount("alpha"));
+
+        // The same search for a caller who may list the peers names them, with the reason.
+        FederatedAgentSearchResults asAdmin = service.search(QUERY, ADMIN,
+                (limit, checkpoint) -> local(1, agent("g", "from-local")));
+        assertEquals(List.of("local:from-local", "mid:from-mid"), agentIds(asAdmin));
+        assertFailed(asAdmin, "alpha", FederatedSearchFailureReason.unreachable);
+    }
+
+    private double unreachableCount(String peerId) {
+        return meters.find("apicurio.federation.peer.search").tag("peer", peerId).tag("reason", "unreachable")
+                .timers().stream().mapToLong(timer -> timer.count()).sum();
+    }
+
+    @Test
     void passesTheQueryOnToEveryPeer() {
         registered(peer("alpha", true));
         List<PeerQuery> seen = new ArrayList<>();
@@ -226,7 +268,7 @@ class FederatedSearchServiceTest {
         PeerQuery query = new PeerQuery("refund", List.of("s"), List.of("streaming"), List.of("text"),
                 List.of("image"), 7);
 
-        service.search(query, (limit, checkpoint) -> {
+        service.search(query, ADMIN, (limit, checkpoint) -> {
             assertEquals(7, limit);
             return local(0);
         });
@@ -355,7 +397,7 @@ class FederatedSearchServiceTest {
         peers.neverAnswers("hung");
 
         // No result, so no checkpoint is ever reached inside the search.
-        assertThrows(SearchDeadlineExceededException.class, () -> service.search(QUERY, (limit, checkpoint) -> {
+        assertThrows(SearchDeadlineExceededException.class, () -> service.search(QUERY, ADMIN, (limit, checkpoint) -> {
             sleep(400);
             return local(0);
         }));
@@ -371,7 +413,7 @@ class FederatedSearchServiceTest {
         AtomicInteger units = new AtomicInteger();
 
         // Like the agent search: a checkpoint before each unit of work and none after the last.
-        assertThrows(SearchDeadlineExceededException.class, () -> service.search(QUERY, (limit, checkpoint) -> {
+        assertThrows(SearchDeadlineExceededException.class, () -> service.search(QUERY, ADMIN, (limit, checkpoint) -> {
             for (int i = 0; i < 2; i++) {
                 checkpoint.run();
                 units.incrementAndGet();
@@ -389,7 +431,7 @@ class FederatedSearchServiceTest {
         registered(peer("hung", true));
         peers.neverAnswers("hung");
 
-        assertThrows(IllegalStateException.class, () -> service.search(QUERY, (limit, checkpoint) -> {
+        assertThrows(IllegalStateException.class, () -> service.search(QUERY, ADMIN, (limit, checkpoint) -> {
             throw new IllegalStateException("storage down");
         }));
 
@@ -404,7 +446,7 @@ class FederatedSearchServiceTest {
         AtomicInteger units = new AtomicInteger();
 
         long start = System.nanoTime();
-        assertThrows(SearchDeadlineExceededException.class, () -> service.search(QUERY, (limit, checkpoint) -> {
+        assertThrows(SearchDeadlineExceededException.class, () -> service.search(QUERY, ADMIN, (limit, checkpoint) -> {
             for (int i = 0; i < 100; i++) {
                 units.incrementAndGet();
                 try {
@@ -428,7 +470,7 @@ class FederatedSearchServiceTest {
         registered(peer("alpha", true));
         peers.answers("alpha", response(0));
 
-        FederatedAgentSearchResults results = service.search(QUERY, (limit, checkpoint) -> {
+        FederatedAgentSearchResults results = service.search(QUERY, ADMIN, (limit, checkpoint) -> {
             checkpoint.run();
             checkpoint.run();
             return local(1, agent("g", "mine"));

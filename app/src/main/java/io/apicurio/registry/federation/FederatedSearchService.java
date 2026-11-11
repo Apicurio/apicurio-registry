@@ -63,11 +63,19 @@ import java.util.concurrent.atomic.AtomicInteger;
  * <p>
  * Agents with the same group and artifact id from different sources are all returned: nothing
  * about a peer proves it publishes under the same identity as another source.
+ * <p>
+ * The peers are configuration only administrators may list, so only a caller who may list them is
+ * shown which peer is which and why one failed. Any other caller sees each peer as {@code peer-1},
+ * {@code peer-2} and so on, numbered in peer id order within the one response, with its outcome
+ * but without the reason for a failure.
  */
 @ApplicationScoped
 public class FederatedSearchService {
 
     static final String LOCAL_SOURCE = "local";
+
+    /** With a number after it, how a peer is named to a caller who may not list the peers. */
+    static final String NUMBERED_PEER_PREFIX = "peer-";
 
     /**
      * Sent on every call to a peer. A registry that receives a federated search carrying it refuses
@@ -105,7 +113,8 @@ public class FederatedSearchService {
 
     private final ConcurrentMap<String, PeerGuard> guards = new ConcurrentHashMap<>();
 
-    public FederatedAgentSearchResults search(PeerQuery query, LocalSearch localSearch) {
+    public FederatedAgentSearchResults search(PeerQuery query, FederatedSearchCaller caller,
+            LocalSearch localSearch) {
         long deadlineNanos = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(config.getSearchDeadlineMs());
 
         List<PeerDto> peers = enabledPeers();
@@ -125,7 +134,7 @@ public class FederatedSearchService {
             AgentSearchResults local = localSearch.search(query.limit(), checkpoint);
             checkpoint.run();
             awaitUntil(dispatches, deadlineNanos);
-            return assemble(local, dispatches);
+            return assemble(local, dispatches, caller);
         } finally {
             dispatches.forEach(Dispatch::cancelIfRunning);
         }
@@ -177,7 +186,8 @@ public class FederatedSearchService {
         dispatches.forEach(Dispatch::cancelIfRunning);
     }
 
-    private FederatedAgentSearchResults assemble(AgentSearchResults local, List<Dispatch> dispatches) {
+    private FederatedAgentSearchResults assemble(AgentSearchResults local, List<Dispatch> dispatches,
+            FederatedSearchCaller caller) {
         List<FederatedAgentSearchResult> agents = new ArrayList<>();
         List<FederatedSearchSource> sources = new ArrayList<>();
 
@@ -186,8 +196,11 @@ public class FederatedSearchService {
         sources.add(source(LOCAL_SOURCE, FederatedSearchOutcome.ok, null, localAgents.size(),
                 local.getCount() > localAgents.size()));
 
+        int position = 0;
         for (Dispatch dispatch : dispatches) {
+            position++;
             String peerId = dispatch.peer.getPeerId();
+            String shownAs = caller.seesPeerDetails() ? peerId : NUMBERED_PEER_PREFIX + position;
             FederatedSearchSource source;
             try {
                 PeerSearchResponse response = dispatch.future.getNow(null);
@@ -196,15 +209,19 @@ public class FederatedSearchService {
                     source = source(peerId, FederatedSearchOutcome.deadline_exceeded, null, 0, false);
                 } else {
                     List<AgentSearchResult> included = distinct(response.agents());
-                    included.forEach(agent -> agents.add(toFederated(peerId, agent)));
+                    included.forEach(agent -> agents.add(toFederated(shownAs, agent)));
                     source = source(peerId, FederatedSearchOutcome.ok, null, included.size(),
                             response.reportedCount() > response.agents().size());
                 }
             } catch (CompletionException | CancellationException ex) {
                 source = failedSource(peerId, ex.getCause() != null ? ex.getCause() : ex);
             }
-            sources.add(source);
             record(dispatch, source);
+            if (!caller.seesPeerDetails()) {
+                source.setSource(shownAs);
+                source.setReason(null);
+            }
+            sources.add(source);
         }
 
         return FederatedAgentSearchResults.builder().agents(agents).sources(sources).build();

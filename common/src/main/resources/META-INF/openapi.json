@@ -4050,7 +4050,7 @@
         },
         "operationId": "searchFederatedAgents",
         "summary": "Search for agents across this registry and its peer registries",
-        "description": "Searches the agent cards of this registry and of every enabled peer registry, and returns them in one response with the `source` of each agent.\n\nThe caller's own visibility rules apply to this registry's results. Peers are queried anonymously and asked for `public` agent cards only, so a peer never returns an agent that is not public, whatever its own authentication settings. A peer that does not confirm the public-only mode is reported as `unsupported` and its agents are discarded. The caller's credentials are never sent to a peer. Every call to a peer carries an `X-Federation-Hop` header, and a search that carries one is refused, so a search is forwarded at most once.\n\nThe response is `200` whenever the search of this registry succeeds, even when some or all peers fail: the outcome of each source is in `sources`. Agents with the same group and artifact id from different sources are all returned.\n\nThis operation can fail for the following reasons:\n\n* The request carries an `X-Federation-Hop` header, because another registry forwarded it (HTTP error `400`)\n* Federation is not enabled on this registry (HTTP error `409`)\n* More peers are enabled than the configured maximum (HTTP error `409`)\n* A2A support is not enabled on this registry (HTTP error `404`)\n* The search of this registry did not finish before the deadline (HTTP error `503`)\n* A server error occurred (HTTP error `500`)\n"
+        "description": "Searches the agent cards of this registry and of every enabled peer registry, and returns them in one response with the `source` of each agent.\n\nThe caller's own visibility rules apply to this registry's results. Peers are queried anonymously and asked for `public` agent cards only, so a peer never returns an agent that is not public, whatever its own authentication settings. A peer that does not confirm the public-only mode is reported as `unsupported` and its agents are discarded. The caller's credentials are never sent to a peer. Every call to a peer carries an `X-Federation-Hop` header, and a search that carries one is refused, so a search is forwarded at most once.\n\nWhich peer is which, and why one failed, is shown only to a caller who may list the peers (`GET /admin/peers`): an administrator, or anyone when authentication is off. Any other caller sees each peer as `peer-1`, `peer-2` and so on, numbered in peer id order within the one response, with its `outcome` but without a `reason`. Such a caller can still tell how many peers are enabled and whether each one answered.\n\nThe response is `200` whenever the search of this registry succeeds, even when some or all peers fail: the outcome of each source is in `sources`. Agents with the same group and artifact id from different sources are all returned.\n\nThis operation can fail for the following reasons:\n\n* The request carries an `X-Federation-Hop` header, because another registry forwarded it (HTTP error `400`)\n* Federation is not enabled on this registry (HTTP error `409`)\n* More peers are enabled than the configured maximum (HTTP error `409`)\n* A2A support is not enabled on this registry (HTTP error `404`)\n* The search of this registry did not finish before the deadline (HTTP error `503`)\n* A server error occurred (HTTP error `500`)\n"
       }
     },
     "/search/groups": {
@@ -11094,7 +11094,7 @@
         "type": "object",
         "properties": {
           "source": {
-            "description": "Where the agent was found: `local` for this registry, otherwise the id of the peer registry. Assigned by this registry, never taken from the peer.",
+            "description": "Where the agent was found: `local` for this registry, otherwise the peer registry it came from. A caller who may list the peers sees the peer's id, and any other caller sees `peer-1`, `peer-2` and so on, numbered in peer id order within the one response. Assigned by this registry, never taken from the peer.",
             "type": "string"
           },
           "groupId": {
@@ -11144,7 +11144,7 @@
         "type": "object",
         "properties": {
           "source": {
-            "description": "`local` for this registry, otherwise the id of the peer registry.",
+            "description": "`local` for this registry, otherwise the peer registry: its id for a caller who may list the peers, and `peer-1`, `peer-2` and so on, in peer id order, for any other caller.",
             "type": "string"
           },
           "outcome": {
@@ -11174,7 +11174,7 @@
         "type": "string"
       },
       "FederatedSearchFailureReason": {
-        "description": "Why a source could not be searched. Set only when the outcome is `failed`.\n\n* `unauthorized` - the peer answered 401 or 403.\n* `unreachable` - the peer could not be reached, or its address is not allowed.\n* `timeout` - the peer did not answer within the per-peer timeout.\n* `peer_error` - the peer answered with a server error, or with a redirect.\n* `invalid_response` - the peer's answer was malformed, too large or inconsistent.\n* `circuit_open` - the peer is failing repeatedly and was not called.\n* `capacity_exceeded` - this registry had no capacity left to call the peer.\n",
+        "description": "Why a source could not be searched. Set only when the outcome is `failed`, and only for a caller who may list the peers.\n\n* `unauthorized` - the peer answered 401 or 403.\n* `unreachable` - the peer could not be reached, or its address is not allowed.\n* `timeout` - the peer did not answer within the per-peer timeout.\n* `peer_error` - the peer answered with a server error, or with a redirect.\n* `invalid_response` - the peer's answer was malformed, too large or inconsistent.\n* `circuit_open` - the peer is failing repeatedly and was not called.\n* `capacity_exceeded` - this registry had no capacity left to call the peer.\n",
         "enum": [
           "unauthorized",
           "unreachable",

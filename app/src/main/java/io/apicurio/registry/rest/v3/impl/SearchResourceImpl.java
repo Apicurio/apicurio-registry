@@ -181,7 +181,7 @@ public class SearchResourceImpl implements SearchResource {
         int limit = perSourceLimit == null ? Math.min(DEFAULT_PER_SOURCE_LIMIT, maxLimit)
             : perSourceLimit.min(BigInteger.valueOf(maxLimit)).max(BigInteger.ONE).intValue();
         PeerQuery query = new PeerQuery(name, skill, capability, inputMode, outputMode, limit);
-        return federatedSearch.search(query, federatedSearchCallers.current(),
+        return federatedSearch.search(query, federatedSearchCallers.current(request.getRemoteAddr()),
                 (localLimit, checkpoint) -> agentSearch.get().searchAgents(name, skill, capability, inputMode,
                         outputMode, 0, localLimit, false, checkpoint));
     }

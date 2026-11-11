@@ -177,9 +177,13 @@ public class SearchResourceImpl implements SearchResource {
             throw new BadRequestException("A federated search cannot be forwarded: the request carries the "
                     + FederatedSearchService.HOP_HEADER + " header.");
         }
+        if (perSourceLimit != null && perSourceLimit.signum() <= 0) {
+            throw new BadRequestException("perSourceLimit must be at least 1.");
+        }
+        // Above the server's maximum, the maximum is used, as documented.
         int maxLimit = federationConfig.getSearchPerSourceLimitMax();
         int limit = perSourceLimit == null ? Math.min(DEFAULT_PER_SOURCE_LIMIT, maxLimit)
-            : perSourceLimit.min(BigInteger.valueOf(maxLimit)).max(BigInteger.ONE).intValue();
+            : perSourceLimit.min(BigInteger.valueOf(maxLimit)).intValue();
         PeerQuery query = new PeerQuery(name, skill, capability, inputMode, outputMode, limit);
         return federatedSearch.search(query, federatedSearchCallers.current(request.getRemoteAddr()),
                 (localLimit, checkpoint) -> agentSearch.get().searchAgents(name, skill, capability, inputMode,

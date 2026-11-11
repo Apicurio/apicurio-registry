@@ -1,7 +1,6 @@
 package io.apicurio.registry.federation;
 
 import io.apicurio.registry.cdi.Current;
-import io.apicurio.registry.rest.ConflictException;
 import io.apicurio.registry.rest.v3.beans.AgentSearchResult;
 import io.apicurio.registry.rest.v3.beans.AgentSearchResults;
 import io.apicurio.registry.rest.v3.beans.FederatedAgentSearchResult;
@@ -386,16 +385,24 @@ class FederatedSearchServiceTest {
     }
 
     @Test
-    void failsInsteadOfSilentlySkippingPeersWhenMoreAreEnabledThanTheMaximum() {
+    void searchesTheFirstPeersInIdOrderAndReportsTheRestWhenMoreAreEnabledThanTheMaximum() {
         config.searchMaxPeers = 2;
-        registered(peer("a", true), peer("b", true), peer("c", true));
-        peers.answers("a", response(0));
-        peers.answers("b", response(0));
-        peers.answers("c", response(0));
+        registered(peer("c", true), peer("a", true), peer("d", true), peer("b", true));
+        peers.answers("a", response(1, agent("g", "from-a")));
+        peers.answers("b", response(1, agent("g", "from-b")));
+        peers.answers("c", response(1, agent("g", "from-c")));
+        peers.answers("d", response(1, agent("g", "from-d")));
 
-        assertThrows(ConflictException.class, () -> search(local(0)));
+        FederatedAgentSearchResults results = search(local(1, agent("g", "from-local")));
 
-        assertEquals(0, peers.callsTo("a") + peers.callsTo("b") + peers.callsTo("c"));
+        assertEquals(List.of("local:from-local", "a:from-a", "b:from-b"), agentIds(results));
+        assertEquals(List.of("local", "a", "b", "c", "d"),
+                results.getSources().stream().map(FederatedSearchSource::getSource).collect(Collectors.toList()));
+        assertFailed(results, "c", FederatedSearchFailureReason.capacity_exceeded);
+        assertFailed(results, "d", FederatedSearchFailureReason.capacity_exceeded);
+        assertEquals(1, peers.callsTo("a"));
+        assertEquals(1, peers.callsTo("b"));
+        assertEquals(0, peers.callsTo("c") + peers.callsTo("d"));
     }
 
     @Test

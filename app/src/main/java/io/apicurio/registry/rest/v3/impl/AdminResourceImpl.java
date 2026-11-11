@@ -625,9 +625,11 @@ public class AdminResourceImpl implements AdminResource {
     }
 
     /**
-     * A federated search queries every enabled peer, so the number of enabled peers is bounded and
-     * the bound is enforced here, where the configuration is written, and not by silently skipping
-     * peers when a search runs.
+     * A federated search queries at most max-peers peers, so enabling more is refused here. This is
+     * a check for the administrator's sake and not a guarantee: two concurrent writes can both pass
+     * it, and a lowered setting or peers loaded declaratively are not checked here at all. A search
+     * copes with more enabled peers than it queries by searching the first ones in peer id order
+     * and reporting the rest.
      */
     private void requireRoomToEnable(PeerDto peer) {
         if (!peer.isEnabled()) {

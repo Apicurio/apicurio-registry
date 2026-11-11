@@ -21,6 +21,11 @@ class AutoCreateCacheCoordinatesTest {
     private static final String SCHEMA = "{\"type\":\"record\",\"name\":\"Same\",\"fields\":[]}";
 
     private static DefaultSchemaResolver<String, String> resolver(MockRegistryClientFacade facade) {
+        return resolver(facade, Map.of());
+    }
+
+    private static DefaultSchemaResolver<String, String> resolver(MockRegistryClientFacade facade,
+            Map<String, Object> extraConfigs) {
         ParsedSchemaImpl<String> parsed = new ParsedSchemaImpl<>();
         parsed.setParsedSchema(SCHEMA);
         parsed.setRawSchema(SCHEMA.getBytes(StandardCharsets.UTF_8));
@@ -28,13 +33,18 @@ class AutoCreateCacheCoordinatesTest {
         resolver.setClientFacade(facade);
         Map<String, Object> configs = new HashMap<>();
         configs.put(SchemaResolverConfig.AUTO_REGISTER_ARTIFACT, true);
+        configs.putAll(extraConfigs);
         resolver.configure(configs, new MockSchemaParser(parsed));
         return resolver;
     }
 
     private static MockRecord<String> record(String artifactId) {
-        return new MockRecord<>("payload", ArtifactReference.builder().groupId("g").artifactId(artifactId)
-                .build());
+        return record("g", artifactId, null);
+    }
+
+    private static MockRecord<String> record(String groupId, String artifactId, String version) {
+        return new MockRecord<>("payload", ArtifactReference.builder().groupId(groupId).artifactId(artifactId)
+                .version(version).build());
     }
 
     @Test
@@ -59,5 +69,33 @@ class AutoCreateCacheCoordinatesTest {
         resolver.resolveSchema(record("topic-a-value"));
 
         assertEquals(1, facade.getCreateSchemaCallCount());
+    }
+
+    @Test
+    void nullAndDefaultGroupShareOneRegistration() {
+        // With if-exists=FAIL a second createSchema call for the same artifact would fail on a real registry.
+        // ArtifactReference.builder() already maps a null group to "default", and the resolver normalizes it
+        // again before keying, so both spellings must reach one registration.
+        MockRegistryClientFacade facade = new MockRegistryClientFacade(SCHEMA);
+        DefaultSchemaResolver<String, String> resolver = resolver(facade,
+                Map.of(SchemaResolverConfig.AUTO_REGISTER_ARTIFACT_IF_EXISTS, "FAIL"));
+
+        resolver.resolveSchema(record(null, "topic-a-value", null));
+        resolver.resolveSchema(record("default", "topic-a-value", null));
+
+        assertEquals(List.of("default/topic-a-value"), new ArrayList<>(facade.getCreated().keySet()));
+        assertEquals(1, facade.getCreateSchemaCallCount());
+    }
+
+    @Test
+    void requestedVersionIsPartOfTheTarget() {
+        MockRegistryClientFacade facade = new MockRegistryClientFacade(SCHEMA);
+        DefaultSchemaResolver<String, String> resolver = resolver(facade);
+
+        resolver.resolveSchema(record("g", "topic-a-value", "1.0"));
+        resolver.resolveSchema(record("g", "topic-a-value", "1.0"));
+        resolver.resolveSchema(record("g", "topic-a-value", "2.0"));
+
+        assertEquals(List.of("1.0", "2.0"), facade.getCreatedVersions());
     }
 }

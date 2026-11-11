@@ -5,6 +5,7 @@ import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.resolver.client.RegistryVersionCoordinates;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -22,6 +23,7 @@ public class MockRegistryClientFacade implements RegistryClientFacade {
     private final AtomicInteger createSchemaCallCount = new AtomicInteger(0);
     /** One entry per createSchema call: "group/artifactId" -> the references passed. */
     private final Map<String, Set<RegistryArtifactReference>> created = new LinkedHashMap<>();
+    private final List<String> createdVersions = new ArrayList<>();
     private final AtomicInteger searchVersionsCallCount = new AtomicInteger(0);
     private final AtomicInteger getSchemaByGlobalIdCallCount = new AtomicInteger(0);
     private final AtomicInteger getSchemaByGAVCallCount = new AtomicInteger(0);
@@ -60,6 +62,11 @@ public class MockRegistryClientFacade implements RegistryClientFacade {
      */
     public Map<String, Set<RegistryArtifactReference>> getCreated() {
         return created;
+    }
+
+    /** The requested version of every createSchema call, in order. */
+    public List<String> getCreatedVersions() {
+        return createdVersions;
     }
 
     public int getSearchVersionsCallCount() {
@@ -135,6 +142,7 @@ public class MockRegistryClientFacade implements RegistryClientFacade {
             Set<RegistryArtifactReference> references) {
         createSchemaCallCount.incrementAndGet();
         created.put(groupId + "/" + artifactId, references);
+        createdVersions.add(version);
         return RegistryVersionCoordinates.create(1L, 1L, groupId, artifactId, "1");
     }
 

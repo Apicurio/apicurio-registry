@@ -344,6 +344,9 @@ public class ERCache<V> {
 
     private <T> void reindex(WrappedValue<V> newValue, T lookupKey) {
         Optional.ofNullable(globalIdExtractor.apply(newValue.value)).ifPresent(k -> globalIdIndex.put(k, newValue));
+        // Content is not unique to one artifact (e.g. the same schema on two topics), so this keeps the last value
+        // loaded for it. That is fine for content lookups, which only need some version with this content; use
+        // the auto-create index to find the registration for specific coordinates.
         Optional.ofNullable(contentExtractor.apply(newValue.value)).ifPresent(k -> contentIndex.put(k, newValue));
         Optional.ofNullable(contentIdExtractor.apply(newValue.value)).ifPresent(k -> contentIdIndex.put(k, newValue));
         Optional.ofNullable(gavExtractor.apply(newValue.value)).ifPresent(k -> {

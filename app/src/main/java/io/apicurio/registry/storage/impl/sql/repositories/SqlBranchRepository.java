@@ -4,6 +4,7 @@ import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.model.VersionId;
+import io.apicurio.registry.rest.ConflictException;
 import io.apicurio.registry.rest.RestConfig;
 import io.apicurio.registry.storage.dto.BranchMetaDataDto;
 import io.apicurio.registry.storage.dto.BranchSearchResultsDto;
@@ -38,6 +39,7 @@ import org.slf4j.Logger;
 
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -277,6 +279,14 @@ public class SqlBranchRepository {
         BranchMetaDataDto bmd = getBranchMetaData(ga, branchId);
         if (bmd.isSystemDefined()) {
             throw new NotAllowedException("System generated branches cannot be modified.");
+        }
+
+        Set<String> seen = new HashSet<>();
+        for (VersionId version : versions) {
+            if (!seen.add(version.getRawVersionId())) {
+                throw new ConflictException("Version '" + version.getRawVersionId()
+                        + "' is listed more than once in the request.");
+            }
         }
 
         handles.withHandle(handle -> {

@@ -20,6 +20,9 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.equalTo;
+
 @QuarkusTest
 public class BranchesTest extends AbstractResourceTestBase {
 
@@ -453,6 +456,17 @@ public class BranchesTest extends AbstractResourceTestBase {
                     .byBranchId("test-branch").versions().put(newVersions);
         });
 
+        // Replace versions with a list that repeats a version
+        given().when().contentType(ContentTypes.APPLICATION_JSON).pathParam("groupId", groupId)
+                .pathParam("artifactId", artifactId).body("{\"versions\": [\"1\", \"1\"]}")
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/branches/test-branch/versions")
+                .then().statusCode(409)
+                .body("title", equalTo("Version '1' is listed more than once in the request."));
+
+        // The branch must be left unchanged
+        results = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).branches()
+                .byBranchId("test-branch").versions().get();
+        Assertions.assertEquals(3, results.getCount());
     }
 
     @Test

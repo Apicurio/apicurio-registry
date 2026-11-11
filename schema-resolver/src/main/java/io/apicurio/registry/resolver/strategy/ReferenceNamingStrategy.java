@@ -5,10 +5,9 @@ package io.apicurio.registry.resolver.strategy;
  * the serdes. The reference name stored on the parent is never changed.
  *
  * <p>
- * Implementations must be deterministic: the result may depend only on the context, so the same referenced
- * schema always gets the same coordinates. The resolver caches registrations by schema content, so a schema
- * that is named differently on a later call can be given its earlier coordinates. A single instance is shared
- * by all threads using a serializer, so implementations must be thread-safe. A public no-arg constructor is
+ * Implementations should be deterministic: the same referenced schema should always get the same coordinates,
+ * otherwise each new name registers another artifact. A single instance is shared by all threads using a
+ * serializer, so implementations must be thread-safe. A public no-arg constructor is
  * needed when the strategy is configured by class name through
  * {@code apicurio.registry.reference-naming-strategy}.
  * </p>

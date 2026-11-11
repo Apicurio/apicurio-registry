@@ -1,5 +1,6 @@
 package io.apicurio.registry.resolver;
 
+import io.apicurio.registry.resolver.cache.AutoCreateKey;
 import io.apicurio.registry.resolver.cache.ContentWithReferences;
 import io.apicurio.registry.resolver.client.RegistryArtifactReference;
 import io.apicurio.registry.resolver.client.RegistryClientFacade;
@@ -319,12 +320,16 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
                 .map(SchemaLookupResult::toArtifactReference)
                 .collect(Collectors.toSet());
 
-        var key = ContentWithReferences.builder()
+        var content = ContentWithReferences.builder()
                 .content(rawSchemaString)
                 .references(references)
                 .build();
+        // Key by the target coordinates too: identical content written under other coordinates (e.g. another
+        // topic) must still be registered there (#11053).
+        var key = new AutoCreateKey(content, artifactReference.getGroupId(), artifactReference.getArtifactId(),
+                artifactReference.getVersion());
 
-        return schemaCache.getByContent(key, contentKey -> {
+        return schemaCache.getByAutoCreateKey(key, autoCreateKey -> {
             String artifactType = schemaParser.artifactType();
             String groupId = artifactReference.getGroupId() == null ? "default" : artifactReference.getGroupId();
             String artifactId = artifactReference.getArtifactId();

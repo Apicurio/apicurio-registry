@@ -765,6 +765,33 @@ public class AvroSerdeTest extends AbstractClientFacadeTestBase {
     }
 
     @Test
+    public void identicalSchemaOnTwoTopicsIsRegisteredForEachTopic() {
+        // #11053: one serializer, same schema, two topics -> two artifacts, each message carrying its own ID.
+        String ns = "com.acme.n" + UUID.randomUUID().toString().replace("-", "");
+        Schema order = orderWithAddress(ns);
+        String group = TestUtils.generateGroupId();
+        try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<>(
+                new RegistryClientFacadeImpl(isolatedClientV3))) {
+            Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
+            config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, group);
+            serializer.configure(config, false);
+            GenericData.Record address = new GenericData.Record(order.getField("address").schema());
+            address.put("street", "Main");
+            GenericData.Record record = new GenericData.Record(order);
+            record.put("address", address);
+            serializer.serialize("topic-a", record);
+            serializer.serialize("topic-b", record);
+        }
+
+        List<String> artifacts = isolatedClientV3.groups().byGroupId(group).artifacts().get().getArtifacts()
+                .stream().map(a -> a.getArtifactId()).sorted().toList();
+        assertEquals(List.of(ns + ".Address", "topic-a-value", "topic-b-value"), artifacts);
+        assertEquals(List.of(ns + ".Address -> " + group + "/" + ns + ".Address@1"),
+                referencesOf(group, "topic-b-value"));
+    }
+
+    @Test
     public void avroReferencesKeepDefaultCoordinatesWithoutStrategy() throws Exception {
         String ns = "com.acme.n" + UUID.randomUUID().toString().replace("-", "");
         String group = TestUtils.generateGroupId();

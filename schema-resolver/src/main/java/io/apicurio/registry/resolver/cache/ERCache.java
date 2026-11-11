@@ -38,6 +38,8 @@ public class ERCache<V> {
     private final Map<Long, WrappedValue<V>> contentIdIndex = new ConcurrentHashMap<>();
     private final Map<ArtifactCoordinates, WrappedValue<V>> gavIndex = new ConcurrentHashMap<>();
     private final Map<String, WrappedValue<V>> contentHashIndex = new ConcurrentHashMap<>();
+    /** Auto-registration results, keyed by content and target coordinates (see #11053). */
+    private final Map<AutoCreateKey, WrappedValue<V>> autoCreateIndex = new ConcurrentHashMap<>();
 
     private Function<V, Long> globalIdExtractor;
     private Function<V, ContentWithReferences> contentExtractor;
@@ -273,6 +275,20 @@ public class ERCache<V> {
         return getValue(value, key, loaderFunction);
     }
 
+    /**
+     * Returns the result of auto-registering content under the key's coordinates, loading it if absent or
+     * expired. Unlike {@link #getByContent}, a result cached for the same content under other coordinates is
+     * never returned. Loaded values are also indexed like any other value, so content lookups still hit.
+     *
+     * @param key the content and target coordinates
+     * @param loaderFunction registers the content and returns the result
+     * @return the cached or loaded value
+     */
+    public V getByAutoCreateKey(AutoCreateKey key, Function<AutoCreateKey, V> loaderFunction) {
+        WrappedValue<V> value = this.autoCreateIndex.get(key);
+        return getValue(value, key, loaderFunction);
+    }
+
     public V getByContent(ContentWithReferences key, Function<ContentWithReferences, V> loaderFunction) {
         WrappedValue<V> value = this.contentIndex.get(key);
         return getValue(value, key, loaderFunction);
@@ -340,6 +356,9 @@ public class ERCache<V> {
             }
         });
         Optional.ofNullable(contentHashExtractor.apply(newValue.value)).ifPresent(k -> contentHashIndex.put(k, newValue));
+        if (lookupKey instanceof AutoCreateKey autoCreateKey) {
+            autoCreateIndex.put(autoCreateKey, newValue);
+        }
     }
 
     public void clear() {
@@ -348,6 +367,7 @@ public class ERCache<V> {
         contentIdIndex.clear();
         gavIndex.clear();
         contentHashIndex.clear();
+        autoCreateIndex.clear();
     }
 
     /**

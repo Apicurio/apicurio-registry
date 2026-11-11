@@ -1,11 +1,14 @@
 package io.apicurio.registry.resolver;
 
+import io.apicurio.registry.resolver.cache.AutoCreateKey;
 import io.apicurio.registry.resolver.cache.ContentWithReferences;
 import io.apicurio.registry.resolver.cache.ERCache;
 import io.apicurio.registry.resolver.strategy.ArtifactCoordinates;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
@@ -645,6 +648,46 @@ public class ERCacheTest {
             this.coordinates = coordinates;
             this.schemaContent = schemaContent;
         }
+    }
+
+    @Test
+    void testAutoCreateIndexSeparatesTargetsWithSameContent() {
+        ERCache<String> cache = newCache("hash");
+        ContentWithReferences content = ContentWithReferences.builder().content("content").build();
+        AutoCreateKey a = new AutoCreateKey(content, "g", "a", null);
+        AutoCreateKey b = new AutoCreateKey(content, "g", "b", null);
+        List<String> loads = new ArrayList<>();
+
+        assertEquals("value-a", cache.getByAutoCreateKey(a, k -> load(loads, "value-a")));
+        assertEquals("value-b", cache.getByAutoCreateKey(b, k -> load(loads, "value-b")));
+        assertEquals("value-a", cache.getByAutoCreateKey(a, k -> load(loads, "unexpected")));
+        assertEquals(List.of("value-a", "value-b"), loads);
+        // Loaded values are still reachable by content.
+        assertEquals("value-b", cache.getByContent(content, k -> "unexpected"));
+    }
+
+    @Test
+    void testAutoCreateIndexReloadsExpiredAndClears() {
+        ERCache<String> cache = newCache("hash");
+        // Negative lifetime: always expired, without depending on the clock ticking between calls.
+        cache.configureLifetime(Duration.ofNanos(-1));
+        AutoCreateKey key = new AutoCreateKey(ContentWithReferences.builder().content("content").build(), null,
+                "a", "1");
+        List<String> loads = new ArrayList<>();
+
+        cache.getByAutoCreateKey(key, k -> load(loads, "first"));
+        assertEquals("second", cache.getByAutoCreateKey(key, k -> load(loads, "second")));
+
+        cache.configureLifetime(Duration.ofDays(1));
+        cache.getByAutoCreateKey(key, k -> load(loads, "third"));
+        cache.clear();
+        assertEquals("fourth", cache.getByAutoCreateKey(key, k -> load(loads, "fourth")));
+        assertEquals(List.of("first", "second", "third", "fourth"), loads);
+    }
+
+    private static String load(List<String> loads, String value) {
+        loads.add(value);
+        return value;
     }
 
     private ERCache<String> newCache(String contentHashKey) {

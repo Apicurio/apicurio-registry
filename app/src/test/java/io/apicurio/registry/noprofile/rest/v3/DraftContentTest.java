@@ -828,14 +828,58 @@ public class DraftContentTest extends AbstractResourceTestBase {
         version3.setVersion("3.0");
         version3.setIsDraft(false);
 
-        Assertions.assertThrows(RuleViolationProblemDetails.class, () -> {
-            clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(version3);
-        });
+        RuleViolationProblemDetails violation = Assertions.assertThrows(RuleViolationProblemDetails.class,
+                () -> {
+                    clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                            .post(version3);
+                });
+        Assertions.assertEquals(400, violation.getStatus());
+        Assertions.assertEquals("RuleViolationException", violation.getName());
 
-        Assertions.assertThrows(ProblemDetails.class, () -> {
+        ProblemDetails notFound = Assertions.assertThrows(ProblemDetails.class, () -> {
             clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
                     .byVersionExpression("3.0").get();
         });
+        Assertions.assertEquals(404, notFound.getStatus());
+    }
+
+    @Test
+    public void testDisabledBreakingDraftCannotBeEnabled() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = TestUtils.generateArtifactId();
+
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+                AVRO_CONTENT_V1, ContentTypes.APPLICATION_JSON);
+        createArtifact.getFirstVersion().setVersion("1.0");
+        clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.COMPATIBILITY);
+        createRule.setConfig("BACKWARD");
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(createRule);
+
+        CreateVersion draftVersion = TestUtils.clientCreateVersion(AVRO_CONTENT_V2, ContentTypes.APPLICATION_JSON);
+        draftVersion.setVersion("2.0");
+        draftVersion.setIsDraft(true);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(draftVersion);
+
+        WrappedVersionState disabled = new WrappedVersionState();
+        disabled.setState(VersionState.DISABLED);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .byVersionExpression("2.0").state().put(disabled);
+
+        WrappedVersionState enabled = new WrappedVersionState();
+        enabled.setState(VersionState.ENABLED);
+        ProblemDetails violation = Assertions.assertThrows(ProblemDetails.class, () -> {
+            clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                    .byVersionExpression("2.0").state().put(enabled);
+        });
+        Assertions.assertEquals(400, violation.getStatus());
+        Assertions.assertEquals("RuleViolationException", violation.getName());
+
+        VersionMetaData v2 = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
+                .versions().byVersionExpression("2.0").get();
+        Assertions.assertEquals(VersionState.DISABLED, v2.getState());
     }
 
     @Test

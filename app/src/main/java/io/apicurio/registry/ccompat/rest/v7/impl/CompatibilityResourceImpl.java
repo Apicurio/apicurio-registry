@@ -24,11 +24,13 @@ import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.types.VersionState;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Interceptors({ ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class })
@@ -113,8 +115,9 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
     public CompatibilityCheckResponse checkAllCompatibility(String subject, Boolean verbose, Boolean normalize, String groupId, RegisterSchemaRequest request) {
         final GA ga = getGA(groupId, subject);
         try {
+            // Same baseline as the v3 rules: published versions only.
             final List<String> versions = storage.getArtifactVersions(ga.getRawGroupIdWithNull(),
-                    ga.getRawArtifactId());
+                    ga.getRawArtifactId(), Set.of(VersionState.ENABLED, VersionState.DEPRECATED));
             for (String version : versions) {
                 final ArtifactVersionMetaDataDto artifactVersionMetaData = storage.getArtifactVersionMetaData(
                         ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), version);

@@ -326,14 +326,15 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         // being served, so each node only has to be read from storage once.
         Map<String, List<ArtifactReferenceDto>> outboundReferences = new HashMap<>();
         Map<String, List<ArtifactReferenceDto>> inboundReferences = new HashMap<>();
-        // Track current path of artifacts for cycle detection (artifact-level)
-        // A cycle exists only if we encounter the same artifact in the current traversal path
+        // Track current path of artifact *versions* for cycle detection (version-level, not just
+        // artifact-level: A@2 -> B@1 -> A@1 is a valid chain, not a cycle, because A@1 and A@2 are
+        // different nodes in the version graph and A@1 has no path back to A@2).
+        // A cycle exists only when the traversal reaches the same artifact version again.
         Set<String> currentPath = new HashSet<>();
         Set<String> cycleNodes = new HashSet<>();
 
         // Create the root node
         String rootNodeId = createNodeId(groupId, artifactId, version);
-        String rootArtifactKey = createArtifactKey(groupId, artifactId);
         ReferenceGraphNode rootNode = ReferenceGraphNode.builder()
                 .id(rootNodeId)
                 .groupId(groupId != null ? groupId : "default")
@@ -350,7 +351,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         List<ReferenceGraphEdge> edges = new java.util.ArrayList<>();
         nodes.add(rootNode);
         expandedAt.put(rootNodeId, 0);
-        currentPath.add(rootArtifactKey);
+        currentPath.add(rootNodeId);
 
         // Track the actual max depth reached
         int[] actualMaxDepth = {0};
@@ -430,7 +431,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 String refArtifactId = ref.getArtifactId();
                 String refVersion = ref.getVersion();
                 String targetNodeId = createNodeId(refGroupId, refArtifactId, refVersion);
-                String targetArtifactKey = createArtifactKey(refGroupId, refArtifactId);
                 // The referenced coordinates are part of this (readable) version's content, but
                 // the referenced artifact's metadata and its own references are only shown to
                 // callers who may read it
@@ -444,17 +444,17 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                         .build();
                 edges.add(edge);
 
-                // Check for cycle: same artifact appears in current path (not just visited globally)
-                boolean isArtifactCycle = markCycle(currentPath, targetArtifactKey, cycleNodes, targetNodeId,
-                        sourceNodeId);
+                // Check for cycle: same artifact *version* appears in current path (not just
+                // visited globally, and not merely the same artifact at a different version)
+                boolean isCycle = markCycle(currentPath, targetNodeId, cycleNodes, targetNodeId, sourceNodeId);
 
                 // Add the node the first time this exact version is seen (avoid duplicate nodes).
                 // A reference that does not exist or is not readable gets a placeholder node.
                 addNodeIfNew(nodes, expandedAt, targetNodeId, refGroupId, refArtifactId, refVersion,
-                        isArtifactCycle, readable);
+                        isCycle, readable);
 
                 // Don't traverse through a cycle node, or into an artifact the caller may not read
-                if (isArtifactCycle || !readable) {
+                if (isCycle || !readable) {
                     continue;
                 }
 
@@ -467,11 +467,11 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 expandedAt.put(targetNodeId, currentDepth);
 
                 // Add to current path before recursing, remove after (backtracking)
-                currentPath.add(targetArtifactKey);
+                currentPath.add(targetNodeId);
                 traverseOutboundReferences(refGroupId, refArtifactId, refVersion, targetNodeId,
                         nodes, edges, expandedAt, outboundReferences, currentPath, cycleNodes,
                         currentDepth + 1, maxDepth, actualMaxDepth);
-                currentPath.remove(targetArtifactKey);
+                currentPath.remove(targetNodeId);
             }
         } catch (Exception e) {
             // Artifact content might not be accessible. Remember that, so re-expanding this node
@@ -519,7 +519,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 String refArtifactId = ref.getArtifactId();
                 String refVersion = ref.getVersion();
                 String sourceNodeId = createNodeId(refGroupId, refArtifactId, refVersion);
-                String sourceArtifactKey = createArtifactKey(refGroupId, refArtifactId);
 
                 // Add edge (inbound: source references target)
                 ReferenceGraphEdge edge = ReferenceGraphEdge.builder()
@@ -529,17 +528,17 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                         .build();
                 edges.add(edge);
 
-                // Check for cycle: same artifact appears in current path (not just visited globally)
-                boolean isArtifactCycle = markCycle(currentPath, sourceArtifactKey, cycleNodes, sourceNodeId,
-                        targetNodeId);
+                // Check for cycle: same artifact *version* appears in current path (not just
+                // visited globally, and not merely the same artifact at a different version)
+                boolean isCycle = markCycle(currentPath, sourceNodeId, cycleNodes, sourceNodeId, targetNodeId);
 
                 // Add the node the first time this exact version is seen (avoid duplicate nodes).
                 // A reference that might not exist gets a placeholder node.
                 addNodeIfNew(nodes, expandedAt, sourceNodeId, refGroupId, refArtifactId, refVersion,
-                        isArtifactCycle, true);
+                        isCycle, true);
 
                 // Don't traverse through a cycle node
-                if (isArtifactCycle) {
+                if (isCycle) {
                     continue;
                 }
 
@@ -552,11 +551,11 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 expandedAt.put(sourceNodeId, currentDepth);
 
                 // Add to current path before recursing, remove after (backtracking)
-                currentPath.add(sourceArtifactKey);
+                currentPath.add(sourceNodeId);
                 traverseInboundReferences(refGroupId, refArtifactId, refVersion, sourceNodeId,
                         nodes, edges, expandedAt, inboundReferences, currentPath, cycleNodes,
                         currentDepth + 1, maxDepth, actualMaxDepth);
-                currentPath.remove(sourceArtifactKey);
+                currentPath.remove(sourceNodeId);
             }
         } catch (Exception e) {
             // Inbound references might not be accessible. Remember that, so re-expanding this node
@@ -598,17 +597,17 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     }
 
     /**
-     * Checks for a cycle: the same artifact appears in the current path (not just visited globally).
-     * When it does, both nodes of the edge are marked as cycle nodes.
+     * Checks for a cycle: the same artifact version appears in the current path (not just visited
+     * globally). When it does, both nodes of the edge are marked as cycle nodes.
      */
-    private static boolean markCycle(Set<String> currentPath, String artifactKey, Set<String> cycleNodes,
+    private static boolean markCycle(Set<String> currentPath, String nodeId, Set<String> cycleNodes,
             String firstNodeId, String secondNodeId) {
-        boolean isArtifactCycle = currentPath.contains(artifactKey);
-        if (isArtifactCycle) {
+        boolean isCycle = currentPath.contains(nodeId);
+        if (isCycle) {
             cycleNodes.add(firstNodeId);
             cycleNodes.add(secondNodeId);
         }
-        return isArtifactCycle;
+        return isCycle;
     }
 
     /**
@@ -616,7 +615,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      * {@code false}, or the version metadata cannot be found, a placeholder node is added.
      */
     private void addNodeIfNew(List<ReferenceGraphNode> nodes, Map<String, Integer> expandedAt, String nodeId,
-            String refGroupId, String refArtifactId, String refVersion, boolean isArtifactCycle,
+            String refGroupId, String refArtifactId, String refVersion, boolean isCycle,
             boolean lookUpMetadata) {
         if (expandedAt.containsKey(nodeId)) {
             return;
@@ -633,7 +632,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                     .artifactType(refMetadata.getArtifactType())
                     .name(refMetadata.getName())
                     .isRoot(false)
-                    .isCycleNode(isArtifactCycle)
+                    .isCycleNode(isCycle)
                     .build();
             nodes.add(node);
         } else {
@@ -643,7 +642,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                     .artifactId(refArtifactId)
                     .version(refVersion)
                     .isRoot(false)
-                    .isCycleNode(isArtifactCycle)
+                    .isCycleNode(isCycle)
                     .build();
             nodes.add(node);
         }
@@ -656,16 +655,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         // TODO: Use io.apicurio.registry.model.GAV
         String group = (groupId != null) ? groupId : "default";
         return group + ":" + artifactId + ":" + version;
-    }
-
-    /**
-     * Creates a unique artifact key from group and artifact (without version).
-     * Used for detecting circular references at the artifact level.
-     */
-    private String createArtifactKey(String groupId, String artifactId) {
-        // TODO: Use io.apicurio.registry.model.GA
-        String group = (groupId != null) ? groupId : "default";
-        return group + ":" + artifactId;
     }
 
     /**

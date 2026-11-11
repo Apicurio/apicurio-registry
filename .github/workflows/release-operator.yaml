@@ -363,30 +363,40 @@ jobs:
       - name: Prepare post-release changes
         working-directory: registry/operator
         run: |
-          # Switch to the branch and pull latest to pick up the snapshot version update by release.yaml .
-          # It could have been pushed after the initial clone.
-          git fetch origin
-          git checkout "$BRANCH"
-          git pull origin "$BRANCH"
-
           # This job now starts right after release-build, not after release-test, so
-          # there's less time for release.yaml's own snapshot-bump commit to have
-          # landed on $BRANCH by the time we get here. Fail loudly instead of silently
-          # regenerating install files against the just-released (non-snapshot)
-          # version if it somehow hasn't.
-          CURRENT_VERSION=$(make VAR=VERSION variable-get)
-          case "$CURRENT_VERSION" in
-            *-SNAPSHOT)
-              if [ "$CURRENT_VERSION" = "$RELEASE_VERSION-SNAPSHOT" ]; then
-                echo "::error::$BRANCH's version ($CURRENT_VERSION) is still the release's own snapshot name; the post-release version bump hasn't landed yet."
-                exit 1
-              fi
-              ;;
-            *)
-              echo "::error::$BRANCH's version ($CURRENT_VERSION) is not a -SNAPSHOT; expected the post-release bump to already have run."
+          # there's less time for release.yaml's own snapshot-bump commit (a
+          # monorepo-wide mvn versions:set + npm version, which can take a few
+          # minutes) to have landed on $BRANCH by the time we get here. Poll for it
+          # instead of checking once: wait up to 10 minutes (20 x 30s), then fail
+          # loudly rather than silently regenerate install files against the
+          # just-released (non-snapshot) version if it still hasn't shown up.
+          MAX_ATTEMPTS=20
+          SLEEP_SECONDS=30
+          for ATTEMPT in $(seq 1 "$MAX_ATTEMPTS"); do
+            # Switch to the branch and pull latest to pick up the snapshot version
+            # update by release.yaml . It could have been pushed after the initial
+            # clone, or even after a previous attempt in this loop.
+            git fetch origin
+            git checkout "$BRANCH"
+            git pull origin "$BRANCH"
+
+            CURRENT_VERSION=$(make VAR=VERSION variable-get)
+            case "$CURRENT_VERSION" in
+              *-SNAPSHOT)
+                if [ "$CURRENT_VERSION" != "$RELEASE_VERSION-SNAPSHOT" ]; then
+                  echo "$BRANCH is at $CURRENT_VERSION; the post-release bump has landed."
+                  exit 0
+                fi
+                ;;
+            esac
+
+            if [ "$ATTEMPT" -eq "$MAX_ATTEMPTS" ]; then
+              echo "::error::$BRANCH's version ($CURRENT_VERSION) still isn't a -SNAPSHOT past the release's own snapshot name ($RELEASE_VERSION-SNAPSHOT) after $((MAX_ATTEMPTS * SLEEP_SECONDS / 60)) minutes; release.yaml's post-release bump hasn't landed, or landed with an unexpected version."
               exit 1
-              ;;
-          esac
+            fi
+            echo "$BRANCH is still at $CURRENT_VERSION (attempt $ATTEMPT/$MAX_ATTEMPTS); waiting ${SLEEP_SECONDS}s for release.yaml's snapshot-bump commit..."
+            sleep "$SLEEP_SECONDS"
+          done
 
       - name: Update install file
         working-directory: registry/operator

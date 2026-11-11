@@ -336,8 +336,11 @@ public class McpToolDiscovery {
      * ({@link AuthorizedLevel#Read}), but only for the candidates that caller may read: as in
      * {@code searchMcpTools}, the search goes through {@link ISearchAuthorizer}, which with
      * per-resource authorization leaves the other MCP tools out of the results and out of the
-     * count. No per-artifact visibility label is applied because MCP tools (unlike A2A agents) do
-     * not carry an {@code apicurio.agent.visibility} label.
+     * count. No per-artifact visibility label is applied: the {@code apicurio.agent.visibility}
+     * discovery filter is a deliberate, agents-only design decision, not a limitation of what
+     * MCP tool artifacts can carry. Tools are returned under the same authorization as
+     * {@code /apis/registry/v3/search}, regardless of the label, so filtering here would only
+     * imply a protection that does not exist.
      */
     private CandidateScan scanCandidates(String rawGroupId, String sourceArtifactId,
             PreparedProducer producer, int scanLimit) {

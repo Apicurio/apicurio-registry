@@ -313,9 +313,10 @@ public class AiCatalogDiscovery {
      * Collects AI Catalog entries for all visible {@code AGENT_CARD} and {@code MCP_TOOL}
      * artifacts, optionally narrowed by a partial-name text filter applied at the storage
      * layer. Agent Card visibility labels are respected (this is the sole visibility-filtering
-     * implementation in this class, also backing {@code searchAgents}); MCP tools carry no
-     * visibility label, so read-level authorization is the sole gate (mirroring
-     * {@code searchMcpTools}).
+     * implementation in this class, also backing {@code searchAgents}). MCP tool artifacts can
+     * still carry an {@code apicurio.agent.visibility} label, but it is not applied here: that
+     * discovery filter is agents-only by design. Tool entries are returned under the same
+     * authorization as {@code searchMcpTools} / {@code /apis/registry/v3/search}.
      */
     List<AiCatalogCandidate> collectAiCatalogCandidates(String baseUrl, String publisherDomain,
             String textFilter) {

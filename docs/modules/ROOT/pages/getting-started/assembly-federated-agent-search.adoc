@@ -26,7 +26,9 @@ Public agents only:: Peers are called anonymously and asked for `public` Agent C
 No credentials are forwarded:: The caller's credentials are never sent to a peer, and nothing that identifies the caller or this registry is sent either.
 This registry's own results:: The caller's own visibility rules apply to the results of this registry, exactly as for `/.well-known/agents`.
 One hop only:: Every call to a peer carries an `X-Federation-Hop` header, and a registry refuses a federated search that carries one. A search is therefore forwarded at most once, and two registries that list each other as peers do not loop.
-Source attribution:: Every agent in the response has a `source`: `local` for this registry, or the id of the peer it came from. Agents with the same group and artifact ID from different sources are all returned, since nothing proves that two registries publish under the same identity.
+Source attribution:: Every agent in the response has a `source`: `local` for this registry, or the peer it came from. Agents with the same group and artifact ID from different sources are all returned, since nothing proves that two registries publish under the same identity.
+Peer details for administrators only:: The list of peers is for administrators, so only a caller who may list the peers sees the peer ids and the reason a peer failed: an administrator, by role or by admin override, or anyone when authentication is off. Any other caller, anonymous callers included, sees each peer as `peer-1`, `peer-2` and so on, numbered in peer id order within the one response, with its outcome but without a reason.
+Peer data is not checked:: Apart from `source`, every field of an agent from a peer is what the peer returned. The `owner` of an agent from a peer is left out, since it names a principal of another registry.
 
 // proc-enabling-federation
 [id="enabling-federation_{context}"]
@@ -100,7 +102,9 @@ peers:
     enabled: true
 ----
 
-The peer URL must use `https`, unless plain HTTP is allowed, and must be an absolute URL with a host. A host that is, or resolves to, a loopback, link-local, unspecified, multicast, reserved or cloud metadata address is refused. Loopback addresses can be allowed for testing. The host name is resolved when the peer is called, every address it resolves to is checked, and the connection goes to the address that was checked. The certificate is still verified against the host name.
+The peer URL must use `https`, unless plain HTTP is allowed, and must be an absolute URL with a host. A host that is, or resolves to, a loopback, link-local, unspecified, multicast, reserved or cloud metadata address is refused. Loopback addresses can be allowed for testing. The host name is resolved when the peer is called, every address it resolves to is checked, and the connection goes to the checked addresses in the order they were resolved, moving on when one cannot be connected to. The certificate is still verified against the host name.
+
+At most `apicurio.federation.search.max-peers` peers can be enabled through the admin API. If more are enabled anyway, for example after the setting was lowered or through GitOps or KubernetesOps storage, a search queries the first ones in peer id order and reports the rest as `failed` with the reason `capacity_exceeded`.
 
 The `credentialSecretRef` field can be stored with a peer, but federated search does not use it yet: every peer is called anonymously.
 
@@ -121,7 +125,9 @@ The federated search takes the same filters as the agent search of `/.well-known
 curl 'http://localhost:8080/apis/registry/v3/search/federated?skill=translate&perSourceLimit=10'
 ----
 +
-The query parameters are `name`, `skill`, `capability`, `inputMode` and `outputMode`. Repeat `skill`, `capability`, `inputMode` and `outputMode` to require several values. `perSourceLimit` is the maximum number of agents from each source. It defaults to `20` and is capped by `apicurio.federation.search.per-source-limit.max`. There is no paging across sources.
+The query parameters are `name`, `skill`, `capability`, `inputMode` and `outputMode`. Repeat `skill`, `capability`, `inputMode` and `outputMode` to require several values. `perSourceLimit` is the maximum number of agents from each source. It defaults to `20`. A value below `1` is refused with `400`, and a value above `apicurio.federation.search.per-source-limit.max` is lowered to it. There is no paging across sources.
+
+Each search calls every enabled peer once, so one request leads to as many outbound calls as there are enabled peers. One caller can have at most `apicurio.federation.search.max-searches-per-caller` searches in progress at once. A search beyond that still returns this registry's results, but calls no peer and reports every peer as `capacity_exceeded`. Authenticated callers are told apart by principal name and anonymous callers by network address, so behind a proxy that does not forward the client address, all anonymous callers share one limit.
 
 .Example response
 [source,json]
@@ -138,6 +144,8 @@ The query parameters are `name`, `skill`, `capability`, `inputMode` and `outputM
   ]
 }
 ----
+
+The example is what an administrator sees. Another caller sees `peer-1` for `eu-west` and `peer-2` for `gone`, and no `reason`.
 
 In the web console, open the *Agents* page and turn on *Include remote registries*. Each agent shows the registry it came from, and a row of labels shows the outcome of every registry. Agents from a peer open on their own registry, not in this one.
 
@@ -157,7 +165,7 @@ The response is `200` whenever the search of this registry succeeds, even when s
 |`ok` |The source answered and its agents are in the response. `truncated` is `true` when more agents matched than `perSourceLimit`.
 |`deadline_exceeded` |The search ran out of time before the peer answered. This says nothing about the peer's health.
 |`unsupported` |The peer did not confirm the public-only mode, or has no agent search, so its answer was discarded.
-|`failed` |The source could not be searched. `reason` says why.
+|`failed` |The source could not be searched. For a caller who may list the peers, `reason` says why.
 |===
 
 .Failure reasons
@@ -170,14 +178,14 @@ The response is `200` whenever the search of this registry succeeds, even when s
 |`peer_error` |The peer answered with a server error, or with a redirect. Redirects are not followed.
 |`invalid_response` |The peer's answer was malformed, too large or inconsistent.
 |`circuit_open` |The peer has been failing repeatedly and was not called.
-|`capacity_exceeded` |This registry had too many peer calls in progress to call the peer.
+|`capacity_exceeded` |The peer was not called: too many peer calls were in progress across all searches, too many name lookups for this peer were in progress, the caller had too many searches in progress, or more peers are enabled than one search queries.
 |===
 
 The federated search itself fails in the following cases:
 
-* `400`: the request carries an `X-Federation-Hop` header, because another registry forwarded it.
+* `400`: the request carries an `X-Federation-Hop` header, because another registry forwarded it, or `perSourceLimit` is below `1`.
 * `404`: A2A support is not enabled.
-* `409`: federation is not enabled, or more peers are enabled than `apicurio.federation.search.max-peers`. Disable some peers rather than search only part of them.
+* `409`: federation is not enabled.
 * `503`: the search of this registry did not finish before the deadline. The calls to the peers are cancelled.
 
 // ref-federation-configuration
@@ -196,9 +204,10 @@ The following properties bound the time, the number of calls and the size of the
 |`apicurio.federation.enabled` |`false` |Enables the peers API and federated agent search. Requires `apicurio.features.experimental.enabled=true`.
 |`apicurio.federation.search.deadline-ms` |`5000` |Time limit for the whole federated search, including this registry's own search.
 |`apicurio.federation.search.peer-timeout-ms` |`3000` |Time limit for one call to a peer.
-|`apicurio.federation.search.max-peers` |`16` |Maximum number of enabled peers a federated search queries.
+|`apicurio.federation.search.max-peers` |`16` |Maximum number of peers a federated search queries, and that can be enabled through the admin API.
 |`apicurio.federation.search.max-concurrent-calls` |`64` |Maximum number of peer calls in progress at once, across all federated searches, from the name lookup until the answer has been read or the call cancelled.
-|`apicurio.federation.search.max-response-bytes` |`1048576` |Maximum size of the answer accepted from one peer.
+|`apicurio.federation.search.max-searches-per-caller` |`2` |Maximum number of federated searches one caller can have in progress at once.
+|`apicurio.federation.search.max-response-bytes` |`1048576` |Maximum size of the answer accepted from one peer. Text fields from a peer have no other bound.
 |`apicurio.federation.search.per-source-limit.max` |`100` |Upper bound for `perSourceLimit`.
 |`apicurio.federation.search.breaker.request-volume-threshold` |`4` |Number of recent calls to a peer that must have been made before its circuit breaker can open.
 |`apicurio.federation.search.breaker.failure-ratio` |`0.5` |Share of failed calls among the recent calls that opens the circuit breaker of a peer.
@@ -207,6 +216,8 @@ The following properties bound the time, the number of calls and the size of the
 |`apicurio.federation.peer.loopback.enabled` |`false` |Allows peers on loopback addresses. For development and testing only.
 |===
 
+When federation is enabled, these settings are checked at startup, and the registry does not start if one is out of range. `peer-timeout-ms` must be below `deadline-ms`, every time and limit must be at least `1`, `breaker.failure-ratio` must be above `0` and at most `1`, and `breaker.delay-ms` must not be negative.
+
 Each peer has its own circuit breaker, so a peer that keeps failing is skipped without any effect on the others. Only transport failures, server errors and timeouts count against a peer. A `401` or `403`, an unsupported peer, a malformed answer, a refused address, a call cancelled at the deadline and a call this registry had no capacity for do not.
 
-The service records the metrics `apicurio.federation.peer.search`, a timer tagged by `peer`, `outcome` and `reason`, and `apicurio.federation.peer.circuit.state`, a gauge per peer that is `0` when its circuit is closed, `1` when half open and `2` when open.
+The service records the metrics `apicurio.federation.peer.search`, a timer tagged by `peer`, `outcome` and `reason`, and `apicurio.federation.peer.circuit.state`, a gauge per peer that is `0` when its circuit is closed, `1` when half open and `2` when open. The metrics use the real peer ids, whoever searched. The meters of a peer are removed once it is no longer enabled.

@@ -1,14 +1,14 @@
-# Apicurio Registry - GitOps Storage Examples
+# GitOps sync sidecar: Docker Compose setups
 
-This directory contains examples for running Apicurio Registry in **GitOps mode**, where
-registry data (schemas, artifacts, groups, rules) is loaded from a Git repository.
-The registry is read-only — all changes are made by modifying files in the Git repository.
+Docker Compose setups for the GitOps sync sidecar (`quay.io/apicurio/apicurio-registry-gitops-sync`),
+which pulls a remote repository for the registry, or accepts `git push`. For GitOps storage itself,
+with a local repository and checks of every behaviour, start with the
+[storage variants example](../../../examples/storage-variants/).
 
 ## Examples
 
 | Example | Description | Sidecar | Security |
 |---------|-------------|---------|----------|
-| [Local volume](#local-volume) | Git repo cloned locally, no sidecar | No | N/A |
 | [Pull HTTPS](#pull-https) | Sidecar pulls from a public repo over HTTPS | Yes | `dev` |
 | [Pull SSH](#pull-ssh) | Sidecar pulls from a private repo over SSH | Yes | `dev` |
 | [Multi-repo HTTPS pull](#multi-repo-pull-https) | Sidecar pulls two branches (two teams) over HTTPS | Yes | `dev` |
@@ -22,26 +22,10 @@ See the comments at the top of each compose file for setup and run instructions.
 ### Kubernetes / OpenShift
 
 For Kubernetes and OpenShift deployments using the Apicurio Registry operator, see the
-example CRs in [`operator/controller/src/test/resources/k8s/examples/gitops/`](../../operator/controller/src/test/resources/k8s/examples/gitops/).
+example CRs in [`operator/controller/src/test/resources/k8s/examples/gitops/`](../../../operator/controller/src/test/resources/k8s/examples/gitops/).
 These include pull (HTTPS/SSH), push, multi-repo, and local volume examples with
 deployment instructions.
 
-## Local Volume
-
-The simplest setup — the example repository is cloned locally and mounted into the
-registry container. No sidecar needed. Good for trying out GitOps mode and experimenting
-with changes.
-
-```bash
-cd examples/gitops
-docker compose up
-```
-
-To run as the `staging` registry (includes experimental schemas):
-
-```bash
-APICURIO_POLLING_STORAGE_ID=staging docker compose up
-```
 
 ## Pull HTTPS
 
@@ -49,7 +33,7 @@ Uses the GitOps sidecar to pull from a public Git repository over HTTPS.
 The sidecar clones the repo and periodically fetches updates.
 
 ```bash
-cd examples/gitops/pull-https
+cd distro/gitops/compose/pull-https
 docker compose up
 ```
 
@@ -67,7 +51,7 @@ Requires an SSH deploy key.
 3. Run:
 
 ```bash
-cd examples/gitops/pull-ssh
+cd distro/gitops/compose/pull-ssh
 APICURIO_GITOPS_REPO_URL=git@github.com:your-org/your-schemas.git docker compose up
 ```
 
@@ -84,7 +68,7 @@ repository:
 - **`fulfillment`** (Fulfillment team) — shipment events, experimental schemas (staging only)
 
 ```bash
-cd examples/gitops/multi-repo-pull-https
+cd distro/gitops/compose/multi-repo-pull-https
 docker compose up
 ```
 
@@ -109,7 +93,7 @@ pipelines that push schema changes to the registry.
 2. Start the stack:
 
 ```bash
-cd examples/gitops/push
+cd distro/gitops/compose/push
 docker compose up
 ```
 
@@ -211,7 +195,7 @@ Content files are detected by file extension:
 
 ## Related Documentation
 
-- [GitOps Storage Overview](../../app/src/main/java/io/apicurio/registry/storage/impl/gitops/README.md) — architecture, configuration properties, management API, error handling
-- [GitOps Sync Container](../../distro/gitops/README.md) — sidecar image configuration, security levels, threat model, build instructions
+- [GitOps Storage Overview](../../../app/src/main/java/io/apicurio/registry/storage/impl/gitops/README.md) — architecture, configuration properties, management API, error handling
+- [GitOps Sync Container](../README.md) — sidecar image configuration, security levels, threat model, build instructions
 - [Example Repository](https://github.com/Apicurio/apicurio-registry-gitops-example) — sample multi-registry data
 - [GitOps Design Epic](https://github.com/Apicurio/apicurio-registry/issues/7480) — design document and implementation plan

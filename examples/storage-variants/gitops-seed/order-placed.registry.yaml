@@ -1,0 +1,12 @@
+$type: artifact-v0
+registryIds: [demo]
+groupId: orders
+artifactId: order-placed
+artifactType: AVRO
+rules:
+  - ruleType: COMPATIBILITY
+    config: BACKWARD
+versions:
+  - version: "1"
+    state: ENABLED
+    content: ./order-placed-v1.avsc

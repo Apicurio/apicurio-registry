@@ -1,0 +1,258 @@
+# Storage variants example: the same registry image on each storage variant. Every service is in a
+# Compose profile named after its variant; demo.sh starts one variant at a time (VARIANTS), checks
+# it, and removes it. See README.md.
+#
+#   postgresql   two registries sharing one PostgreSQL database
+#   mysql        a registry on MySQL
+#   mssql        a registry on SQL Server (amd64 only)
+#   kafkasql     two registries sharing one Kafka journal topic
+#   gitops       a read-only registry loading a git repository that demo.sh creates in ./work
+#   kubernetesops a read-only registry loading ConfigMaps from a k3s API server
+#
+# For local demonstration only: default passwords, no TLS, k3s privileged.
+# Host ports: 8081 and 8082 (registries), 8888 (UI, gitops profile); override with REGISTRY_PORT,
+# REGISTRY_B_PORT and UI_PORT.
+x-registry-image: &registry-image ${REGISTRY_IMAGE:-apicurio/apicurio-registry:latest-snapshot}
+x-registry-health: &registry-health
+  test: ["CMD-SHELL", "curl -sf http://localhost:9000/health/ready > /dev/null"]
+  interval: 5s
+  timeout: 5s
+  retries: 60
+# Settings every writable variant shares: let demo.sh delete what it creates
+x-writable: &writable
+  APICURIO_REST_DELETION_GROUP_ENABLED: "true"
+  APICURIO_REST_DELETION_ARTIFACT_ENABLED: "true"
+
+services:
+  # ------------------------------------------------------------------------------------ postgresql
+  postgres:
+    image: postgres:15
+    container_name: storage-postgres
+    profiles: [postgresql]
+    environment:
+      POSTGRES_DB: registry
+      POSTGRES_USER: registry
+      POSTGRES_PASSWORD: registry
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U registry -d registry"]
+      interval: 3s
+      retries: 30
+
+  registry-pg-a: &registry-pg
+    image: *registry-image
+    container_name: storage-registry-pg-a
+    profiles: [postgresql]
+    environment: &pg-env
+      <<: *writable
+      APICURIO_STORAGE_KIND: sql
+      APICURIO_STORAGE_SQL_KIND: postgresql
+      APICURIO_DATASOURCE_URL: jdbc:postgresql://postgres:5432/registry
+      APICURIO_DATASOURCE_USERNAME: registry
+      APICURIO_DATASOURCE_PASSWORD: registry
+    ports: ["${REGISTRY_PORT:-8081}:8080"]
+    depends_on:
+      postgres: {condition: service_healthy}
+    healthcheck: *registry-health
+
+  # A second replica on the same database: both see every write at once
+  registry-pg-b:
+    <<: *registry-pg
+    container_name: storage-registry-pg-b
+    ports: ["${REGISTRY_B_PORT:-8082}:8080"]
+
+  # ----------------------------------------------------------------------------------------- mysql
+  mysql:
+    image: mysql:8.0
+    container_name: storage-mysql
+    profiles: [mysql]
+    environment:
+      MYSQL_DATABASE: registry
+      MYSQL_USER: registry
+      MYSQL_PASSWORD: registry
+      MYSQL_ROOT_PASSWORD: root
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -proot --silent"]
+      interval: 3s
+      retries: 40
+
+  registry-mysql:
+    image: *registry-image
+    container_name: storage-registry-mysql
+    profiles: [mysql]
+    environment:
+      <<: *writable
+      APICURIO_STORAGE_KIND: sql
+      APICURIO_STORAGE_SQL_KIND: mysql
+      APICURIO_DATASOURCE_URL: jdbc:mysql://mysql:3306/registry
+      APICURIO_DATASOURCE_USERNAME: registry
+      APICURIO_DATASOURCE_PASSWORD: registry
+    ports: ["${REGISTRY_PORT:-8081}:8080"]
+    depends_on:
+      mysql: {condition: service_healthy}
+    healthcheck: *registry-health
+
+  # ----------------------------------------------------------------------------------------- mssql
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: storage-mssql
+    profiles: [mssql]
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "Registry-2026"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P Registry-2026 -Q 'SELECT 1' > /dev/null"]
+      interval: 5s
+      retries: 40
+
+  registry-mssql:
+    image: *registry-image
+    container_name: storage-registry-mssql
+    profiles: [mssql]
+    environment:
+      <<: *writable
+      APICURIO_STORAGE_KIND: sql
+      APICURIO_STORAGE_SQL_KIND: mssql
+      # The demo uses the master database; create your own in production
+      APICURIO_DATASOURCE_URL: "jdbc:sqlserver://mssql:1433;databaseName=master;encrypt=false"
+      APICURIO_DATASOURCE_USERNAME: sa
+      APICURIO_DATASOURCE_PASSWORD: "Registry-2026"
+    ports: ["${REGISTRY_PORT:-8081}:8080"]
+    depends_on:
+      mssql: {condition: service_healthy}
+    healthcheck: *registry-health
+
+  # -------------------------------------------------------------------------------------- kafkasql
+  kafka:
+    image: apache/kafka:3.8.1
+    container_name: storage-kafka
+    profiles: [kafkasql]
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --list > /dev/null"]
+      interval: 5s
+      timeout: 10s
+      retries: 30
+
+  registry-kafkasql-a: &registry-kafkasql
+    image: *registry-image
+    container_name: storage-registry-kafkasql-a
+    profiles: [kafkasql]
+    environment:
+      <<: *writable
+      # Writes go to the journal topic kafkasql-journal; each replica rebuilds its own copy from it
+      APICURIO_STORAGE_KIND: kafkasql
+      APICURIO_KAFKASQL_BOOTSTRAP_SERVERS: kafka:9092
+    ports: ["${REGISTRY_PORT:-8081}:8080"]
+    depends_on:
+      kafka: {condition: service_healthy}
+    healthcheck: *registry-health
+
+  # Started after the first one has created the topics: replicas creating them at the same time
+  # can fail (https://github.com/Apicurio/apicurio-registry/issues/11079)
+  registry-kafkasql-b:
+    <<: *registry-kafkasql
+    container_name: storage-registry-kafkasql-b
+    ports: ["${REGISTRY_B_PORT:-8082}:8080"]
+    depends_on:
+      registry-kafkasql-a: {condition: service_healthy}
+
+  # ---------------------------------------------------------------------------------------- gitops
+  registry-gitops:
+    image: *registry-image
+    container_name: storage-registry-gitops
+    profiles: [gitops]
+    environment:
+      APICURIO_FEATURES_EXPERIMENTAL_ENABLED: "true"
+      APICURIO_STORAGE_KIND: gitops
+      # Loads registry files whose registryId is "demo", from the repository in /repos/default
+      APICURIO_POLLING_STORAGE_ID: demo
+      # Check often and apply quickly, for the demo (defaults: PT10S and PT3S)
+      APICURIO_POLLING_STORAGE_POLL_PERIOD: PT2S
+      APICURIO_POLLING_STORAGE_DEBOUNCE_QUIET_PERIOD: PT1S
+      # The console on localhost:8888 calls the API from the browser
+      QUARKUS_HTTP_CORS_ORIGINS: "*"
+    volumes:
+      # demo.sh creates and commits to this repository; in production a sync sidecar or a volume
+      # keeps it up to date (the registry never fetches)
+      - ./work/repo:/repos/default:ro
+    ports: ["${REGISTRY_PORT:-8081}:8080"]
+    healthcheck: *registry-health
+
+  registry-ui:
+    image: ${REGISTRY_UI_IMAGE:-apicurio/apicurio-registry-ui:latest-snapshot}
+    container_name: storage-registry-ui
+    profiles: [gitops]
+    environment:
+      REGISTRY_API_URL: "http://localhost:${REGISTRY_PORT:-8081}/apis/registry/v3"
+    ports: ["${UI_PORT:-8888}:8080"]
+    depends_on:
+      registry-gitops: {condition: service_healthy}
+
+  # --------------------------------------------------------------------------------- kubernetesops
+  k3s:
+    image: rancher/k3s:v1.31.4-k3s1
+    container_name: storage-k3s
+    profiles: [kubernetesops]
+    privileged: true
+    command: ["server", "--disable=traefik,metrics-server,local-storage,servicelb,coredns", "--tls-san=k3s"]
+    environment:
+      K3S_KUBECONFIG_OUTPUT: /output/kubeconfig.yaml
+      K3S_KUBECONFIG_MODE: "644"
+    volumes:
+      - k3s-output:/output
+    healthcheck:
+      test: ["CMD-SHELL", "kubectl get --raw /readyz > /dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 40
+
+  k8s-setup:
+    image: rancher/k3s:v1.31.4-k3s1
+    container_name: storage-k8s-setup
+    profiles: [kubernetesops]
+    entrypoint: ["/bin/sh", "/setup/setup.sh"]
+    volumes:
+      - k3s-output:/output
+      - k8s-shared:/shared
+      - ./k8s/setup.sh:/setup/setup.sh:ro
+      - ./configmaps:/configmaps:ro
+    depends_on:
+      k3s: {condition: service_healthy}
+
+  registry-kubernetesops:
+    image: *registry-image
+    container_name: storage-registry-kubernetesops
+    profiles: [kubernetesops]
+    environment:
+      APICURIO_FEATURES_EXPERIMENTAL_ENABLED: "true"
+      APICURIO_STORAGE_KIND: kubernetesops
+      # ConfigMaps labelled apicurio.io/registry-id=demo, in namespace "registry"
+      APICURIO_POLLING_STORAGE_ID: demo
+      APICURIO_KUBERNETESOPS_NAMESPACE: registry
+      APICURIO_POLLING_STORAGE_POLL_PERIOD: PT2S
+      APICURIO_POLLING_STORAGE_DEBOUNCE_QUIET_PERIOD: PT1S
+      # Every poll sees a change on a live cluster, so updates wait for the maximum
+      # (https://github.com/Apicurio/apicurio-registry/issues/11080); keep it short for the demo
+      APICURIO_POLLING_STORAGE_DEBOUNCE_MAX_WAIT_PERIOD: PT10S
+      # The API server, and a service account allowed to read ConfigMaps (written by k8s-setup)
+      KUBECONFIG: /shared/kubeconfig
+    volumes:
+      - k8s-shared:/shared:ro
+    ports: ["${REGISTRY_PORT:-8081}:8080"]
+    depends_on:
+      k8s-setup: {condition: service_completed_successfully}
+    healthcheck: *registry-health
+
+volumes:
+  k3s-output:
+  k8s-shared:

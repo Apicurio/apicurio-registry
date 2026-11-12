@@ -19,7 +19,7 @@
 #        -Dapicurio.storage.kind=gitops \
 #        -Dapicurio.features.experimental.enabled=true \
 #        -Dapicurio.polling-storage.id=prod \
-#        -Dapicurio.gitops.workspace=$(pwd)/../examples/gitops/push/repos \
+#        -Dapicurio.gitops.workspace=$(pwd)/../distro/gitops/compose/push/repos \
 #        -Dapicurio.log.level=debug
 #
 #   4. Either:

@@ -1,0 +1,44 @@
+# Version 2: adds order-placed version 2 (demo.sh applies it in step 7).
+# polling-storage id; each key is a file, and "content:" refers to another key of the same ConfigMap.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: registry-data
+  labels:
+    apicurio.io/registry-id: demo
+data:
+  registry.registry.yaml: |
+    $type: registry-v0
+    registryId: demo
+    globalRules:
+      - ruleType: VALIDITY
+        config: FULL
+    properties: []
+  orders.registry.yaml: |
+    $type: group-v0
+    registryIds: [demo]
+    groupId: orders
+    description: Order events
+  order-placed.registry.yaml: |
+    $type: artifact-v0
+    registryIds: [demo]
+    groupId: orders
+    artifactId: order-placed
+    artifactType: AVRO
+    rules:
+      - ruleType: COMPATIBILITY
+        config: BACKWARD
+    versions:
+      - version: "1"
+        state: ENABLED
+        content: order-placed-v1.avsc
+      - version: "2"
+        state: ENABLED
+        content: order-placed-v2.avsc
+  order-placed-v1.avsc: |
+    {"type": "record", "name": "OrderPlaced", "namespace": "com.example.orders",
+     "fields": [{"name": "orderId", "type": "string"}]}
+  order-placed-v2.avsc: |
+    {"type": "record", "name": "OrderPlaced", "namespace": "com.example.orders",
+     "fields": [{"name": "orderId", "type": "string"},
+                {"name": "amount", "type": "double", "default": 0.0}]}

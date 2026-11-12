@@ -47,6 +47,13 @@ from an authenticating nginx proxy, and Kubernetes service account tokens checke
 server. The Java SDK, Kafka serializers, the Maven plugin and the CLI authenticate too. Its
 [step-by-step guide](authentication/GUIDE.md) covers every mechanism, including the rejections.
 
+## Storage Variants Example
+This example runs the same registry on every storage variant with Docker Compose profiles, with the
+same checks on each: PostgreSQL with two replicas, MySQL, SQL Server, KafkaSQL with two replicas
+sharing a journal topic, GitOps loading a git repository the demo commits to (including a broken
+commit that is reported and not applied), and KubernetesOps loading ConfigMaps from k3s. Its
+[step-by-step guide](storage-variants/GUIDE.md) explains how each one works and how to choose.
+
 ## Rules and Compatibility Example
 This example runs Apicurio Registry and its web console with Docker Compose and shows its content
 rules: validity, BACKWARD and FORWARD compatibility, which rule wins when rules are set globally, per

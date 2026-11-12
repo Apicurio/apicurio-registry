@@ -231,7 +231,8 @@ The registry reports not ready on its readiness probe until the first load succe
 ifndef::service-registry-downstream[]
 [role="_additional-resources"]
 .Additional resources
-* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/gitops[GitOps Docker Compose examples]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/storage-variants[Storage variants example, including GitOps with a local repository]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/distro/gitops/compose[GitOps sync sidecar Docker Compose examples]
 endif::[]
 
 

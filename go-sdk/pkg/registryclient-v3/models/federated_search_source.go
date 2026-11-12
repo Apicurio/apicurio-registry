@@ -15,9 +15,9 @@ type FederatedSearchSource struct {
 	count *int32
 	// The result of searching one source.* `ok` - the source answered and its agents are in the response.* `deadline_exceeded` - the search ran out of time before the source answered. This says nothing about the peer's health.* `unsupported` - the peer did not confirm the public-only mode, so its answer was discarded.* `failed` - the source could not be searched; `reason` says why.
 	outcome *FederatedSearchOutcome
-	// Why a source could not be searched. Set only when the outcome is `failed`.* `unauthorized` - the peer answered 401 or 403.* `unreachable` - the peer could not be reached, or its address is not allowed.* `timeout` - the peer did not answer within the per-peer timeout.* `peer_error` - the peer answered with a server error, or with a redirect.* `invalid_response` - the peer's answer was malformed, too large or inconsistent.* `circuit_open` - the peer is failing repeatedly and was not called.* `capacity_exceeded` - this registry had no capacity left to call the peer.
+	// Why a source could not be searched. Set only when the outcome is `failed`, and only for a caller who may list the peers.* `unauthorized` - the peer answered 401 or 403.* `unreachable` - the peer could not be reached, or its address is not allowed.* `timeout` - the peer did not answer within the per-peer timeout.* `peer_error` - the peer answered with a server error, or with a redirect.* `invalid_response` - the peer's answer was malformed, too large or inconsistent.* `circuit_open` - the peer is failing repeatedly and was not called.* `capacity_exceeded` - this registry had no capacity left to call the peer: too many peer calls were in progress across all searches, the caller had too many searches in progress, or more peers are enabled than one search queries.
 	reason *FederatedSearchFailureReason
-	// `local` for this registry, otherwise the id of the peer registry.
+	// `local` for this registry, otherwise the peer registry: its id for a caller who may list the peers, and `peer-1`, `peer-2` and so on, in peer id order, for any other caller.
 	source *string
 	// `true` when the source reported more matches than were returned, because of `perSourceLimit`.
 	truncated *bool
@@ -111,13 +111,13 @@ func (m *FederatedSearchSource) GetOutcome() *FederatedSearchOutcome {
 	return m.outcome
 }
 
-// GetReason gets the reason property value. Why a source could not be searched. Set only when the outcome is `failed`.* `unauthorized` - the peer answered 401 or 403.* `unreachable` - the peer could not be reached, or its address is not allowed.* `timeout` - the peer did not answer within the per-peer timeout.* `peer_error` - the peer answered with a server error, or with a redirect.* `invalid_response` - the peer's answer was malformed, too large or inconsistent.* `circuit_open` - the peer is failing repeatedly and was not called.* `capacity_exceeded` - this registry had no capacity left to call the peer.
+// GetReason gets the reason property value. Why a source could not be searched. Set only when the outcome is `failed`, and only for a caller who may list the peers.* `unauthorized` - the peer answered 401 or 403.* `unreachable` - the peer could not be reached, or its address is not allowed.* `timeout` - the peer did not answer within the per-peer timeout.* `peer_error` - the peer answered with a server error, or with a redirect.* `invalid_response` - the peer's answer was malformed, too large or inconsistent.* `circuit_open` - the peer is failing repeatedly and was not called.* `capacity_exceeded` - this registry had no capacity left to call the peer: too many peer calls were in progress across all searches, the caller had too many searches in progress, or more peers are enabled than one search queries.
 // returns a *FederatedSearchFailureReason when successful
 func (m *FederatedSearchSource) GetReason() *FederatedSearchFailureReason {
 	return m.reason
 }
 
-// GetSource gets the source property value. `local` for this registry, otherwise the id of the peer registry.
+// GetSource gets the source property value. `local` for this registry, otherwise the peer registry: its id for a caller who may list the peers, and `peer-1`, `peer-2` and so on, in peer id order, for any other caller.
 // returns a *string when successful
 func (m *FederatedSearchSource) GetSource() *string {
 	return m.source
@@ -187,12 +187,12 @@ func (m *FederatedSearchSource) SetOutcome(value *FederatedSearchOutcome) {
 	m.outcome = value
 }
 
-// SetReason sets the reason property value. Why a source could not be searched. Set only when the outcome is `failed`.* `unauthorized` - the peer answered 401 or 403.* `unreachable` - the peer could not be reached, or its address is not allowed.* `timeout` - the peer did not answer within the per-peer timeout.* `peer_error` - the peer answered with a server error, or with a redirect.* `invalid_response` - the peer's answer was malformed, too large or inconsistent.* `circuit_open` - the peer is failing repeatedly and was not called.* `capacity_exceeded` - this registry had no capacity left to call the peer.
+// SetReason sets the reason property value. Why a source could not be searched. Set only when the outcome is `failed`, and only for a caller who may list the peers.* `unauthorized` - the peer answered 401 or 403.* `unreachable` - the peer could not be reached, or its address is not allowed.* `timeout` - the peer did not answer within the per-peer timeout.* `peer_error` - the peer answered with a server error, or with a redirect.* `invalid_response` - the peer's answer was malformed, too large or inconsistent.* `circuit_open` - the peer is failing repeatedly and was not called.* `capacity_exceeded` - this registry had no capacity left to call the peer: too many peer calls were in progress across all searches, the caller had too many searches in progress, or more peers are enabled than one search queries.
 func (m *FederatedSearchSource) SetReason(value *FederatedSearchFailureReason) {
 	m.reason = value
 }
 
-// SetSource sets the source property value. `local` for this registry, otherwise the id of the peer registry.
+// SetSource sets the source property value. `local` for this registry, otherwise the peer registry: its id for a caller who may list the peers, and `peer-1`, `peer-2` and so on, in peer id order, for any other caller.
 func (m *FederatedSearchSource) SetSource(value *string) {
 	m.source = value
 }

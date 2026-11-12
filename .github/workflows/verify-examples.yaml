@@ -138,6 +138,8 @@ jobs:
           fi
 
       - name: Start the stack
+        # A self-managed example starts its own containers in demo.sh
+        if: ${{ !matrix.example.selfManaged }}
         run: |
           # Images not built here (Keycloak, Varnish, ...) come from public registries, which can
           # rate-limit or fail transiently; retry before failing the example.

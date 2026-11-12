@@ -165,6 +165,30 @@ describe("AgentsPage across registries", () => {
         expect(screen.getByTestId("federated-source-eu-west")).toHaveTextContent("eu-west: circuit open");
     });
 
+    it("shows the numbered registries a user who may not list them is given", async () => {
+        agentMock.searchAgents.mockResolvedValue(localOnly);
+        agentMock.searchFederatedAgents.mockResolvedValue({
+            agents: [
+                { ...mine, source: "local" },
+                { source: "peer-2", groupId: "remote", artifactId: "theirs", name: "Theirs" }
+            ],
+            sources: [
+                { source: "local", outcome: "ok", count: 1, truncated: false },
+                { source: "peer-1", outcome: "failed", count: 0, truncated: false },
+                { source: "peer-2", outcome: "ok", count: 1, truncated: false }
+            ]
+        });
+        await renderPage();
+
+        includeRemoteRegistries();
+
+        await screen.findByTestId("agent-card-peer-2-theirs");
+        expect(within(screen.getByTestId("agent-card-peer-2-theirs")).getByTestId("agent-source"))
+            .toHaveTextContent("peer-2");
+        expect(screen.getByTestId("federated-source-peer-1")).toHaveTextContent("peer-1: failed");
+        expect(screen.getByTestId("federated-source-peer-2")).toHaveTextContent("peer-2: 1");
+    });
+
     it("says why remote registries could not be searched and shows this registry's agents", async () => {
         agentMock.searchAgents.mockResolvedValue(localOnly);
         agentMock.searchFederatedAgents.mockRejectedValue({

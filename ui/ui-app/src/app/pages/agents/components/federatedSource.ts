@@ -12,7 +12,7 @@ const REASONS: Record<string, string> = {
     peer_error: "The registry answered with a server error or a redirect.",
     invalid_response: "The registry's answer was not a valid agent search result.",
     circuit_open: "The registry has been failing repeatedly and was not called this time.",
-    capacity_exceeded: "This registry had too many calls in progress to call it."
+    capacity_exceeded: "This registry did not call it: too many calls or searches were in progress, or more registries are enabled than one search queries."
 };
 
 export const SOURCE_COLORS: Record<string, "green" | "orange" | "grey" | "red"> = {
@@ -58,6 +58,7 @@ export const describeSource = (source: FederatedSearchSource): string => {
         case "unsupported":
             return "This registry does not confirm the public-only search, so its answer was discarded.";
         default:
-            return REASONS[source.reason || ""] || "This registry could not be searched.";
+            // The reason is only given to users who may list the remote registries.
+            return REASONS[source.reason || ""] || "The registry could not be searched. Only an administrator is shown why.";
     }
 };

@@ -1,4 +1,4 @@
-$type: group-v0
+$type: group-v1
 registryIds: [test]
 groupId: alpha
 description: Group from repo A

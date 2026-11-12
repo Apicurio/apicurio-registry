@@ -82,7 +82,8 @@ refuses writes, so every change goes through the source's own review.
 
 ### GitOps and KubernetesOps
 
-- Data is a set of files with a `$type` (`registry-v0`, `group-v0`, `artifact-v0`, `content-v0`);
+- Data is a set of files with a `$type` (`registry-v1`, `group-v1`, `artifact-v1`, `content-v1`;
+  the format versions and their lifecycle are in [ADR-0013](0013-gitops-data-format-versions.md));
   a file is loaded by registries whose `apicurio.polling-storage.id` is in its `registryIds`.
 - GitOps reads a local checkout (`apicurio.gitops.workspace`, one or several repositories) and never
   fetches; a sidecar or a volume keeps it current. KubernetesOps lists labelled ConfigMaps in a

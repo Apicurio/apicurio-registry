@@ -8,19 +8,19 @@ metadata:
     apicurio.io/registry-id: demo
 data:
   registry.registry.yaml: |
-    $type: registry-v0
+    $type: registry-v1
     registryId: demo
     globalRules:
       - ruleType: VALIDITY
         config: FULL
     properties: []
   orders.registry.yaml: |
-    $type: group-v0
+    $type: group-v1
     registryIds: [demo]
     groupId: orders
     description: Order events
   order-placed.registry.yaml: |
-    $type: artifact-v0
+    $type: artifact-v1
     registryIds: [demo]
     groupId: orders
     artifactId: order-placed

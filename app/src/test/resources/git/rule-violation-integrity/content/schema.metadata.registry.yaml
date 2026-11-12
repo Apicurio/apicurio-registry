@@ -1,4 +1,4 @@
-$type: content-v0
+$type: content-v1
 references:
   - groupId: testgroup
     artifactId: does-not-exist

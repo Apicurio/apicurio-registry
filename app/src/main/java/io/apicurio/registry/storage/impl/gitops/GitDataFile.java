@@ -34,7 +34,7 @@ public class GitDataFile extends AbstractPollingDataFile {
     private boolean loaded;
 
     private GitDataFile(String sourceId, String path, ContentHandle data, ProcessingState state) {
-        super(sourceId, path, data, Any.from(state, path, data));
+        super(sourceId, path, data, Any.parse(state, path, data));
         this.loaded = true;
     }
 

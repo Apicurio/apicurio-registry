@@ -1,4 +1,4 @@
-$type: content-v0
+$type: content-v1
 content: ./content/customer.avsc
 references:
   - groupId: com.example.refs

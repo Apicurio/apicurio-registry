@@ -23,8 +23,6 @@ Configure {registry} to use a Git repository as the source of registry data. Wit
 [role="_abstract"]
 GitOps storage is a read-only storage variant that loads registry data from a Git repository. You declare the desired state of the registry in files, and the registry serves that state, so all changes flow through your Git workflow with reviews, history, and rollbacks.
 
-IMPORTANT: GitOps storage is an *experimental* feature. You must enable the experimental features gate (`APICURIO_FEATURES_EXPERIMENTAL_ENABLED=true`) to use it. The data format (`*-v0`) might change in future releases.
-
 *Architecture*
 
 GitOps storage uses a polling-based architecture with blue-green database switching:
@@ -67,7 +65,7 @@ A GitOps repository contains metadata files that describe registry content, and 
 
 No fixed directory structure is required. The registry discovers metadata files anywhere in the repository by file name suffix. By default, files ending in `.registry` or `.ar`, combined with the `.yaml`, `.yml`, or `.json` extensions, are treated as metadata files, for example `order-event.registry.yaml`. You can change the suffixes with the `apicurio.polling-storage.file-suffixes` property.
 
-Each metadata file declares its kind with a `$type` discriminator:
+Each metadata file declares its kind and the version of the data format with a `$type` discriminator, for example `$type: artifact-v1`. The current version is `v1`. For the versions that the registry reads, see xref:gitops-data-format-versions_{context}[].
 
 .Metadata file types
 [cols="1,3", options="header"]
@@ -75,16 +73,16 @@ Each metadata file declares its kind with a `$type` discriminator:
 | Type
 | Purpose and main fields
 
-| `registry-v0`
+| `registry-v1`
 | Registry configuration. Fields: `registryId`, `globalRules` (list of `ruleType` and `config` pairs), `properties`, and `peers` (list of peer registries; see below). The `registryId` value must match the `apicurio.polling-storage.id` property of the registry instance.
 
-| `group-v0`
-| An artifact group. Fields: `registryIds` (list), `groupId`, `description`, `labels`, `owner`, `artifactsType`, `rules`, `createdOn`, and `modifiedOn`. Every group that an artifact references must be declared by a `group-v0` file; the registry does not create groups automatically.
+| `group-v1`
+| An artifact group. Fields: `registryIds` (list), `groupId`, `description`, `labels`, `owner`, `artifactsType`, `rules`, `createdOn`, and `modifiedOn`. Every group that an artifact references must be declared by a `group-v1` file; the registry does not create groups automatically.
 
-| `artifact-v0`
-| An artifact with its versions declared inline. Fields: `registryIds`, `groupId`, `artifactId`, `artifactType` (optional), `name`, `description`, `labels`, `owner`, `createdOn`, `modifiedOn`, `rules`, `validatedUpTo`, and `versions`. Each version has `version`, `state`, and `content`, where `content` is a relative path to a schema file. A version can also have `name`, `description`, `labels`, `owner`, `globalId`, `createdOn`, `modifiedOn`, and `contentMetadata`, which is a relative path to a `content-v0` file.
+| `artifact-v1`
+| An artifact with its versions declared inline. Fields: `registryIds`, `groupId`, `artifactId`, `artifactType` (optional), `name`, `description`, `labels`, `owner`, `createdOn`, `modifiedOn`, `rules`, `validatedUpTo`, and `versions`. Each version has `version`, `state`, and `content`, where `content` is a relative path to a schema file. A version can also have `name`, `description`, `labels`, `owner`, `globalId`, `createdOn`, `modifiedOn`, and `contentMetadata`, which is a relative path to a `content-v1` file.
 
-| `content-v0`
+| `content-v1`
 | Optional content metadata, for explicit content identifiers and references. Fields: `contentId`, `content` (relative path to the schema file), and `references` (list of entries with `groupId`, `artifactId`, `version`, and `name`).
 |===
 
@@ -94,7 +92,7 @@ The following example declares a registry configuration, a group, and an artifac
 
 [source,yaml]
 ----
-$type: registry-v0
+$type: registry-v1
 registryId: main
 globalRules:
   - ruleType: VALIDITY
@@ -103,13 +101,13 @@ globalRules:
 
 [source,yaml]
 ----
-$type: group-v0
+$type: group-v1
 groupId: my-schemas
 ----
 
 [source,yaml]
 ----
-$type: artifact-v0
+$type: artifact-v1
 groupId: my-schemas
 artifactId: order-event
 artifactType: AVRO
@@ -186,6 +184,58 @@ ifdef::service-registry-downstream[]
 endif::[]
 
 
+[id="gitops-data-format-versions_{context}"]
+== GitOps data format versions
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+The data format of GitOps and KubernetesOps metadata files is versioned. The version is the suffix of the `$type` value, for example `v1` in `artifact-v1`, and it applies to the whole file.
+
+.Data format versions
+[cols="1,1,3", options="header"]
+|===
+| Version
+| Status in {registry} 3.4
+| Behavior
+
+| `v1`
+| Current
+| Read. The export to GitOps format writes this version.
+
+| `v0`
+| Deprecated
+| Read. A load that contains `v0` files logs one warning with the number of files and an example path. `v1` has the same fields as `v0`, so only the `$type` values differ.
+|===
+
+The registry reads at most two versions: the current one and at most one deprecated one. A deprecated version stays readable for at least two minor releases after the release that deprecated it, or until the next major release. A newer version of the data format is introduced only together with the removal of the oldest one.
+
+A file with a version that the registry doesn't read fails the load, and the registry keeps serving the last successfully loaded data:
+
+* A removed version: the error names the version and the version to convert to.
+* A newer version, written for a later {registry} release: the error says that the file requires a newer registry.
+
+Within a version, the format changes only by adding optional fields. The registry rejects fields that it doesn't know, so use a new field only when every registry that reads the repository supports it.
+
+*Converting a repository to the current version*
+
+A repository can contain files of both readable versions, so you can convert it in one commit or file by file. To convert from `v0` to `v1`, change the `$type` values, for example:
+
+[source,bash]
+----
+grep -rlE '^\$type: (registry|group|artifact|content)-v0' --include='*.registry.yaml' . \
+  | xargs sed -i -E 's/^\$type: (registry|group|artifact|content)-v0$/$type: \1-v1/'
+----
+
+Adjust the file pattern if you changed `apicurio.polling-storage.file-suffixes`, or if your metadata files use the `.yml` or `.json` extension.
+
+Before you convert, check which registry instances read the repository:
+
+* Convert only after every registry instance that reads the repository runs {registry} 3.4 or later. {registry} 3.3 and earlier skip `v1` files, so the converted artifacts disappear from those instances.
+* If you convert file by file, convert the registry configuration file first. A registry that can't read it rejects the whole load and keeps serving its last data, instead of serving data without the converted files.
+* To roll back to a {registry} release that doesn't read `v1`, revert the conversion commit.
+
+
 [id="configuring-gitops-storage-single-repository_{context}"]
 == Configuring GitOps storage with a single repository
 
@@ -195,7 +245,7 @@ endif::[]
 You can configure {registry} to load its data from a single Git repository that is available as a local clone on a mounted volume.
 
 .Prerequisites
-* You have a Git repository that contains a registry configuration file (`registry-v0`) and registry content.
+* You have a Git repository that contains a registry configuration file (`registry-v1`) and registry content.
 * You have a local clone of the repository, or a sync container that maintains one.
 
 .Procedure
@@ -205,7 +255,6 @@ You can configure {registry} to load its data from a single Git repository that 
 [source,bash]
 ----
 APICURIO_STORAGE_KIND=gitops
-APICURIO_FEATURES_EXPERIMENTAL_ENABLED=true
 APICURIO_POLLING_STORAGE_ID=main
 ----
 . Mount the local clone of the repository into the registry container at `/repos/default`. A read-only mount is sufficient for serving content, because the registry does not write to the repository. If you use dry-run validation, mount the workspace writable instead, because the registry writes validation request files under the workspace directory. The mount path is the workspace directory (`apicurio.gitops.workspace`, default `/repos`) combined with the repository directory name (`apicurio.gitops.repo.dir`, default `default`).
@@ -385,8 +434,6 @@ endif::[]
 
 [role="_abstract"]
 You configure GitOps storage with {registry} configuration properties for the registry and with environment variables for the GitOps sync container.
-
-All GitOps storage properties are experimental and require `apicurio.features.experimental.enabled=true`.
 
 .Registry configuration properties
 [cols="3,2,3", options="header"]

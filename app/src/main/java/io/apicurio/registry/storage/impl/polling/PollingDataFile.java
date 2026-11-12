@@ -38,6 +38,14 @@ public interface PollingDataFile {
     Optional<Any> getAny();
 
     /**
+     * Returns the error for a metadata file in a data format version that this registry doesn't read,
+     * for example a removed version, or a newer one. The load reports it and fails.
+     */
+    default Optional<String> getFormatError() {
+        return Optional.empty();
+    }
+
+    /**
      * Returns whether this file has been processed.
      */
     boolean isProcessed();

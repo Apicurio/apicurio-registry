@@ -304,6 +304,8 @@ endif::[]
 |Visible only to the artifact owner and registry administrators
 |===
 
+When per-resource authorization is enabled (`apicurio.auth.resource-based-authorization.enabled`), discovery shows only agents in artifacts that the caller's access rules allow them to read, before the visibility label is applied. An `entitled` agent is then visible only to callers who can read its group or artifact, and a `public` agent in a group the caller cannot read is hidden as well, including from unauthenticated clients. The visibility label narrows what callers with read access discover. It never grants access.
+
 .Visibility label example
 [source,bash]
 ----
@@ -315,7 +317,7 @@ curl -X PUT "http://localhost:8080/apis/registry/v3/groups/my-agents/artifacts/m
 *How entitlements work:* {registry} maps the A2A community entitlement concept to its existing RBAC model:
 
 * *Groups* act as organizational namespaces
-* *Entitling a client* = granting read access to the group containing the Agent Card artifacts
+* *Entitling a client* = granting read access to the group containing the Agent Card artifacts. Registry roles grant read access to all groups. To entitle a client to specific groups only, enable per-resource authorization and grant `READ` on those groups in the access rules
 * *Client authentication* happens in an external identity provider, such as {keycloak} or another OIDC provider
 * No new authorization primitives are required
 

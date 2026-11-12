@@ -35,6 +35,7 @@ public class WebhookSubscriptionDto {
     /** Optimistic-concurrency counter, incremented on every update. */
     private long revision;
     /** Reference name for the signing secret, never the secret value itself. */
+    @Exclude
     private String signingSecretRef;
     private long createdOn;
     private long modifiedOn;

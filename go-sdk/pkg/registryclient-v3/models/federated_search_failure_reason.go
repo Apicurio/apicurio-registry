@@ -3,7 +3,7 @@
 
 package models
 
-// Why a source could not be searched. Set only when the outcome is `failed`.* `unauthorized` - the peer answered 401 or 403.* `unreachable` - the peer could not be reached, or its address is not allowed.* `timeout` - the peer did not answer within the per-peer timeout.* `peer_error` - the peer answered with a server error, or with a redirect.* `invalid_response` - the peer's answer was malformed, too large or inconsistent.* `circuit_open` - the peer is failing repeatedly and was not called.* `capacity_exceeded` - this registry had no capacity left to call the peer.
+// Why a source could not be searched. Set only when the outcome is `failed`, and only for a caller who may list the peers.* `unauthorized` - the peer answered 401 or 403.* `unreachable` - the peer could not be reached, or its address is not allowed.* `timeout` - the peer did not answer within the per-peer timeout.* `peer_error` - the peer answered with a server error, or with a redirect.* `invalid_response` - the peer's answer was malformed, too large or inconsistent.* `circuit_open` - the peer is failing repeatedly and was not called.* `capacity_exceeded` - this registry had no capacity left to call the peer: too many peer calls were in progress across all searches, the caller had too many searches in progress, or more peers are enabled than one search queries.
 type FederatedSearchFailureReason int
 
 const (

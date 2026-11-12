@@ -7,7 +7,7 @@ import (
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91 "github.com/microsoft/kiota-abstractions-go/serialization"
 )
 
-// FederatedAgentSearchResult an agent card search result and the source it came from.
+// FederatedAgentSearchResult an agent card search result and the source it came from. For an agent from a peer, every field but `source` is what the peer returned, unchecked by this registry, and `owner` is left out. Text fields from a peer are bounded only by the size limit on the peer's whole answer, `apicurio.federation.search.max-response-bytes`.
 type FederatedAgentSearchResult struct {
 	// Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
 	additionalData map[string]any
@@ -23,11 +23,11 @@ type FederatedAgentSearchResult struct {
 	groupId *string
 	// The name property
 	name *string
-	// The owner property
+	// The owner of the agent in this registry. Not set for an agent from a peer.
 	owner *string
 	// The skills property
 	skills []string
-	// Where the agent was found: `local` for this registry, otherwise the id of the peer registry. Assigned by this registry, never taken from the peer.
+	// Where the agent was found: `local` for this registry, otherwise the peer registry it came from. A caller who may list the peers sees the peer's id, and any other caller sees `peer-1`, `peer-2` and so on, numbered in peer id order within the one response. Assigned by this registry, never taken from the peer.
 	source *string
 	// The supportedInterfaces property
 	supportedInterfaces []AgentInterfaceable
@@ -207,7 +207,7 @@ func (m *FederatedAgentSearchResult) GetName() *string {
 	return m.name
 }
 
-// GetOwner gets the owner property value. The owner property
+// GetOwner gets the owner property value. The owner of the agent in this registry. Not set for an agent from a peer.
 // returns a *string when successful
 func (m *FederatedAgentSearchResult) GetOwner() *string {
 	return m.owner
@@ -219,7 +219,7 @@ func (m *FederatedAgentSearchResult) GetSkills() []string {
 	return m.skills
 }
 
-// GetSource gets the source property value. Where the agent was found: `local` for this registry, otherwise the id of the peer registry. Assigned by this registry, never taken from the peer.
+// GetSource gets the source property value. Where the agent was found: `local` for this registry, otherwise the peer registry it came from. A caller who may list the peers sees the peer's id, and any other caller sees `peer-1`, `peer-2` and so on, numbered in peer id order within the one response. Assigned by this registry, never taken from the peer.
 // returns a *string when successful
 func (m *FederatedAgentSearchResult) GetSource() *string {
 	return m.source
@@ -343,7 +343,7 @@ func (m *FederatedAgentSearchResult) SetName(value *string) {
 	m.name = value
 }
 
-// SetOwner sets the owner property value. The owner property
+// SetOwner sets the owner property value. The owner of the agent in this registry. Not set for an agent from a peer.
 func (m *FederatedAgentSearchResult) SetOwner(value *string) {
 	m.owner = value
 }
@@ -353,7 +353,7 @@ func (m *FederatedAgentSearchResult) SetSkills(value []string) {
 	m.skills = value
 }
 
-// SetSource sets the source property value. Where the agent was found: `local` for this registry, otherwise the id of the peer registry. Assigned by this registry, never taken from the peer.
+// SetSource sets the source property value. Where the agent was found: `local` for this registry, otherwise the peer registry it came from. A caller who may list the peers sees the peer's id, and any other caller sees `peer-1`, `peer-2` and so on, numbered in peer id order within the one response. Assigned by this registry, never taken from the peer.
 func (m *FederatedAgentSearchResult) SetSource(value *string) {
 	m.source = value
 }

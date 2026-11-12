@@ -229,7 +229,7 @@ public class FederatedSearchService {
         List<FederatedSearchSource> sources = new ArrayList<>();
 
         List<AgentSearchResult> localAgents = local.getAgents();
-        localAgents.forEach(agent -> agents.add(toFederated(LOCAL_SOURCE, agent)));
+        localAgents.forEach(agent -> agents.add(toFederated(LOCAL_SOURCE, agent, true)));
         sources.add(source(LOCAL_SOURCE, FederatedSearchOutcome.ok, null, localAgents.size(),
                 local.getCount() > localAgents.size()));
 
@@ -246,7 +246,7 @@ public class FederatedSearchService {
                     source = source(peerId, FederatedSearchOutcome.deadline_exceeded, null, 0, false);
                 } else {
                     List<AgentSearchResult> included = distinct(response.agents());
-                    included.forEach(agent -> agents.add(toFederated(shownAs, agent)));
+                    included.forEach(agent -> agents.add(toFederated(shownAs, agent, false)));
                     source = source(peerId, FederatedSearchOutcome.ok, null, included.size(),
                             response.reportedCount() > response.agents().size());
                 }
@@ -293,11 +293,18 @@ public class FederatedSearchService {
         return new ArrayList<>(byCoordinates.values());
     }
 
-    private static FederatedAgentSearchResult toFederated(String sourceId, AgentSearchResult agent) {
+    /**
+     * An agent from a peer keeps what the peer said about it, except its owner: a principal of
+     * another registry, asserted by a peer nobody authenticated, means nothing here and could pass
+     * for one of this registry's own.
+     */
+    private static FederatedAgentSearchResult toFederated(String sourceId, AgentSearchResult agent,
+            boolean local) {
         return FederatedAgentSearchResult.builder().source(sourceId).groupId(agent.getGroupId())
                 .artifactId(agent.getArtifactId()).name(agent.getName()).description(agent.getDescription())
                 .supportedInterfaces(agent.getSupportedInterfaces()).skills(agent.getSkills())
-                .capabilities(agent.getCapabilities()).createdOn(agent.getCreatedOn()).owner(agent.getOwner())
+                .capabilities(agent.getCapabilities()).createdOn(agent.getCreatedOn())
+                .owner(local ? agent.getOwner() : null)
                 .build();
     }
 

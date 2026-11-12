@@ -682,20 +682,29 @@ class FederatedSearchServiceTest {
     }
 
     @Test
-    void federatedResultsKeepEveryFieldOfTheAgentAndOnlyAddTheSource() {
+    void federatedResultsKeepEveryFieldOfTheAgentAndOnlyAddTheSourceButAPeerCannotNameAnOwner() {
         registered(peer("alpha", true));
         AgentSearchResult full = AgentSearchResult.builder().groupId("g").artifactId("a").name("Name")
                 .description("Description").owner("someone").createdOn(42L).skills(List.of("s1", "s2")).build();
         peers.answers("alpha", response(1, full));
+        AgentSearchResult mine = AgentSearchResult.builder().groupId("g").artifactId("mine").name("Mine")
+                .description("Local").owner("me").createdOn(7L).skills(List.of("s3")).build();
 
-        FederatedAgentSearchResult federated = search(local(0)).getAgents().get(0);
+        List<FederatedAgentSearchResult> agents = search(local(1, mine)).getAgents();
 
+        FederatedAgentSearchResult local = agents.get(0);
+        assertEquals("local", local.getSource());
+        assertEquals("mine", local.getArtifactId());
+        assertEquals("me", local.getOwner());
+        assertEquals(7L, local.getCreatedOn());
+
+        FederatedAgentSearchResult federated = agents.get(1);
         assertEquals("alpha", federated.getSource());
         assertEquals("g", federated.getGroupId());
         assertEquals("a", federated.getArtifactId());
         assertEquals("Name", federated.getName());
         assertEquals("Description", federated.getDescription());
-        assertEquals("someone", federated.getOwner());
+        assertNull(federated.getOwner());
         assertEquals(42L, federated.getCreatedOn());
         assertEquals(List.of("s1", "s2"), federated.getSkills());
     }

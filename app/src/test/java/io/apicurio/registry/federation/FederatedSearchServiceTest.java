@@ -653,17 +653,26 @@ class FederatedSearchServiceTest {
 
     @Test
     void forgetsThePeersThatWereRemoved() {
-        registered(peer("gone", true));
+        config.searchMaxPeers = 1;
+        registered(peer("gone", true), peer("gone-left-out", true));
         peers.answers("gone", response(0));
         search(local(0));
-        assertEquals(1, meters.find("apicurio.federation.peer.circuit.state").gauges().size());
+        // The peer left out of the search has a timer but no circuit breaker.
+        assertEquals(List.of("gone"), peerTags("apicurio.federation.peer.circuit.state"));
+        assertEquals(List.of("gone", "gone-left-out"), peerTags("apicurio.federation.peer.search"));
 
         registered(peer("other", true));
         peers.answers("other", response(0));
         search(local(0));
 
-        assertEquals(List.of("other"), meters.find("apicurio.federation.peer.circuit.state").gauges().stream()
-                .map(gauge -> gauge.getId().getTag("peer")).collect(Collectors.toList()));
+        assertEquals(List.of("other"), peerTags("apicurio.federation.peer.circuit.state"));
+        assertEquals(List.of("other"), peerTags("apicurio.federation.peer.search"));
+    }
+
+    /** The peers that the meters of that name are for, in order and without repeats. */
+    private List<String> peerTags(String meterName) {
+        return meters.find(meterName).meters().stream().map(meter -> meter.getId().getTag("peer")).distinct()
+                .sorted().collect(Collectors.toList());
     }
 
     @Test

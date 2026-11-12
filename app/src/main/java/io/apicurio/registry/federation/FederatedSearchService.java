@@ -83,6 +83,8 @@ public class FederatedSearchService {
 
     static final String LOCAL_SOURCE = "local";
 
+    static final String PEER_SEARCH_TIMER = "apicurio.federation.peer.search";
+
     /** With a number after it, how a peer is named to a caller who may not list the peers. */
     static final String NUMBERED_PEER_PREFIX = "peer-";
 
@@ -310,7 +312,7 @@ public class FederatedSearchService {
 
     private void record(Dispatch dispatch, FederatedSearchSource source) {
         long endNanos = dispatch.endNanos != 0 ? dispatch.endNanos : System.nanoTime();
-        Timer.builder("apicurio.federation.peer.search")
+        Timer.builder(PEER_SEARCH_TIMER)
                 .description("Time spent searching a peer registry, by outcome")
                 .tag("peer", dispatch.peer.getPeerId())
                 .tag("outcome", source.getOutcome().name())
@@ -330,6 +332,10 @@ public class FederatedSearchService {
         }).guard;
     }
 
+    /**
+     * Forgets the circuit breakers of the peers that are no longer enabled, and removes their meters,
+     * so that peers deleted and created under new ids do not keep adding to the meter registry.
+     */
     void pruneGuards(List<PeerDto> peers) {
         Set<String> current = new HashSet<>();
         peers.forEach(peer -> current.add(peer.getPeerId()));
@@ -340,6 +346,10 @@ public class FederatedSearchService {
             }
             return gone;
         });
+        // A peer can have timers but no circuit breaker: one left out of every search it was in.
+        meters.find(PEER_SEARCH_TIMER).timers().stream()
+                .filter(timer -> !current.contains(timer.getId().getTag("peer")))
+                .forEach(meters::remove);
     }
 
     private PeerGuard newGuard(PeerDto peer) {

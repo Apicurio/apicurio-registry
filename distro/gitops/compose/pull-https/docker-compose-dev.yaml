@@ -18,7 +18,6 @@
 #      cd app
 #      mvn quarkus:dev \
 #        -Dapicurio.storage.kind=gitops \
-#        -Dapicurio.features.experimental.enabled=true \
 #        -Dapicurio.polling-storage.id=prod \
 #        -Dapicurio.gitops.workspace=$(pwd)/../distro/gitops/compose/pull-https/repos \
 #        -Dapicurio.log.level=debug

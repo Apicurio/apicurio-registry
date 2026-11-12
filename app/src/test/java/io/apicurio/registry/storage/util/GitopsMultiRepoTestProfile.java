@@ -10,9 +10,9 @@ public class GitopsMultiRepoTestProfile implements QuarkusTestProfile {
 
     @Override
     public Map<String, String> getConfigOverrides() {
-        return Map.of(
-                "apicurio.storage.kind", "gitops",
-                "apicurio.features.experimental.enabled", "true");
+        // No experimental features gate: GitOps storage is supported since 3.4.0, so this profile
+        // also checks that it starts without the gate.
+        return Map.of("apicurio.storage.kind", "gitops");
     }
 
     @Override

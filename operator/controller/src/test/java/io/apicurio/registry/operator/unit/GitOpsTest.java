@@ -34,8 +34,8 @@ public class GitOpsTest {
 
         assertThat(envVars.get(EnvironmentVariables.APICURIO_STORAGE_KIND).getValue())
                 .isEqualTo("gitops");
-        assertThat(envVars.get(EnvironmentVariables.APICURIO_FEATURES_EXPERIMENTAL_ENABLED).getValue())
-                .isEqualTo("true");
+        // GitOps storage is supported, so the operator doesn't enable the experimental features gate.
+        assertThat(envVars).doesNotContainKey(EnvironmentVariables.APICURIO_FEATURES_EXPERIMENTAL_ENABLED);
         assertThat(envVars.get(EnvironmentVariables.APICURIO_POLLING_STORAGE_ID).getValue())
                 .isEqualTo("prod");
 

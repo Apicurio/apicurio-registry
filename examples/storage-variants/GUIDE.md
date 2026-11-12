@@ -57,7 +57,7 @@ The variant is two environment variables, in [`docker-compose.yml`](docker-compo
 | PostgreSQL, MySQL, SQL Server | `APICURIO_STORAGE_KIND=sql`, `APICURIO_STORAGE_SQL_KIND=postgresql`, `mysql` or `mssql`, and `APICURIO_DATASOURCE_URL`, `_USERNAME`, `_PASSWORD` |
 | In-memory (the default) | `sql` with the H2 database in memory: data is lost on restart |
 | KafkaSQL | `APICURIO_STORAGE_KIND=kafkasql`, `APICURIO_KAFKASQL_BOOTSTRAP_SERVERS` |
-| GitOps | `APICURIO_STORAGE_KIND=gitops`, a repository in `/repos/default`, `APICURIO_FEATURES_EXPERIMENTAL_ENABLED=true` |
+| GitOps | `APICURIO_STORAGE_KIND=gitops`, a repository in `/repos/default` |
 | KubernetesOps | `APICURIO_STORAGE_KIND=kubernetesops`, `APICURIO_KUBERNETESOPS_NAMESPACE`, `APICURIO_FEATURES_EXPERIMENTAL_ENABLED=true` |
 
 ## Step 3: What every variant does the same

@@ -53,7 +53,6 @@ services:
     environment:
       QUARKUS_PROFILE: "prod"
       APICURIO_STORAGE_KIND: "gitops"
-      APICURIO_FEATURES_EXPERIMENTAL_ENABLED: "true"
       APICURIO_POLLING_STORAGE_ID: "${APICURIO_POLLING_STORAGE_ID:-prod}"
       APICURIO_LOG_LEVEL: "debug"
       QUARKUS_HTTP_CORS: "true"

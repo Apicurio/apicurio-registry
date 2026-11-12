@@ -1049,7 +1049,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             contractRuleRepository.setArtifactContractRuleset(groupId, artifactId, ruleset);
             outboxEvent.fire(SqlOutboxEvent.of(ContractRulesetConfigured.of(
                     groupId, artifactId, null, ContractRulesetConfigured.Action.SET)));
-            return null;
         });
     }
 
@@ -1060,7 +1059,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             contractRuleRepository.deleteArtifactContractRuleset(groupId, artifactId);
             outboxEvent.fire(SqlOutboxEvent.of(ContractRulesetConfigured.of(
                     groupId, artifactId, null, ContractRulesetConfigured.Action.DELETE)));
-            return null;
         });
     }
 
@@ -1077,7 +1075,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             contractRuleRepository.setVersionContractRuleset(groupId, artifactId, version, ruleset);
             outboxEvent.fire(SqlOutboxEvent.of(ContractRulesetConfigured.of(
                     groupId, artifactId, version, ContractRulesetConfigured.Action.SET)));
-            return null;
         });
     }
 
@@ -1088,7 +1085,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             contractRuleRepository.deleteVersionContractRuleset(groupId, artifactId, version);
             outboxEvent.fire(SqlOutboxEvent.of(ContractRulesetConfigured.of(
                     groupId, artifactId, version, ContractRulesetConfigured.Action.DELETE)));
-            return null;
         });
     }
 
@@ -1103,7 +1099,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             contractRuleRepository.setGlobalContractRuleset(ruleset);
             outboxEvent.fire(SqlOutboxEvent
                     .of(ContractRulesetConfigured.ofGlobal(ContractRulesetConfigured.Action.SET)));
-            return null;
         });
     }
 
@@ -1113,7 +1108,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             contractRuleRepository.deleteGlobalContractRuleset();
             outboxEvent.fire(SqlOutboxEvent
                     .of(ContractRulesetConfigured.ofGlobal(ContractRulesetConfigured.Action.DELETE)));
-            return null;
         });
     }
 
@@ -1166,7 +1160,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             mergeArtifactLabels(groupId, artifactId, prefix, labels);
 
             outboxEvent.fire(SqlOutboxEvent.of(ContractMetadataUpdated.of(groupId, artifactId)));
-            return null;
         });
     }
 
@@ -1194,7 +1187,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
             outboxEvent.fire(SqlOutboxEvent
                     .of(ContractStatusChanged.of(groupId, artifactId, fromStatus, toStatus)));
-            return null;
         });
     }
 

@@ -46,6 +46,13 @@ const COMPATIBLE: McpToolCompatibilityResult = {
     limitations: []
 };
 
+const COMPATIBLE_ON_PAGE_2: McpToolCompatibilityResult = {
+    tool: { groupId: "g", artifactId: "archiver", title: "Records Archiver" },
+    verdict: "COMPATIBLE",
+    reasons: [],
+    limitations: []
+};
+
 const INCOMPATIBLE: McpToolCompatibilityResult = {
     tool: { groupId: "g", artifactId: "strict" },
     verdict: "INCOMPATIBLE",
@@ -149,12 +156,14 @@ describe("McpToolCompatibilityPanel", () => {
     });
 
     it("pages through the selected verdict and starts again from the first page for another verdict", async () => {
-        await renderPanel(Promise.resolve(page([COMPATIBLE], 45)), Promise.resolve(page([COMPATIBLE], 45)),
+        await renderPanel(Promise.resolve(page([COMPATIBLE], 45)), Promise.resolve(page([COMPATIBLE_ON_PAGE_2], 45)),
             Promise.resolve(page([INCOMPATIBLE], 2)));
 
         fireEvent.click(screen.getAllByRole("button", { name: "Go to next page" })[0]);
         await flush();
         expect(getToolCompatibility).toHaveBeenLastCalledWith("g", "source", "1", ["COMPATIBLE"], { page: 2, pageSize: 20 });
+        expect(screen.getByRole("link", { name: "Records Archiver" })).toBeInTheDocument();
+        expect(screen.queryByRole("link", { name: "Records Consumer" })).not.toBeInTheDocument();
 
         await select("Incompatible (2)");
         expect(getToolCompatibility).toHaveBeenLastCalledWith("g", "source", "1", ["INCOMPATIBLE"], { page: 1, pageSize: 20 });
@@ -213,6 +222,31 @@ describe("McpToolCompatibilityPanel", () => {
         expect(screen.getByText("'enum' is not evaluated yet")).toBeInTheDocument();
         expect(screen.queryByText("The producer's value for 'records' is not accepted by the consumer")).not.toBeInTheDocument();
         expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+    });
+
+    it.each([
+        [ "succeeds", (request: Deferred) => request.resolve(page([INCOMPATIBLE], 2)) ],
+        [ "fails", (request: Deferred) => request.reject(new Error("late")) ]
+    ])("keeps loading when a replaced request %s before its replacement", async (_case, settle) => {
+        const incompatible = deferred();
+        const indeterminate = deferred();
+        await renderPanel(Promise.resolve(page([COMPATIBLE], 3)), incompatible.promise, indeterminate.promise);
+
+        await select("Incompatible (2)");
+        await select("Indeterminate (1)");
+        settle(incompatible);
+        await flush();
+
+        expect(screen.getByRole("progressbar", { name: "Loading compatibility information" })).toBeInTheDocument();
+        expect(screen.queryByText("The producer's value for 'records' is not accepted by the consumer")).not.toBeInTheDocument();
+        expect(screen.queryByText("Compatibility information could not be loaded.")).not.toBeInTheDocument();
+
+        indeterminate.resolve(page([INDETERMINATE], 1));
+        await flush();
+
+        expect(screen.getByText("'enum' is not evaluated yet")).toBeInTheDocument();
+        expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+        expect(logError).not.toHaveBeenCalled();
     });
 
     it("starts another tool version from its compatible tools without showing the previous results", async () => {

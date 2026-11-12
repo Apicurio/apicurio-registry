@@ -41,6 +41,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -67,6 +68,11 @@ import java.util.function.Function;
  * connections and the queue behind them are bounded per peer. Across all peers, the number of calls
  * in progress is bounded from the name lookup until the answer has been read or the call has been
  * cancelled; a call beyond it is refused as {@code capacity_exceeded}.
+ * <p>
+ * The system resolver has no timeout of its own, and a call keeps its place under that bound until
+ * its name lookup has ended, even after the call has timed out. So that a peer whose name lookups
+ * hang cannot take every place, one peer can have only a few name lookups in progress at once; a
+ * call to it beyond them is refused as {@code capacity_exceeded}, without a lookup.
  */
 @ApplicationScoped
 public class PeerSearchClient {
@@ -81,6 +87,7 @@ public class PeerSearchClient {
     private static final int CONNECTIONS_PER_PEER = 4;
     private static final int QUEUED_REQUESTS_PER_PEER = 16;
     private static final int KEEP_ALIVE_SECONDS = 30;
+    private static final int LOOKUPS_PER_PEER = 4;
 
     @Inject
     Vertx vertx;
@@ -99,6 +106,8 @@ public class PeerSearchClient {
     Resolver resolver = InetAddress::getAllByName;
     Consumer<HttpClientOptions> optionsCustomizer = options -> {
     };
+
+    private final KeyedPermits lookups = new KeyedPermits();
 
     private HttpClient httpClient;
     private Semaphore slots;
@@ -147,10 +156,13 @@ public class PeerSearchClient {
      * by the returned call's future as a {@link PeerSearchException}.
      */
     PeerCall search(PeerDto peer, PeerQuery query) {
+        if (!lookups.tryAcquire(peer.getPeerId(), LOOKUPS_PER_PEER)) {
+            return refused("Too many name lookups for this peer are in progress.");
+        }
+        Lookup lookup = new Lookup(lookups, peer.getPeerId());
         if (!slots.tryAcquire()) {
-            CompletableFuture<PeerSearchResponse> refused = CompletableFuture
-                    .failedFuture(new PeerSearchException.CapacityExceeded("Too many peer calls are in progress."));
-            return new PeerCall(refused, refused);
+            lookup.end();
+            return refused("Too many peer calls are in progress.");
         }
         Slot slot = new Slot(slots);
         CompletableFuture<PeerSearchResponse> future = new CompletableFuture<>();
@@ -174,8 +186,9 @@ public class PeerSearchClient {
         });
 
         try {
-            setupExecutor.execute(() -> call(peer, query, future, inFlight, slot));
+            setupExecutor.execute(() -> call(peer, query, future, inFlight, slot, lookup));
         } catch (RejectedExecutionException ex) {
+            lookup.end();
             slot.release();
             future.completeExceptionally(
                     new PeerSearchException.CapacityExceeded("No thread is left to set up the call."));
@@ -183,8 +196,14 @@ public class PeerSearchClient {
         return new PeerCall(future, result);
     }
 
+    private static PeerCall refused(String why) {
+        CompletableFuture<PeerSearchResponse> refused = CompletableFuture
+                .failedFuture(new PeerSearchException.CapacityExceeded(why));
+        return new PeerCall(refused, refused);
+    }
+
     private void call(PeerDto peer, PeerQuery query, CompletableFuture<PeerSearchResponse> future,
-            AtomicReference<InFlight> inFlight, Slot slot) {
+            AtomicReference<InFlight> inFlight, Slot slot, Lookup lookup) {
         boolean setUp = false;
         try {
             if (future.isDone()) {
@@ -194,7 +213,12 @@ public class PeerSearchClient {
             boolean ssl = "https".equals(uri.getScheme().toLowerCase(Locale.ROOT));
             int port = uri.getPort() != -1 ? uri.getPort() : (ssl ? 443 : 80);
             String host = uri.getHost();
-            List<InetAddress> addresses = resolve(host);
+            List<InetAddress> addresses;
+            try {
+                addresses = resolve(host);
+            } finally {
+                lookup.end();
+            }
             if (future.isDone()) {
                 return;
             }
@@ -222,6 +246,7 @@ public class PeerSearchClient {
             log.warn("Unexpected failure calling peer {}", peer.getPeerId(), ex);
             future.completeExceptionally(new PeerSearchException.Unreachable("The call failed.", ex));
         } finally {
+            lookup.end();
             if (!setUp) {
                 slot.release();
             }
@@ -460,6 +485,24 @@ public class PeerSearchClient {
     }
 
     private record InFlight(HttpClientRequest request, Context context) {
+    }
+
+    /** A call's place among the name lookups of its peer, given back once, when the lookup ends. */
+    private static final class Lookup {
+        private final KeyedPermits lookups;
+        private final String peerId;
+        private final AtomicBoolean ended = new AtomicBoolean();
+
+        Lookup(KeyedPermits lookups, String peerId) {
+            this.lookups = lookups;
+            this.peerId = peerId;
+        }
+
+        void end() {
+            if (ended.compareAndSet(false, true)) {
+                lookups.release(peerId);
+            }
+        }
     }
 
     /**

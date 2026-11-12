@@ -16,16 +16,11 @@ import io.apicurio.registry.storage.dto.OutboxEvent;
 import io.apicurio.registry.storage.dto.RuleAction;
 import io.apicurio.registry.storage.dto.RuleKind;
 import io.apicurio.registry.storage.dto.RuleMode;
-import io.apicurio.registry.storage.util.PostgresqlTestProfile;
 import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.tests.ApicurioTestTags;
-import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
 import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 
@@ -60,17 +55,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * them can pass without the shared transaction they are asserting.
  * </p>
  * <p>
- * PostgreSQL is required because it is one of the two dialects for which the SQL outbox path is active;
- * on the others {@code supportsDatabaseEvents()} is false and no outbox row is ever written.
+ * The outbox path is active only where {@code SqlEventRepository.supportsDatabaseEvents()} is true,
+ * which is PostgreSQL and SQL Server. These tests therefore run once per dialect, through
+ * {@link PostgresqlContractOutboxTransactionTest} and {@link MssqlContractOutboxTransactionTest};
+ * the only things that differ between them are the two hooks at the bottom of this class.
  * </p>
  */
-@QuarkusTest
-@Tag(ApicurioTestTags.SLOW)
-@TestProfile(PostgresqlTestProfile.class)
-public class ContractOutboxTransactionTest {
-
-    /** PostgreSQL SQL state for a check-constraint violation. */
-    private static final String CHECK_VIOLATION_SQL_STATE = "23514";
+public abstract class AbstractContractOutboxTransactionTest {
 
     private static final String OUTBOX_BLOCKED = "test_outbox_write_blocked";
     private static final String LABEL_WRITE_BLOCKED = "test_label_write_blocked";
@@ -386,11 +377,11 @@ public class ContractOutboxTransactionTest {
      * synchronous CDI observer and the storage interceptors, so the assertion is made on the SQL state in
      * the cause chain rather than on whichever wrapper type happens to surface.
      */
-    private static void assertRejectedByCheckConstraint(Executable operation) {
+    private void assertRejectedByCheckConstraint(Executable operation) {
         Throwable thrown = assertThrows(RuntimeException.class, operation);
         SQLException cause = findSqlException(thrown);
         assertNotNull(cause, "Expected a SQLException in the cause chain, but got: " + thrown);
-        assertEquals(CHECK_VIOLATION_SQL_STATE, cause.getSQLState(),
+        assertEquals(checkViolationSqlState(), cause.getSQLState(),
                 "Expected a check-constraint violation, but got: " + cause);
     }
 
@@ -416,14 +407,14 @@ public class ContractOutboxTransactionTest {
      * and the outbox write that is supposed to accompany it is the thing that fails.
      * </p>
      * <p>
-     * {@code NOT VALID} skips validation of existing rows so the constraint can be added regardless of
-     * what else is in the table.
+     * The constraint is added without validating the rows already in the table, so it can go on
+     * whatever else is in there.
      * </p>
      */
     private void blockOutboxWritesFor(StorageEventType eventType) {
         unblockOutboxWrites();
-        executeDdl("ALTER TABLE outbox ADD CONSTRAINT " + OUTBOX_BLOCKED + " CHECK (\"type\" <> '"
-                + eventType.name() + "') NOT VALID");
+        executeDdl(addUnvalidatedCheckConstraint("outbox", OUTBOX_BLOCKED,
+                "\"type\" <> '" + eventType.name() + "'"));
     }
 
     private void unblockOutboxWrites() {
@@ -436,8 +427,8 @@ public class ContractOutboxTransactionTest {
      */
     private void blockStableDateLabelWrites() {
         unblockStableDateLabelWrites();
-        executeDdl("ALTER TABLE artifact_labels ADD CONSTRAINT " + LABEL_WRITE_BLOCKED
-                + " CHECK (labelKey NOT LIKE '%" + ContractLabels.SUFFIX_STABLE_DATE + "') NOT VALID");
+        executeDdl(addUnvalidatedCheckConstraint("artifact_labels", LABEL_WRITE_BLOCKED,
+                "labelKey NOT LIKE '%" + ContractLabels.SUFFIX_STABLE_DATE + "'"));
     }
 
     private void unblockStableDateLabelWrites() {
@@ -447,7 +438,22 @@ public class ContractOutboxTransactionTest {
     private void executeDdl(String ddl) {
         handles.withHandleNoException(handle -> {
             handle.createUpdate(ddl).execute();
-            return null;
         });
     }
+
+    // ----------------------------------------------------------------------------------------------
+    // Dialect hooks
+    // ----------------------------------------------------------------------------------------------
+
+    /**
+     * The SQL state this dialect reports when a CHECK constraint rejects a write.
+     */
+    protected abstract String checkViolationSqlState();
+
+    /**
+     * DDL that adds a CHECK constraint without validating the rows already in the table. PostgreSQL
+     * spells that {@code NOT VALID}, SQL Server {@code WITH NOCHECK}.
+     */
+    protected abstract String addUnvalidatedCheckConstraint(String table, String constraint,
+            String condition);
 }

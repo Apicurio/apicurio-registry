@@ -10,7 +10,7 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
- * Test-only observer of {@link SqlOutboxEvent}, used by {@link ContractOutboxTransactionTest} to inspect
+ * Test-only observer of {@link SqlOutboxEvent}, used by {@link AbstractContractOutboxTransactionTest} to inspect
  * the contract event payloads the SQL storage emits.
  * <p>
  * The bean is active in every Quarkus test, so it only records events for aggregates belonging to that

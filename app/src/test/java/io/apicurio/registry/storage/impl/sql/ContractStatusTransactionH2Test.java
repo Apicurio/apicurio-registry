@@ -29,8 +29,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Verifies on H2 that {@code transitionContractStatus} rolls the status label back when the
- * lifecycle-date write fails, complementing {@link ContractOutboxTransactionTest}, which covers the same
- * storage code on PostgreSQL.
+ * lifecycle-date write fails, complementing {@link AbstractContractOutboxTransactionTest}, which covers
+ * the same storage code on the dialects that write outbox rows.
  * <p>
  * The dialect is the reason this test exists separately. On H2
  * {@code SqlEventRepository.supportsDatabaseEvents()} is false, so {@code SqlEventsProcessor}
@@ -160,7 +160,6 @@ public class ContractStatusTransactionH2Test {
     private void executeDdl(String ddl) {
         handles.withHandleNoException(handle -> {
             handle.createUpdate(ddl).execute();
-            return null;
         });
     }
 

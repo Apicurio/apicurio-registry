@@ -11107,7 +11107,7 @@
         }
       },
       "FederatedAgentSearchResult": {
-        "description": "An agent card search result and the source it came from.",
+        "description": "An agent card search result and the source it came from. For an agent from a peer, every field but `source` is what the peer returned, unchecked by this registry, and `owner` is left out. Text fields from a peer are bounded only by the size limit on the peer's whole answer, `apicurio.federation.search.max-response-bytes`.",
         "required": [
           "source"
         ],
@@ -11149,6 +11149,7 @@
             "type": "integer"
           },
           "owner": {
+            "description": "The owner of the agent in this registry. Not set for an agent from a peer.",
             "type": "string"
           }
         }

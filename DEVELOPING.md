@@ -34,7 +34,7 @@ There is no separate in-memory storage kind: "in-memory" is `sql` with `h2` and 
 | `sql` | `mysql` | Read/write | Supported | `*MysqlTest` classes | None | `mysql` |
 | `sql` | `mssql` | Read/write | Community contributed | `*MssqlTest` classes, skipped on macOS | None | Not supported |
 | `kafkasql` | Kafka journal, replayed into the local SQL store (H2 in-memory by default) | Read/write | Supported | `app-kafkasql` shard and `*KafkaSqlTest` classes | `kafkasql` groups | `kafkasql` |
-| `gitops` | Git repository, loaded into blue/green H2 stores | Read-only | Experimental | `app-gitops` shard | None | `gitops` |
+| `gitops` | Git repository, loaded into blue/green H2 stores | Read-only | Supported | `app-gitops` shard | None | `gitops` |
 | `kubernetesops` | ConfigMaps, loaded into blue/green H2 stores | Read-only | Experimental | `app-kubernetesops` shard | `kubernetesops` group | `kubernetesops` |
 
 Notes:

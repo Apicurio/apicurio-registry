@@ -3599,9 +3599,8 @@ spec:
                       Configure storage for Apicurio Registry backend (app).
                     properties:
                       gitops:
-                        description: Configure GitOps storage type (read-only, experimental).
-                          Loads registry data from a Git repository via a sync sidecar
-                          container.
+                        description: Configure GitOps storage type (read-only). Loads
+                          registry data from a Git repository via a sync sidecar container.
                         properties:
                           mode:
                             description: GitOps sync mode. `pull` (default) periodically
@@ -3921,7 +3920,7 @@ spec:
                             * `mysql` - MySQL storage type, must be further configured using the `app.storage.sql` field.
                             * `kafkasql` - KafkaSQL storage type, must be further configured using the `app.storage.kafkasql` field.
                             * `kubernetesops` - KubernetesOps storage type (read-only, experimental), must be further configured using the `app.storage.kubernetesops` field.
-                            * `gitops` - GitOps storage type (read-only, experimental), must be further configured using the `app.storage.gitops` field.
+                            * `gitops` - GitOps storage type (read-only), must be further configured using the `app.storage.gitops` field.
 
                           IMPORTANT: Defaults to the in-memory storage, which is not suitable for production.
                         enum:

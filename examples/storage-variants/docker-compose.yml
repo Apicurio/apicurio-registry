@@ -172,7 +172,6 @@ services:
     container_name: storage-registry-gitops
     profiles: [gitops]
     environment:
-      APICURIO_FEATURES_EXPERIMENTAL_ENABLED: "true"
       APICURIO_STORAGE_KIND: gitops
       # Loads registry files whose registryId is "demo", from the repository in /repos/default
       APICURIO_POLLING_STORAGE_ID: demo

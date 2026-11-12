@@ -3407,7 +3407,7 @@
         },
         "operationId": "getGitOpsStatus",
         "summary": "Get GitOps synchronization status",
-        "description": "**Experimental.** Returns the current synchronization status of the GitOps storage, including the current commit SHA, sync state, load statistics, and any errors from the last sync attempt.\n\nThis endpoint is only available when GitOps storage is enabled (`apicurio.storage.kind=gitops`). Returns HTTP 409 (Conflict) if a different storage backend is active.\n\nThis operation can fail for the following reasons:\n\n* GitOps storage is not enabled (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
+        "description": "Returns the current synchronization status of the GitOps storage, including the current commit SHA, sync state, load statistics, and any errors from the last sync attempt.\n\nThis endpoint is only available when GitOps storage is enabled (`apicurio.storage.kind=gitops`). Returns HTTP 409 (Conflict) if a different storage backend is active.\n\nThis operation can fail for the following reasons:\n\n* GitOps storage is not enabled (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
       }
     },
     "/admin/gitops/sync": {
@@ -3436,7 +3436,7 @@
         },
         "operationId": "triggerGitOpsSync",
         "summary": "Trigger GitOps synchronization",
-        "description": "**Experimental.** Requests an immediate synchronization of the GitOps storage. This resets the poll timer so the next scheduler cycle will poll the Git repository without waiting for the configured poll period.\n\nThe synchronization happens asynchronously \u2014 this endpoint returns immediately and the actual sync occurs on the next scheduler cycle.\n\nThis endpoint is only available when GitOps storage is enabled (`apicurio.storage.kind=gitops`). Returns HTTP 409 (Conflict) if a different storage backend is active.\n\nThis operation can fail for the following reasons:\n\n* GitOps storage is not enabled (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
+        "description": "Requests an immediate synchronization of the GitOps storage. This resets the poll timer so the next scheduler cycle will poll the Git repository without waiting for the configured poll period.\n\nThe synchronization happens asynchronously \u2014 this endpoint returns immediately and the actual sync occurs on the next scheduler cycle.\n\nThis endpoint is only available when GitOps storage is enabled (`apicurio.storage.kind=gitops`). Returns HTTP 409 (Conflict) if a different storage backend is active.\n\nThis operation can fail for the following reasons:\n\n* GitOps storage is not enabled (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
       }
     },
     "/admin/gitops/validate": {
@@ -3485,7 +3485,7 @@
         },
         "operationId": "createGitOpsValidateTask",
         "summary": "Create a dry-run validation task",
-        "description": "**Experimental.** Creates a dry-run validation task that fetches a git ref and validates the data without affecting the live registry. The sidecar fetches the ref, and the registry loads and validates the data in the inactive storage (no swap).\n\nReturns a task object with a `taskId` that can be used to poll for results.\n\nThis endpoint is only available when GitOps storage is enabled.\n\nThis operation can fail for the following reasons:\n\n* GitOps storage is not enabled (HTTP error `409`)\n* Dry-run validation is disabled (HTTP error `503`)\n* A server error occurred (HTTP error `500`)\n"
+        "description": "Creates a dry-run validation task that fetches a git ref and validates the data without affecting the live registry. The sidecar fetches the ref, and the registry loads and validates the data in the inactive storage (no swap).\n\nReturns a task object with a `taskId` that can be used to poll for results.\n\nThis endpoint is only available when GitOps storage is enabled.\n\nThis operation can fail for the following reasons:\n\n* GitOps storage is not enabled (HTTP error `409`)\n* Dry-run validation is disabled (HTTP error `503`)\n* A server error occurred (HTTP error `500`)\n"
       },
       "get": {
         "tags": [
@@ -3524,7 +3524,7 @@
         },
         "operationId": "listGitOpsValidateTasks",
         "summary": "List validation tasks",
-        "description": "**Experimental.** Returns a list of all active dry-run validation tasks."
+        "description": "Returns a list of all active dry-run validation tasks."
       }
     },
     "/admin/gitops/validate/{taskId}": {
@@ -3576,7 +3576,7 @@
         },
         "operationId": "getGitOpsValidateTask",
         "summary": "Get validation task status",
-        "description": "**Experimental.** Returns the status and results of a specific dry-run validation task."
+        "description": "Returns the status and results of a specific dry-run validation task."
       },
       "delete": {
         "tags": [
@@ -3618,7 +3618,7 @@
         },
         "operationId": "deleteGitOpsValidateTask",
         "summary": "Delete a validation task",
-        "description": "**Experimental.** Deletes a validation task and cleans up its checkout directory."
+        "description": "Deletes a validation task and cleans up its checkout directory."
       }
     },
     "/groups/{groupId}/artifacts/{artifactId}": {

@@ -8,6 +8,8 @@ import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.federation.PeerAddressPolicy;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.error.InvalidArtifactTypeException;
+import io.apicurio.registry.storage.impl.polling.format.FormatVersion;
+import io.apicurio.registry.storage.impl.polling.model.Any;
 import io.apicurio.registry.storage.impl.polling.model.Type;
 import io.apicurio.registry.storage.impl.polling.model.v0.Artifact;
 import io.apicurio.registry.storage.impl.polling.model.v0.ConfigurationProperty;
@@ -39,11 +41,13 @@ import jakarta.inject.Inject;
 import org.slf4j.Logger;
 
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
@@ -88,6 +92,7 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
         for (PollingDataFile file : pollResult.getFiles()) {
             state.index(file);
         }
+        warnAboutDeprecatedFormatVersions(state);
 
         log.debug("Processing {} files", state.getPathIndex().size());
         processFiles(state);
@@ -124,6 +129,27 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
             log.error("Processing failed with {} error(s)", state.getErrors().size());
         }
         return state.getResult();
+    }
+
+    /**
+     * Logs one warning per load for each deprecated data format version in use, with the number of
+     * files and an example path, rather than one warning per file: every change re-reads every file.
+     */
+    private void warnAboutDeprecatedFormatVersions(ProcessingState state) {
+        Map<FormatVersion, List<String>> deprecated = new TreeMap<>();
+        for (PollingDataFile file : state.getPathIndex().values()) {
+            file.getAny().map(Any::getFormatVersion)
+                    .filter(v -> v.status() == FormatVersion.Status.DEPRECATED)
+                    .ifPresent(v -> deprecated.computeIfAbsent(v, k -> new ArrayList<>()).add(file.getPath()));
+        }
+        deprecated.forEach((version, paths) -> {
+            Collections.sort(paths);
+            log.warn("{} metadata file(s) use the GitOps data format version {}, which is deprecated since {}"
+                            + " and will be removed in a future release (for example {}). Convert them to version {}:"
+                            + " change $type from '<kind>-{}' to '<kind>-{}', for example '{}'.",
+                    paths.size(), version.id(), version.deprecatedIn(), paths.get(0), FormatVersion.current().id(),
+                    version.id(), FormatVersion.current().id(), Type.ARTIFACT.getType());
+        });
     }
 
     /**
@@ -458,7 +484,7 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
      * <li>Mode A (simple): Version has only {@code content} field pointing to a raw content file.
      *     contentId is generated from a hash-based sequence.</li>
      * <li>Mode B (with metadata): Version has {@code contentMetadata} field pointing to a Content entity
-     *     (*.registry.yaml with $type: content-v0) which specifies the content file path, optional explicit
+     *     (a {@code content} metadata file, e.g. {@code $type: content-v1}) which specifies the content file path, optional explicit
      *     contentId, and optional references.</li>
      * </ul>
      *
@@ -602,7 +628,8 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
             return null;
         }
         if (!metadataFile.isType(Type.CONTENT)) {
-            state.recordError(metadataFile, "Not a valid content metadata definition (expected $type: content-v0)");
+            state.recordError(metadataFile, "Not a valid content metadata definition (expected $type: %s)",
+                    Type.CONTENT.getType());
             return null;
         }
         metadataFile.setProcessed(true);

@@ -9,7 +9,6 @@ import io.apicurio.registry.storage.dto.PeerDto;
 import io.apicurio.registry.storage.error.InvalidPeerException;
 import io.netty.channel.ConnectTimeoutException;
 import io.vertx.core.Context;
-import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.ConnectionPoolTooBusyException;
@@ -45,6 +44,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Calls the agent search of a peer registry, asking for public agents only.
@@ -56,9 +56,11 @@ import java.util.function.Consumer;
  * public.
  * <p>
  * The peer's host name is resolved here, every address it resolves to is checked against
- * {@link PeerAddressPolicy}, and the connection is then made to the address that was checked, with
+ * {@link PeerAddressPolicy}, and the connection is then made to an address that was checked, with
  * the host name still used for the {@code Host} header and for TLS server name and certificate
- * verification. Resolving once to check and again inside the HTTP client would leave a window in
+ * verification. The addresses are tried in the order they were resolved, moving on to the next one
+ * when a connection cannot be made, so that a peer with both IPv4 and IPv6 addresses is still
+ * reached from a host that can use only one of them. Resolving once to check and again inside the HTTP client would leave a window in
  * which a DNS change moves the connection to an address that was never checked.
  * <p>
  * Each call is bounded by the per-peer timeout, the size of the answer is bounded, and the
@@ -192,19 +194,20 @@ public class PeerSearchClient {
             boolean ssl = "https".equals(uri.getScheme().toLowerCase(Locale.ROOT));
             int port = uri.getPort() != -1 ? uri.getPort() : (ssl ? 443 : 80);
             String host = uri.getHost();
-            InetAddress address = resolve(host);
+            List<InetAddress> addresses = resolve(host);
             if (future.isDone()) {
                 return;
             }
 
-            RequestOptions options = new RequestOptions()
+            String requestUri = requestUri(uri, query);
+            Function<InetAddress, RequestOptions> options = address -> new RequestOptions()
                     .setMethod(HttpMethod.GET)
                     .setHost(unbracketed(host))
                     .setPort(port)
                     .setServer(SocketAddress.inetSocketAddress(port, address.getHostAddress()))
                     .setSsl(ssl)
                     .setFollowRedirects(false)
-                    .setURI(requestUri(uri, query))
+                    .setURI(requestUri)
                     .putHeader("Accept", "application/json")
                     .putHeader(FederatedSearchService.HOP_HEADER, "1");
 
@@ -212,15 +215,7 @@ public class PeerSearchClient {
             // answer has been read or the request has been reset.
             setUp = true;
             slot.release();
-            httpClient.request(options).compose(request -> {
-                inFlight.set(new InFlight(request, Vertx.currentContext()));
-                if (future.isDone()) {
-                    reset(inFlight.get());
-                    return Future.<HttpClientResponse>failedFuture(new PeerSearchException.Cancelled());
-                }
-                return request.send();
-            }).onSuccess(response -> read(response, query, future))
-                    .onFailure(failure -> future.completeExceptionally(translate(failure)));
+            connect(addresses, 0, options, query, future, inFlight);
         } catch (PeerSearchException ex) {
             future.completeExceptionally(ex);
         } catch (RuntimeException ex) {
@@ -233,6 +228,35 @@ public class PeerSearchClient {
         }
     }
 
+    /**
+     * Connects to the checked addresses in turn, until a connection is made or none is left, and
+     * sends the request over the first connection made.
+     */
+    private void connect(List<InetAddress> addresses, int index, Function<InetAddress, RequestOptions> options,
+            PeerQuery query, CompletableFuture<PeerSearchResponse> future, AtomicReference<InFlight> inFlight) {
+        httpClient.request(options.apply(addresses.get(index))).onComplete(connected -> {
+            if (connected.failed()) {
+                Throwable failure = connected.cause();
+                // A full queue is about this peer, not about one of its addresses.
+                if (index + 1 < addresses.size() && !future.isDone()
+                        && !(failure instanceof ConnectionPoolTooBusyException)) {
+                    log.debug("Could not connect to a peer address, trying the next one: {}", failure.toString());
+                    connect(addresses, index + 1, options, query, future, inFlight);
+                } else {
+                    future.completeExceptionally(translate(failure));
+                }
+                return;
+            }
+            inFlight.set(new InFlight(connected.result(), Vertx.currentContext()));
+            if (future.isDone()) {
+                reset(inFlight.get());
+                return;
+            }
+            connected.result().send().onSuccess(response -> read(response, query, future))
+                    .onFailure(failure -> future.completeExceptionally(translate(failure)));
+        });
+    }
+
     private URI checkedUri(PeerDto peer) {
         try {
             PeerAddressPolicy.validateUrl(peer.getUrl(), config.isInsecureHttpEnabled(),
@@ -243,7 +267,7 @@ public class PeerSearchClient {
         return URI.create(peer.getUrl());
     }
 
-    private InetAddress resolve(String host) {
+    private List<InetAddress> resolve(String host) {
         InetAddress[] addresses;
         try {
             addresses = resolver.resolve(unbracketed(host));
@@ -259,7 +283,10 @@ public class PeerSearchClient {
                         "The peer's host resolves to " + verdict.getDescription() + ".");
             }
         }
-        return addresses[0];
+        if (addresses.length == 0) {
+            throw new PeerSearchException.Unreachable("The peer's host name resolves to no address.", null);
+        }
+        return List.of(addresses);
     }
 
     private void read(HttpClientResponse response, PeerQuery query,

@@ -344,6 +344,43 @@ class PeerSearchClientTest {
     }
 
     @Test
+    void triesTheNextCheckedAddressWhenOneCannotBeConnectedTo() throws Exception {
+        try (StubPeer stub = StubPeer.start(vertx, (request, response) -> StubPeer.publicAgents(response, 1, "a"))) {
+            started(client);
+            // The stub listens on 127.0.0.1 only, so a connection to 127.0.0.2 is refused, as one to
+            // an IPv6 address is on a host without IPv6.
+            client.resolver = host -> new InetAddress[] { InetAddress.getByAddress(new byte[] { 127, 0, 0, 2 }),
+                    InetAddress.getByAddress(new byte[] { 127, 0, 0, 1 }) };
+
+            PeerSearchResponse result = succeeded(client.search(peer("http://peer.test:" + stub.port()), QUERY));
+
+            assertEquals(1, result.agents().size());
+            assertEquals(1, stub.requests().size());
+            assertEquals("peer.test:" + stub.port(), stub.requests().get(0).header("Host"));
+        }
+    }
+
+    @Test
+    void aPeerWhoseAddressesAllRefuseTheConnectionIsUnreachable() throws Exception {
+        try (StubPeer stub = StubPeer.start(vertx, (request, response) -> StubPeer.publicAgents(response, 0))) {
+            started(client);
+            client.resolver = host -> new InetAddress[] { InetAddress.getByAddress(new byte[] { 127, 0, 0, 2 }),
+                    InetAddress.getByAddress(new byte[] { 127, 0, 0, 3 }) };
+
+            assertInstanceOf(PeerSearchException.Unreachable.class,
+                    failed(client.search(peer("http://peer.test:" + stub.port()), QUERY)));
+            assertTrue(stub.requests().isEmpty());
+        }
+    }
+
+    @Test
+    void aHostThatResolvesToNoAddressIsUnreachable() throws Exception {
+        started(client);
+        client.resolver = host -> new InetAddress[0];
+        assertInstanceOf(PeerSearchException.Unreachable.class, failed(client.search(peer("http://peer.test:9"), QUERY)));
+    }
+
+    @Test
     void aHostThatCannotBeResolvedIsUnreachable() throws Exception {
         started(client);
         client.resolver = host -> {

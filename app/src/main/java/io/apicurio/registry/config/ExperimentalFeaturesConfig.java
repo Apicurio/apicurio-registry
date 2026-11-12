@@ -24,7 +24,7 @@ import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_SYS
  *
  * <p>Boolean experimental toggle properties are auto-discovered at build time by scanning for
  * {@code @Info(experimental=true)} annotations on {@code @ConfigProperty} fields. Non-boolean experimental
- * features (e.g., GitOps storage variant) require special checks below.</p>
+ * features (e.g., the KubernetesOps storage variant) require special checks below.</p>
  */
 @Singleton
 // Run the gate before default-priority @Startup beans (2500) can initialize storage.
@@ -61,11 +61,9 @@ public class ExperimentalFeaturesConfig {
             }
         }
 
-        // Special checks for non-boolean experimental features (e.g., storage variants)
+        // Special checks for non-boolean experimental features (e.g., storage variants).
+        // GitOps storage is supported since 3.4.0 and needs no gate.
         final String storageKind = config.getOptionalValue("apicurio.storage.kind", String.class).orElse("sql");
-        if ("gitops".equals(storageKind)) {
-            violations.add("apicurio.storage.kind=gitops (GitOps storage)");
-        }
         if ("kubernetesops".equals(storageKind)) {
             violations.add("apicurio.storage.kind=kubernetesops (KubernetesOps storage)");
         }

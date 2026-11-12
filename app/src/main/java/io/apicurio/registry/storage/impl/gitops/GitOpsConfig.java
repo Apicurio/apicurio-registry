@@ -21,7 +21,7 @@ import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_GIT
 public class GitOpsConfig extends AbstractPollingStorageConfig {
 
     @ConfigProperty(name = "apicurio.gitops.workspace", defaultValue = "/repos")
-    @Info(category = CATEGORY_GITOPS, experimental = true, description = """
+    @Info(category = CATEGORY_GITOPS, description = """
             Base directory where Git repositories are mounted. \
             Repository directories are resolved relative to this path.""", availableSince = "3.2.0")
     @Getter
@@ -30,35 +30,35 @@ public class GitOpsConfig extends AbstractPollingStorageConfig {
     // Single-repo shorthand properties (used when apicurio.gitops.repos.N.* is not configured).
     // Optional so we can detect when the user explicitly sets them (vs using defaults).
     @ConfigProperty(name = "apicurio.gitops.repo.dir")
-    @Info(category = CATEGORY_GITOPS, experimental = true, description = """
+    @Info(category = CATEGORY_GITOPS, description = """
             Directory name of the Git repository, relative to the workspace. \
             This is a shorthand for single-repo setups. For multiple repositories, \
             use the indexed apicurio.gitops.repos.N.dir properties instead.""", availableSince = "3.2.0")
     Optional<String> repoDir;
 
     @ConfigProperty(name = "apicurio.gitops.repo.branch")
-    @Info(category = CATEGORY_GITOPS, experimental = true, description = """
+    @Info(category = CATEGORY_GITOPS, description = """
             Branch to read from. \
             This is a shorthand for single-repo setups. For multiple repositories, \
             use the indexed apicurio.gitops.repos.N.branch properties instead.""", availableSince = "3.2.0")
     Optional<String> repoBranch;
 
     @ConfigProperty(name = "apicurio.gitops.validate.enabled", defaultValue = "true")
-    @Info(category = CATEGORY_GITOPS, experimental = true, description = """
+    @Info(category = CATEGORY_GITOPS, description = """
             Enable the dry-run validation endpoints and the sidecar validation watch loop. \
             When disabled, validation endpoints return HTTP 503.""", availableSince = "3.3.0")
     @Getter
     boolean validateEnabled;
 
     @ConfigProperty(name = "apicurio.gitops.validate.task.ttl.seconds", defaultValue = "3600")
-    @Info(category = CATEGORY_GITOPS, experimental = true, description = """
+    @Info(category = CATEGORY_GITOPS, description = """
             Time-to-live for dry-run validation tasks in seconds. \
             Tasks are automatically removed after this period.""", availableSince = "3.3.0")
     @Getter
     int validateTaskTtlSeconds;
 
     @ConfigProperty(name = "apicurio.gitops.validate.max-tasks", defaultValue = "5")
-    @Info(category = CATEGORY_GITOPS, experimental = true, description = """
+    @Info(category = CATEGORY_GITOPS, description = """
             Maximum number of validation tasks with disk resources (submitted, fetching, \
             validating, or awaiting cleanup) before new requests are queued. Prevents disk \
             exhaustion from too many concurrent checkouts.""", availableSince = "3.3.0")
@@ -66,7 +66,7 @@ public class GitOpsConfig extends AbstractPollingStorageConfig {
     int validateMaxTasks;
 
     @ConfigProperty(name = "apicurio.gitops.validate.fetch.timeout.seconds", defaultValue = "120")
-    @Info(category = CATEGORY_GITOPS, experimental = true, description = """
+    @Info(category = CATEGORY_GITOPS, description = """
             Timeout for the sidecar to fetch a git ref during dry-run validation, in seconds.""", availableSince = "3.3.0")
     @Getter
     int validateFetchTimeoutSeconds;

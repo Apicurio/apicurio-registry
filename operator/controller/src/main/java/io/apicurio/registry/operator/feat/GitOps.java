@@ -31,7 +31,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import static io.apicurio.registry.operator.EnvironmentVariables.APICURIO_FEATURES_EXPERIMENTAL_ENABLED;
 import static io.apicurio.registry.operator.EnvironmentVariables.APICURIO_GITOPS_MODE;
 import static io.apicurio.registry.operator.EnvironmentVariables.APICURIO_GITOPS_REPOS_BRANCH_SUFFIX;
 import static io.apicurio.registry.operator.EnvironmentVariables.APICURIO_GITOPS_REPOS_DIR_SUFFIX;
@@ -64,8 +63,9 @@ public class GitOps {
         ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp).map(AppSpec::getStorage)
                 .map(StorageSpec::getGitops).ifPresent(gitOps -> {
 
+                    // GitOps storage is supported since 3.4.0, so the experimental features gate is
+                    // not set. Setting it here would also allow every other experimental feature.
                     addEnvVar(env, APICURIO_STORAGE_KIND, "gitops");
-                    addEnvVar(env, APICURIO_FEATURES_EXPERIMENTAL_ENABLED, "true");
 
                     if (!isBlank(gitOps.getRegistryId())) {
                         addEnvVar(env, APICURIO_POLLING_STORAGE_ID, gitOps.getRegistryId());

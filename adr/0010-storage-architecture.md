@@ -91,7 +91,8 @@ refuses writes, so every change goes through the source's own review.
   two databases (blue/green), validated with the registry's rules, and published by switching. A
   failed load keeps the last good data and is reported (`GET /admin/gitops/status`).
 - IDs are deterministic (SHA-256 of content, and of coordinates), so replicas and restarts agree.
-- Both are experimental: they need `apicurio.features.experimental.enabled`.
+- GitOps is supported since 3.4.0. KubernetesOps is experimental: it needs
+  `apicurio.features.experimental.enabled`.
 
 ### Behaviour across storage variants
 
@@ -141,7 +142,7 @@ refuses writes, so every change goes through the source's own review.
    ([#11080](https://github.com/Apicurio/apicurio-registry/issues/11080)).
 3. KafkaSQL replicas are eventually consistent: a client may not read its write on another replica.
 4. Every KafkaSQL start replays the journal; startup time grows with it unless snapshots are used.
-5. GitOps and KubernetesOps are experimental; KubernetesOps has no status endpoint.
+5. KubernetesOps is experimental and has no status endpoint.
 
 ## Alternatives
 

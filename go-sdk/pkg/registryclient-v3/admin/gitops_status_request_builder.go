@@ -37,7 +37,7 @@ func NewGitopsStatusRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee2
 	return NewGitopsStatusRequestBuilderInternal(urlParams, requestAdapter)
 }
 
-// Get **Experimental.** Returns the current synchronization status of the GitOps storage, including the current commit SHA, sync state, load statistics, and any errors from the last sync attempt.This endpoint is only available when GitOps storage is enabled (`apicurio.storage.kind=gitops`). Returns HTTP 409 (Conflict) if a different storage backend is active.This operation can fail for the following reasons:* GitOps storage is not enabled (HTTP error `409`)* A server error occurred (HTTP error `500`)
+// Get returns the current synchronization status of the GitOps storage, including the current commit SHA, sync state, load statistics, and any errors from the last sync attempt.This endpoint is only available when GitOps storage is enabled (`apicurio.storage.kind=gitops`). Returns HTTP 409 (Conflict) if a different storage backend is active.This operation can fail for the following reasons:* GitOps storage is not enabled (HTTP error `409`)* A server error occurred (HTTP error `500`)
 // returns a GitOpsStatusable when successful
 // returns a ProblemDetails error when the service returns a 401 status code
 // returns a ProblemDetails error when the service returns a 403 status code
@@ -64,7 +64,7 @@ func (m *GitopsStatusRequestBuilder) Get(ctx context.Context, requestConfigurati
 	return res.(iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.GitOpsStatusable), nil
 }
 
-// ToGetRequestInformation **Experimental.** Returns the current synchronization status of the GitOps storage, including the current commit SHA, sync state, load statistics, and any errors from the last sync attempt.This endpoint is only available when GitOps storage is enabled (`apicurio.storage.kind=gitops`). Returns HTTP 409 (Conflict) if a different storage backend is active.This operation can fail for the following reasons:* GitOps storage is not enabled (HTTP error `409`)* A server error occurred (HTTP error `500`)
+// ToGetRequestInformation returns the current synchronization status of the GitOps storage, including the current commit SHA, sync state, load statistics, and any errors from the last sync attempt.This endpoint is only available when GitOps storage is enabled (`apicurio.storage.kind=gitops`). Returns HTTP 409 (Conflict) if a different storage backend is active.This operation can fail for the following reasons:* GitOps storage is not enabled (HTTP error `409`)* A server error occurred (HTTP error `500`)
 // returns a *RequestInformation when successful
 func (m *GitopsStatusRequestBuilder) ToGetRequestInformation(ctx context.Context, requestConfiguration *GitopsStatusRequestBuilderGetRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.GET, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)

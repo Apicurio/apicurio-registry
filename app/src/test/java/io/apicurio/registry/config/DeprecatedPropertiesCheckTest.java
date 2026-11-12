@@ -13,6 +13,8 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -142,7 +144,13 @@ public class DeprecatedPropertiesCheckTest {
                 "apicurio.kafkasql.ssl.keystore.location",
                 "apicurio.kafkasql.ssl.keystore.type",
                 "apicurio.kafkasql.ssl.keystore.password",
-                "apicurio.kafkasql.ssl.key.password"), oldNames);
+                "apicurio.kafkasql.ssl.key.password",
+                "apicurio.gitops.id",
+                "apicurio.kubernetesops.id",
+                "apicurio.gitops.repo.origin.branch",
+                "apicurio.gitops.refresh.every",
+                "apicurio.gitops.repo.origin.uri",
+                "apicurio.gitops.workdir"), oldNames);
         List<String> replacementNames = defaultCheck.getRegistry().stream()
                 .map(DeprecatedPropertiesCheck.DeprecatedPropertyDef::getReplacementName).toList();
         // The JSON Schema checker and dead-threshold properties have no replacement: they do nothing.
@@ -153,7 +161,57 @@ public class DeprecatedPropertiesCheckTest {
                 "apicurio.kafkasql.security.ssl.keystore.location",
                 "apicurio.kafkasql.security.ssl.keystore.type",
                 "apicurio.kafkasql.security.ssl.keystore.password",
-                "apicurio.kafkasql.security.ssl.key.password"), replacementNames);
+                "apicurio.kafkasql.security.ssl.key.password",
+                "apicurio.polling-storage.id",
+                "apicurio.polling-storage.id",
+                "apicurio.gitops.repo.branch",
+                "apicurio.polling-storage.poll-period",
+                null,
+                null), replacementNames);
+    }
+
+    /**
+     * The GitOps and KubernetesOps properties that 3.3.0 removed are reported as removed, so a 3.2
+     * configuration fails at startup with the replacement, instead of starting without its settings.
+     */
+    @Test
+    void testGitOpsPropertiesRemovedIn330FailStartup() {
+        DeprecatedPropertiesCheck defaultCheck = new DeprecatedPropertiesCheck();
+        defaultCheck.config = config;
+        defaultCheck.log = log;
+        when(config.getOptionalValue(anyString(), eq(String.class)))
+                .thenReturn(Optional.empty());
+        when(config.getOptionalValue("apicurio.gitops.id", String.class)).thenReturn(Optional.of("prod"));
+        when(config.getOptionalValue("apicurio.gitops.repo.origin.uri", String.class))
+                .thenReturn(Optional.of("https://github.com/example/repo.git"));
+        when(config.getOptionalValue("apicurio.gitops.refresh.every", String.class)).thenReturn(Optional.of("30s"));
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> defaultCheck.validate());
+
+        assertTrue(ex.getMessage().contains(
+                "Property 'apicurio.gitops.id' was removed in 3.3.0. Use 'apicurio.polling-storage.id' instead."),
+                ex.getMessage());
+        assertTrue(ex.getMessage().contains("Property 'apicurio.gitops.repo.origin.uri' was removed in 3.3.0."
+                + " The registry no longer clones the repository: run the GitOps sync container and set its"
+                + " APICURIO_GITOPS_REPO_URL variable."), ex.getMessage());
+        assertTrue(ex.getMessage().contains("Property 'apicurio.gitops.refresh.every' was removed in 3.3.0."
+                + " Use 'apicurio.polling-storage.poll-period' instead. It takes an ISO-8601 duration, for example PT30S."),
+                ex.getMessage());
+        verify(log).error("{}", "Property 'apicurio.gitops.refresh.every' was removed in 3.3.0."
+                + " Use 'apicurio.polling-storage.poll-period' instead. It takes an ISO-8601 duration, for example PT30S.");
+    }
+
+    @Test
+    void testCurrentGitOpsPropertiesPass() {
+        DeprecatedPropertiesCheck defaultCheck = new DeprecatedPropertiesCheck();
+        defaultCheck.config = config;
+        defaultCheck.log = log;
+        when(config.getOptionalValue(anyString(), eq(String.class)))
+                .thenReturn(Optional.empty());
+        when(config.getOptionalValue("apicurio.polling-storage.id", String.class)).thenReturn(Optional.of("prod"));
+        when(config.getOptionalValue("apicurio.gitops.repo.branch", String.class)).thenReturn(Optional.of("main"));
+
+        assertDoesNotThrow(() -> defaultCheck.validate());
     }
 
     /**

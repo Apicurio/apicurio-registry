@@ -27,6 +27,7 @@ import java.util.Optional;
 public class DeprecatedPropertiesCheck {
 
     private static final String VERSION_3_1_0 = "3.1.0";
+    private static final String VERSION_3_3_0 = "3.3.0";
     private static final String VERSION_4_0_0 = "4.0.0";
 
     public static class DeprecatedPropertyDef {
@@ -43,7 +44,8 @@ public class DeprecatedPropertiesCheck {
 
         /**
          * @param note added to the deprecation warning when there is no replacement, to say what
-         *             becomes of the property in the meantime; may be {@code null}
+         *             becomes of the property in the meantime, and to the error for a removed
+         *             property, to say what to do instead; may be {@code null}
          */
         public DeprecatedPropertyDef(String oldName, String replacementName, String deprecatedSince, String removeInVersion, boolean removed,
                 String note) {
@@ -101,7 +103,21 @@ public class DeprecatedPropertiesCheck {
                 new DeprecatedPropertyDef("apicurio.kafkasql.ssl.keystore.location", "apicurio.kafkasql.security.ssl.keystore.location", VERSION_3_1_0, VERSION_4_0_0, false),
                 new DeprecatedPropertyDef("apicurio.kafkasql.ssl.keystore.type", "apicurio.kafkasql.security.ssl.keystore.type", VERSION_3_1_0, VERSION_4_0_0, false),
                 new DeprecatedPropertyDef("apicurio.kafkasql.ssl.keystore.password", "apicurio.kafkasql.security.ssl.keystore.password", VERSION_3_1_0, VERSION_4_0_0, false),
-                new DeprecatedPropertyDef("apicurio.kafkasql.ssl.key.password", "apicurio.kafkasql.security.ssl.key.password", VERSION_3_1_0, VERSION_4_0_0, false)
+                new DeprecatedPropertyDef("apicurio.kafkasql.ssl.key.password", "apicurio.kafkasql.security.ssl.key.password", VERSION_3_1_0, VERSION_4_0_0, false),
+                // Removed from GitOps and KubernetesOps storage in 3.3.0, while both were experimental,
+                // without a deprecation period. They have had no effect since, so a 3.2 configuration
+                // started without its registry ID and never became ready. Failing startup says why.
+                new DeprecatedPropertyDef("apicurio.gitops.id", "apicurio.polling-storage.id", VERSION_3_3_0, VERSION_3_3_0, true),
+                new DeprecatedPropertyDef("apicurio.kubernetesops.id", "apicurio.polling-storage.id", VERSION_3_3_0, VERSION_3_3_0, true),
+                new DeprecatedPropertyDef("apicurio.gitops.repo.origin.branch", "apicurio.gitops.repo.branch", VERSION_3_3_0, VERSION_3_3_0, true),
+                new DeprecatedPropertyDef("apicurio.gitops.refresh.every", "apicurio.polling-storage.poll-period", VERSION_3_3_0, VERSION_3_3_0, true,
+                        "It takes an ISO-8601 duration, for example PT30S."),
+                new DeprecatedPropertyDef("apicurio.gitops.repo.origin.uri", null, VERSION_3_3_0, VERSION_3_3_0, true,
+                        "The registry no longer clones the repository: run the GitOps sync container and set its"
+                                + " APICURIO_GITOPS_REPO_URL variable."),
+                new DeprecatedPropertyDef("apicurio.gitops.workdir", null, VERSION_3_3_0, VERSION_3_3_0, true,
+                        "The registry reads repositories from apicurio.gitops.workspace, where the GitOps sync"
+                                + " container keeps them.")
         ));
     }
 
@@ -145,7 +161,15 @@ public class DeprecatedPropertiesCheck {
     }
 
     private void reportRemoved(DeprecatedPropertyDef def, List<String> violations) {
-        if (def.getReplacementName() != null) {
+        if (def.getNote() != null) {
+            String message = def.getReplacementName() != null
+                    ? String.format("Property '%s' was removed in %s. Use '%s' instead. %s",
+                            def.getOldName(), def.getRemoveInVersion(), def.getReplacementName(), def.getNote())
+                    : String.format("Property '%s' was removed in %s. %s",
+                            def.getOldName(), def.getRemoveInVersion(), def.getNote());
+            log.error("{}", message);
+            violations.add(message);
+        } else if (def.getReplacementName() != null) {
             log.error("Property '{}' was removed in {}. Use '{}' instead.",
                     def.getOldName(), def.getRemoveInVersion(), def.getReplacementName());
             violations.add(String.format("Property '%s' was removed in %s. Use '%s' instead.",

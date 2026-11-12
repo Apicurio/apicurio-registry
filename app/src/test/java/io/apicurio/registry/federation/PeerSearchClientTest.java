@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -452,6 +453,52 @@ class PeerSearchClientTest {
             release.countDown();
             await().atMost(10, TimeUnit.SECONDS)
                     .untilAsserted(() -> assertNull(failureOf(client.search(other, QUERY))));
+        }
+    }
+
+    @Test
+    void aPeerWhoseNameLookupsHangCannotTakeEveryPlaceForCalls() throws Exception {
+        config.searchMaxConcurrentCalls = 8;
+        CountDownLatch release = new CountDownLatch(1);
+        AtomicInteger hangingLookups = new AtomicInteger();
+        try (StubPeer answering = StubPeer.start(vertx, (request, response) -> StubPeer.publicAgents(response, 0))) {
+            started(client);
+            client.resolver = host -> {
+                if (!"hanging.test".equals(host)) {
+                    return new InetAddress[] { InetAddress.getByAddress(new byte[] { 127, 0, 0, 1 }) };
+                }
+                hangingLookups.incrementAndGet();
+                try {
+                    release.await(10, TimeUnit.SECONDS);
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                }
+                throw new UnknownHostException(host);
+            };
+            PeerDto hanging = PeerDto.builder().peerId("hanging").url("http://hanging.test:9").enabled(true).build();
+            PeerDto other = PeerDto.builder().peerId("other").url("http://peer.test:" + answering.port())
+                    .enabled(true).build();
+
+            List<PeerCall> held = new ArrayList<>();
+            for (int i = 0; i < 4; i++) {
+                held.add(client.search(hanging, QUERY));
+            }
+            await().atMost(10, TimeUnit.SECONDS).until(() -> hangingLookups.get() == 4);
+
+            // A fifth call to the same peer is refused without a lookup, and other peers still have room.
+            assertInstanceOf(PeerSearchException.CapacityExceeded.class, failed(client.search(hanging, QUERY)));
+            assertEquals(4, hangingLookups.get());
+            assertNull(failureOf(client.search(other, QUERY)));
+
+            // Once the lookups end, the peer may be looked up again.
+            release.countDown();
+            for (PeerCall call : held) {
+                assertNotNull(failureOf(call));
+            }
+            await().atMost(10, TimeUnit.SECONDS).untilAsserted(() -> {
+                assertInstanceOf(PeerSearchException.Unreachable.class, failed(client.search(hanging, QUERY)));
+            });
+            assertTrue(hangingLookups.get() > 4);
         }
     }
 

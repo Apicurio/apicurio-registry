@@ -50,7 +50,7 @@ jobs:
           echo "examples=$examples" >> "$GITHUB_OUTPUT"
 
   run:
-    name: Example ${{ matrix.example.name }}
+    name: Example ${{ matrix.example.name }}${{ matrix.example.variant && format(' ({0})', matrix.example.variant) || '' }}
     needs: discover
     if: needs.discover.outputs.examples != '[]'
     runs-on: ubuntu-latest
@@ -66,6 +66,11 @@ jobs:
       REGISTRY_IMAGE: apicurio/apicurio-registry:${{ inputs.image-tag }}
       REGISTRY_UI_IMAGE: apicurio/apicurio-registry-ui:${{ inputs.image-tag }}
       UI_IMAGE: apicurio/apicurio-registry-ui:${{ inputs.image-tag }}
+      # The CI_MATRIX value this job runs, if the example has one (see examples/TEMPLATE.md). It is
+      # also the Compose profile: the image check, start, logs and stop steps then cover the
+      # variant's services (an example with a matrix puts each variant in a profile of that name).
+      CI_VARIANT: ${{ matrix.example.variant }}
+      COMPOSE_PROFILES: ${{ matrix.example.variant }}
       MCP_SERVER_IMAGE: apicurio/apicurio-registry-mcp-server:${{ inputs.image-tag }}
     steps:
       - name: Checkout Code
@@ -133,6 +138,8 @@ jobs:
           fi
 
       - name: Start the stack
+        # A self-managed example starts its own containers in demo.sh
+        if: ${{ !matrix.example.selfManaged }}
         run: |
           # Images not built here (Keycloak, Varnish, ...) come from public registries, which can
           # rate-limit or fail transiently; retry before failing the example.
@@ -160,7 +167,7 @@ jobs:
         if: failure() || cancelled()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          name: example-logs-${{ matrix.example.name }}
+          name: example-logs-${{ matrix.example.name }}${{ matrix.example.variant && format('-{0}', matrix.example.variant) || '' }}
           path: ${{ runner.temp }}/compose.log
 
       - name: Stop the stack

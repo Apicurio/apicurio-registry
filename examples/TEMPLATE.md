@@ -72,6 +72,8 @@ saying why:
 | `CI_TIMEOUT_MINUTES` | `20` | Job timeout |
 | `CI_ENABLED` | `true` | `false` skips the example in CI; say why, and prefer fixing it |
 | `CI_NEEDS_BUILD` | `false` | `true` sets up a JDK and the Maven cache, then runs the example's `build.sh` before `demo.sh` |
+| `CI_MATRIX` | none | Space-separated values: one job per value, for an example too long for one job. Each job sets `CI_VARIANT` and `COMPOSE_PROFILES` to its value, so put each variant's services in a Compose profile of that name |
+| `CI_SELF_MANAGED` | `false` | `true`: `demo.sh` starts and stops its own containers, for an example that must prepare something first; the runner skips its start step |
 | any other key | | Exported to `docker compose` and `demo.sh`, for example `SKIP_LLM=1` |
 
 **Java clients.** Snapshots of the client libraries (SDK, serdes, validation library) are not

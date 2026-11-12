@@ -58,6 +58,12 @@ wait_for() {
 echo "Waiting for Keycloak and the registries..."
 wait_for Keycloak "$KEYCLOAK/realms/registry"
 for r in "$REGISTRY" "$BASIC" "$PROXY" "$K8S"; do wait_for Registry "$r$V3/system/info"; done
+# nginx answers (401, or 502) before it can reach registry-proxy: wait for a real response through it
+deadline=$((SECONDS + 120))
+until [ "$(curl -s --max-time 5 -o /dev/null -w '%{http_code}' -u alice:alice "$PROXY$V3/system/info")" = 200 ]; do
+  [ "$SECONDS" -ge "$deadline" ] && { echo "The proxy cannot reach registry-proxy" >&2; exit 1; }
+  sleep 2
+done
 
 if [ ! -d clients/target/classes ] || [ ! -f ../../cli/target/quarkus-app/quarkus-run.jar ]; then
   echo "Building the clients, the Maven plugin and the CLI (first run only, a few minutes)..."

@@ -148,7 +148,7 @@ class HttpClientServiceTest {
                 default:
                     req.response().setStatusCode(404).end();
             }
-        }).listen(0, result -> {
+        }).listen(0).onComplete(result -> {
             if (result.succeeded()) {
                 stubServer = result.result();
                 baseUrl = "http://localhost:" + stubServer.actualPort();

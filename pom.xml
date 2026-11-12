@@ -145,7 +145,8 @@
     <maven.build.timestamp.format>yyyy-MM-dd HH:mm:ss</maven.build.timestamp.format>
     <timestamp>${maven.build.timestamp}</timestamp>
 
-    <maven.compiler.release>17</maven.compiler.release>
+    <!-- Quarkus 4 requires Java 21 (its artifacts are Java 21 bytecode). -->
+    <maven.compiler.release>21</maven.compiler.release>
 
     <tar.long.file.mode>posix</tar.long.file.mode>
 
@@ -158,7 +159,7 @@
     <!--
     WARNING: The following group of dependencies has to be aligned with the best corresponding Quarkus version.
     -->
-    <quarkus.version>3.33.4.1</quarkus.version>
+    <quarkus.version>4.0.0.CR1</quarkus.version>
     <!--
     # QOSDK
 
@@ -253,7 +254,6 @@
     <!-- Security overrides of Quarkus-managed transitive dependencies (CVE fixes) -->
     <jackson2.version>2.21.8</jackson2.version>
     <jackson3.version>3.1.8</jackson3.version>
-    <opentelemetry.version>1.62.0</opentelemetry.version>
     <bouncycastle.version>1.86</bouncycastle.version>
     <lz4-java.version>1.11.4</lz4-java.version>
     <httpclient5.version>5.6.5</httpclient5.version>
@@ -269,7 +269,7 @@
     <!-- Dependency versions -->
     <lombok.version>1.18.48</lombok.version>
     <commons-codec.version>1.23.0</commons-codec.version>
-    <netty.version>4.1.139.Final</netty.version>
+    <netty.version>4.2.20.Final</netty.version>
     <kafka-clients.version>3.9.2</kafka-clients.version>
     <kafka-oauth-client.version>0.18.1</kafka-oauth-client.version>
     <debezium.version>3.7.1.Final</debezium.version>
@@ -783,23 +783,6 @@
         <version>${netty.version}</version>
         <type>pom</type>
         <scope>import</scope>
-      </dependency>
-      <!-- CVE-2026-45292 (baggage parsing) is fixed in opentelemetry-api 1.62.0. Only the API/context/common
-           artifacts are overridden: importing the full 1.62 BOM breaks the Quarkus 3.33 exporters. -->
-      <dependency>
-        <groupId>io.opentelemetry</groupId>
-        <artifactId>opentelemetry-api</artifactId>
-        <version>${opentelemetry.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.opentelemetry</groupId>
-        <artifactId>opentelemetry-context</artifactId>
-        <version>${opentelemetry.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.opentelemetry</groupId>
-        <artifactId>opentelemetry-common</artifactId>
-        <version>${opentelemetry.version}</version>
       </dependency>
       <dependency>
         <groupId>com.squareup.wire</groupId>

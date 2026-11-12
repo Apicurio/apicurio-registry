@@ -111,7 +111,7 @@ class ConfigIndexProcessor {
                 .map(injectionPointInfo -> {
                     AnnotationInstance configPropertyAI = injectionPointInfo
                             .getRequiredQualifier(CONFIG_PROPERTY);
-                    AnnotationInstance infoAI = injectionPointInfo.getTarget().asField().annotation(INFO);
+                    AnnotationInstance infoAI = injectionPointInfo.getAnnotationTarget().asField().annotation(INFO);
 
                     String propertyName = configPropertyAI.value("name").asString();
                     AnnotationValue descriptionAV = infoAI.value("description");
@@ -132,7 +132,7 @@ class ConfigIndexProcessor {
     private static boolean isDynamicConfigProperty(InjectionPointInfo injectionPointInfo) {
         return injectionPointInfo.getRequiredQualifier(CONFIG_PROPERTY) != null
                 && injectionPointInfo.isField()
-                && injectionPointInfo.getTarget().asField().annotation(DYNAMIC) != null;
+                && injectionPointInfo.getAnnotationTarget().asField().annotation(DYNAMIC) != null;
     }
 
     private static boolean isExperimentalConfigProperty(InjectionPointInfo injectionPointInfo) {
@@ -140,7 +140,7 @@ class ConfigIndexProcessor {
                 || !injectionPointInfo.isField()) {
             return false;
         }
-        AnnotationInstance infoAnnotation = injectionPointInfo.getTarget().asField().annotation(INFO);
+        AnnotationInstance infoAnnotation = injectionPointInfo.getAnnotationTarget().asField().annotation(INFO);
         if (infoAnnotation == null) {
             return false;
         }

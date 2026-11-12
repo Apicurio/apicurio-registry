@@ -32,8 +32,8 @@ public final class ReferenceResolutionConfig {
     /**
      * Reads {@link #MAX_DEPTH_PROPERTY} directly via {@link ConfigProvider} rather than injecting it,
      * since every caller of this method is either a static utility called from many places, not all of
-     * them CDI beans with that property already available (see {@code HttpCompressionWriterInterceptor}
-     * and {@code GitOpsConfig} for the same pattern elsewhere in this codebase), or, for
+     * them CDI beans with that property already available (see {@code GitOpsConfig} for the same
+     * pattern elsewhere in this codebase), or, for
      * {@code AvroCanonicalHashUpgrader}, constructed with {@code new} outside CDI entirely. The value is
      * re-read on every call rather than cached, matching how {@code @ConfigProperty}-injected fields pick
      * up config changes only on redeploy anyway — this is not on a hot enough path for that to matter.

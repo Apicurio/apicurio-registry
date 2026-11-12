@@ -273,7 +273,7 @@ When you enable the OpenTelemetry SDK and use JSON logging format, {registry} au
 ----
 environment:
   QUARKUS_OTEL_SDK_DISABLED: "false"
-  QUARKUS_LOG_CONSOLE_JSON: "true"
+  QUARKUS_LOG_CONSOLE_JSON_ENABLED: "true"
 ----
 
 

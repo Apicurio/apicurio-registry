@@ -145,8 +145,9 @@
     <maven.build.timestamp.format>yyyy-MM-dd HH:mm:ss</maven.build.timestamp.format>
     <timestamp>${maven.build.timestamp}</timestamp>
 
-    <!-- Quarkus 4 requires Java 21 (its artifacts are Java 21 bytecode). -->
-    <maven.compiler.release>21</maven.compiler.release>
+    <!-- Client libraries (SDK, SerDes, schema utilities, ...) target Java 17. Modules that build
+         against Quarkus 4 (Java 21 bytecode) override this with 21. -->
+    <maven.compiler.release>17</maven.compiler.release>
 
     <tar.long.file.mode>posix</tar.long.file.mode>
 
@@ -166,6 +167,7 @@
     Go to the extension parent POM, e.g. https://repo1.maven.org/maven2/io/quarkiverse/operatorsdk/quarkus-operator-sdk-parent/7.1.4/quarkus-operator-sdk-parent-7.1.4.pom
     to check that the versions match as best as possible:
 
+    - QOSDK 7.8.0 -> Quarkus 3.38.0 (used with Quarkus 4.0.0.CR1 until a Quarkus 4 QOSDK release exists)
     - QOSDK 7.7.6 -> Quarkus 3.33.4 (using 3.33.4.1 patch)
     - QOSDK 7.7.3 -> Quarkus 3.33.1 (using 3.33.3.1 patch)
     - QOSDK 7.2.1 -> Quarkus 3.27.0 (using 3.27.2 patch)
@@ -173,8 +175,8 @@
     - QOSDK 7.1.4 -> Quarkus 3.20.1
     - QOSDK 7.1.3 -> Quarkus 3.20.0
     -->
-    <quarkus-operator-sdk.version>7.7.6</quarkus-operator-sdk.version>
-    <java-operator-sdk.version>5.3.4</java-operator-sdk.version>
+    <quarkus-operator-sdk.version>7.8.0</quarkus-operator-sdk.version>
+    <java-operator-sdk.version>5.5.0</java-operator-sdk.version>
     <!--
     # Quarkus MCP Server
 

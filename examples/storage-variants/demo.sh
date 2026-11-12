@@ -109,7 +109,6 @@ run_postgresql() {
     "$(compose exec -T postgres psql -U registry -d registry -tAc "select propvalue from apicurio where propname = 'db_version'")"
   restart registry-pg-a "$A"
   check "after a restart, the data is still there" "1,2" "$(eventually 60 "1,2" versions "$A")"
-  down
 }
 
 # ----------------------------------------------------------------------------------------- mysql
@@ -121,7 +120,6 @@ run_mysql() {
     "$(compose exec -T mysql mysql -uregistry -pregistry registry -sNe "select propValue from apicurio where propName = 'db_version'" 2>/dev/null)"
   restart registry-mysql "$A"
   check "after a restart, the data is still there" "1,2" "$(eventually 60 "1,2" versions "$A")"
-  down
 }
 
 # ----------------------------------------------------------------------------------------- mssql
@@ -131,7 +129,6 @@ run_mssql() {
   writable_checks "$A"
   restart registry-mssql "$A"
   check "after a restart, the data is still there" "1,2" "$(eventually 60 "1,2" versions "$A")"
-  down
 }
 
 # -------------------------------------------------------------------------------------- kafkasql
@@ -140,9 +137,11 @@ run_kafkasql() {
   up kafkasql || return 0
   writable_checks "$A"
   check "the other replica catches up from the topic" "1,2" "$(eventually 30 "1,2" versions "$B")"
-  check "a setting changed on one replica reaches the other" 409 \
-    "$(code PUT "$A/admin/config/properties/apicurio.storage.read-only.enabled" '{"value": "true"}' > /dev/null
-       eventually 30 409 code POST "$B/groups" '{"groupId": "blocked-b"}')"
+  code PUT "$A/admin/config/properties/apicurio.storage.read-only.enabled" '{"value": "true"}' > /dev/null
+  read_only_b() { get "$B/system/uiConfig" | jq -r .features.readOnly; }
+  check "a setting changed on one replica reaches the other (read-only mode on B)" true "$(eventually 30 true read_only_b)"
+  check "  so B refuses a write" 409 "$(code POST "$B/groups" '{"groupId": "blocked-b"}')"
+  check "  and B did not create it" 404 "$(code GET "$B/groups/blocked-b")"
   code PUT "$A/admin/config/properties/apicurio.storage.read-only.enabled" '{"value": "false"}' > /dev/null
   local config
   config=$(compose exec -T kafka /opt/kafka/bin/kafka-configs.sh --bootstrap-server kafka:9092 \
@@ -151,7 +150,6 @@ run_kafkasql() {
     "$(grep -q 'cleanup.policy=delete' <<< "$config" && echo yes || echo no) $(grep -q 'retention.ms=-1' <<< "$config" && echo yes || echo no)"
   restart registry-kafkasql-b "$B"
   check "a restarted replica rebuilds everything from the topic" "1,2" "$(eventually 60 "1,2" versions "$B")"
-  down
 }
 
 # ---------------------------------------------------------------------------------------- gitops
@@ -221,7 +219,6 @@ EOF
   global_id() { get "$A/groups/orders/artifacts/order-placed/versions/1" | jq -r .globalId; }
   check "after a restart (empty in-memory copy, reloaded from git), the same global ID" "$gid" \
     "$(eventually 60 "$gid" global_id)"
-  [ -n "${KEEP:-}" ] || down
 }
 
 # --------------------------------------------------------------------------------- kubernetesops
@@ -234,14 +231,16 @@ run_kubernetesops() {
     "$(get "$A/system/uiConfig" | jq -r '"\(.features.readOnly) \(.features.readOnlyReason)"')"
   compose exec -T k3s kubectl apply -n registry -f - < configmaps/v2.yaml > /dev/null
   check "an updated ConfigMap is picked up: version 2 appears" "1,2" "$(eventually 60 "1,2" versions "$A")"
-  down
 }
 
+last=$(echo $VARIANTS | awk '{print $NF}')
 for v in $VARIANTS; do
   case "$v" in
     postgresql | mysql | mssql | kafkasql | gitops | kubernetesops) "run_$v" ;;
     *) fail "unknown variant '$v'" ;;
   esac
+  # Every variant is removed before the next starts; KEEP=1 leaves only the last one running
+  if [ -z "${KEEP:-}" ] || [ "$v" != "$last" ]; then down; fi
 done
 
 if [[ $failures -gt 0 ]]; then

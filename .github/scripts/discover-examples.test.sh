@@ -37,7 +37,7 @@ example "$d" b-compose-yml compose.yml
 example "$d" c-docker-yaml docker-compose.yaml
 example "$d" d-docker-yml docker-compose.yml
 assert "all Compose file names, default timeout" \
-  '[{"name":"a-compose","timeout":20,"build":false},{"name":"b-compose-yml","timeout":20,"build":false},{"name":"c-docker-yaml","timeout":20,"build":false},{"name":"d-docker-yml","timeout":20,"build":false}]' \
+  '[{"name":"a-compose","timeout":20,"build":false,"variant":"","selfManaged":false},{"name":"b-compose-yml","timeout":20,"build":false,"variant":"","selfManaged":false},{"name":"c-docker-yaml","timeout":20,"build":false,"variant":"","selfManaged":false},{"name":"d-docker-yml","timeout":20,"build":false,"variant":"","selfManaged":false}]' \
   "$(bash "$script" "$d" 2>/dev/null)"
 
 # --- a directory without demo.sh is not an example; demo.sh without Compose is skipped with a warning
@@ -45,7 +45,7 @@ d="$work/skips"
 mkdir -p "$d/no-demo"; touch "$d/no-demo/docker-compose.yml"
 example "$d" no-compose
 example "$d" runnable docker-compose.yml
-assert "only runnable examples are listed" '[{"name":"runnable","timeout":20,"build":false}]' "$(bash "$script" "$d" 2>/dev/null)"
+assert "only runnable examples are listed" '[{"name":"runnable","timeout":20,"build":false,"variant":"","selfManaged":false}]' "$(bash "$script" "$d" 2>/dev/null)"
 assert "missing Compose file is reported" "::warning::no-compose has demo.sh but no Compose file; skipped" \
   "$(bash "$script" "$d" 2>&1 >/dev/null)"
 
@@ -55,20 +55,41 @@ example "$d" slow docker-compose.yml
 printf '# needs the model download\nCI_TIMEOUT_MINUTES=10\nCI_TIMEOUT_MINUTES=35\nSKIP_LLM=1\n' > "$d/slow/ci.env"
 example "$d" off docker-compose.yml
 printf '# needs kind\nCI_ENABLED=false\n' > "$d/off/ci.env"
-assert "ci.env timeout and CI_ENABLED" '[{"name":"slow","timeout":35,"build":false}]' "$(bash "$script" "$d" 2>/dev/null)"
+assert "ci.env timeout and CI_ENABLED" '[{"name":"slow","timeout":35,"build":false,"variant":"","selfManaged":false}]' "$(bash "$script" "$d" 2>/dev/null)"
 
 # --- CI_NEEDS_BUILD needs an executable build.sh
 d="$work/build"
 example "$d" java docker-compose.yml
 echo 'CI_NEEDS_BUILD=true' > "$d/java/ci.env"
 printf '#!/usr/bin/env bash\n' > "$d/java/build.sh"; chmod 755 "$d/java/build.sh"
-assert "CI_NEEDS_BUILD=true with build.sh" '[{"name":"java","timeout":20,"build":true}]' "$(bash "$script" "$d" 2>/dev/null)"
+assert "CI_NEEDS_BUILD=true with build.sh" '[{"name":"java","timeout":20,"build":true,"variant":"","selfManaged":false}]' "$(bash "$script" "$d" 2>/dev/null)"
 chmod 644 "$d/java/build.sh"
 bash "$script" "$d" > /dev/null 2>&1
 assert "CI_NEEDS_BUILD=true without an executable build.sh exits 1" 1 "$?"
 echo 'CI_NEEDS_BUILD=yes' > "$d/java/ci.env"
 bash "$script" "$d" > /dev/null 2>&1
 assert "CI_NEEDS_BUILD that is not true/false exits 1" 1 "$?"
+
+# --- CI_MATRIX: one entry per value
+d="$work/matrix"
+example "$d" multi docker-compose.yml
+printf 'CI_MATRIX=pg kafka-sql\nCI_TIMEOUT_MINUTES=30\n' > "$d/multi/ci.env"
+assert "CI_MATRIX gives one entry per value" \
+  '[{"name":"multi","timeout":30,"build":false,"variant":"pg","selfManaged":false},{"name":"multi","timeout":30,"build":false,"variant":"kafka-sql","selfManaged":false}]' \
+  "$(bash "$script" "$d" 2>/dev/null)"
+echo 'CI_MATRIX=bad;value' > "$d/multi/ci.env"
+bash "$script" "$d" > /dev/null 2>&1
+assert "CI_MATRIX with an invalid value exits 1" 1 "$?"
+
+# --- CI_SELF_MANAGED
+d="$work/managed"
+example "$d" own docker-compose.yml
+echo 'CI_SELF_MANAGED=true' > "$d/own/ci.env"
+assert "CI_SELF_MANAGED=true" '[{"name":"own","timeout":20,"build":false,"variant":"","selfManaged":true}]' \
+  "$(bash "$script" "$d" 2>/dev/null)"
+echo 'CI_SELF_MANAGED=yes' > "$d/own/ci.env"
+bash "$script" "$d" > /dev/null 2>&1
+assert "CI_SELF_MANAGED that is not true/false exits 1" 1 "$?"
 
 # --- errors fail the discovery instead of silently dropping an example
 d="$work/badtimeout"

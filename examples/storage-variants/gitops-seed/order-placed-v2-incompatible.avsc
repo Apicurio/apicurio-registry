@@ -1,0 +1,2 @@
+{"type": "record", "name": "OrderPlaced", "namespace": "com.example.orders",
+ "fields": [{"name": "orderId", "type": "long"}]}

@@ -17,7 +17,7 @@ It manages a local Git repository on a shared volume that the registry reads fro
 
 ## Quick Start
 
-See [`examples/gitops/`](../../examples/gitops/) for ready-to-run Docker Compose examples
+See [`compose/`](compose/) for ready-to-run Docker Compose examples
 covering local volume, HTTPS pull, and SSH pull setups.
 
 ### Kubernetes / OpenShift
@@ -275,5 +275,6 @@ bash distro/gitops/tests/test-safe-directory.sh
 ## Related Documentation
 
 - [GitOps Storage Overview](../../app/src/main/java/io/apicurio/registry/storage/impl/gitops/README.md) — architecture, configuration, management API, data format, error handling
-- [Docker Compose Examples](../../examples/gitops/) — ready-to-run examples for local volume, HTTPS pull, and SSH pull
+- [Docker Compose Examples](compose/) — ready-to-run examples for HTTPS pull, SSH pull, multi-repo pull and push
+- [Storage variants example](../../examples/storage-variants/) — GitOps storage with a local repository, with checks
 - [GitOps Design Epic](https://github.com/Apicurio/apicurio-registry/issues/7480) — design document and implementation plan

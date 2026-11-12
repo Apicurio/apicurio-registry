@@ -1,1 +1,2 @@
-work/
+work/repo/*
+!work/repo/.gitkeep

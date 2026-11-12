@@ -66,8 +66,11 @@ jobs:
       REGISTRY_IMAGE: apicurio/apicurio-registry:${{ inputs.image-tag }}
       REGISTRY_UI_IMAGE: apicurio/apicurio-registry-ui:${{ inputs.image-tag }}
       UI_IMAGE: apicurio/apicurio-registry-ui:${{ inputs.image-tag }}
-      # The CI_MATRIX value this job runs, if the example has one (see examples/TEMPLATE.md)
+      # The CI_MATRIX value this job runs, if the example has one (see examples/TEMPLATE.md). It is
+      # also the Compose profile: the image check, start, logs and stop steps then cover the
+      # variant's services (an example with a matrix puts each variant in a profile of that name).
       CI_VARIANT: ${{ matrix.example.variant }}
+      COMPOSE_PROFILES: ${{ matrix.example.variant }}
       MCP_SERVER_IMAGE: apicurio/apicurio-registry-mcp-server:${{ inputs.image-tag }}
     steps:
       - name: Checkout Code

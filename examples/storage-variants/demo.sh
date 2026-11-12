@@ -47,6 +47,8 @@ eventually() {
 # up <variant>: starts a variant's services and waits for them to be healthy
 up() {
   current=$1
+  # Start clean, whatever was running before (in CI, the runner may have started this profile)
+  compose down -v > /dev/null 2>&1 || true
   if ! compose up -d --wait > /tmp/storage-up.log 2>&1; then
     tail -20 /tmp/storage-up.log
     compose logs --no-color --tail 40
@@ -161,7 +163,10 @@ gitops_errors() { gitops_status | jq -r '.errors | length'; }
 
 run_gitops() {
   part "GitOps: a read-only registry loading a git repository"
-  rm -rf work/repo
+  current=gitops
+  compose down -v > /dev/null 2>&1 || true
+  # Empty the repository directory, but keep it: it is the bind mount's source
+  find work/repo -mindepth 1 -not -name .gitkeep -delete 2>/dev/null || true
   mkdir -p work/repo
   cp gitops-seed/registry.registry.yaml gitops-seed/orders.registry.yaml gitops-seed/order-placed.registry.yaml \
     gitops-seed/order-placed-v1.avsc work/repo/

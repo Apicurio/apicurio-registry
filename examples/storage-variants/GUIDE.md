@@ -205,7 +205,7 @@ KafkaSQL.
 
 ```bash
 docker compose --profile '*' down -v
-rm -rf work
+find work/repo -mindepth 1 -not -name .gitkeep -delete
 ```
 
 ## Presenter notes

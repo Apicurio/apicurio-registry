@@ -1,7 +1,8 @@
 package io.apicurio.registry.storage.impl.sql;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.content.TypedContent;
@@ -107,12 +108,9 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         return DB_VERSION;
     }
 
-    private static final ObjectMapper mapper = new ObjectMapper();
-
-    static {
-        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        mapper.configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, true);
-    }
+    private static final ObjectMapper mapper = JsonMapper.builder()
+            .configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, true)
+            .build();
 
 
     @Inject
@@ -461,9 +459,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
      */
     protected int getDatabaseVersionRaw(Handle handle) {
         try {
-            int version = handle.createQuery(this.sqlStatements.getDatabaseVersion()).bind(0, "db_version")
+            return handle.createQuery(this.sqlStatements.getDatabaseVersion()).bind(0, "db_version")
                     .mapTo(Integer.class).one();
-            return version;
         } catch (Exception e) {
             log.error("Error getting DB version.", e);
             return 0;

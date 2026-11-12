@@ -3,8 +3,9 @@ package io.apicurio.registry.agents.content.extract;
 import io.apicurio.registry.content.extract.StructuredContentExtractor;
 import io.apicurio.registry.content.extract.StructuredElement;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.apicurio.registry.content.ContentHandle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,7 +24,7 @@ public class ModelSchemaStructuredContentExtractor implements StructuredContentE
 
     private static final Logger log = LoggerFactory.getLogger(ModelSchemaStructuredContentExtractor.class);
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new JsonMapper();
 
     @Override
     public List<StructuredElement> extract(ContentHandle content) {
@@ -46,8 +47,8 @@ public class ModelSchemaStructuredContentExtractor implements StructuredContentE
     private void extractTextField(JsonNode root, String fieldName, String elementType,
             List<StructuredElement> elements) {
         JsonNode field = root.path(fieldName);
-        if (!field.isMissingNode() && field.isTextual()) {
-            elements.add(new StructuredElement(elementType, field.asText()));
+        if (!field.isMissingNode() && field.isString()) {
+            elements.add(new StructuredElement(elementType, field.asString()));
         }
     }
 
@@ -57,7 +58,7 @@ public class ModelSchemaStructuredContentExtractor implements StructuredContentE
         if (!schema.isMissingNode() && schema.isObject()) {
             JsonNode properties = schema.path("properties");
             if (!properties.isMissingNode() && properties.isObject()) {
-                Iterator<String> fieldNames = properties.fieldNames();
+                Iterator<String> fieldNames = properties.propertyNames().iterator();
                 while (fieldNames.hasNext()) {
                     elements.add(new StructuredElement(elementType, fieldNames.next()));
                 }

@@ -1,14 +1,14 @@
 package io.apicurio.registry.json.content.extract;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.ExtractedMetaData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
+import tools.jackson.core.JacksonException;
 
 /**
  * Performs meta-data extraction for JSON Schema content.
@@ -17,7 +17,7 @@ public class JsonContentExtractor implements ContentExtractor {
 
     Logger log = LoggerFactory.getLogger(getClass());
 
-    private ObjectMapper mapper = new ObjectMapper();
+    private ObjectMapper mapper = new JsonMapper();
 
     @Override
     public ExtractedMetaData extract(ContentHandle content) {
@@ -29,16 +29,16 @@ public class JsonContentExtractor implements ContentExtractor {
             ExtractedMetaData metaData = null;
             if (title != null && !title.isNull()) {
                 metaData = new ExtractedMetaData();
-                metaData.setName(title.asText());
+                metaData.setName(title.asString());
             }
             if (desc != null && !desc.isNull()) {
                 if (metaData == null) {
                     metaData = new ExtractedMetaData();
                 }
-                metaData.setDescription(desc.asText());
+                metaData.setDescription(desc.asString());
             }
             return metaData;
-        } catch (IOException e) {
+        } catch (JacksonException e) {
             log.warn("Error extracting metadata from JSON: {}", e.getMessage());
             return null;
         }

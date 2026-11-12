@@ -3,7 +3,7 @@ package io.apicurio.registry.agents.rules.validity;
 import io.apicurio.registry.rules.validity.AbstractContentValidator;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
@@ -131,10 +131,10 @@ public class AgentCardContentValidator extends AbstractContentValidator {
         if (!tree.has(fieldName)) {
             violations.add(new RuleViolation(
                     "Agent Card must have a '" + fieldName + "' field", "/" + fieldName));
-        } else if (!tree.get(fieldName).isTextual()) {
+        } else if (!tree.get(fieldName).isString()) {
             violations.add(new RuleViolation(
                     "'" + fieldName + "' field must be a string", "/" + fieldName));
-        } else if (tree.get(fieldName).asText().trim().isEmpty()) {
+        } else if (tree.get(fieldName).asString().trim().isEmpty()) {
             violations.add(new RuleViolation(
                     "'" + fieldName + "' field must not be empty", "/" + fieldName));
         }
@@ -145,7 +145,7 @@ public class AgentCardContentValidator extends AbstractContentValidator {
         if (!tree.has(fieldName)) {
             violations.add(new RuleViolation(
                     "Agent Card must have a '" + fieldName + "' field", "/" + fieldName));
-        } else if (!tree.get(fieldName).isTextual()) {
+        } else if (!tree.get(fieldName).isString()) {
             violations.add(new RuleViolation(
                     "'" + fieldName + "' field must be a string", "/" + fieldName));
         }
@@ -171,17 +171,17 @@ public class AgentCardContentValidator extends AbstractContentValidator {
             return;
         }
 
-        if (!provider.has("organization") || !provider.get("organization").isTextual()) {
+        if (!provider.has("organization") || !provider.get("organization").isString()) {
             violations.add(new RuleViolation(
                     "'provider.organization' is required and must be a string",
                     "/provider/organization"));
         }
 
-        if (!provider.has("url") || !provider.get("url").isTextual()) {
+        if (!provider.has("url") || !provider.get("url").isString()) {
             violations.add(new RuleViolation(
                     "'provider.url' is required and must be a string", "/provider/url"));
         } else {
-            JsonValidationUtils.validateHttpUrl(provider.get("url").asText(), "/provider/url", violations);
+            JsonValidationUtils.validateHttpUrl(provider.get("url").asString(), "/provider/url", violations);
         }
     }
 
@@ -202,20 +202,20 @@ public class AgentCardContentValidator extends AbstractContentValidator {
                 continue;
             }
 
-            if (!iface.has("url") || !iface.get("url").isTextual()) {
+            if (!iface.has("url") || !iface.get("url").isString()) {
                 violations.add(new RuleViolation(
                         "Interface 'url' is required and must be a string", basePath + "/url"));
             } else {
-                JsonValidationUtils.validateHttpUrl(iface.get("url").asText(), basePath + "/url", violations);
+                JsonValidationUtils.validateHttpUrl(iface.get("url").asString(), basePath + "/url", violations);
             }
 
-            if (!iface.has("protocolBinding") || !iface.get("protocolBinding").isTextual()) {
+            if (!iface.has("protocolBinding") || !iface.get("protocolBinding").isString()) {
                 violations.add(new RuleViolation(
                         "Interface 'protocolBinding' is required and must be a string",
                         basePath + "/protocolBinding"));
             }
 
-            if (!iface.has(PROTOCOL_VERSION) || !iface.get(PROTOCOL_VERSION).isTextual()) {
+            if (!iface.has(PROTOCOL_VERSION) || !iface.get(PROTOCOL_VERSION).isString()) {
                 violations.add(new RuleViolation(
                         "Interface 'protocolVersion' is required and must be a string",
                         basePath + "/protocolVersion"));
@@ -308,9 +308,9 @@ public class AgentCardContentValidator extends AbstractContentValidator {
         if (!skill.has("id")) {
             violations.add(new RuleViolation(
                     SKILL_AT_INDEX + index + " must have an 'id' field", basePath + "/id"));
-        } else if (!skill.get("id").isTextual()) {
+        } else if (!skill.get("id").isString()) {
             violations.add(new RuleViolation("Skill 'id' must be a string", basePath + "/id"));
-        } else if (skill.get("id").asText().trim().isEmpty()) {
+        } else if (skill.get("id").asString().trim().isEmpty()) {
             violations.add(new RuleViolation("Skill 'id' must not be empty", basePath + "/id"));
         }
     }
@@ -320,7 +320,7 @@ public class AgentCardContentValidator extends AbstractContentValidator {
         if (!skill.has("name")) {
             violations.add(new RuleViolation(
                     SKILL_AT_INDEX + index + " must have a 'name' field", basePath + "/name"));
-        } else if (!skill.get("name").isTextual()) {
+        } else if (!skill.get("name").isString()) {
             violations.add(new RuleViolation("Skill 'name' must be a string", basePath + "/name"));
         }
 
@@ -328,7 +328,7 @@ public class AgentCardContentValidator extends AbstractContentValidator {
             violations.add(new RuleViolation(
                     SKILL_AT_INDEX + index + " must have a 'description' field",
                     basePath + "/description"));
-        } else if (!skill.get(DESCRIPTION).isTextual()) {
+        } else if (!skill.get(DESCRIPTION).isString()) {
             violations.add(new RuleViolation(
                     "Skill 'description' must be a string", basePath + "/description"));
         }
@@ -391,7 +391,7 @@ public class AgentCardContentValidator extends AbstractContentValidator {
             return;
         }
 
-        Iterator<String> fieldNames = schemes.fieldNames();
+        Iterator<String> fieldNames = schemes.propertyNames().iterator();
         while (fieldNames.hasNext()) {
             String schemeName = fieldNames.next();
             JsonNode scheme = schemes.get(schemeName);
@@ -444,12 +444,12 @@ public class AgentCardContentValidator extends AbstractContentValidator {
                 violations.add(new RuleViolation(
                         "Signature at index " + index + MUST_BE_AN_OBJECT, basePath));
             } else {
-                if (!sig.has("protected") || !sig.get("protected").isTextual()) {
+                if (!sig.has("protected") || !sig.get("protected").isString()) {
                     violations.add(new RuleViolation(
                             "Signature 'protected' is required and must be a string",
                             basePath + "/protected"));
                 }
-                if (!sig.has("signature") || !sig.get("signature").isTextual()) {
+                if (!sig.has("signature") || !sig.get("signature").isString()) {
                     violations.add(new RuleViolation(
                             "Signature 'signature' is required and must be a string",
                             basePath + "/signature"));

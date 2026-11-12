@@ -1,6 +1,5 @@
 package io.apicurio.registry.cli;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.rest.v3.beans.GroupMetaData;
 import io.apicurio.registry.rest.v3.beans.GroupSearchResults;
 import io.apicurio.registry.rest.v3.beans.SearchedGroup;
@@ -35,7 +34,7 @@ public class GroupCommandTest extends AbstractCLITest {
 
     @Test
     @Order(0)
-    public void testGroupCommandEmpty() throws JsonProcessingException {
+    public void testGroupCommandEmpty() {
         // When
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("group", "--output-type", "json");
@@ -52,7 +51,7 @@ public class GroupCommandTest extends AbstractCLITest {
 
     @Test
     @Order(1)
-    public void testGroupCreateCommand() throws JsonProcessingException {
+    public void testGroupCreateCommand() {
         // When
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("group", "create", "--output-type", "json",
@@ -84,7 +83,7 @@ public class GroupCommandTest extends AbstractCLITest {
 
     @Test
     @Order(2)
-    public void testGroupCommand() throws JsonProcessingException {
+    public void testGroupCommand() {
         // When
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("group", "--output-type", "json");
@@ -157,7 +156,7 @@ public class GroupCommandTest extends AbstractCLITest {
 
     @Test
     @Order(3)
-    public void testGroupDeleteCommand() throws JsonProcessingException {
+    public void testGroupDeleteCommand() {
         // When
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("group", "--output-type", "json");
@@ -183,7 +182,7 @@ public class GroupCommandTest extends AbstractCLITest {
     }
 
     @Test
-    public void testDefaultGroupHandling() throws JsonProcessingException {
+    public void testDefaultGroupHandling() {
         // Test getting default group (returns stub, no API call)
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("group", "get", "default", "--output-type", "json");

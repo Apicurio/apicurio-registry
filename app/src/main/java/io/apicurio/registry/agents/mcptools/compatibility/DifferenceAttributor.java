@@ -1,7 +1,7 @@
 package io.apicurio.registry.agents.mcptools.compatibility;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.BooleanNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.BooleanNode;
 import io.apitomy.datamodels.jsonschema.compat.DiffType;
 import io.apitomy.datamodels.jsonschema.compat.Difference;
 
@@ -390,7 +390,7 @@ final class DifferenceAttributor {
     private static String memberName(JsonNode required, String index) {
         try {
             JsonNode member = required.get(Integer.parseInt(index));
-            return member != null && member.isTextual() ? member.asText() : null;
+            return member != null && member.isString() ? member.asString() : null;
         } catch (NumberFormatException e) {
             return null;
         }

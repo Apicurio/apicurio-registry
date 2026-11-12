@@ -1,6 +1,6 @@
 package io.apicurio.registry.iceberg.content;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.ExtractedMetaData;
@@ -28,20 +28,20 @@ public class IcebergContentExtractor implements ContentExtractor {
 
             // Extract uuid as name if available
             String uuidField = isTable ? "table-uuid" : "view-uuid";
-            if (tree.has(uuidField) && tree.get(uuidField).isTextual()) {
-                metaData.setName(tree.get(uuidField).asText());
+            if (tree.has(uuidField) && tree.get(uuidField).isString()) {
+                metaData.setName(tree.get(uuidField).asString());
             }
 
             // Extract location as description
-            if (tree.has("location") && tree.get("location").isTextual()) {
-                metaData.setDescription("Location: " + tree.get("location").asText());
+            if (tree.has("location") && tree.get("location").isString()) {
+                metaData.setDescription("Location: " + tree.get("location").asString());
             }
 
             // Try to extract properties.comment as description if available
             if (tree.has("properties") && tree.get("properties").isObject()) {
                 JsonNode properties = tree.get("properties");
-                if (properties.has("comment") && properties.get("comment").isTextual()) {
-                    metaData.setDescription(properties.get("comment").asText());
+                if (properties.has("comment") && properties.get("comment").isString()) {
+                    metaData.setDescription(properties.get("comment").asString());
                 }
             }
 

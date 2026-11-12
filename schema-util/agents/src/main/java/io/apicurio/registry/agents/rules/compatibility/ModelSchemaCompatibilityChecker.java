@@ -3,9 +3,10 @@ package io.apicurio.registry.agents.rules.compatibility;
 import io.apicurio.registry.rules.compatibility.AbstractCompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.SimpleCompatibilityDifference;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.dataformat.yaml.YAMLMapper;
 import io.apicurio.registry.content.TypedContent;
 
 import java.util.HashSet;
@@ -34,8 +35,8 @@ public class ModelSchemaCompatibilityChecker
     private static final String CONTEXT_OUTPUT = "/output";
     private static final String CONTEXT_DOCUMENT = "/document";
 
-    private static final ObjectMapper jsonMapper = new ObjectMapper();
-    private static final ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
+    private static final ObjectMapper jsonMapper = new JsonMapper();
+    private static final ObjectMapper yamlMapper = new YAMLMapper();
 
     @Override
     protected Set<SimpleCompatibilityDifference> isBackwardsCompatibleWith(String existing,
@@ -152,8 +153,8 @@ public class ModelSchemaCompatibilityChecker
         JsonNode requiredNode = schema.get("required");
         if (requiredNode != null && requiredNode.isArray()) {
             for (JsonNode item : requiredNode) {
-                if (item.isTextual()) {
-                    required.add(item.asText());
+                if (item.isString()) {
+                    required.add(item.asString());
                 }
             }
         }
@@ -164,7 +165,7 @@ public class ModelSchemaCompatibilityChecker
         Set<String> names = new HashSet<>();
         JsonNode properties = schema.get("properties");
         if (properties != null && properties.isObject()) {
-            Iterator<String> fieldNames = properties.fieldNames();
+            Iterator<String> fieldNames = properties.propertyNames().iterator();
             while (fieldNames.hasNext()) {
                 names.add(fieldNames.next());
             }
@@ -176,8 +177,8 @@ public class ModelSchemaCompatibilityChecker
         JsonNode properties = schema.get("properties");
         if (properties != null && properties.isObject() && properties.has(propName)) {
             JsonNode prop = properties.get(propName);
-            if (prop.isObject() && prop.has("type") && prop.get("type").isTextual()) {
-                return prop.get("type").asText();
+            if (prop.isObject() && prop.has("type") && prop.get("type").isString()) {
+                return prop.get("type").asString();
             }
         }
         return null;

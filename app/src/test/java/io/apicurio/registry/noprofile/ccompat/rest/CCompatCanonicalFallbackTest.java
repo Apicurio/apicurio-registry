@@ -1,6 +1,7 @@
 package io.apicurio.registry.noprofile.ccompat.rest;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.ccompat.rest.ContentTypes;
 import io.apicurio.registry.ccompat.rest.v7.beans.RegisterSchemaRequest;
@@ -25,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @Tag(ApicurioTestTags.SLOW)
 public class CCompatCanonicalFallbackTest extends AbstractResourceTestBase {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new JsonMapper();
 
     /**
      * Register a schema with expanded formatting, then look it up using minified formatting. Without the

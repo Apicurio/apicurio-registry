@@ -1,6 +1,7 @@
 package io.apicurio.registry.ccompat.rest;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.ccompat.rest.v7.beans.RegisterSchemaRequest;
 import io.apicurio.registry.ccompat.rest.v7.beans.Schema;
@@ -22,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @Tag(ApicurioTestTags.SLOW)
 public class CCompatCanonicalModeTest extends AbstractResourceTestBase {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new JsonMapper();
 
     /**
      * Endpoint: /schemas/ids/{int: id}/versions

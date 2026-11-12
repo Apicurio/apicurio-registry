@@ -1,14 +1,14 @@
 package io.apicurio.registry.avro.content.extract;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.ExtractedMetaData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
+import tools.jackson.core.JacksonException;
 
 /**
  * Performs meta-data extraction for Avro content.
@@ -17,7 +17,7 @@ public class AvroContentExtractor implements ContentExtractor {
 
     Logger log = LoggerFactory.getLogger(getClass());
 
-    private ObjectMapper mapper = new ObjectMapper();
+    private ObjectMapper mapper = new JsonMapper();
 
     public AvroContentExtractor() {
     }
@@ -31,10 +31,10 @@ public class AvroContentExtractor implements ContentExtractor {
             ExtractedMetaData metaData = null;
             if (name != null && !name.isNull()) {
                 metaData = new ExtractedMetaData();
-                metaData.setName(name.asText());
+                metaData.setName(name.asString());
             }
             return metaData;
-        } catch (IOException e) {
+        } catch (JacksonException e) {
             log.warn("Error extracting metadata from JSON: {}", e.getMessage());
             return null;
         }

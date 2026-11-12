@@ -1,7 +1,8 @@
 package io.apicurio.registry.agents.rules.compatibility;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rules.compatibility.AbstractCompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.SimpleCompatibilityDifference;
@@ -13,7 +14,7 @@ import java.util.Set;
 /** Checks whether existing installation/connection choices still exist in a new manifest. */
 public class McpServerCompatibilityChecker extends AbstractCompatibilityChecker<SimpleCompatibilityDifference> {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new JsonMapper();
 
     @Override
     protected Set<SimpleCompatibilityDifference> isBackwardsCompatibleWith(String existing, String proposed,

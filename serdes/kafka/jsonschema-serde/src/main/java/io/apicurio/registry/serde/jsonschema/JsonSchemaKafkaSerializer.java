@@ -1,7 +1,7 @@
 package io.apicurio.registry.serde.jsonschema;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.networknt.schema.JsonSchema;
+import tools.jackson.databind.ObjectMapper;
+import com.networknt.schema.Schema;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.resolver.client.RegistryClientFacade;
@@ -20,7 +20,7 @@ import java.util.Map;
  * user's application needs to serialize a Java Bean to JSON data using Jackson. In addition to standard
  * serialization of the bean, this implementation can also optionally validate it against a JSON schema.
  */
-public class JsonSchemaKafkaSerializer<T> extends KafkaSerializer<JsonSchema, T> {
+public class JsonSchemaKafkaSerializer<T> extends KafkaSerializer<Schema, T> {
 
     private MessageTypeSerdeHeaders serdeHeaders;
 
@@ -32,17 +32,17 @@ public class JsonSchemaKafkaSerializer<T> extends KafkaSerializer<JsonSchema, T>
         super(new JsonSchemaSerializer<>(clientFacade));
     }
 
-    public JsonSchemaKafkaSerializer(SchemaResolver<JsonSchema, T> schemaResolver) {
+    public JsonSchemaKafkaSerializer(SchemaResolver<Schema, T> schemaResolver) {
         super(new JsonSchemaSerializer<>(schemaResolver));
     }
 
-    public JsonSchemaKafkaSerializer(RegistryClientFacade clientFacade, SchemaResolver<JsonSchema, T> schemaResolver) {
+    public JsonSchemaKafkaSerializer(RegistryClientFacade clientFacade, SchemaResolver<Schema, T> schemaResolver) {
         super(new JsonSchemaSerializer<>(clientFacade, schemaResolver));
     }
 
     public JsonSchemaKafkaSerializer(RegistryClientFacade clientFacade,
-                                     ArtifactReferenceResolverStrategy<JsonSchema, T> strategy,
-                                     SchemaResolver<JsonSchema, T> schemaResolver) {
+                                     ArtifactReferenceResolverStrategy<Schema, T> strategy,
+                                     SchemaResolver<Schema, T> schemaResolver) {
         super(new JsonSchemaSerializer<>(clientFacade, strategy, schemaResolver));
     }
 
@@ -81,7 +81,7 @@ public class JsonSchemaKafkaSerializer<T> extends KafkaSerializer<JsonSchema, T>
      *      io.apicurio.registry.resolver.ParsedSchema, java.lang.Object, java.io.OutputStream)
      */
     @Override
-    protected void serializeData(Headers headers, ParsedSchema<JsonSchema> schema, T data, OutputStream out)
+    protected void serializeData(Headers headers, ParsedSchema<Schema> schema, T data, OutputStream out)
             throws IOException {
 
         if (headers != null) {

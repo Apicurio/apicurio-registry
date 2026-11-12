@@ -1,7 +1,7 @@
 package io.apicurio.registry.events.dto;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -20,7 +20,7 @@ public class VersionMetadataTest {
         data.setDescription("Second version");
         data.setCreatedOn(Instant.parse("2026-03-01T00:00:00Z"));
 
-        ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule());
+        ObjectMapper mapper = new JsonMapper();
         String json = mapper.writeValueAsString(data);
         VersionMetadata roundTripped = mapper.readValue(json, VersionMetadata.class);
 

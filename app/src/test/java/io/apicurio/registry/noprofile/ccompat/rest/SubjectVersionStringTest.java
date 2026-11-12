@@ -1,6 +1,6 @@
 package io.apicurio.registry.noprofile.ccompat.rest;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.ccompat.rest.ContentTypes;
 import io.apicurio.registry.ccompat.rest.v7.beans.RegisterSchemaRequest;
@@ -27,7 +27,7 @@ public class SubjectVersionStringTest extends AbstractResourceTestBase {
         var schema1 = "{\"type\" : \"string\"}";
         var schema2 = "{\"type\" : \"int\"}";
 
-        var objectMapper = new ObjectMapper();
+        var objectMapper = new JsonMapper();
         var schemaContent1 = new RegisterSchemaRequest();
         schemaContent1.setSchema(schema1);
         var schemaContent2 = new RegisterSchemaRequest();

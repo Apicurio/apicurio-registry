@@ -16,8 +16,9 @@
 
 package io.apicurio.registry.storage.impl.kafkasql.v2compat;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import org.apache.commons.io.input.UnsynchronizedByteArrayInputStream;
 import org.apache.kafka.common.serialization.Deserializer;
 
@@ -26,12 +27,9 @@ import org.apache.kafka.common.serialization.Deserializer;
  */
 public class KafkaSqlKeyDeserializer implements Deserializer<MessageKey> {
 
-    private static final ObjectMapper mapper = new ObjectMapper();
-
-    static {
-        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        mapper.configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, true);
-    }
+    private static final ObjectMapper mapper = JsonMapper.builder()
+            .configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, true)
+            .build();
 
     @Override
     public MessageKey deserialize(String topic, byte[] data) {

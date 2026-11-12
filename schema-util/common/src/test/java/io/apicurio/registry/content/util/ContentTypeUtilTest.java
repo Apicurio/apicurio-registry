@@ -1,6 +1,6 @@
 package io.apicurio.registry.content.util;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.types.ContentTypes;
@@ -59,7 +59,7 @@ public class ContentTypeUtilTest {
         JsonNode node = ContentTypeUtil.parseJsonOrYaml(content);
 
         Assertions.assertTrue(node.isObject());
-        Assertions.assertEquals("widget", node.get("name").asText());
+        Assertions.assertEquals("widget", node.get("name").asString());
     }
 
     @Test
@@ -83,7 +83,7 @@ public class ContentTypeUtilTest {
         JsonNode node = ContentTypeUtil.parseJsonOrYaml(content);
 
         Assertions.assertTrue(node.isObject());
-        Assertions.assertEquals("widget", node.get("name").asText());
+        Assertions.assertEquals("widget", node.get("name").asString());
         Assertions.assertEquals(3, node.get("count").asInt());
     }
 
@@ -96,7 +96,7 @@ public class ContentTypeUtilTest {
         JsonNode node = ContentTypeUtil.parseJsonOrYaml(content);
 
         Assertions.assertTrue(node.isObject());
-        Assertions.assertEquals("widget", node.get("name").asText());
+        Assertions.assertEquals("widget", node.get("name").asString());
         Assertions.assertEquals(3, node.get("count").asInt());
     }
 

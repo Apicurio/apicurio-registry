@@ -1,8 +1,9 @@
 package io.apicurio.registry.agents.rest.wellknown;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.MissingNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.MissingNode;
 import io.apicurio.registry.agents.aicatalog.AiCatalogConfig;
 import io.apicurio.registry.agents.aicatalog.AiCatalogConstants;
 import io.apicurio.registry.agents.ard.ArdConfig;
@@ -63,7 +64,7 @@ public class AiCatalogDiscovery {
     private static final Logger log = LoggerFactory.getLogger(AiCatalogDiscovery.class);
     private static final String PUBLISHER = "publisher";
 
-    static final ObjectMapper mapper = new ObjectMapper();
+    static final ObjectMapper mapper = new JsonMapper();
 
     static final int MAX_VISIBILITY_FILTER_RESULTS = 10000;
 
@@ -455,8 +456,8 @@ public class AiCatalogDiscovery {
     private static boolean addExampleQueries(JsonNode examplesNode, List<String> queries) {
         if (examplesNode.isArray()) {
             for (JsonNode example : examplesNode) {
-                if (example.isTextual()) {
-                    queries.add(example.asText());
+                if (example.isString()) {
+                    queries.add(example.asString());
                     if (queries.size() >= MAX_REPRESENTATIVE_QUERIES) {
                         return true;
                     }
@@ -488,7 +489,7 @@ public class AiCatalogDiscovery {
 
     private String textOrDefault(JsonNode root, String field, String fallback) {
         JsonNode node = root.path(field);
-        return node.isTextual() ? node.asText() : fallback;
+        return node.isString() ? node.asString() : fallback;
     }
 
     /**

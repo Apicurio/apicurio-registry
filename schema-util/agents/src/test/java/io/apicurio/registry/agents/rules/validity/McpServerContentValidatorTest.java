@@ -1,7 +1,7 @@
 package io.apicurio.registry.agents.rules.validity;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ObjectNode;
 import io.apicurio.registry.agents.content.McpServerContentAccepter;
 import io.apicurio.registry.agents.content.McpToolContentAccepter;
 import io.apicurio.registry.content.ContentHandle;
@@ -210,7 +210,7 @@ public class McpServerContentValidatorTest extends ArtifactUtilProviderTestBase 
      */
     @Test
     public void testWebsiteUrlMustBeAUri() throws Exception {
-        var document = (ObjectNode) new ObjectMapper()
+        var document = (ObjectNode) new JsonMapper()
                 .readTree(resourceToTypedContentHandle("mcpserver-valid.json").getContent().content());
         document.put("websiteUrl", "not a uri");
         TypedContent content = TypedContent.create(ContentHandle.create(document.toString()),

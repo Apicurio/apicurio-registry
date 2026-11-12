@@ -5,7 +5,7 @@ import io.apicurio.registry.content.refs.JsonPointerExternalReference;
 import io.apicurio.registry.content.refs.ReferenceFinder;
 import io.apicurio.registry.content.refs.ReferenceFinderException;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.util.ContentTypeUtil;
 
@@ -41,12 +41,12 @@ public class ModelSchemaReferenceFinder implements ReferenceFinder {
     private static void findRefsRecursive(JsonNode node, Set<String> refs) {
         if (node.isObject()) {
             if (node.has("$ref")) {
-                String ref = node.get("$ref").asText(null);
+                String ref = node.get("$ref").asString(null);
                 if (ref != null && !ref.startsWith("#")) {
                     refs.add(ref);
                 }
             }
-            Iterator<Map.Entry<String, JsonNode>> fields = node.fields();
+            Iterator<Map.Entry<String, JsonNode>> fields = node.properties().iterator();
             while (fields.hasNext()) {
                 findRefsRecursive(fields.next().getValue(), refs);
             }

@@ -1,7 +1,8 @@
 package io.apicurio.registry.agents.content.extract;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.extract.StructuredContentExtractor;
 import io.apicurio.registry.content.extract.StructuredElement;
@@ -23,7 +24,7 @@ public class McpServerStructuredContentExtractor implements StructuredContentExt
 
     private static final Logger log = LoggerFactory.getLogger(McpServerStructuredContentExtractor.class);
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new JsonMapper();
 
     @Override
     public List<StructuredElement> extract(ContentHandle content) {
@@ -50,8 +51,8 @@ public class McpServerStructuredContentExtractor implements StructuredContentExt
             addTextual(pkg, "registryType", "packageRegistry", elements);
             addTextual(pkg, "identifier", "package", elements);
             JsonNode transport = pkg.path(TRANSPORT);
-            if (transport.isTextual()) {
-                elements.add(new StructuredElement(TRANSPORT, transport.asText()));
+            if (transport.isString()) {
+                elements.add(new StructuredElement(TRANSPORT, transport.asString()));
             } else {
                 addTextual(transport, "type", TRANSPORT, elements);
             }
@@ -72,8 +73,8 @@ public class McpServerStructuredContentExtractor implements StructuredContentExt
     private void addTextual(JsonNode node, String field, String elementType,
             List<StructuredElement> elements) {
         JsonNode value = node.path(field);
-        if (value.isTextual() && !value.asText().isBlank()) {
-            elements.add(new StructuredElement(elementType, value.asText()));
+        if (value.isString() && !value.asString().isBlank()) {
+            elements.add(new StructuredElement(elementType, value.asString()));
         }
     }
 }

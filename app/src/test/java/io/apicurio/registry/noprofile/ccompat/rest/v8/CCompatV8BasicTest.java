@@ -1,6 +1,7 @@
 package io.apicurio.registry.noprofile.ccompat.rest.v8;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.ccompat.rest.ContentTypes;
 import io.apicurio.registry.ccompat.rest.v8.beans.ConfigUpdateRequest;
@@ -26,7 +27,7 @@ import static org.hamcrest.Matchers.hasSize;
 @QuarkusTest
 public class CCompatV8BasicTest extends AbstractResourceTestBase {
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new JsonMapper();
 
     // ========== Basic CRUD Operations ==========
 

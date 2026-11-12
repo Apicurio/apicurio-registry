@@ -1,11 +1,12 @@
 package io.apicurio.registry.utils.impexp.v3;
 
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.StreamWriteFeature;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.apicurio.registry.utils.impexp.Entity;
 import io.apicurio.registry.utils.impexp.EntityType;
 import io.apicurio.registry.utils.impexp.ManifestEntity;
+import tools.jackson.core.json.JsonFactory;
 
 import java.io.IOException;
 import java.util.zip.ZipEntry;
@@ -15,9 +16,10 @@ public class EntityWriter {
 
     private static final ObjectMapper mapper;
     static {
-        JsonFactory jsonFactory = new JsonFactory();
-        jsonFactory.configure(JsonGenerator.Feature.AUTO_CLOSE_TARGET, false);
-        mapper = new ObjectMapper(jsonFactory);
+        JsonFactory jsonFactory = JsonFactory.builder()
+                .configure(StreamWriteFeature.AUTO_CLOSE_TARGET, false)
+                .build();
+        mapper = JsonMapper.builder(jsonFactory).build();
     }
 
     private final transient ZipOutputStream zip;

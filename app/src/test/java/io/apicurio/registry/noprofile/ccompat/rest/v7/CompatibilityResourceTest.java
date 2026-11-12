@@ -1,7 +1,8 @@
 package io.apicurio.registry.noprofile.ccompat.rest.v7;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ObjectNode;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
@@ -13,7 +14,7 @@ import static org.hamcrest.CoreMatchers.anything;
 public class CompatibilityResourceTest extends AbstractResourceTestBase {
     @Test
     public void testUnknownLatestSchemaForSubject() {
-        ObjectMapper mapper = new ObjectMapper();
+        ObjectMapper mapper = new JsonMapper();
         ObjectNode requestBody = mapper.createObjectNode();
         requestBody.put("schema", "{}");
         requestBody.put("schemaType", "AVRO");

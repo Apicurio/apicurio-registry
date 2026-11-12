@@ -1,13 +1,13 @@
 package io.apicurio.registry.cli.utils;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsonorg.JsonOrgModule;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.datatype.jsonorg.JsonOrgModule;
 import io.apicurio.registry.cli.common.CliException;
+import tools.jackson.core.JacksonException;
 
-import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES;
-import static com.fasterxml.jackson.databind.SerializationFeature.INDENT_OUTPUT;
+import static tools.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES;
+import static tools.jackson.databind.SerializationFeature.INDENT_OUTPUT;
 import static io.apicurio.registry.cli.common.CliException.APPLICATION_ERROR_RETURN_CODE;
 
 public class Mapper {
@@ -15,11 +15,11 @@ public class Mapper {
     public static final ObjectMapper MAPPER;
 
     static {
-        MAPPER = new ObjectMapper();
-        MAPPER.registerModule(new JavaTimeModule());
-        MAPPER.registerModule(new JsonOrgModule());
-        MAPPER.configure(FAIL_ON_UNKNOWN_PROPERTIES, true);
-        MAPPER.configure(INDENT_OUTPUT, true);
+        MAPPER = JsonMapper.builder()
+                .addModule(new JsonOrgModule())
+                .configure(FAIL_ON_UNKNOWN_PROPERTIES, true)
+                .configure(INDENT_OUTPUT, true)
+                .build();
     }
 
     @SuppressWarnings("unchecked")
@@ -27,7 +27,7 @@ public class Mapper {
         try {
             var serialized = MAPPER.writeValueAsString(original);
             return MAPPER.readValue(serialized, (Class<T>) original.getClass());
-        } catch (JsonProcessingException ex) {
+        } catch (JacksonException ex) {
             throw new CliException("Could not copy value.", ex, APPLICATION_ERROR_RETURN_CODE);
         }
     }

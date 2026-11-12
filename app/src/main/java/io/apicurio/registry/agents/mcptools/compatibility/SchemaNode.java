@@ -1,6 +1,6 @@
 package io.apicurio.registry.agents.mcptools.compatibility;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -57,7 +57,7 @@ record SchemaNode(JsonNode original, JsonNode projected, String pointer) {
      * Whether the node restricts the value to one type. Object keywords do not restrict it.
      */
     boolean declaresType() {
-        return projected.path(TYPE).isTextual();
+        return projected.path(TYPE).isString();
     }
 
     /**
@@ -102,7 +102,7 @@ record SchemaNode(JsonNode original, JsonNode projected, String pointer) {
         List<String> names = new ArrayList<>();
         JsonNode properties = projected.path(PROPERTIES);
         if (properties.isObject()) {
-            properties.fieldNames().forEachRemaining(names::add);
+            properties.propertyNames().iterator().forEachRemaining(names::add);
         }
         return names;
     }
@@ -118,8 +118,8 @@ record SchemaNode(JsonNode original, JsonNode projected, String pointer) {
     List<String> required() {
         List<String> required = new ArrayList<>();
         for (JsonNode member : original.path(REQUIRED)) {
-            if (member.isTextual()) {
-                required.add(member.asText());
+            if (member.isString()) {
+                required.add(member.asString());
             }
         }
         return required;
@@ -148,7 +148,7 @@ record SchemaNode(JsonNode original, JsonNode projected, String pointer) {
     String requiredMemberPointer(String name) {
         JsonNode required = original.path(REQUIRED);
         for (int index = 0; index < required.size(); index++) {
-            if (name.equals(required.get(index).asText())) {
+            if (name.equals(required.get(index).asString())) {
                 return JsonPointers.append(pointer, REQUIRED, String.valueOf(index));
             }
         }

@@ -1,14 +1,14 @@
 package io.apicurio.utils.test.raml.microsvc;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
+import tools.jackson.dataformat.yaml.YAMLMapper;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.refs.ExternalReference;
 import io.apicurio.registry.content.refs.ReferenceFinderException;
+import tools.jackson.core.JacksonException;
 import io.apicurio.registry.content.refs.ReferenceFinder;
 
 import java.util.HashSet;
@@ -17,7 +17,7 @@ import java.util.Set;
 
 public class RamlReferenceFinder implements ReferenceFinder {
 
-    private static final ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+    private static final ObjectMapper mapper = new YAMLMapper();
 
     @Override
     public Set<ExternalReference> findExternalReferences(TypedContent content) {
@@ -26,7 +26,7 @@ public class RamlReferenceFinder implements ReferenceFinder {
             JsonNode root = mapper.readTree(content.getContent().content());
             findRefs(root, externalReferences);
             return externalReferences;
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new ReferenceFinderException("Error finding external references in a RAML file.", e);
         }
     }
@@ -34,12 +34,12 @@ public class RamlReferenceFinder implements ReferenceFinder {
     private void findRefs(JsonNode node, Set<ExternalReference> externalReferences) {
         if (node.isObject()) {
             ObjectNode objectNode = (ObjectNode) node;
-            Iterator<String> stringIterator = objectNode.fieldNames();
+            Iterator<String> stringIterator = objectNode.propertyNames().iterator();
             while (stringIterator.hasNext()) {
                 String fieldName = stringIterator.next();
                 JsonNode fieldNode = objectNode.get(fieldName);
-                if (fieldNode.isTextual()) {
-                    String textValue = fieldNode.textValue();
+                if (fieldNode.isString()) {
+                    String textValue = fieldNode.stringValue();
                     if (textValue.startsWith("~include")) {
                         String includeName = textValue.substring("~include ".length());
                         externalReferences.add(new ExternalReference(includeName));

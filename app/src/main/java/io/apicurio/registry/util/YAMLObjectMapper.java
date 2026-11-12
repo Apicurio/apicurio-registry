@@ -1,14 +1,15 @@
 package io.apicurio.registry.util;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.dataformat.yaml.YAMLMapper;
 
 public class YAMLObjectMapper {
 
     public static final ObjectMapper YAML_MAPPER;
 
     static {
-        YAML_MAPPER = new ObjectMapper(new YAMLFactory());
-        YAML_MAPPER.findAndRegisterModules();
+        YAML_MAPPER = YAMLMapper.builder()
+                .findAndAddModules()
+                .build();
     }
 }

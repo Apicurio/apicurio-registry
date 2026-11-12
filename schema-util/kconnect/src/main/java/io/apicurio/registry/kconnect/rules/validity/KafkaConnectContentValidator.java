@@ -2,6 +2,7 @@ package io.apicurio.registry.kconnect.rules.validity;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rules.validity.ContentValidator;
@@ -23,7 +24,7 @@ public class KafkaConnectContentValidator implements ContentValidator {
     private static final ObjectMapper mapper;
     private static final JsonConverter jsonConverter;
     static {
-        mapper = new ObjectMapper();
+        mapper = new JsonMapper();
         jsonConverter = new JsonConverter();
         Map<String, Object> configs = new HashMap<>();
         configs.put("converter.type", "key");

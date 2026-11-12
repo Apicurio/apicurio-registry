@@ -1,6 +1,6 @@
 package io.apicurio.registry.cli;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import org.junit.jupiter.api.Order;
@@ -63,7 +63,7 @@ public class ServerConfigCommandTest extends AbstractCLITest {
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("server-config", "get", "--output-type", "json", TEST_PROPERTY);
         JsonNode json = MAPPER.readTree(out.toString());
-        assertThat(json.get("name").asText())
+        assertThat(json.get("name").asString())
                 .as(withCliOutput("Should return the correct property"))
                 .isEqualTo(TEST_PROPERTY);
         assertThat(json.has("value"))
@@ -92,7 +92,7 @@ public class ServerConfigCommandTest extends AbstractCLITest {
                 .as(withCliOutput("Success message should go to stderr for JSON"))
                 .contains("set to '500'");
         JsonNode json = MAPPER.readTree(out.toString());
-        assertThat(json.get("name").asText())
+        assertThat(json.get("name").asString())
                 .as(withCliOutput("JSON should contain the property name"))
                 .isEqualTo(TEST_PROPERTY);
     }
@@ -103,7 +103,7 @@ public class ServerConfigCommandTest extends AbstractCLITest {
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("server-config", "get", "--output-type", "json", TEST_PROPERTY);
         JsonNode json = MAPPER.readTree(out.toString());
-        assertThat(json.get("value").asText())
+        assertThat(json.get("value").asString())
                 .as(withCliOutput("Should have the updated value"))
                 .isEqualTo(TEST_VALUE);
     }

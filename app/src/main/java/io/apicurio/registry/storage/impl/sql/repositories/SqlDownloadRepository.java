@@ -1,7 +1,8 @@
 package io.apicurio.registry.storage.impl.sql.repositories;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.error.DownloadNotFoundException;
 import io.apicurio.registry.storage.error.RegistryStorageException;
@@ -18,12 +19,9 @@ import java.util.UUID;
  */
 public class SqlDownloadRepository {
 
-    private static final ObjectMapper mapper = new ObjectMapper();
-
-    static {
-        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        mapper.configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, true);
-    }
+    private static final ObjectMapper mapper = JsonMapper.builder()
+            .configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, true)
+            .build();
 
     private final Logger log;
 

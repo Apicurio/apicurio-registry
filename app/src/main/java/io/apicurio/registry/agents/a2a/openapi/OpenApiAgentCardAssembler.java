@@ -1,8 +1,8 @@
 package io.apicurio.registry.agents.a2a.openapi;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.agents.rules.validity.AgentCardContentValidator;
@@ -91,8 +91,8 @@ public class OpenApiAgentCardAssembler {
      */
     private void deriveMissingField(ObjectNode target, String fieldName, JsonNode fallback) {
         JsonNode existing = target.path(fieldName);
-        if (existing.isMissingNode() && fallback.isTextual() && !fallback.asText().isBlank()) {
-            target.put(fieldName, fallback.asText());
+        if (existing.isMissingNode() && fallback.isString() && !fallback.asString().isBlank()) {
+            target.put(fieldName, fallback.asString());
         }
     }
 
@@ -112,15 +112,15 @@ public class OpenApiAgentCardAssembler {
             return;
         }
 
-        String protocolVersion = agentCard.path("protocolVersion").asText(DEFAULT_PROTOCOL_VERSION);
+        String protocolVersion = agentCard.path("protocolVersion").asString(DEFAULT_PROTOCOL_VERSION);
         ArrayNode interfaces = MAPPER.createArrayNode();
         for (JsonNode server : servers) {
             JsonNode urlNode = server.path("url");
-            if (!urlNode.isTextual() || urlNode.asText().isBlank()) {
+            if (!urlNode.isString() || urlNode.asString().isBlank()) {
                 continue;
             }
             ObjectNode iface = MAPPER.createObjectNode();
-            iface.put("url", resolveServerVariables(urlNode.asText(), server.path("variables")));
+            iface.put("url", resolveServerVariables(urlNode.asString(), server.path("variables")));
             iface.put("protocolBinding", DEFAULT_PROTOCOL_BINDING);
             iface.put("protocolVersion", protocolVersion);
             interfaces.add(iface);
@@ -135,13 +135,13 @@ public class OpenApiAgentCardAssembler {
         StringBuilder resolved = new StringBuilder();
         while (matcher.find()) {
             JsonNode value = variables.path(matcher.group(1)).path("default");
-            if (!value.isTextual()) {
+            if (!value.isString()) {
                 throw new RuleViolationException("OpenAPI server variable requires a string default",
                         RuleType.VALIDITY, ValidityLevel.FULL.name(), Set.of(new RuleViolation(
                                 "Supply a default for server variable '" + matcher.group(1)
                                         + "' or explicit supportedInterfaces", "/servers")));
             }
-            matcher.appendReplacement(resolved, Matcher.quoteReplacement(value.asText()));
+            matcher.appendReplacement(resolved, Matcher.quoteReplacement(value.asString()));
         }
         matcher.appendTail(resolved);
         return resolved.toString();

@@ -1,7 +1,8 @@
 package io.apicurio.registry.avro.content.dereference;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.types.ContentTypes;
@@ -18,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  */
 class AvroDereferencerTest {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new JsonMapper();
 
     private static final String C = "{\"type\":\"enum\",\"name\":\"C\",\"namespace\":\"com.example\","
             + "\"symbols\":[\"X\",\"Y\"]}";
@@ -45,10 +46,10 @@ class AvroDereferencerTest {
                 new AvroDereferencer().dereference(content(A), references).getContent().content());
 
         JsonNode inlinedB = result.get("fields").get(0).get("type");
-        assertEquals("B", inlinedB.get("name").asText());
+        assertEquals("B", inlinedB.get("name").asString());
         JsonNode inlinedC = inlinedB.get("fields").get(0).get("type");
-        assertEquals("enum", inlinedC.get("type").asText());
-        assertEquals("C", inlinedC.get("name").asText());
+        assertEquals("enum", inlinedC.get("type").asString());
+        assertEquals("C", inlinedC.get("name").asString());
         assertEquals("[\"X\",\"Y\"]", inlinedC.get("symbols").toString());
     }
 }

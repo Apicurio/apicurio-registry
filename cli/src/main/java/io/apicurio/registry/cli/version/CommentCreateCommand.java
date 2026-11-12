@@ -1,6 +1,5 @@
 package io.apicurio.registry.cli.version;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.IdUtil;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
@@ -83,7 +82,7 @@ public class CommentCreateCommand extends AbstractCommand {
     }
 
     static void printComment(final OutputBuffer output, final Comment comment,
-                             final OutputTypeMixin outputType) throws JsonProcessingException {
+                             final OutputTypeMixin outputType) {
         output.writeStdOutChunkWithException(out -> {
             switch (outputType.getOutputType()) {
                 case json -> {

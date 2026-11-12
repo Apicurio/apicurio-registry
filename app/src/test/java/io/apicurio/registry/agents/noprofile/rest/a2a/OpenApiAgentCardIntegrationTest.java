@@ -1,6 +1,6 @@
 package io.apicurio.registry.agents.noprofile.rest.a2a;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.rest.client.models.ProblemDetails;
@@ -104,10 +104,10 @@ public class OpenApiAgentCardIntegrationTest extends AbstractResourceTestBase {
                 .get("apicurio.a2a.openapi-agent-card.source-artifact-id"));
 
         JsonNode cardContent = MAPPER.readTree(getVersionContent(groupId, companionArtifactId, "1"));
-        assertEquals("Weather API", cardContent.get("name").asText());
-        assertEquals("1.0.0", cardContent.get("version").asText());
+        assertEquals("Weather API", cardContent.get("name").asString());
+        assertEquals("1.0.0", cardContent.get("version").asString());
         assertEquals("https://weather.example.com",
-                cardContent.get("supportedInterfaces").get(0).get("url").asText());
+                cardContent.get("supportedInterfaces").get(0).get("url").asString());
 
         // The source OpenAPI artifact is marked with a pointer back to the generated companion.
         ArtifactMetaData source = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
@@ -157,8 +157,8 @@ public class OpenApiAgentCardIntegrationTest extends AbstractResourceTestBase {
 
         JsonNode v1 = MAPPER.readTree(getVersionContent(groupId, companionArtifactId, "1"));
         JsonNode v2 = MAPPER.readTree(getVersionContent(groupId, companionArtifactId, "2"));
-        assertEquals("1.0.0", v1.get("version").asText());
-        assertEquals("2.0.0", v2.get("version").asText());
+        assertEquals("1.0.0", v1.get("version").asString());
+        assertEquals("2.0.0", v2.get("version").asString());
     }
 
     @Test

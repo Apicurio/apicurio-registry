@@ -1,16 +1,14 @@
 package io.apicurio.registry.contracts.odcs;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.dataformat.yaml.YAMLMapper;
 import io.apicurio.registry.content.ContentHandle;
 import jakarta.enterprise.context.ApplicationScoped;
 
 @ApplicationScoped
 public class OdcsParser {
 
-    private static final ObjectMapper YAML_MAPPER = new ObjectMapper(
-            new YAMLFactory().disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER));
+    private static final ObjectMapper YAML_MAPPER = new YAMLMapper();
 
     public OdcsContract parse(ContentHandle content) {
         try {

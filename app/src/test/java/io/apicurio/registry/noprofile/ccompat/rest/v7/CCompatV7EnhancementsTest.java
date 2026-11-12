@@ -1,6 +1,7 @@
 package io.apicurio.registry.noprofile.ccompat.rest.v7;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.ccompat.rest.ContentTypes;
 import io.apicurio.registry.ccompat.rest.v7.beans.ConfigUpdateRequest;
@@ -36,7 +37,7 @@ public class CCompatV7EnhancementsTest extends AbstractResourceTestBase {
     private static final RestAssuredConfig NO_AUTO_DECODE = RestAssuredConfig.newConfig()
             .decoderConfig(DecoderConfig.decoderConfig().noContentDecoders());
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new JsonMapper();
 
     // ========== Mode API Tests ==========
 

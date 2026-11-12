@@ -1,7 +1,8 @@
 package io.apicurio.registry.json.rules.validity;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.json.content.refs.JsonSchemaRefScopes;
@@ -25,7 +26,7 @@ import java.util.stream.Collectors;
  */
 public class JsonSchemaContentValidator extends AbstractContentValidator {
 
-    private static final ObjectMapper objectMapper = new ObjectMapper();
+    private static final ObjectMapper objectMapper = new JsonMapper();
 
     /**
      * Constructor.

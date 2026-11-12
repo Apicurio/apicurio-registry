@@ -1,7 +1,8 @@
 package io.apicurio.registry.agents.content.dereference;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.types.ContentTypes;
@@ -19,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ModelSchemaDereferencerTest {
 
     private ModelSchemaDereferencer dereferencer;
-    private final ObjectMapper mapper = new ObjectMapper();
+    private final ObjectMapper mapper = new JsonMapper();
 
     @BeforeEach
     void setUp() {
@@ -47,7 +48,7 @@ class ModelSchemaDereferencerTest {
         TypedContent result = dereferencer.dereference(create(schema), Collections.emptyMap());
 
         JsonNode tree = mapper.readTree(result.getContent().content());
-        assertEquals("test", tree.get("modelId").asText());
+        assertEquals("test", tree.get("modelId").asString());
         assertTrue(tree.has("input"));
     }
 
@@ -82,7 +83,7 @@ class ModelSchemaDereferencerTest {
         JsonNode config = tree.get("input").get("properties").get("config");
         assertFalse(config.has("$ref"), "The $ref should have been resolved");
         assertTrue(config.has("type"), "The resolved content should be inlined");
-        assertEquals("object", config.get("type").asText());
+        assertEquals("object", config.get("type").asString());
     }
 
     @Test
@@ -102,7 +103,7 @@ class ModelSchemaDereferencerTest {
         TypedContent result = dereferencer.dereference(create(schema), Collections.emptyMap());
 
         JsonNode tree = mapper.readTree(result.getContent().content());
-        assertEquals("missing.json", tree.get("input").get("properties").get("config").get("$ref").asText());
+        assertEquals("missing.json", tree.get("input").get("properties").get("config").get("$ref").asString());
     }
 
     @Test
@@ -124,7 +125,7 @@ class ModelSchemaDereferencerTest {
                 Map.of("config.json", "https://registry.example.com/artifacts/config/versions/1"));
 
         JsonNode tree = mapper.readTree(result.getContent().content());
-        String rewritten = tree.get("input").get("properties").get("config").get("$ref").asText();
+        String rewritten = tree.get("input").get("properties").get("config").get("$ref").asString();
         assertEquals("https://registry.example.com/artifacts/config/versions/1", rewritten);
     }
 
@@ -147,7 +148,7 @@ class ModelSchemaDereferencerTest {
                 Map.of("types.json", "https://registry.example.com/artifacts/types/versions/1"));
 
         JsonNode tree = mapper.readTree(result.getContent().content());
-        String rewritten = tree.get("input").get("properties").get("config").get("$ref").asText();
+        String rewritten = tree.get("input").get("properties").get("config").get("$ref").asString();
         assertEquals("https://registry.example.com/artifacts/types/versions/1#/defs/Config", rewritten);
     }
 
@@ -169,7 +170,7 @@ class ModelSchemaDereferencerTest {
 
         JsonNode tree = mapper.readTree(result.getContent().content());
         assertEquals("#/definitions/Config",
-                tree.get("input").get("properties").get("config").get("$ref").asText());
+                tree.get("input").get("properties").get("config").get("$ref").asString());
     }
 
     @Test

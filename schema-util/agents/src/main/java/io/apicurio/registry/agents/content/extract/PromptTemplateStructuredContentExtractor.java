@@ -3,8 +3,9 @@ package io.apicurio.registry.agents.content.extract;
 import io.apicurio.registry.content.extract.StructuredContentExtractor;
 import io.apicurio.registry.content.extract.StructuredElement;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.apicurio.registry.content.ContentHandle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,7 +24,7 @@ public class PromptTemplateStructuredContentExtractor implements StructuredConte
 
     private static final Logger log = LoggerFactory.getLogger(PromptTemplateStructuredContentExtractor.class);
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new JsonMapper();
 
     @Override
     public List<StructuredElement> extract(ContentHandle content) {
@@ -45,15 +46,15 @@ public class PromptTemplateStructuredContentExtractor implements StructuredConte
     private void extractTextField(JsonNode root, String fieldName, String elementType,
             List<StructuredElement> elements) {
         JsonNode field = root.path(fieldName);
-        if (!field.isMissingNode() && field.isTextual()) {
-            elements.add(new StructuredElement(elementType, field.asText()));
+        if (!field.isMissingNode() && field.isString()) {
+            elements.add(new StructuredElement(elementType, field.asString()));
         }
     }
 
     private void extractVariableNames(JsonNode root, List<StructuredElement> elements) {
         JsonNode variables = root.path("variables");
         if (!variables.isMissingNode() && variables.isObject()) {
-            Iterator<String> fieldNames = variables.fieldNames();
+            Iterator<String> fieldNames = variables.propertyNames().iterator();
             while (fieldNames.hasNext()) {
                 elements.add(new StructuredElement("variable", fieldNames.next()));
             }
@@ -65,7 +66,7 @@ public class PromptTemplateStructuredContentExtractor implements StructuredConte
         if (!outputSchema.isMissingNode() && outputSchema.isObject()) {
             JsonNode properties = outputSchema.path("properties");
             if (!properties.isMissingNode() && properties.isObject()) {
-                Iterator<String> fieldNames = properties.fieldNames();
+                Iterator<String> fieldNames = properties.propertyNames().iterator();
                 while (fieldNames.hasNext()) {
                     elements.add(new StructuredElement("outputproperty", fieldNames.next()));
                 }

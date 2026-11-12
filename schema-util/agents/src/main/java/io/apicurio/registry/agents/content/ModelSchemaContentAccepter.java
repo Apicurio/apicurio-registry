@@ -3,7 +3,7 @@ package io.apicurio.registry.agents.content;
 import io.apicurio.registry.content.ContentAccepter;
 import io.apicurio.registry.content.TypedContent;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import io.apicurio.registry.content.util.ContentTypeUtil;
 
 import java.util.Map;
@@ -33,12 +33,12 @@ public class ModelSchemaContentAccepter implements ContentAccepter {
                 return false;
             }
 
-            if (tree.has(SCHEMA_KEY) && tree.get(SCHEMA_KEY).isTextual()
-                    && tree.get(SCHEMA_KEY).asText().contains("model-schema")) {
+            if (tree.has(SCHEMA_KEY) && tree.get(SCHEMA_KEY).isString()
+                    && tree.get(SCHEMA_KEY).asString().contains("model-schema")) {
                 return true;
             }
 
-            if (tree.has("modelId") && tree.get("modelId").isTextual()
+            if (tree.has("modelId") && tree.get("modelId").isString()
                     && (tree.has("input") || tree.has("output"))) {
                 return true;
             }

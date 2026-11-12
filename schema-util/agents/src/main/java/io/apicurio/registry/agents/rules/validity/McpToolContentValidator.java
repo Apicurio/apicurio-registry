@@ -3,7 +3,7 @@ package io.apicurio.registry.agents.rules.validity;
 import io.apicurio.registry.rules.validity.ContentValidator;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
@@ -99,9 +99,9 @@ public class McpToolContentValidator implements ContentValidator {
         if (!tree.has("name")) {
             violations.add(
                     new RuleViolation("MCP tool definition must have a 'name' field", "/name"));
-        } else if (!tree.get("name").isTextual()) {
+        } else if (!tree.get("name").isString()) {
             violations.add(new RuleViolation("'name' field must be a string", "/name"));
-        } else if (tree.get("name").asText().trim().isEmpty()) {
+        } else if (tree.get("name").asString().trim().isEmpty()) {
             violations.add(new RuleViolation("'name' field must not be empty", "/name"));
         }
     }
@@ -133,10 +133,10 @@ public class McpToolContentValidator implements ContentValidator {
         if (!inputSchema.has("type")) {
             violations.add(new RuleViolation("'inputSchema' must have a 'type' field",
                     "/inputSchema/type"));
-        } else if (!inputSchema.get("type").isTextual()) {
+        } else if (!inputSchema.get("type").isString()) {
             violations.add(new RuleViolation("'inputSchema.type' must be a string",
                     "/inputSchema/type"));
-        } else if (!"object".equals(inputSchema.get("type").asText())) {
+        } else if (!"object".equals(inputSchema.get("type").asString())) {
             violations.add(new RuleViolation(
                     "'inputSchema.type' must be 'object' per the MCP specification",
                     "/inputSchema/type"));
@@ -204,7 +204,7 @@ public class McpToolContentValidator implements ContentValidator {
 
         // ToolAnnotations is a closed shape at FULL, so a typo or a stray field is a violation
         // rather than a silently ignored no-op.
-        Iterator<String> fieldNames = annotations.fieldNames();
+        Iterator<String> fieldNames = annotations.propertyNames().iterator();
         while (fieldNames.hasNext()) {
             String field = fieldNames.next();
             if (!TITLE_FIELD.equals(field) && !TOOL_ANNOTATION_HINTS.contains(field)) {

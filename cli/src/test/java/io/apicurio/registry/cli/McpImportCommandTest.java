@@ -1,8 +1,8 @@
 package io.apicurio.registry.cli;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.RuleType;
 import io.quarkus.test.junit.QuarkusTest;
@@ -45,8 +45,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 class McpImportCommandTest extends AbstractCLITest {
 
     // Fails on anything after the first JSON value, so "stdout is only JSON" is really checked.
-    private static final ObjectMapper MAPPER = new ObjectMapper()
-            .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
+    private static final ObjectMapper MAPPER = new JsonMapper();
     private static final String TOKEN = "Bearer t0ken-" + UUID.randomUUID();
     private static final String TENANT = "tenant-" + UUID.randomUUID();
     private static final String SERVER_JSON = "{\"name\":\"io.github.test/srv\",\"description\":\"A server\","
@@ -107,7 +106,7 @@ class McpImportCommandTest extends AbstractCLITest {
                     HttpRequest.newBuilder(URI.create(url + "/apis/registry/v3/system/info"))
                             .timeout(ofSeconds(10)).build(),
                     HttpResponse.BodyHandlers.ofString());
-            version = MAPPER.readTree(info.body()).path("version").asText();
+            version = MAPPER.readTree(info.body()).path("version").asString();
         } catch (Exception e) {
             throw new IllegalStateException("Could not read the Registry version", e);
         }
@@ -194,13 +193,13 @@ class McpImportCommandTest extends AbstractCLITest {
 
         assertThat(code).as(withCliOutput("dry run should succeed")).isZero();
         JsonNode result = MAPPER.readTree(out.toString());
-        assertThat(result.path("groupId").asText()).isEqualTo(group);
-        assertThat(result.path("status").asText()).isEqualTo("NEW_VERSION");
+        assertThat(result.path("groupId").asString()).isEqualTo(group);
+        assertThat(result.path("status").asString()).isEqualTo("NEW_VERSION");
         assertThat(result.has("version")).isFalse();
         assertThat(result.path("tools")).hasSize(2);
         for (JsonNode tool : result.path("tools")) {
-            assertThat(tool.path("groupId").asText()).isEqualTo(toolGroup);
-            assertThat(tool.path("status").asText()).isEqualTo("CREATED");
+            assertThat(tool.path("groupId").asString()).isEqualTo(toolGroup);
+            assertThat(tool.path("status").asString()).isEqualTo("CREATED");
             assertThat(tool.has("version")).isFalse();
         }
         assertThat(artifactExists(toolGroup, "srv.search")).isFalse();

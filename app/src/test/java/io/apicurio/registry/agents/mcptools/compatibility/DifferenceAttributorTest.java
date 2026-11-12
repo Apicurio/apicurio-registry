@@ -1,12 +1,13 @@
 package io.apicurio.registry.agents.mcptools.compatibility;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.apitomy.datamodels.jsonschema.compat.DiffType;
 import io.apitomy.datamodels.jsonschema.compat.Difference;
 import io.apitomy.datamodels.jsonschema.ref.JsonPointer;
 import org.junit.jupiter.api.Test;
+import tools.jackson.core.JacksonException;
 
 import java.util.List;
 import java.util.Optional;
@@ -16,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 
 class DifferenceAttributorTest {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new JsonMapper();
 
     private static final String SCHEMA = "{'type':'object','properties':{'a':{'type':'integer'},"
             + "'b':{'type':'integer'}}}";
@@ -50,7 +51,7 @@ class DifferenceAttributorTest {
     private static JsonNode json(String singleQuoted) {
         try {
             return MAPPER.readTree(singleQuoted.replace('\'', '"'));
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new IllegalArgumentException(e);
         }
     }

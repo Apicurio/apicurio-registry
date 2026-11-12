@@ -1,8 +1,7 @@
 package io.apicurio.registry.rules.validity;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ObjectNode;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.json.rules.validity.JsonSchemaContentValidator;
@@ -24,7 +23,7 @@ import static io.apicurio.registry.rules.compatibility.CompatibilityTestExecutor
 public class ValiditySmokeTest {
 
 
-    public static Stream<TestCase> cases() throws JsonProcessingException {
+    public static Stream<TestCase> cases() {
         var rawData = readResource(ValiditySmokeTest.class, "test-data.json");
         var testCases = MAPPER.readValue(rawData, TestCases.class);
         return testCases.tests.stream();

@@ -1,7 +1,6 @@
 package io.apicurio.registry.cli;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
+import tools.jackson.core.type.TypeReference;
 import io.apicurio.registry.rest.v3.beans.Rule;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
@@ -41,7 +40,7 @@ public class GroupRuleCommandTest extends AbstractCLITest {
 
     @Test
     @Order(1)
-    public void testGroupRuleCommandEmpty() throws JsonProcessingException {
+    public void testGroupRuleCommandEmpty() {
         // When
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("group", "rule", "-g", TEST_GROUP, "--output-type", "json");
@@ -56,7 +55,7 @@ public class GroupRuleCommandTest extends AbstractCLITest {
 
     @Test
     @Order(2)
-    public void testGroupRuleCreateCommand() throws JsonProcessingException {
+    public void testGroupRuleCreateCommand() {
         // When
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("group", "rule", "create", "--output-type", "json",
@@ -105,7 +104,7 @@ public class GroupRuleCommandTest extends AbstractCLITest {
 
     @Test
     @Order(3)
-    public void testGroupRuleGetCommand() throws JsonProcessingException {
+    public void testGroupRuleGetCommand() {
         // When
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("group", "rule", "get", "--output-type", "json",
@@ -147,7 +146,7 @@ public class GroupRuleCommandTest extends AbstractCLITest {
 
     @Test
     @Order(4)
-    public void testGroupRuleUpdateCommand() throws JsonProcessingException {
+    public void testGroupRuleUpdateCommand() {
         // When
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("group", "rule", "update", "--output-type", "json",
@@ -170,7 +169,7 @@ public class GroupRuleCommandTest extends AbstractCLITest {
 
     @Test
     @Order(5)
-    public void testGroupRuleCreateIntegrity() throws JsonProcessingException {
+    public void testGroupRuleCreateIntegrity() {
         // When - create an INTEGRITY rule
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("group", "rule", "create", "--output-type", "json",
@@ -193,7 +192,7 @@ public class GroupRuleCommandTest extends AbstractCLITest {
 
     @Test
     @Order(6)
-    public void testGroupRuleListCommand() throws JsonProcessingException {
+    public void testGroupRuleListCommand() {
         // Create a third rule
         executeAndAssertSuccess("group", "rule", "create", "-g", TEST_GROUP, "-c", "BACKWARD", "COMPATIBILITY");
 
@@ -211,7 +210,7 @@ public class GroupRuleCommandTest extends AbstractCLITest {
 
     @Test
     @Order(7)
-    public void testGroupRuleDeleteCommand() throws JsonProcessingException {
+    public void testGroupRuleDeleteCommand() {
         // When - delete a single rule
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("group", "rule", "delete", "-g", TEST_GROUP, "COMPATIBILITY");
@@ -228,7 +227,7 @@ public class GroupRuleCommandTest extends AbstractCLITest {
 
     @Test
     @Order(8)
-    public void testGroupRuleDeleteAllCommand() throws JsonProcessingException {
+    public void testGroupRuleDeleteAllCommand() {
         // Create another rule so we have more
         executeAndAssertSuccess("group", "rule", "create", "-g", TEST_GROUP, "-c", "BACKWARD", "COMPATIBILITY");
 

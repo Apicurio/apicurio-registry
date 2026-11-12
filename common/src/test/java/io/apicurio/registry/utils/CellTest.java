@@ -1,7 +1,6 @@
 package io.apicurio.registry.utils;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -15,8 +14,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class CellTest {
 
     @Test
-    void testCellSerDes() throws JsonProcessingException {
-        var mapper = new ObjectMapper();
+    void testCellSerDes() {
+        var mapper = new JsonMapper();
 
         var wrapper1 = new Wrapper1(cell("hello"));
         var json = "{\"foo\": \"hello\"}";

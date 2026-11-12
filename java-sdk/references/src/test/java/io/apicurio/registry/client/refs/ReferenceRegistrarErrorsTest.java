@@ -1,7 +1,8 @@
 package io.apicurio.registry.client.refs;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.JsonNode;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
@@ -56,7 +57,7 @@ class ReferenceRegistrarErrorsTest {
     private static final String CONFLICT = """
             {"status":409,"title":"Artifact already exists","detail":"g/R exists","name":"ArtifactAlreadyExistsException"}
             """;
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new JsonMapper();
 
     private WireMockServer server;
     private RegistryClient client;
@@ -178,7 +179,7 @@ class ReferenceRegistrarErrorsTest {
                 .withRequestBody(equalToJson("{\"state\":\"ENABLED\"}")));
         assertEquals("openapi: 3.0.3", MAPPER.readTree(server.findAll(
                 putRequestedFor(urlPathEqualTo(ROOT_ARTIFACTS + "/R/versions/2.0/content"))).get(0)
-                .getBodyAsString()).get("content").asText().lines().findFirst().orElseThrow());
+                .getBodyAsString()).get("content").asString().lines().findFirst().orElseThrow());
     }
 
     @Test
@@ -236,7 +237,7 @@ class ReferenceRegistrarErrorsTest {
 
         JsonNode firstVersion = MAPPER.readTree(server.findAll(postRequestedFor(urlPathEqualTo(ROOT_ARTIFACTS))).get(0)
                 .getBodyAsString()).get("firstVersion");
-        assertEquals("3.0", firstVersion.get("version").asText());
+        assertEquals("3.0", firstVersion.get("version").asString());
         assertTrue(firstVersion.get("isDraft").asBoolean());
     }
 

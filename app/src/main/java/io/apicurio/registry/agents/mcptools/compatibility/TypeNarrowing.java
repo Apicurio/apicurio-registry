@@ -1,10 +1,10 @@
 package io.apicurio.registry.agents.mcptools.compatibility;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.BooleanNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.BooleanNode;
+import tools.jackson.databind.node.JsonNodeFactory;
+import tools.jackson.databind.node.ObjectNode;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -174,10 +174,10 @@ final class TypeNarrowing {
 
     private static List<String> typeNames(JsonNode type) {
         List<String> names = new ArrayList<>();
-        if (type.isTextual()) {
-            names.add(type.textValue());
+        if (type.isString()) {
+            names.add(type.stringValue());
         } else if (type.isArray()) {
-            type.forEach(name -> names.add(name.asText()));
+            type.forEach(name -> names.add(name.asString()));
         }
         return names;
     }

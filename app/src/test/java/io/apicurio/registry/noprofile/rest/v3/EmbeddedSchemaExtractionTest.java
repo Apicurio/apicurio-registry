@@ -16,7 +16,7 @@
 
 package io.apicurio.registry.noprofile.rest.v3;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.models.ArtifactReference;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
@@ -96,9 +96,9 @@ public class EmbeddedSchemaExtractionTest extends AbstractResourceTestBase {
         JsonNode v2 = MAPPER.readTree(getVersionContent(groupId, artifactId, "2"));
 
         Assertions.assertEquals(groupId + ":" + schemaArtifactId + ":1",
-                v1.path("outputSchema").path("$ref").asText());
+                v1.path("outputSchema").path("$ref").asString());
         Assertions.assertEquals(groupId + ":" + schemaArtifactId + ":2",
-                v2.path("outputSchema").path("$ref").asText());
+                v2.path("outputSchema").path("$ref").asString());
 
         // Each version must record an outbound reference to the schema version it uses.
         List<ArtifactReference> v1Refs = clientV3.groups().byGroupId(groupId).artifacts()
@@ -137,7 +137,7 @@ public class EmbeddedSchemaExtractionTest extends AbstractResourceTestBase {
         // An unchanged schema must be reused instead of producing a redundant version.
         JsonNode v2 = MAPPER.readTree(getVersionContent(groupId, artifactId, "2"));
         Assertions.assertEquals(groupId + ":" + schemaArtifactId + ":1",
-                v2.path("outputSchema").path("$ref").asText());
+                v2.path("outputSchema").path("$ref").asString());
 
         VersionSearchResults versions = clientV3.groups().byGroupId(groupId).artifacts()
                 .byArtifactId(schemaArtifactId).versions().get();
@@ -172,9 +172,9 @@ public class EmbeddedSchemaExtractionTest extends AbstractResourceTestBase {
 
         // The unchanged input schema is reused; the changed output schema gets a new version.
         Assertions.assertEquals(groupId + ":" + artifactId + "-input-schema:1",
-                v2.path("input").path("$ref").asText());
+                v2.path("input").path("$ref").asString());
         Assertions.assertEquals(groupId + ":" + outputSchemaArtifactId + ":2",
-                v2.path("output").path("$ref").asText());
+                v2.path("output").path("$ref").asString());
 
         JsonNode outputSchemaV2 = MAPPER.readTree(getVersionContent(groupId, outputSchemaArtifactId, "2"));
         Assertions.assertTrue(outputSchemaV2.path("properties").has("tokens"));
@@ -193,7 +193,7 @@ public class EmbeddedSchemaExtractionTest extends AbstractResourceTestBase {
         // createArtifactVersion: $ref instead of the inline schema, plus an outbound reference.
         JsonNode v2 = MAPPER.readTree(getVersionContent(groupId, artifactId, "2"));
         Assertions.assertEquals(groupId + ":" + schemaArtifactId + ":2",
-                v2.path("outputSchema").path("$ref").asText());
+                v2.path("outputSchema").path("$ref").asString());
 
         List<ArtifactReference> v2Refs = clientV3.groups().byGroupId(groupId).artifacts()
                 .byArtifactId(artifactId).versions().byVersionExpression("2").references().get();
@@ -229,7 +229,7 @@ public class EmbeddedSchemaExtractionTest extends AbstractResourceTestBase {
         Assertions.assertEquals("2", created.getVersion().getVersion());
         JsonNode v2 = MAPPER.readTree(getVersionContent(groupId, artifactId, "2"));
         Assertions.assertEquals(groupId + ":" + schemaArtifactId + ":2",
-                v2.path("outputSchema").path("$ref").asText());
+                v2.path("outputSchema").path("$ref").asString());
     }
 
     @Test
@@ -251,11 +251,11 @@ public class EmbeddedSchemaExtractionTest extends AbstractResourceTestBase {
 
         // Unchanged embedded schemas are reused by the ifExists version, just as on the other paths.
         JsonNode v2 = MAPPER.readTree(getVersionContent(groupId, artifactId, "2"));
-        Assertions.assertEquals("Renamed Model", v2.path("name").asText());
+        Assertions.assertEquals("Renamed Model", v2.path("name").asString());
         Assertions.assertEquals(groupId + ":" + artifactId + "-input-schema:1",
-                v2.path("input").path("$ref").asText());
+                v2.path("input").path("$ref").asString());
         Assertions.assertEquals(groupId + ":" + artifactId + "-output-schema:1",
-                v2.path("output").path("$ref").asText());
+                v2.path("output").path("$ref").asString());
     }
 
     private CreateArtifactResponse postWithIfExists(String groupId, String artifactId, String artifactType,

@@ -1,13 +1,14 @@
 package io.apicurio.registry.content.dereference;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.node.TextNode;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ObjectNode;
+import tools.jackson.dataformat.yaml.YAMLMapper;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.types.ContentTypes;
+import tools.jackson.databind.node.StringNode;
 
 import java.util.Locale;
 import java.util.Map;
@@ -31,8 +32,8 @@ public class OdcsContractDereferencer implements ContentDereferencer {
      */
     private static final String SCHEMA_DEFINITION_FIELD = "x-apicurio-schemaDefinition";
 
-    private static final ObjectMapper YAML_MAPPER = new ObjectMapper(new YAMLFactory());
-    private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
+    private static final ObjectMapper YAML_MAPPER = new YAMLMapper();
+    private static final ObjectMapper JSON_MAPPER = new JsonMapper();
 
     /**
      * Inlines the resolved content of every reference whose name matches a {@code schemas[].location}
@@ -85,10 +86,10 @@ public class OdcsContractDereferencer implements ContentDereferencer {
             return false;
         }
         JsonNode location = schema.get(LOCATION);
-        if (location == null || !location.isTextual()) {
+        if (location == null || !location.isString()) {
             return false;
         }
-        TypedContent resolved = resolvedReferences.get(location.asText());
+        TypedContent resolved = resolvedReferences.get(location.asString());
         if (resolved == null) {
             return false;
         }
@@ -120,14 +121,14 @@ public class OdcsContractDereferencer implements ContentDereferencer {
                     continue;
                 }
                 JsonNode location = schema.get(LOCATION);
-                if (location == null || !location.isTextual()) {
+                if (location == null || !location.isString()) {
                     continue;
                 }
-                String url = resolvedReferenceUrls.get(location.asText());
+                String url = resolvedReferenceUrls.get(location.asString());
                 if (url == null) {
                     continue;
                 }
-                ((ObjectNode) schema).set(LOCATION, new TextNode(url));
+                ((ObjectNode) schema).set(LOCATION, new StringNode(url));
                 changed = true;
             }
             if (!changed) {
@@ -153,7 +154,7 @@ public class OdcsContractDereferencer implements ContentDereferencer {
             }
             return JSON_MAPPER.readTree(raw);
         } catch (Exception e) {
-            return new TextNode(raw);
+            return new StringNode(raw);
         }
     }
 

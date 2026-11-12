@@ -1,11 +1,11 @@
 package io.apicurio.registry.agents.mcptools.compatibility;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.BooleanNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.networknt.schema.SpecVersionDetector;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.BooleanNode;
+import tools.jackson.databind.node.JsonNodeFactory;
+import tools.jackson.databind.node.ObjectNode;
+import io.apicurio.registry.json.rules.validity.JsonSchemaDocumentValidator;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -69,10 +69,10 @@ final class SchemaProjector {
         JsonNode declaredDialect = schema.get(SCHEMA);
         if (declaredDialect != null) {
             String message = null;
-            if (!declaredDialect.isTextual()) {
+            if (!declaredDialect.isString()) {
                 message = "'$schema' must be a string";
-            } else if (SpecVersionDetector.detectOptionalVersion(schema, false).isEmpty()) {
-                message = "JSON Schema dialect '" + declaredDialect.asText() + "' is not supported";
+            } else if (JsonSchemaDocumentValidator.fromDialectId(declaredDialect.asString()).isEmpty()) {
+                message = "JSON Schema dialect '" + declaredDialect.asString() + "' is not supported";
             }
             if (message != null) {
                 limitations.add(new CompatibilityLimitation(LimitationCode.UNSUPPORTED_DIALECT, side,
@@ -218,11 +218,11 @@ final class SchemaProjector {
         }
         List<String> names = new ArrayList<>();
         for (JsonNode entry : type) {
-            if (!entry.isTextual()) {
+            if (!entry.isString()) {
                 limitations.add(unnamedTypes(side, node, pointer));
                 return;
             }
-            String name = entry.textValue();
+            String name = entry.stringValue();
             if (!TYPE_NAMES.contains(name)) {
                 limitations.add(invalidTypes(side, node, pointer,
                         "'type' names '" + name + "', which is not a JSON type"));

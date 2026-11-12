@@ -1,6 +1,6 @@
 package io.apicurio.registry.cli;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import tools.jackson.core.type.TypeReference;
 import io.apicurio.registry.rest.v3.beans.Comment;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;

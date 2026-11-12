@@ -1,6 +1,6 @@
 package io.apicurio.registry.noprofile.rest.v3;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateVersion;
@@ -208,7 +208,7 @@ public class EmbeddedSchemaExtractionRejectionTest extends AbstractResourceTestB
                 created++;
                 String version = outcome.version().getVersion();
                 JsonNode parent = MAPPER.readTree(getContent(groupId, artifactId, version));
-                String ref = parent.path("outputSchema").path("$ref").asText();
+                String ref = parent.path("outputSchema").path("$ref").asString();
                 String refPrefix = groupId + ":" + schemaArtifactId + ":";
                 Assertions.assertTrue(ref.startsWith(refPrefix), "unexpected $ref: " + ref);
                 String schemaVersion = ref.substring(refPrefix.length());

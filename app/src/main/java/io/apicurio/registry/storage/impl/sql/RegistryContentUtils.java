@@ -1,8 +1,8 @@
 package io.apicurio.registry.storage.impl.sql;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.dereference.DereferencingNotSupportedException;
@@ -19,6 +19,7 @@ import io.quarkus.security.ForbiddenException;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.core.JacksonException;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -36,7 +37,7 @@ public class RegistryContentUtils {
 
     static final String NULL_GROUP_ID = "__$GROUPID$__";
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new JsonMapper();
 
     private RegistryContentUtils() {
     }
@@ -266,7 +267,7 @@ public class RegistryContentUtils {
                 return null;
             }
             return MAPPER.writeValueAsString(labels);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new RuntimeException(e);
         }
     }
@@ -283,7 +284,7 @@ public class RegistryContentUtils {
                 return null;
             }
             return MAPPER.readValue(labelsStr, Map.class);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new RuntimeException(e);
         }
     }
@@ -299,7 +300,7 @@ public class RegistryContentUtils {
                 return null;
             }
             return MAPPER.writeValueAsString(references);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new RuntimeException(e);
         }
     }
@@ -316,7 +317,7 @@ public class RegistryContentUtils {
             }
             return MAPPER.readValue(references, new TypeReference<List<ArtifactReferenceDto>>() {
             });
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new RuntimeException(e);
         }
     }

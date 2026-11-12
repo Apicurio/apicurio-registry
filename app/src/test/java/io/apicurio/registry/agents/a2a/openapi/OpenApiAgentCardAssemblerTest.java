@@ -1,6 +1,6 @@
 package io.apicurio.registry.agents.a2a.openapi;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rules.violation.RuleViolationException;
 import io.apicurio.registry.types.ContentTypes;
@@ -101,10 +101,10 @@ public class OpenApiAgentCardAssemblerTest {
         String assembled = assembler.assemble(json(openApi));
         JsonNode node = MAPPER.readTree(assembled);
         // Explicit values in the extension are preserved, not overwritten by info.*/servers[].
-        assertEquals("Weather Agent", node.get("name").asText());
-        assertEquals("2.0.0", node.get("version").asText());
+        assertEquals("Weather Agent", node.get("name").asString());
+        assertEquals("2.0.0", node.get("version").asString());
         assertEquals("https://weather-agent.example.com",
-                node.get("supportedInterfaces").get(0).get("url").asText());
+                node.get("supportedInterfaces").get(0).get("url").asString());
     }
 
     @Test
@@ -124,9 +124,9 @@ public class OpenApiAgentCardAssemblerTest {
                 """.formatted(FULL_SKILLS_BLOCK);
         String assembled = assembler.assemble(json(openApi));
         JsonNode node = MAPPER.readTree(assembled);
-        assertEquals("Weather API", node.get("name").asText());
-        assertEquals("A weather service", node.get("description").asText());
-        assertEquals("1.0.0", node.get("version").asText());
+        assertEquals("Weather API", node.get("name").asString());
+        assertEquals("A weather service", node.get("description").asString());
+        assertEquals("1.0.0", node.get("version").asString());
     }
 
     @Test
@@ -148,10 +148,10 @@ public class OpenApiAgentCardAssemblerTest {
         JsonNode node = MAPPER.readTree(assembled);
         JsonNode interfaces = node.get("supportedInterfaces");
         assertEquals(2, interfaces.size());
-        assertEquals("https://weather.example.com", interfaces.get(0).get("url").asText());
-        assertEquals("http+json", interfaces.get(0).get("protocolBinding").asText());
-        assertEquals("1.0", interfaces.get(0).get("protocolVersion").asText());
-        assertEquals("https://weather2.example.com", interfaces.get(1).get("url").asText());
+        assertEquals("https://weather.example.com", interfaces.get(0).get("url").asString());
+        assertEquals("http+json", interfaces.get(0).get("protocolBinding").asString());
+        assertEquals("1.0", interfaces.get(0).get("protocolVersion").asString());
+        assertEquals("https://weather2.example.com", interfaces.get(1).get("url").asString());
     }
 
     @Test
@@ -171,7 +171,7 @@ public class OpenApiAgentCardAssemblerTest {
                 """.formatted(FULL_SKILLS_BLOCK);
         String assembled = assembler.assemble(json(openApi));
         JsonNode node = MAPPER.readTree(assembled);
-        assertEquals("1.1", node.get("supportedInterfaces").get(0).get("protocolVersion").asText());
+        assertEquals("1.1", node.get("supportedInterfaces").get(0).get("protocolVersion").asString());
     }
 
     @Test
@@ -239,7 +239,7 @@ public class OpenApiAgentCardAssemblerTest {
         TypedContent yamlContent = TypedContent.create(openApiYaml, ContentTypes.APPLICATION_YAML);
         String assembled = assembler.assemble(yamlContent);
         JsonNode node = MAPPER.readTree(assembled);
-        assertEquals("Weather Agent", node.get("name").asText());
+        assertEquals("Weather Agent", node.get("name").asString());
         assertEquals(1, node.get("supportedInterfaces").size());
     }
 
@@ -267,7 +267,7 @@ public class OpenApiAgentCardAssemblerTest {
                  "variables":{"host":{"default":"example.com"},"base":{"default":"agent"}}}],"paths":{}}
                 """.formatted(FULL_SKILLS_BLOCK);
         JsonNode result = MAPPER.readTree(assembler.assemble(json(document)));
-        assertEquals("https://example.com/agent", result.path("supportedInterfaces").get(0).path("url").asText());
+        assertEquals("https://example.com/agent", result.path("supportedInterfaces").get(0).path("url").asString());
     }
 
     @Test

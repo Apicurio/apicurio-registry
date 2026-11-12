@@ -1,6 +1,6 @@
 package io.apicurio.registry.support;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import org.junit.jupiter.api.Assertions;
 
 import java.io.InputStream;
@@ -15,7 +15,7 @@ public class HealthUtils {
     public static void assertHealthCheck(int port, Type type, HealthResponse.Status status) throws Exception {
         URL url = new URL(String.format("http://localhost:%s/health/%s", port, type.name().toLowerCase()));
         try (InputStream stream = url.openStream()) {
-            HealthResponse hr = new ObjectMapper().readValue(stream, HealthResponse.class);
+            HealthResponse hr = new JsonMapper().readValue(stream, HealthResponse.class);
             Assertions.assertEquals(status, hr.status);
         }
     }

@@ -1,6 +1,6 @@
 package io.apicurio.registry.cli;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import org.junit.jupiter.api.Order;
@@ -112,13 +112,13 @@ public class RoleMappingCommandTest extends AbstractCLITest {
         executeAndAssertSuccess("role", "create", "--output-type", "json",
                 TEST_PRINCIPAL, TEST_ROLE, "--name", TEST_NAME);
         JsonNode json = MAPPER.readTree(out.toString());
-        assertThat(json.get("principalId").asText())
+        assertThat(json.get("principalId").asString())
                 .as(withCliOutput("Should have correct principal"))
                 .isEqualTo(TEST_PRINCIPAL);
-        assertThat(json.get("role").asText())
+        assertThat(json.get("role").asString())
                 .as(withCliOutput("Should have correct role"))
                 .isEqualTo(TEST_ROLE);
-        assertThat(json.get("principalName").asText())
+        assertThat(json.get("principalName").asString())
                 .as(withCliOutput("Should have correct name"))
                 .isEqualTo(TEST_NAME);
     }
@@ -132,7 +132,7 @@ public class RoleMappingCommandTest extends AbstractCLITest {
         assertThat(json.size())
                 .as(withCliOutput("Should have one mapping"))
                 .isEqualTo(1);
-        assertThat(json.get(0).get("principalId").asText()).isEqualTo(TEST_PRINCIPAL);
+        assertThat(json.get(0).get("principalId").asString()).isEqualTo(TEST_PRINCIPAL);
     }
 
     @Test
@@ -141,9 +141,9 @@ public class RoleMappingCommandTest extends AbstractCLITest {
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("role", "get", "--output-type", "json", TEST_PRINCIPAL);
         JsonNode json = MAPPER.readTree(out.toString());
-        assertThat(json.get("principalId").asText()).isEqualTo(TEST_PRINCIPAL);
-        assertThat(json.get("role").asText()).isEqualTo(TEST_ROLE);
-        assertThat(json.get("principalName").asText()).isEqualTo(TEST_NAME);
+        assertThat(json.get("principalId").asString()).isEqualTo(TEST_PRINCIPAL);
+        assertThat(json.get("role").asString()).isEqualTo(TEST_ROLE);
+        assertThat(json.get("principalName").asString()).isEqualTo(TEST_NAME);
     }
 
     @Test
@@ -153,7 +153,7 @@ public class RoleMappingCommandTest extends AbstractCLITest {
         executeAndAssertSuccess("role", "update", "--output-type", "json",
                 TEST_PRINCIPAL, "--role", TEST_UPDATED_ROLE);
         JsonNode json = MAPPER.readTree(out.toString());
-        assertThat(json.get("role").asText())
+        assertThat(json.get("role").asString())
                 .as(withCliOutput("Should have updated role"))
                 .isEqualTo(TEST_UPDATED_ROLE);
     }
@@ -164,7 +164,7 @@ public class RoleMappingCommandTest extends AbstractCLITest {
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("role", "get", "--output-type", "json", TEST_PRINCIPAL);
         JsonNode json = MAPPER.readTree(out.toString());
-        assertThat(json.get("role").asText()).isEqualTo(TEST_UPDATED_ROLE);
+        assertThat(json.get("role").asString()).isEqualTo(TEST_UPDATED_ROLE);
     }
 
     @Test

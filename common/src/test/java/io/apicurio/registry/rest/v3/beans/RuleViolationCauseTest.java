@@ -1,7 +1,8 @@
 package io.apicurio.registry.rest.v3.beans;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.apicurio.registry.types.CompatibilityDifferenceDirection;
 import org.junit.jupiter.api.Test;
 
@@ -33,7 +34,7 @@ public class RuleViolationCauseTest {
         data.setProposed(proposed);
         data.setExisting(existing);
 
-        ObjectMapper mapper = new ObjectMapper();
+        ObjectMapper mapper = new JsonMapper();
         RuleViolationCause roundTripped = mapper.readValue(mapper.writeValueAsString(data),
                 RuleViolationCause.class);
 
@@ -63,7 +64,7 @@ public class RuleViolationCauseTest {
         data.setDescription("API is missing a title");
         data.setContext("/info[title]");
 
-        String json = new ObjectMapper().writeValueAsString(data);
+        String json = new JsonMapper().writeValueAsString(data);
 
         assertEquals("{\"description\":\"API is missing a title\",\"context\":\"/info[title]\"}", json);
     }
@@ -94,9 +95,9 @@ public class RuleViolationCauseTest {
         details.setStatus(409);
         details.setCauses(List.of(cause));
 
-        String json = new ObjectMapper().writeValueAsString(details);
+        String json = new JsonMapper().writeValueAsString(details);
 
-        LegacyProblemDetails legacy = new ObjectMapper().readValue(json, LegacyProblemDetails.class);
+        LegacyProblemDetails legacy = new JsonMapper().readValue(json, LegacyProblemDetails.class);
 
         assertEquals("Artifact failed compatibility checking", legacy.title);
         assertEquals(409, legacy.status);

@@ -1,8 +1,8 @@
 package io.apicurio.registry.events.dto;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -27,15 +27,15 @@ public class CloudEventDtoTest {
                 .withSource("/apicurio-registry").withType(CloudEventType.ARTIFACT_CREATED.type())
                 .withTime(Instant.parse("2026-01-01T00:00:00Z"));
 
-        ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule());
+        ObjectMapper mapper = new JsonMapper();
         JsonNode json = mapper.valueToTree(event);
 
-        assertEquals("1.0", json.get("specversion").asText());
-        assertEquals("abc-123", json.get("id").asText());
-        assertEquals("/apicurio-registry", json.get("source").asText());
-        assertEquals(CloudEventType.ARTIFACT_CREATED.type(), json.get("type").asText());
-        assertEquals("application/json", json.get("datacontenttype").asText());
-        assertEquals("2026-01-01T00:00:00Z", json.get("time").asText());
+        assertEquals("1.0", json.get("specversion").asString());
+        assertEquals("abc-123", json.get("id").asString());
+        assertEquals("/apicurio-registry", json.get("source").asString());
+        assertEquals(CloudEventType.ARTIFACT_CREATED.type(), json.get("type").asString());
+        assertEquals("application/json", json.get("datacontenttype").asString());
+        assertEquals("2026-01-01T00:00:00Z", json.get("time").asString());
         assertFalse(json.has("subject"), "absent optional 'subject' must not be serialized");
         assertFalse(json.has("data"), "absent optional 'data' must not be serialized");
     }
@@ -45,7 +45,7 @@ public class CloudEventDtoTest {
         CloudEventDto event = new CloudEventDto().withId("abc-123")
                 .withSource("/apicurio-registry").withType(CloudEventType.ARTIFACT_CREATED.type());
 
-        ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule());
+        ObjectMapper mapper = new JsonMapper();
         JsonNode json = mapper.valueToTree(event);
 
         assertFalse(json.has("time"), "unset 'time' must not be serialized");
@@ -61,12 +61,12 @@ public class CloudEventDtoTest {
                 .withSource("/apicurio-registry").withType(CloudEventType.ARTIFACT_DELETED.type())
                 .withSubject("my-group/my-artifact").withData(subject);
 
-        ObjectMapper mapper = new ObjectMapper();
+        ObjectMapper mapper = new JsonMapper();
         JsonNode json = mapper.valueToTree(event);
 
-        assertEquals("my-group/my-artifact", json.get("subject").asText());
-        assertEquals("my-group", json.get("data").get("groupId").asText());
-        assertEquals("my-artifact", json.get("data").get("artifactId").asText());
+        assertEquals("my-group/my-artifact", json.get("subject").asString());
+        assertEquals("my-group", json.get("data").get("groupId").asString());
+        assertEquals("my-artifact", json.get("data").get("artifactId").asString());
     }
 
     @Test

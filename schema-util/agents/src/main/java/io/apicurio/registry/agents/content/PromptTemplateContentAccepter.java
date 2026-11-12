@@ -3,7 +3,7 @@ package io.apicurio.registry.agents.content;
 import io.apicurio.registry.content.ContentAccepter;
 import io.apicurio.registry.content.TypedContent;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import io.apicurio.registry.content.util.ContentTypeUtil;
 
 import java.util.Map;
@@ -33,13 +33,13 @@ public class PromptTemplateContentAccepter implements ContentAccepter {
                 return false;
             }
 
-            if (tree.has(SCHEMA_KEY) && tree.get(SCHEMA_KEY).isTextual()
-                    && tree.get(SCHEMA_KEY).asText().contains("prompt-template")) {
+            if (tree.has(SCHEMA_KEY) && tree.get(SCHEMA_KEY).isString()
+                    && tree.get(SCHEMA_KEY).asString().contains("prompt-template")) {
                 return true;
             }
 
-            if (tree.has("templateId") && tree.get("templateId").isTextual()
-                    && tree.has("template") && tree.get("template").isTextual()) {
+            if (tree.has("templateId") && tree.get("templateId").isString()
+                    && tree.has("template") && tree.get("template").isString()) {
                 return true;
             }
         } catch (Exception e) {

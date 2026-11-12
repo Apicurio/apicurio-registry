@@ -1,8 +1,10 @@
 package io.apicurio.registry.content.util;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.dataformat.yaml.YAMLMapper;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.types.ContentTypes;
@@ -28,8 +30,8 @@ public final class ContentTypeUtil {
     public static final String CT_APPLICATION_XML = "application/xml";
     public static final String CT_TEXT_PLAIN = "text/plain";
 
-    private static final ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
-    private static final ObjectMapper jsonMapper = new ObjectMapper();
+    private static final ObjectMapper yamlMapper = new YAMLMapper();
+    private static final ObjectMapper jsonMapper = new JsonMapper();
 
     /**
      * Returns true if the Content-Type of the inbound request is "application/json".
@@ -103,7 +105,7 @@ public final class ContentTypeUtil {
                 return false;
             }
             JsonNode root = yamlMapper.readTree(yaml.stream());
-            return root != null && root.elements().hasNext();
+            return root != null && root.values().iterator().hasNext();
         } catch (Throwable t) {
             return false;
         }
@@ -150,13 +152,20 @@ public final class ContentTypeUtil {
     }
 
     public static JsonNode parseJson(ContentHandle content) throws IOException {
-        JsonNode root = jsonMapper.readTree(content.stream());
-        return root;
+        try {
+            return jsonMapper.readTree(content.stream());
+        } catch (JacksonException e) {
+            // Jackson 3 exceptions are unchecked; keep the checked IOException contract callers rely on
+            throw new IOException(e.getMessage(), e);
+        }
     }
 
     public static JsonNode parseYaml(ContentHandle content) throws IOException {
-        JsonNode root = yamlMapper.readTree(content.stream());
-        return root;
+        try {
+            return yamlMapper.readTree(content.stream());
+        } catch (JacksonException e) {
+            throw new IOException(e.getMessage(), e);
+        }
     }
 
     public static JsonNode parseJsonOrYaml(TypedContent content) throws IOException {

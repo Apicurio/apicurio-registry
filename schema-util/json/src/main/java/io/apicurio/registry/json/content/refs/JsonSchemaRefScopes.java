@@ -1,8 +1,8 @@
 package io.apicurio.registry.json.content.refs;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.networknt.schema.SpecVersion.VersionFlag;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ObjectNode;
+import com.networknt.schema.SpecificationVersion;
 import io.apicurio.registry.json.rules.validity.JsonSchemaDocumentValidator;
 
 import java.net.URI;
@@ -33,7 +33,7 @@ public final class JsonSchemaRefScopes {
 
     private static final JsonSchemaDocumentValidator DRAFT_DETECTOR = JsonSchemaDocumentValidator.builder()
             .draftDetector(JsonSchemaDocumentValidator.dataModelsDraftDetector())
-            .treatUnrecognisedDraftAs(VersionFlag.V7).build();
+            .treatUnrecognisedDraftAs(SpecificationVersion.DRAFT_7).build();
 
     /**
      * A {@code $ref} occurrence in a schema.
@@ -60,7 +60,7 @@ public final class JsonSchemaRefScopes {
         if (schema == null) {
             return Collections.emptyList();
         }
-        VersionFlag draft = DRAFT_DETECTOR.draftOf(schema).orElse(VersionFlag.V7);
+        SpecificationVersion draft = DRAFT_DETECTOR.draftOf(schema).orElse(SpecificationVersion.DRAFT_7);
         Walker walker = new Walker(draft);
         walker.walk(schema, null, true);
         return walker.sites;
@@ -72,11 +72,11 @@ public final class JsonSchemaRefScopes {
         private final boolean refOverridesSiblings;
         private final List<RefSite> sites = new ArrayList<>();
 
-        private Walker(VersionFlag draft) {
-            this.idKeyword = draft == VersionFlag.V4 ? "id" : "$id";
+        private Walker(SpecificationVersion draft) {
+            this.idKeyword = draft == SpecificationVersion.DRAFT_4 ? "id" : "$id";
             // Up to draft 7, keywords next to $ref (including the id) are ignored
-            this.refOverridesSiblings = draft == VersionFlag.V4 || draft == VersionFlag.V6
-                    || draft == VersionFlag.V7;
+            this.refOverridesSiblings = draft == SpecificationVersion.DRAFT_4 || draft == SpecificationVersion.DRAFT_6
+                    || draft == SpecificationVersion.DRAFT_7;
         }
 
         /**
@@ -95,20 +95,20 @@ public final class JsonSchemaRefScopes {
                 return;
             }
             JsonNode refNode = node.get(REF);
-            boolean hasRef = refNode != null && refNode.isTextual();
+            boolean hasRef = refNode != null && refNode.isString();
             URI scope = base;
             if (isSchema && !(hasRef && refOverridesSiblings)) {
                 scope = withId(base, node.get(idKeyword));
             }
             if (hasRef) {
-                String ref = refNode.asText();
+                String ref = refNode.asString();
                 sites.add(new RefSite((ObjectNode) node, ref, resolve(scope, ref)));
             }
             walkFields(node, scope, isSchema);
         }
 
         private void walkFields(JsonNode node, URI scope, boolean isSchema) {
-            Iterator<Entry<String, JsonNode>> fields = node.fields();
+            Iterator<Entry<String, JsonNode>> fields = node.properties().iterator();
             while (fields.hasNext()) {
                 Entry<String, JsonNode> field = fields.next();
                 if (isSchema && SCHEMA_MAP_KEYWORDS.contains(field.getKey()) && field.getValue().isObject()) {
@@ -123,12 +123,12 @@ public final class JsonSchemaRefScopes {
         }
 
         private static URI withId(URI base, JsonNode idNode) {
-            if (idNode == null || !idNode.isTextual() || idNode.asText().startsWith("#")) {
+            if (idNode == null || !idNode.isString() || idNode.asString().startsWith("#")) {
                 // No id, or a fragment-only id, which is a plain-name anchor and does not change the base
                 return base;
             }
             try {
-                URI id = new URI(idNode.asText());
+                URI id = new URI(idNode.asString());
                 return base == null ? id : base.resolve(id);
             } catch (URISyntaxException | IllegalArgumentException e) {
                 return base;

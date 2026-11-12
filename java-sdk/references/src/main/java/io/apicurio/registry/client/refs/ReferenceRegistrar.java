@@ -1,6 +1,7 @@
 package io.apicurio.registry.client.refs;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.content.refs.resolve.ExistingArtifact;
 import io.apicurio.registry.content.refs.resolve.PlanOptions;
@@ -22,6 +23,7 @@ import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.rest.client.models.VersionState;
 import io.apicurio.registry.rest.client.models.WrappedVersionState;
+import tools.jackson.core.JacksonException;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -60,7 +62,7 @@ public final class ReferenceRegistrar {
 
     private static final String DEFAULT_GROUP = "default";
     private static final String LATEST = "latest";
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new JsonMapper();
 
     private final RegistryClient client;
     private final IfArtifactExists ifExists;
@@ -324,8 +326,9 @@ public final class ReferenceRegistrar {
         if (minify && ct != null && ct.toLowerCase(Locale.ROOT).contains("json")) {
             try {
                 return MAPPER.readTree(raw).toString();
-            } catch (IOException e) {
-                throw new UncheckedIOException("Unable to minify " + artifact.source().location(), e);
+            } catch (JacksonException e) {
+                throw new UncheckedIOException("Unable to minify " + artifact.source().location(),
+                        new IOException(e.getMessage(), e));
             }
         }
         return raw;

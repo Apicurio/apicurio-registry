@@ -1,6 +1,7 @@
 package io.apicurio.registry.events.dto;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -18,7 +19,7 @@ public class RuleViolationTest {
         data.setRuleType("COMPATIBILITY");
         data.setViolations(List.of("Removed field 'foo' is not backwards compatible"));
 
-        ObjectMapper mapper = new ObjectMapper();
+        ObjectMapper mapper = new JsonMapper();
         String json = mapper.writeValueAsString(data);
         RuleViolation roundTripped = mapper.readValue(json, RuleViolation.class);
 

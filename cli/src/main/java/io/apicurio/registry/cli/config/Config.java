@@ -8,7 +8,6 @@ import io.apicurio.registry.cli.utils.Output;
 import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -17,6 +16,7 @@ import java.util.function.Consumer;
 import lombok.Getter;
 import lombok.Setter;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import tools.jackson.core.JacksonException;
 
 import static io.apicurio.registry.cli.common.CliException.APPLICATION_ERROR_RETURN_CODE;
 import static io.apicurio.registry.cli.common.CliException.VALIDATION_ERROR_RETURN_CODE;
@@ -134,7 +134,7 @@ public class Config {
             var configPath = getConfigFilePath();
             try {
                 cachedConfig = Mapper.MAPPER.readValue(configPath.toFile(), ConfigModel.class);
-            } catch (IOException ex) {
+            } catch (JacksonException ex) {
                 throw new CliException("Could not read config file '%s'.".formatted(configPath), ex, APPLICATION_ERROR_RETURN_CODE);
             }
         }
@@ -147,7 +147,7 @@ public class Config {
         try {
             Mapper.MAPPER.writeValue(configPath.toFile(), config);
             cachedConfig = null;
-        } catch (IOException ex) {
+        } catch (JacksonException ex) {
             throw new CliException("Could not write config file '%s'.".formatted(configPath), ex, APPLICATION_ERROR_RETURN_CODE);
         }
     }

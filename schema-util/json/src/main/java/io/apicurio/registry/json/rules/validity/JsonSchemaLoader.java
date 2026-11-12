@@ -1,11 +1,11 @@
 package io.apicurio.registry.json.rules.validity;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.networknt.schema.SpecVersion.VersionFlag;
+import tools.jackson.databind.cfg.JsonNodeFeature;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ObjectNode;
+import com.networknt.schema.SpecificationVersion;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rules.violation.RuleViolation;
 import io.apicurio.registry.types.RegistryException;
@@ -19,7 +19,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static com.fasterxml.jackson.databind.DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS;
+import static tools.jackson.databind.DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS;
 
 /**
  * Checks that the content of a JSON Schema artifact is a valid JSON Schema, in any of drafts 4, 6,
@@ -31,14 +31,15 @@ final class JsonSchemaLoader {
 
     private static final JsonSchemaDocumentValidator VALIDATOR = JsonSchemaDocumentValidator.builder()
             .draftDetector(JsonSchemaDocumentValidator.dataModelsDraftDetector())
-            .treatUnrecognisedDraftAs(VersionFlag.V7)
+            .treatUnrecognisedDraftAs(SpecificationVersion.DRAFT_7)
             .loadSchema(true)
             .build();
 
     // Numbers reach the validator as written, rather than rounded through a double.
-    private static final ObjectMapper MAPPER = new ObjectMapper()
+    private static final ObjectMapper MAPPER = JsonMapper.builder()
             .enable(USE_BIG_DECIMAL_FOR_FLOATS)
-            .setNodeFactory(JsonNodeFactory.withExactBigDecimals(true));
+            .disable(JsonNodeFeature.STRIP_TRAILING_BIGDECIMAL_ZEROES)
+            .build();
 
     private JsonSchemaLoader() {
     }
@@ -46,12 +47,11 @@ final class JsonSchemaLoader {
     /**
      * @return each problem found; empty if the content is a valid JSON Schema
      */
-    static List<RuleViolation> load(String content, Map<String, TypedContent> resolvedReferences)
-            throws JsonProcessingException {
+    static List<RuleViolation> load(String content, Map<String, TypedContent> resolvedReferences) {
         var jsonNode = MAPPER.readTree(content);
         var draft = VALIDATOR.draftOf(jsonNode).orElseThrow();
 
-        var references = findReferences(draft == VersionFlag.V4 ? "id" : "$id", null, jsonNode);
+        var references = findReferences(draft == SpecificationVersion.DRAFT_4 ? "id" : "$id", null, jsonNode);
         checkNoUnusedReferences(references, resolvedReferences);
 
         return VALIDATOR.validate(jsonNode, referencedDocuments(draft, references, resolvedReferences)::get);
@@ -81,7 +81,7 @@ final class JsonSchemaLoader {
      * for is replaced by one that accepts anything. It contains each JSON Pointer and each anchor the
      * schema refers to it with, so references into it resolve too.
      */
-    private static Map<String, String> referencedDocuments(VersionFlag draft, Set<URI> references,
+    private static Map<String, String> referencedDocuments(SpecificationVersion draft, Set<URI> references,
             Map<String, TypedContent> resolvedReferences) {
         var supplied = new HashMap<String, String>();
         var placeholders = new HashMap<String, ObjectNode>();
@@ -117,15 +117,15 @@ final class JsonSchemaLoader {
      * spells one: {@code $anchor} from 2019-09, a location-independent identifier before that. The
      * referenced document has no {@code $schema}, so it is read in the referencing schema's draft.
      */
-    private static void addAnchor(ObjectNode placeholder, VersionFlag draft, String anchor) {
-        var modern = draft == VersionFlag.V201909 || draft == VersionFlag.V202012;
+    private static void addAnchor(ObjectNode placeholder, SpecificationVersion draft, String anchor) {
+        var modern = draft == SpecificationVersion.DRAFT_2019_09 || draft == SpecificationVersion.DRAFT_2020_12;
         var definitions = placeholder.get(modern ? "$defs" : "definitions") instanceof ObjectNode existing
                 ? existing : placeholder.putObject(modern ? "$defs" : "definitions");
         var definition = definitions.putObject("anchor-" + anchor);
         if (modern) {
             definition.put("$anchor", anchor);
         } else {
-            definition.put(draft == VersionFlag.V4 ? "id" : "$id", "#" + anchor);
+            definition.put(draft == SpecificationVersion.DRAFT_4 ? "id" : "$id", "#" + anchor);
         }
     }
 
@@ -158,13 +158,13 @@ final class JsonSchemaLoader {
     private static Set<URI> findReferencesInObject(String idKeyword, URI idURI, ObjectNode objectNode) {
         var result = new HashSet<URI>();
         var idNode = objectNode.get(idKeyword);
-        if (idNode != null && idNode.isTextual()) {
-            idURI = resolve(null, idNode.textValue());
+        if (idNode != null && idNode.isString()) {
+            idURI = resolve(null, idNode.stringValue());
         }
         for (var property : objectNode.properties()) {
             if ("$ref".equals(property.getKey())) {
-                if (property.getValue().isTextual()) {
-                    result.add(resolve(idURI, property.getValue().textValue()));
+                if (property.getValue().isString()) {
+                    result.add(resolve(idURI, property.getValue().stringValue()));
                 }
             } else {
                 result.addAll(findReferences(idKeyword, idURI, property.getValue()));

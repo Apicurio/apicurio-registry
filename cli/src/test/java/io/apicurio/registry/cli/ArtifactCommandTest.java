@@ -1,6 +1,5 @@
 package io.apicurio.registry.cli;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.rest.v3.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v3.beans.ArtifactSearchResults;
 import io.quarkus.test.junit.QuarkusTest;
@@ -13,7 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Map;
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -189,7 +188,7 @@ public class ArtifactCommandTest extends AbstractCLITest {
 
     @Test
     @Order(0)
-    public void testArtifactCommandEmpty() throws JsonProcessingException {
+    public void testArtifactCommandEmpty() {
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("artifact", "--output-type", "json", "--group", "default");
         var artifacts = MAPPER.readValue(out.toString(), ArtifactSearchResults.class);
@@ -249,7 +248,7 @@ public class ArtifactCommandTest extends AbstractCLITest {
 
     @Test
     @Order(2)
-    public void testArtifactCreateWithoutFile() throws JsonProcessingException {
+    public void testArtifactCreateWithoutFile() {
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("artifact", "create", "--output-type", "json",
                 "--group", "default",
@@ -268,7 +267,7 @@ public class ArtifactCommandTest extends AbstractCLITest {
 
     @Test
     @Order(3)
-    public void testArtifactGetCommand() throws JsonProcessingException {
+    public void testArtifactGetCommand() {
         // Get metadata
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("artifact", "get", "--output-type", "json",
@@ -340,7 +339,7 @@ public class ArtifactCommandTest extends AbstractCLITest {
 
     @Test
     @Order(5)
-    public void testArtifactUpdateCommand() throws JsonProcessingException {
+    public void testArtifactUpdateCommand() {
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("artifact", "update",
                 "--group", "default",
@@ -366,7 +365,7 @@ public class ArtifactCommandTest extends AbstractCLITest {
 
     @Test
     @Order(6)
-    public void testArtifactDeleteLabel() throws JsonProcessingException {
+    public void testArtifactDeleteLabel() {
         // Add a label
         executeAndAssertSuccess("artifact", "update", "--group", "default",
                 "--set-label", "toremove=value", "test-artifact");
@@ -387,7 +386,7 @@ public class ArtifactCommandTest extends AbstractCLITest {
 
     @Test
     @Order(7)
-    public void testArtifactDeleteCommand() throws JsonProcessingException {
+    public void testArtifactDeleteCommand() {
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("artifact", "delete", "--group", "default", "second-artifact");
 
@@ -404,7 +403,7 @@ public class ArtifactCommandTest extends AbstractCLITest {
 
     @Test
     @Order(8)
-    public void testArtifactWithDefaultGroupId() throws JsonProcessingException {
+    public void testArtifactWithDefaultGroupId() {
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("artifact", "--output-type", "json");
         var artifacts = MAPPER.readValue(out.toString(), ArtifactSearchResults.class);

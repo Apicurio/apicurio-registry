@@ -1,7 +1,8 @@
 package io.apicurio.registry.agents.rest.wellknown;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.apicurio.registry.agents.a2a.A2AConfig;
 import io.apicurio.registry.agents.a2a.RegistryAgentCardBuilder;
 import io.apicurio.registry.agents.aicatalog.AiCatalogConstants;
@@ -45,7 +46,7 @@ public class AgentCardDiscovery {
 
     private static final Logger log = LoggerFactory.getLogger(AgentCardDiscovery.class);
 
-    static final ObjectMapper mapper = new ObjectMapper();
+    static final ObjectMapper mapper = new JsonMapper();
     private static final String FALSE_VALUE = "false";
 
     @Inject
@@ -231,8 +232,8 @@ public class AgentCardDiscovery {
         List<String> values = new ArrayList<>();
         if (arrayNode.isArray()) {
             for (JsonNode value : arrayNode) {
-                if (value.isTextual()) {
-                    values.add(value.asText());
+                if (value.isString()) {
+                    values.add(value.asString());
                 }
             }
         }
@@ -268,9 +269,9 @@ public class AgentCardDiscovery {
             if (interfacesNode.isArray()) {
                 for (JsonNode iface : interfacesNode) {
                     AgentInterface agentInterface = AgentInterface.builder()
-                            .url(iface.has("url") ? iface.get("url").asText() : null)
-                            .protocolBinding(iface.has("protocolBinding") ? iface.get("protocolBinding").asText() : null)
-                            .protocolVersion(iface.has("protocolVersion") ? iface.get("protocolVersion").asText() : null)
+                            .url(iface.has("url") ? iface.get("url").asString() : null)
+                            .protocolBinding(iface.has("protocolBinding") ? iface.get("protocolBinding").asString() : null)
+                            .protocolVersion(iface.has("protocolVersion") ? iface.get("protocolVersion").asString() : null)
                             .build();
                     supportedInterfaces.add(agentInterface);
                 }
@@ -313,8 +314,8 @@ public class AgentCardDiscovery {
         JsonNode skillsNode = root.path("skills");
         if (skillsNode.isArray()) {
             for (JsonNode skill : skillsNode) {
-                if (skill.has("id") && skill.get("id").isTextual()) {
-                    skillIds.add(skill.get("id").asText());
+                if (skill.has("id") && skill.get("id").isString()) {
+                    skillIds.add(skill.get("id").asString());
                 }
             }
         }

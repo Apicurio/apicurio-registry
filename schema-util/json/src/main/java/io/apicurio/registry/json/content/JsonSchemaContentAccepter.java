@@ -1,6 +1,6 @@
 package io.apicurio.registry.json.content;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import io.apicurio.registry.content.ContentAccepter;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.util.ContentTypeUtil;
@@ -17,7 +17,7 @@ public class JsonSchemaContentAccepter implements ContentAccepter {
                 return false;
             }
             JsonNode tree = ContentTypeUtil.parseJson(content.getContent());
-            if (tree.has("$schema") && tree.get("$schema").asText().contains("json-schema.org")
+            if (tree.has("$schema") && tree.get("$schema").asString().contains("json-schema.org")
                     || tree.has("properties")) {
                 return true;
             }

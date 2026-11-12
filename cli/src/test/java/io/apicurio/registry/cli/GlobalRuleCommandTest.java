@@ -1,7 +1,6 @@
 package io.apicurio.registry.cli;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
+import tools.jackson.core.type.TypeReference;
 import io.apicurio.registry.rest.v3.beans.Rule;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
@@ -32,7 +31,7 @@ public class GlobalRuleCommandTest extends AbstractCLITest {
 
     @Test
     @Order(0)
-    public void testRuleCommandEmpty() throws JsonProcessingException {
+    public void testRuleCommandEmpty() {
         // When
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("rule", "--output-type", "json");
@@ -47,7 +46,7 @@ public class GlobalRuleCommandTest extends AbstractCLITest {
 
     @Test
     @Order(1)
-    public void testRuleCreateCommand() throws JsonProcessingException {
+    public void testRuleCreateCommand() {
         // When
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("rule", "create", "--output-type", "json",
@@ -81,7 +80,7 @@ public class GlobalRuleCommandTest extends AbstractCLITest {
 
     @Test
     @Order(2)
-    public void testRuleGetCommand() throws JsonProcessingException {
+    public void testRuleGetCommand() {
         // When
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("rule", "get", "--output-type", "json", "VALIDITY");
@@ -121,7 +120,7 @@ public class GlobalRuleCommandTest extends AbstractCLITest {
 
     @Test
     @Order(3)
-    public void testRuleUpdateCommand() throws JsonProcessingException {
+    public void testRuleUpdateCommand() {
         // When
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("rule", "update", "--output-type", "json",
@@ -143,7 +142,7 @@ public class GlobalRuleCommandTest extends AbstractCLITest {
 
     @Test
     @Order(4)
-    public void testRuleCreateIntegrity() throws JsonProcessingException {
+    public void testRuleCreateIntegrity() {
         // When - create an INTEGRITY rule
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("rule", "create", "--output-type", "json",
@@ -165,7 +164,7 @@ public class GlobalRuleCommandTest extends AbstractCLITest {
 
     @Test
     @Order(5)
-    public void testRuleListCommand() throws JsonProcessingException {
+    public void testRuleListCommand() {
         // Create a third rule
         executeAndAssertSuccess("rule", "create", "-c", "BACKWARD", "COMPATIBILITY");
 
@@ -183,7 +182,7 @@ public class GlobalRuleCommandTest extends AbstractCLITest {
 
     @Test
     @Order(6)
-    public void testRuleDeleteCommand() throws JsonProcessingException {
+    public void testRuleDeleteCommand() {
         // When - delete a single rule
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("rule", "delete", "COMPATIBILITY");
@@ -200,7 +199,7 @@ public class GlobalRuleCommandTest extends AbstractCLITest {
 
     @Test
     @Order(7)
-    public void testRuleDeleteAllCommand() throws JsonProcessingException {
+    public void testRuleDeleteAllCommand() {
         // Create another rule so we have two
         executeAndAssertSuccess("rule", "create", "-c", "BACKWARD", "COMPATIBILITY");
 

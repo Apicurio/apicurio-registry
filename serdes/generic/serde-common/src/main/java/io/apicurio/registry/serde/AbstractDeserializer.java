@@ -1,5 +1,6 @@
 package io.apicurio.registry.serde;
 
+import tools.jackson.databind.json.JsonMapper;
 import io.apicurio.registry.contracts.rules.MigrationExecutor;
 import io.apicurio.registry.contracts.rules.RuleDefinition;
 import io.apicurio.registry.contracts.rules.RuleExecutionEngine;
@@ -328,7 +329,7 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
             return (Map<String, Object>) data;
         }
         try {
-            var mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            var mapper = new JsonMapper();
             return mapper.readValue(data.toString(), Map.class);
         } catch (Exception e) {
             return Map.of();

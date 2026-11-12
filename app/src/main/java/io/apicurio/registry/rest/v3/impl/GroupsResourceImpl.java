@@ -3,6 +3,7 @@ package io.apicurio.registry.rest.v3.impl;
 import io.apicurio.registry.rest.v3.beans.McpToolImportResult;
 import io.apicurio.registry.rest.v3.beans.McpToolImportRequest;
 import io.apicurio.registry.extensions.McpToolImportHandler;
+import tools.jackson.databind.json.JsonMapper;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedResource;
@@ -98,8 +99,8 @@ import jakarta.ws.rs.core.Response;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.math.BigInteger;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 import java.io.InputStream;
 import java.time.LocalDate;
@@ -144,7 +145,7 @@ import static java.util.stream.Collectors.toList;
 // TODO: Split this into multiple implementation classes, similar to the storage repositories.
 public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsResource {
 
-    private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
+    private static final ObjectMapper JSON_MAPPER = new JsonMapper();
     private static final String EMPTY_CONTENT_ERROR_MESSAGE = "Empty content is not allowed.";
     private static final String COMPATIBILITY_GROUP_FIELD = "compatibilityGroup";
     private static final String RECORD_FIELD = "record";
@@ -3144,8 +3145,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                     "Request must include contractId and targetStage");
         }
 
-        String contractId = json.get(CONTRACT_ID_PARAM).asText();
-        String targetStageStr = json.get("targetStage").asText();
+        String contractId = json.get(CONTRACT_ID_PARAM).asString();
+        String targetStageStr = json.get("targetStage").asString();
         PromotionStage targetStage;
         try {
             targetStage = PromotionStage.valueOf(targetStageStr);
@@ -3204,7 +3205,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                     "Request must include mode and record");
         }
 
-        String mode = json.get("mode").asText();
+        String mode = json.get("mode").asString();
         Map<String, Object> record = JSON_MAPPER.convertValue(
                 json.get(RECORD_FIELD), Map.class);
 
@@ -3284,8 +3285,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                     "Request must include fromVersion, toVersion, and record");
         }
 
-        String fromVersion = json.get("fromVersion").asText();
-        String toVersion = json.get("toVersion").asText();
+        String fromVersion = json.get("fromVersion").asString();
+        String toVersion = json.get("toVersion").asString();
         Map<String, Object> record = JSON_MAPPER.convertValue(
                 json.get(RECORD_FIELD), Map.class);
 
@@ -3346,8 +3347,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                     "Request must include contractId and compatibilityGroup");
         }
 
-        String contractId = json.get(CONTRACT_ID_PARAM).asText();
-        String compatGroup = json.get(COMPATIBILITY_GROUP_FIELD).asText();
+        String contractId = json.get(CONTRACT_ID_PARAM).asString();
+        String compatGroup = json.get(COMPATIBILITY_GROUP_FIELD).asString();
         String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
 
         compatibilityGroupService.setCompatibilityGroup(

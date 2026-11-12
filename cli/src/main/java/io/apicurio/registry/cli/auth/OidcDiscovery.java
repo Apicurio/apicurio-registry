@@ -1,6 +1,6 @@
 package io.apicurio.registry.cli.auth;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import io.apicurio.registry.cli.common.CliException;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -298,13 +298,13 @@ public class OidcDiscovery {
         try {
             final JsonNode root = MAPPER.readTree(responseBody);
             final JsonNode tokenEndpointNode = root.get(TOKEN_ENDPOINT_FIELD);
-            if (tokenEndpointNode == null || tokenEndpointNode.isNull() || tokenEndpointNode.asText().isBlank()) {
+            if (tokenEndpointNode == null || tokenEndpointNode.isNull() || tokenEndpointNode.asString().isBlank()) {
                 throw new CliException(
                         "OIDC discovery response from '" + authServerUrl
                                 + "' does not contain a '" + TOKEN_ENDPOINT_FIELD + "' field.",
                         APPLICATION_ERROR_RETURN_CODE);
             }
-            final var tokenEndpoint = tokenEndpointNode.asText();
+            final var tokenEndpoint = tokenEndpointNode.asString();
             validateTokenEndpointUrl(tokenEndpoint, authServerUrl, authServerUri);
             log.debugf("Discovered token endpoint: %s", tokenEndpoint);
             return tokenEndpoint;

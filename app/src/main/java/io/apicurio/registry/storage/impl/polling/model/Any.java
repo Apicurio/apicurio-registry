@@ -1,7 +1,6 @@
 package io.apicurio.registry.storage.impl.polling.model;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.impl.polling.ProcessingState;
 import lombok.AllArgsConstructor;
@@ -11,8 +10,8 @@ import lombok.Getter;
 import lombok.ToString;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.core.JacksonException;
 
-import java.io.IOException;
 import java.util.Optional;
 
 import static io.apicurio.registry.util.YAMLObjectMapper.YAML_MAPPER;
@@ -37,15 +36,15 @@ public class Any {
         try {
             var raw = YAML_MAPPER.readTree(content.bytes());
             var typeNode = raw.get("$type");
-            if (typeNode != null && typeNode.textValue() != null) {
-                var rawType = typeNode.textValue();
+            if (typeNode != null && typeNode.stringValue() != null) {
+                var rawType = typeNode.stringValue();
                 var type = Type.from(rawType);
                 if (type.isPresent()) {
                     try {
                         var entity = YAML_MAPPER.treeToValue(raw, type.orElseThrow().getKlass());
                         var any = Any.builder().raw(raw).type(type.orElseThrow()).entity(entity).build();
                         return Optional.of(any);
-                    } catch (JsonProcessingException ex) {
+                    } catch (JacksonException ex) {
                         if (state != null) {
                             state.recordError("Could not parse file %s as %s: %s", path, type.orElseThrow(),
                                     ex.getOriginalMessage());
@@ -63,7 +62,7 @@ public class Any {
                 }
             }
             return Optional.empty();
-        } catch (IOException ex) {
+        } catch (JacksonException ex) {
             // Only report parse errors for files that look like registry metadata files
             if (isMetadataFile(state, path)) {
                 if (state != null) {

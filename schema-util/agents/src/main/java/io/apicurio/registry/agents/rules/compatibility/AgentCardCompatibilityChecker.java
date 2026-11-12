@@ -3,8 +3,9 @@ package io.apicurio.registry.agents.rules.compatibility;
 import io.apicurio.registry.rules.compatibility.AbstractCompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.SimpleCompatibilityDifference;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.apicurio.registry.content.TypedContent;
 
 import java.util.HashSet;
@@ -44,7 +45,7 @@ public class AgentCardCompatibilityChecker
     private static final String CONTEXT_DOCUMENT = "/document";
     private static final String MSG_WAS_REMOVED = "' was removed";
 
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper mapper = new JsonMapper();
 
     @Override
     protected Set<SimpleCompatibilityDifference> isBackwardsCompatibleWith(String existing,
@@ -143,7 +144,7 @@ public class AgentCardCompatibilityChecker
             return;
         }
 
-        Iterator<String> fieldNames = existingCaps.fieldNames();
+        Iterator<String> fieldNames = existingCaps.propertyNames().iterator();
         while (fieldNames.hasNext()) {
             String capName = fieldNames.next();
             if (!existingCaps.get(capName).isBoolean()) {
@@ -214,7 +215,7 @@ public class AgentCardCompatibilityChecker
 
     private String getTextValue(JsonNode node, String fieldName) {
         JsonNode field = node.get(fieldName);
-        return (field != null && field.isTextual()) ? field.asText() : null;
+        return (field != null && field.isString()) ? field.asString() : null;
     }
 
     private Set<String> extractInterfaceKeys(JsonNode node) {
@@ -238,8 +239,8 @@ public class AgentCardCompatibilityChecker
         if (skillsNode != null && skillsNode.isArray()) {
             for (JsonNode skill : skillsNode) {
                 JsonNode idNode = skill.get("id");
-                if (idNode != null && idNode.isTextual()) {
-                    skills.add(idNode.asText());
+                if (idNode != null && idNode.isString()) {
+                    skills.add(idNode.asString());
                 }
             }
         }
@@ -250,7 +251,7 @@ public class AgentCardCompatibilityChecker
         Set<String> schemes = new HashSet<>();
         JsonNode schemesNode = node.get("securitySchemes");
         if (schemesNode != null && schemesNode.isObject()) {
-            schemesNode.fieldNames().forEachRemaining(schemes::add);
+            schemesNode.propertyNames().iterator().forEachRemaining(schemes::add);
         }
         return schemes;
     }
@@ -280,8 +281,8 @@ public class AgentCardCompatibilityChecker
         JsonNode arrayNode = node.get(fieldName);
         if (arrayNode != null && arrayNode.isArray()) {
             for (JsonNode item : arrayNode) {
-                if (item.isTextual()) {
-                    values.add(item.asText());
+                if (item.isString()) {
+                    values.add(item.asString());
                 }
             }
         }

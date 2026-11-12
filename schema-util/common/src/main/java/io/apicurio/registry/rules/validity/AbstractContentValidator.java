@@ -1,6 +1,6 @@
 package io.apicurio.registry.rules.validity;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
@@ -94,12 +94,12 @@ public abstract class AbstractContentValidator implements ContentValidator {
         }
         if (node.isObject()) {
             if (node.has("$ref")) {
-                String ref = node.get("$ref").asText(null);
+                String ref = node.get("$ref").asString(null);
                 if (ref != null && !ref.startsWith("#/")) {
                     refs.add(ref);
                 }
             }
-            Iterator<Map.Entry<String, JsonNode>> fields = node.fields();
+            Iterator<Map.Entry<String, JsonNode>> fields = node.properties().iterator();
             while (fields.hasNext()) {
                 findExternalRefs(fields.next().getValue(), refs);
             }

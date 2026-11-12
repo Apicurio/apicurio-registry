@@ -1,6 +1,7 @@
 package io.apicurio.registry.noprofile.ccompat.rest.v7;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.ccompat.rest.ContentTypes;
 import io.apicurio.registry.ccompat.rest.v7.beans.RegisterSchemaRequest;
@@ -19,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 @QuarkusTest
 public class CCompatConnectParametersTest extends AbstractResourceTestBase {
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new JsonMapper();
 
     private static final String SCHEMA_DEBEZIUM_ENUM_V1 = """
             {

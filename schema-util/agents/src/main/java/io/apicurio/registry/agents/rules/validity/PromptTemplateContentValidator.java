@@ -3,7 +3,7 @@ package io.apicurio.registry.agents.rules.validity;
 import io.apicurio.registry.rules.validity.AbstractContentValidator;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.agents.content.util.PromptTemplateVariableUtil;
@@ -66,7 +66,7 @@ public class PromptTemplateContentValidator extends AbstractContentValidator {
             }
 
             validateRequiredFields(tree, violations);
-            if (tree.has(TEMPLATE) && tree.get(TEMPLATE).isTextual()) {
+            if (tree.has(TEMPLATE) && tree.get(TEMPLATE).isString()) {
                 validateTemplateVariables(tree, violations);
             }
             validateVariableDefinitions(tree, violations);
@@ -86,15 +86,15 @@ public class PromptTemplateContentValidator extends AbstractContentValidator {
     }
 
     private void validateRequiredFields(JsonNode tree, Set<RuleViolation> violations) {
-        if (!tree.has(TEMPLATE_ID) || !tree.get(TEMPLATE_ID).isTextual()
-                || tree.get(TEMPLATE_ID).asText().trim().isEmpty()) {
+        if (!tree.has(TEMPLATE_ID) || !tree.get(TEMPLATE_ID).isString()
+                || tree.get(TEMPLATE_ID).asString().trim().isEmpty()) {
             violations.add(new RuleViolation(
                     "Missing or invalid required field 'templateId'. Must be a non-empty string.",
                     "/templateId"));
         }
 
-        if (!tree.has(TEMPLATE) || !tree.get(TEMPLATE).isTextual()
-                || tree.get(TEMPLATE).asText().trim().isEmpty()) {
+        if (!tree.has(TEMPLATE) || !tree.get(TEMPLATE).isString()
+                || tree.get(TEMPLATE).asString().trim().isEmpty()) {
             violations.add(new RuleViolation(
                     "Missing or invalid required field 'template'. Must be a non-empty string.",
                     "/template"));
@@ -102,13 +102,13 @@ public class PromptTemplateContentValidator extends AbstractContentValidator {
     }
 
     private void validateTemplateVariables(JsonNode tree, Set<RuleViolation> violations) {
-        String template = tree.get(TEMPLATE).asText();
+        String template = tree.get(TEMPLATE).asString();
         List<String> templateVars = extractTemplateVariables(template);
 
         JsonNode variables = tree.get(VARIABLES);
         Set<String> definedVars = new HashSet<>();
         if (variables != null && variables.isObject()) {
-            Iterator<String> fieldNames = variables.fieldNames();
+            Iterator<String> fieldNames = variables.propertyNames().iterator();
             while (fieldNames.hasNext()) {
                 definedVars.add(fieldNames.next());
             }
@@ -129,7 +129,7 @@ public class PromptTemplateContentValidator extends AbstractContentValidator {
             return;
         }
 
-        Iterator<Map.Entry<String, JsonNode>> fields = variables.fields();
+        Iterator<Map.Entry<String, JsonNode>> fields = variables.properties().iterator();
         while (fields.hasNext()) {
             Map.Entry<String, JsonNode> entry = fields.next();
             JsonNode varSchema = entry.getValue();
@@ -141,8 +141,8 @@ public class PromptTemplateContentValidator extends AbstractContentValidator {
 
     private void validateVariableDefinition(String varName, JsonNode varSchema,
             Set<RuleViolation> violations) {
-        if (varSchema.has("type") && varSchema.get("type").isTextual()) {
-            String type = varSchema.get("type").asText();
+        if (varSchema.has("type") && varSchema.get("type").isString()) {
+            String type = varSchema.get("type").asString();
             if (!VALID_VARIABLE_TYPES.contains(type)) {
                 violations.add(new RuleViolation(
                         VARIABLE_PREFIX + varName + "' has invalid type '" + type
@@ -179,8 +179,8 @@ public class PromptTemplateContentValidator extends AbstractContentValidator {
             if (minimum > maximum) {
                 violations.add(new RuleViolation(
                         VARIABLE_PREFIX + varName + "' has '" + FIELD_MINIMUM + "' ("
-                                + varSchema.get(FIELD_MINIMUM).asText() + ") greater than '" + FIELD_MAXIMUM
-                                + "' (" + varSchema.get(FIELD_MAXIMUM).asText()
+                                + varSchema.get(FIELD_MINIMUM).asString() + ") greater than '" + FIELD_MAXIMUM
+                                + "' (" + varSchema.get(FIELD_MAXIMUM).asString()
                                 + "). No value could ever satisfy this constraint.",
                         VARIABLES_PATH + varName + "/" + FIELD_MINIMUM));
             }

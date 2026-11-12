@@ -3,7 +3,7 @@ package io.apicurio.registry.agents.content;
 import io.apicurio.registry.content.ContentAccepter;
 import io.apicurio.registry.content.TypedContent;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import io.apicurio.registry.content.util.ContentTypeUtil;
 
 import java.util.Map;

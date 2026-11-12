@@ -1,14 +1,15 @@
 package io.apicurio.registry.storage.impl.sql.mappers;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.apicurio.registry.storage.dto.ContractRuleDto;
 import io.apicurio.registry.storage.dto.RuleAction;
 import io.apicurio.registry.storage.dto.RuleKind;
 import io.apicurio.registry.storage.dto.RuleMode;
 import io.apicurio.registry.storage.error.RegistryStorageException;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
+import tools.jackson.core.JacksonException;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -20,7 +21,7 @@ public class ContractRuleDtoMapper implements RowMapper<ContractRuleDto> {
 
     public static final ContractRuleDtoMapper instance = new ContractRuleDtoMapper();
 
-    private static final ObjectMapper objectMapper = new ObjectMapper();
+    private static final ObjectMapper objectMapper = new JsonMapper();
 
     private ContractRuleDtoMapper() {
     }
@@ -55,7 +56,7 @@ public class ContractRuleDtoMapper implements RowMapper<ContractRuleDto> {
         try {
             return objectMapper.readValue(json, new TypeReference<>() {
             });
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new RegistryStorageException("Failed to deserialize contract rule params", e);
         }
     }
@@ -67,7 +68,7 @@ public class ContractRuleDtoMapper implements RowMapper<ContractRuleDto> {
         try {
             return objectMapper.readValue(json, new TypeReference<>() {
             });
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new RegistryStorageException("Failed to deserialize contract rule tags", e);
         }
     }

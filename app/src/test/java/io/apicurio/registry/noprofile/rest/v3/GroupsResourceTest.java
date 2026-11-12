@@ -1,6 +1,6 @@
 package io.apicurio.registry.noprofile.rest.v3;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.util.ContentTypeUtil;
@@ -2027,11 +2027,11 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .extract().asString();
 
         JsonNode root = ContentTypeUtil.parseYaml(ContentHandle.create(dereferenced));
-        assertEquals("Parent API", root.at("/info/title").asText());
+        assertEquals("Parent API", root.at("/info/title").asString());
         assertEquals("#/components/schemas/CommonResponse", root
-                .at("/paths/~1example/get/responses/200/content/application~1json/schema/$ref").asText());
-        assertEquals("object", root.at("/components/schemas/CommonResponse/type").asText());
-        assertEquals("string", root.at("/components/schemas/CommonResponse/properties/id/type").asText());
+                .at("/paths/~1example/get/responses/200/content/application~1json/schema/$ref").asString());
+        assertEquals("object", root.at("/components/schemas/CommonResponse/type").asString());
+        assertEquals("string", root.at("/components/schemas/CommonResponse/properties/id/type").asString());
     }
 
     @Test
@@ -2146,7 +2146,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 "Failed to parse preserved content as YAML");
         Assertions.assertNotNull(preservedYaml, "Preserved content should be valid YAML");
         Assertions.assertTrue(preservedYaml.has("asyncapi"), "YAML should have 'asyncapi' field");
-        Assertions.assertEquals("3.0.0", preservedYaml.get("asyncapi").asText(),
+        Assertions.assertEquals("3.0.0", preservedYaml.get("asyncapi").asString(),
                 "Should be AsyncAPI 3.0.0");
 
         // Get the content of the artifact rewriting external references
@@ -2176,7 +2176,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                         + responseBody.substring(0, Math.min(100, responseBody.length())));
         Assertions.assertNotNull(yamlNode, "Response should be valid YAML");
         Assertions.assertTrue(yamlNode.has("asyncapi"), "YAML should have 'asyncapi' field");
-        Assertions.assertEquals("3.0.0", yamlNode.get("asyncapi").asText(),
+        Assertions.assertEquals("3.0.0", yamlNode.get("asyncapi").asString(),
                 "Should be AsyncAPI 3.0.0");
 
         // Verify the reference was rewritten to point to the REST API
@@ -2199,7 +2199,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         JsonNode ref = schema.get("$ref");
         Assertions.assertNotNull(ref, "Schema should have '$ref' field");
 
-        String rewrittenRef = ref.asText();
+        String rewrittenRef = ref.asString();
         Assertions.assertNotNull(rewrittenRef, "Rewritten reference should not be null");
 
         // Verify the reference was rewritten to a REST API URL
@@ -2229,13 +2229,13 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
 
         JsonNode wrapper = multiFormatSchemaOf(dereferenced, "ShoppingCartCreated");
         Assertions.assertEquals("application/vnd.apache.avro+json;version=1.9.0",
-                wrapper.get("schemaFormat").asText());
+                wrapper.get("schemaFormat").asString());
 
         // Assert the Avro schema content was correctly inlined inside 'schema'
         JsonNode schemaNode = wrapper.get("schema");
         Assertions.assertNotNull(schemaNode, "Inlined schema wrapper must contain 'schema'");
-        Assertions.assertEquals("record", schemaNode.get("type").asText());
-        Assertions.assertEquals("ShoppingCartCreated", schemaNode.get("name").asText());
+        Assertions.assertEquals("record", schemaNode.get("type").asString());
+        Assertions.assertEquals("ShoppingCartCreated", schemaNode.get("name").asString());
     }
 
     /**
@@ -2251,14 +2251,14 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 "asyncapi-shopping-cart-avro-1-11-0.yml");
 
         Assertions.assertEquals("application/vnd.apache.avro+json;version=1.11.0",
-                multiFormatSchemaOf(dereferenced, "ShoppingCartCreated").get("schemaFormat").asText());
+                multiFormatSchemaOf(dereferenced, "ShoppingCartCreated").get("schemaFormat").asString());
 
         JsonNode payload = dereferenced.get("components").get("messages")
                 .get("ShoppingCartCreatedMessage").get("payload");
         Assertions.assertEquals("application/vnd.apache.avro+json;version=1.11.0",
-                payload.get("schemaFormat").asText());
+                payload.get("schemaFormat").asString());
         Assertions.assertEquals("#/components/schemas/ShoppingCartCreated",
-                payload.get("schema").get("$ref").asText());
+                payload.get("schema").get("$ref").asString());
     }
 
     /**
@@ -2273,9 +2273,9 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
 
         JsonNode message = dereferenced.path("components").path("messages").path("ShoppingCartCreatedMessage");
         Assertions.assertEquals("application/vnd.apache.avro+json;version=1.9.0",
-                message.path("schemaFormat").asText());
-        Assertions.assertEquals("record", message.path("payload").path("type").asText());
-        Assertions.assertEquals("ShoppingCartCreated", message.path("payload").path("name").asText());
+                message.path("schemaFormat").asString());
+        Assertions.assertEquals("record", message.path("payload").path("type").asString());
+        Assertions.assertEquals("ShoppingCartCreated", message.path("payload").path("name").asString());
     }
 
     /**
@@ -2309,10 +2309,10 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
 
         JsonNode wrapper = multiFormatSchemaOf(dereferenced, "ShoppingCartCreated");
         Assertions.assertEquals("application/vnd.apache.avro+json;version=1.9.0",
-                wrapper.get("schemaFormat").asText());
-        Assertions.assertEquals("ShoppingCartCreated", wrapper.get("schema").get("name").asText());
+                wrapper.get("schemaFormat").asString());
+        Assertions.assertEquals("ShoppingCartCreated", wrapper.get("schema").get("name").asString());
         Assertions.assertEquals("io.example.Address",
-                wrapper.get("schema").get("fields").get(0).get("type").asText());
+                wrapper.get("schema").get("fields").get(0).get("type").asString());
     }
 
     /**
@@ -2348,8 +2348,8 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
 
         JsonNode wrapper = multiFormatSchemaOf(dereferenced, "ShoppingCartCreated");
         Assertions.assertEquals("application/vnd.google.protobuf;version=3",
-                wrapper.get("schemaFormat").asText());
-        Assertions.assertTrue(wrapper.get("schema").asText().contains("message ShoppingCartCreated"),
+                wrapper.get("schemaFormat").asString());
+        Assertions.assertTrue(wrapper.get("schema").asString().contains("message ShoppingCartCreated"),
                 "Protobuf schema should be inlined as text but was: " + wrapper.get("schema"));
     }
 

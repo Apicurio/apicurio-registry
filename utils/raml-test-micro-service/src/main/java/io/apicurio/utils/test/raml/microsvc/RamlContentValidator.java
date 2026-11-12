@@ -1,7 +1,7 @@
 package io.apicurio.utils.test.raml.microsvc;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.dataformat.yaml.YAMLMapper;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.refs.ExternalReference;
 import io.apicurio.registry.content.refs.ReferenceFinderException;
@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
  */
 public class RamlContentValidator extends AbstractContentValidator {
 
-    private static final ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+    private static final ObjectMapper mapper = new YAMLMapper();
 
     private final RamlReferenceFinder referenceFinder = new RamlReferenceFinder();
 

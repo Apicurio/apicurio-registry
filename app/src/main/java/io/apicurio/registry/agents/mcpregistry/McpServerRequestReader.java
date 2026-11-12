@@ -1,6 +1,6 @@
 package io.apicurio.registry.agents.mcpregistry;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.agents.mcpregistry.rest.v0.beans.Server;
@@ -16,6 +16,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.ext.MessageBodyReader;
 import jakarta.ws.rs.ext.Provider;
+import tools.jackson.core.JacksonException;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -56,7 +57,7 @@ public class McpServerRequestReader implements MessageBodyReader<Server> {
             return mapper.readValue(content, Server.class);
         } catch (RuleViolationException e) {
             throw new BadRequestException("Invalid MCP server definition");
-        } catch (IOException e) {
+        } catch (JacksonException e) {
             throw new BadRequestException("Invalid MCP server definition JSON");
         }
     }

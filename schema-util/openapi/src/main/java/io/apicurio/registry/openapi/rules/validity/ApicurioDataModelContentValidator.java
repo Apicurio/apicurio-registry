@@ -10,7 +10,7 @@ import io.apitomy.datamodels.models.Referenceable;
 import io.apitomy.datamodels.models.visitors.AllNodeVisitor;
 import io.apitomy.datamodels.validation.ValidationProblem;
 import io.apicurio.registry.content.TypedContent;
-import io.apicurio.registry.content.util.ContentTypeUtil;
+import io.apicurio.registry.openapi.content.DataModelsJson;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rules.validity.AbstractContentValidator;
 import io.apicurio.registry.rules.validity.ValidityLevel;
@@ -39,7 +39,7 @@ public abstract class ApicurioDataModelContentValidator extends AbstractContentV
         Document document = null;
         if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
             try {
-                JsonNode node = ContentTypeUtil.parseJsonOrYaml(content);
+                JsonNode node = DataModelsJson.parseJsonOrYaml(content);
                 document = Library.readDocument((ObjectNode) node);
             } catch (Exception e) {
                 throw new RuleViolationException("Syntax violation for " + getDataModelType() + " artifact.",
@@ -74,7 +74,7 @@ public abstract class ApicurioDataModelContentValidator extends AbstractContentV
     private Set<String> getAll$refs(TypedContent content) {
         try {
             RefFinder refFinder = new RefFinder();
-            JsonNode node = ContentTypeUtil.parseJsonOrYaml(content);
+            JsonNode node = DataModelsJson.parseJsonOrYaml(content);
             Document document = Library.readDocument((ObjectNode) node);
             Library.visitTree(document, refFinder, TraverserDirection.down);
             return refFinder.references;

@@ -1,7 +1,7 @@
 package io.apicurio.registry.agents.mcptools.compatibility;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.networknt.schema.SpecVersion.VersionFlag;
+import tools.jackson.databind.JsonNode;
+import com.networknt.schema.SpecificationVersion;
 import io.apicurio.registry.json.rules.validity.JsonSchemaDocumentValidator;
 import io.apitomy.datamodels.DataModelsException;
 import io.apitomy.datamodels.jsonschema.compat.DiffType;
@@ -52,7 +52,7 @@ public class CrossToolCompatibilityService {
      * {@code $schema}, and the keywords they keep mean the same in every dialect, so draft 7 is used.
      */
     private static final JsonSchemaDocumentValidator READABILITY = JsonSchemaDocumentValidator.builder()
-            .draftDetector(schema -> Optional.of(VersionFlag.V7))
+            .draftDetector(schema -> Optional.of(SpecificationVersion.DRAFT_7))
             .build();
 
     private static final Comparator<CompatibilityReason> REASON_ORDER = Comparator

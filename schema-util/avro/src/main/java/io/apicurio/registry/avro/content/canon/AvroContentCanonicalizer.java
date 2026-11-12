@@ -1,10 +1,11 @@
 package io.apicurio.registry.avro.content.canon;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.SerializationFeature;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
 import io.apicurio.registry.avro.util.AvroParserAccessor;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
@@ -25,12 +26,13 @@ import java.util.TreeSet;
  */
 public class AvroContentCanonicalizer implements ContentCanonicalizer {
 
-    private final ObjectMapper mapper = new ObjectMapper()
-            .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
+    private final ObjectMapper mapper = JsonMapper.builder()
+            .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
+            .build();
 
     private final Comparator<JsonNode> fieldComparator = (n1, n2) -> {
-        String name1 = n1.get("name").textValue();
-        String name2 = n2.get("name").textValue();
+        String name1 = n1.get("name").stringValue();
+        String name2 = n2.get("name").stringValue();
         return name1.compareTo(name2);
     };
 
@@ -46,7 +48,7 @@ public class AvroContentCanonicalizer implements ContentCanonicalizer {
             JsonNode fieldsNode = root.get("fields");
             if (fieldsNode != null) {
                 Set<JsonNode> fields = new TreeSet<>(fieldComparator);
-                Iterator<JsonNode> elements = fieldsNode.elements();
+                Iterator<JsonNode> elements = fieldsNode.values().iterator();
                 while (elements.hasNext()) {
                     fields.add(elements.next());
                 }

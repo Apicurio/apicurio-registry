@@ -1,11 +1,9 @@
 package io.apicurio.registry.noprofile.serde;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.networknt.schema.JsonSchema;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+import com.networknt.schema.Schema;
 import io.apicurio.registry.AbstractClientFacadeTestBase;
 import io.apicurio.registry.resolver.DefaultSchemaResolver;
 import io.apicurio.registry.resolver.ParsedSchema;
@@ -848,8 +846,7 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
                 + "  \"phoneRelationTypeCd\": \"ABCDEFGHIJ\",\n"
                 + "  \"effectiveDate\": \"201-09-29T18:46:19Z\"\n" + "  \n" + "  \n" + "  }]\n" + "}";
 
-        ObjectMapper objectMapper = new ObjectMapper()
-                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        ObjectMapper objectMapper = new JsonMapper();
         JsonNode validationFor = objectMapper.readTree(data);
 
         VersionMetaData global = client.groups().byGroupId("GLOBAL").artifacts()
@@ -859,18 +856,18 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
                 .builder().globalId(global.getGlobalId()).groupId("GLOBAL")// .version("4")
                 .artifactId(sample_account_json).build();
 
-        SchemaResolver<JsonSchema, Object> sr = new DefaultSchemaResolver<>(clientFacade);
+        SchemaResolver<Schema, Object> sr = new DefaultSchemaResolver<>(clientFacade);
         Map<String, String> configs = new HashMap<>();
         configs.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY_DEFAULT, DefaultSchemaResolver.class.getName());
         configs.put(SerdeConfig.CHECK_PERIOD_MS, "600000");
         sr.configure(configs, new JsonSchemaParser<Object>());
-        ParsedSchema<JsonSchema> ps = sr.resolveSchemaByArtifactReference((artifactReference))
+        ParsedSchema<Schema> ps = sr.resolveSchemaByArtifactReference((artifactReference))
                 .getParsedSchema();
 
         validateDataWithSchema(ps, objectMapper.writeValueAsBytes(validationFor), objectMapper);
     }
 
-    protected static void validateDataWithSchema(ParsedSchema<JsonSchema> schema, byte[] data,
+    protected static void validateDataWithSchema(ParsedSchema<Schema> schema, byte[] data,
             ObjectMapper mapper) throws IOException {
         var messages = schema.getParsedSchema().validate(mapper.readTree(data));
         Assertions.assertTrue(messages.isEmpty(), () -> "The data should be valid against the schema: " + messages);
@@ -1018,11 +1015,7 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
 
             // Create custom ObjectMapper with JavaTimeModule
             // This is the key functionality being tested - the ability to customize the ObjectMapper
-            ObjectMapper customMapper = new ObjectMapper();
-            customMapper.registerModule(new JavaTimeModule());
-            customMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-            // Use ISO-8601 format for dates (not timestamps as numbers)
-            customMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+            ObjectMapper customMapper = new JsonMapper();
 
             // Set the custom ObjectMapper BEFORE configure() is called
             serializer.setObjectMapper(customMapper);
@@ -1063,8 +1056,9 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
     }
 
     /**
-     * Tests that without a custom ObjectMapper with JavaTimeModule, serialization of Java 8 Time
-     * types fails as expected. This verifies that the custom ObjectMapper is actually being used.
+     * Jackson 3's default mapper has built-in java.time support (unlike Jackson 2, which needed
+     * JavaTimeModule registered explicitly), so serialization succeeds even without a custom
+     * ObjectMapper.
      */
     @ParameterizedTest(name = "testWithoutCustomObjectMapper [{0}]")
     @MethodSource("isolatedClientFacadeProvider")
@@ -1089,22 +1083,27 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
                 Instant.parse("2026-01-26T15:30:45Z")
         );
 
-        try (JsonSchemaKafkaSerializer<Event> serializer = new JsonSchemaKafkaSerializer<>(clientFacade)) {
+        try (JsonSchemaKafkaSerializer<Event> serializer = new JsonSchemaKafkaSerializer<>(clientFacade);
+                JsonSchemaKafkaDeserializer<Event> deserializer = new JsonSchemaKafkaDeserializer<>(clientFacade)) {
 
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
             config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class.getName());
             config.put(KafkaSerdeConfig.ENABLE_HEADERS, "true");
+            config.put(SerdeConfig.DESERIALIZER_SPECIFIC_VALUE_RETURN_CLASS, Event.class.getName());
 
             // Configure WITHOUT setting custom ObjectMapper
             serializer.configure(config, false);
+            deserializer.configure(config, false);
 
             Headers headers = new RecordHeaders();
 
-            // This should fail because default ObjectMapper doesn't know how to serialize Java 8 Time types
-            Assertions.assertThrows(Exception.class, () -> {
-                serializer.serialize(artifactId, headers, event);
-            });
+            byte[] bytes = serializer.serialize(artifactId, headers, event);
+            Event deserializedEvent = deserializer.deserialize(artifactId, headers, bytes);
+
+            assertEquals(event.getEventDate(), deserializedEvent.getEventDate());
+            assertEquals(event.getEventDateTime(), deserializedEvent.getEventDateTime());
+            assertEquals(event.getEventTimestamp(), deserializedEvent.getEventTimestamp());
         }
     }
 

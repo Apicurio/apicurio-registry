@@ -1,7 +1,8 @@
 package io.apicurio.registry.client.refs;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
@@ -46,7 +47,7 @@ class ReferenceRegistrarTest {
 
     private static final String REC = "{\"type\":\"record\",\"name\":\"%s\",\"namespace\":\"%s\",\"fields\":[%s]}";
     private static final String REF_FIELD = "{\"name\":\"x\",\"type\":\"c.Common\"}";
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new JsonMapper();
 
     private WireMockServer server;
     private RegistryClient client;
@@ -105,7 +106,7 @@ class ReferenceRegistrarTest {
         List<LoggedRequest> posts = posts();
         assertEquals(2, posts.size());
         assertEquals("/apis/registry/v3/groups/c/artifacts", posts.get(0).getUrl().split("\\?")[0]);
-        assertEquals("Common", body(posts.get(0)).get("artifactId").asText());
+        assertEquals("Common", body(posts.get(0)).get("artifactId").asString());
         assertEquals("/apis/registry/v3/groups/g/artifacts", posts.get(1).getUrl().split("\\?")[0]);
         assertEquals(MAPPER.readTree("[{\"name\":\"c.Common\",\"groupId\":\"c\",\"artifactId\":\"Common\","
                 + "\"version\":\"1\"}]"), body(posts.get(1)).at("/firstVersion/content/references"));
@@ -256,7 +257,7 @@ class ReferenceRegistrarTest {
         ReferenceRegistrar.builder(client).minify(true).build().execute(plan);
 
         assertEquals("{\"type\":\"record\",\"name\":\"Common\",\"namespace\":\"c\",\"fields\":[]}",
-                body(posts().get(0)).at("/firstVersion/content/content").asText());
+                body(posts().get(0)).at("/firstVersion/content/content").asString());
     }
 
     @Test
@@ -272,8 +273,8 @@ class ReferenceRegistrarTest {
         ReferenceRegistrar.builder(client).minify(true).build().execute(plan);
 
         JsonNode content = body(posts().get(0)).at("/firstVersion/content");
-        assertEquals(yaml, content.get("content").asText());
-        assertEquals(ContentTypes.APPLICATION_YAML, content.get("contentType").asText());
+        assertEquals(yaml, content.get("content").asString());
+        assertEquals(ContentTypes.APPLICATION_YAML, content.get("contentType").asString());
     }
 
     private JsonNode registerApiRoot(String location, String content, String contentType, String artifactType,
@@ -302,7 +303,7 @@ class ReferenceRegistrarTest {
         JsonNode firstVersion = registerApiRoot("api.yaml", openApiYaml("2.0"), ContentTypes.APPLICATION_YAML,
                 ArtifactType.OPENAPI, null);
 
-        assertEquals("2.0", firstVersion.get("version").asText());
+        assertEquals("2.0", firstVersion.get("version").asString());
         assertFalse(firstVersion.path("isDraft").asBoolean(false));
     }
 
@@ -311,7 +312,7 @@ class ReferenceRegistrarTest {
         JsonNode firstVersion = registerApiRoot("api.yaml", openApiYaml("3.0-SNAPSHOT"),
                 ContentTypes.APPLICATION_YAML, ArtifactType.OPENAPI, null);
 
-        assertEquals("3.0", firstVersion.get("version").asText());
+        assertEquals("3.0", firstVersion.get("version").asString());
         assertTrue(firstVersion.get("isDraft").asBoolean());
     }
 
@@ -320,7 +321,7 @@ class ReferenceRegistrarTest {
         JsonNode firstVersion = registerApiRoot("api.yaml", openApiYaml("2.0"), ContentTypes.APPLICATION_YAML,
                 ArtifactType.OPENAPI, "9");
 
-        assertEquals("9", firstVersion.get("version").asText());
+        assertEquals("9", firstVersion.get("version").asString());
     }
 
     @Test

@@ -1,7 +1,6 @@
 package io.apicurio.registry.cli;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
+import tools.jackson.core.type.TypeReference;
 import io.apicurio.registry.rest.v3.beans.Rule;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,7 +49,7 @@ public class ArtifactRuleCommandTest extends AbstractCLITest {
     }
 
     @Test
-    public void testArtifactRuleCommandEmpty() throws JsonProcessingException {
+    public void testArtifactRuleCommandEmpty() {
         // When
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("artifact", "rule", "-g", testGroup, "-a", TEST_ARTIFACT,
@@ -65,7 +64,7 @@ public class ArtifactRuleCommandTest extends AbstractCLITest {
     }
 
     @Test
-    public void testArtifactRuleCreateCommand() throws JsonProcessingException {
+    public void testArtifactRuleCreateCommand() {
         // When
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("artifact", "rule", "create", "--output-type", "json",
@@ -115,7 +114,7 @@ public class ArtifactRuleCommandTest extends AbstractCLITest {
     }
 
     @Test
-    public void testArtifactRuleGetCommand() throws JsonProcessingException {
+    public void testArtifactRuleGetCommand() {
         createRule("VALIDITY", "FULL");
         // When
         out.getBuffer().setLength(0);
@@ -161,7 +160,7 @@ public class ArtifactRuleCommandTest extends AbstractCLITest {
     }
 
     @Test
-    public void testArtifactRuleUpdateCommand() throws JsonProcessingException {
+    public void testArtifactRuleUpdateCommand() {
         createRule("VALIDITY", "FULL");
         // When
         out.getBuffer().setLength(0);
@@ -184,7 +183,7 @@ public class ArtifactRuleCommandTest extends AbstractCLITest {
     }
 
     @Test
-    public void testArtifactRuleCreateIntegrity() throws JsonProcessingException {
+    public void testArtifactRuleCreateIntegrity() {
         // When - create an INTEGRITY rule
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("artifact", "rule", "create", "--output-type", "json",
@@ -206,7 +205,7 @@ public class ArtifactRuleCommandTest extends AbstractCLITest {
     }
 
     @Test
-    public void testArtifactRuleListCommand() throws JsonProcessingException {
+    public void testArtifactRuleListCommand() {
         createRule("VALIDITY", "FULL");
         createRule("INTEGRITY", "FULL");
         // Create a third rule
@@ -227,7 +226,7 @@ public class ArtifactRuleCommandTest extends AbstractCLITest {
     }
 
     @Test
-    public void testArtifactRuleDeleteCommand() throws JsonProcessingException {
+    public void testArtifactRuleDeleteCommand() {
         createRule("VALIDITY", "FULL");
         createRule("INTEGRITY", "FULL");
         createRule("COMPATIBILITY", "BACKWARD");
@@ -248,7 +247,7 @@ public class ArtifactRuleCommandTest extends AbstractCLITest {
     }
 
     @Test
-    public void testArtifactRuleDeleteAllCommand() throws JsonProcessingException {
+    public void testArtifactRuleDeleteAllCommand() {
         createRule("VALIDITY", "FULL");
         createRule("INTEGRITY", "FULL");
         // Create another rule so we have more

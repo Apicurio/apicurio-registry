@@ -1,6 +1,6 @@
 package io.apicurio.registry.agents.mcptools.compatibility;
 
-import com.fasterxml.jackson.core.JsonPointer;
+import tools.jackson.core.JsonPointer;
 
 import java.util.ArrayList;
 import java.util.List;

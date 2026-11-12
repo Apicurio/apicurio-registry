@@ -1,6 +1,5 @@
 package io.apicurio.registry.cli;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.rest.v3.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v3.beans.GroupSearchResults;
 import io.apicurio.registry.rest.v3.beans.VersionSearchResults;
@@ -56,7 +55,7 @@ public class SearchCommandTest extends AbstractCLITest {
 
     @Test
     @Order(2)
-    public void testSearchGroups() throws JsonProcessingException {
+    public void testSearchGroups() {
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("search", "groups", "--output-type", "json");
         var results = MAPPER.readValue(out.toString(), GroupSearchResults.class);
@@ -68,7 +67,7 @@ public class SearchCommandTest extends AbstractCLITest {
 
     @Test
     @Order(3)
-    public void testSearchGroupsWithFilter() throws JsonProcessingException {
+    public void testSearchGroupsWithFilter() {
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("search", "groups", "-g", TEST_GROUP, "--output-type", "json");
         var results = MAPPER.readValue(out.toString(), GroupSearchResults.class);
@@ -81,7 +80,7 @@ public class SearchCommandTest extends AbstractCLITest {
 
     @Test
     @Order(4)
-    public void testSearchGroupsNoResults() throws JsonProcessingException {
+    public void testSearchGroupsNoResults() {
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("search", "groups", "-g", "non-existent-group-xyz", "--output-type", "json");
         var results = MAPPER.readValue(out.toString(), GroupSearchResults.class);
@@ -103,7 +102,7 @@ public class SearchCommandTest extends AbstractCLITest {
 
     @Test
     @Order(6)
-    public void testSearchGroupsPagination() throws JsonProcessingException {
+    public void testSearchGroupsPagination() {
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("search", "groups", "-p", "1", "-s", "1", "--output-type", "json");
         var results = MAPPER.readValue(out.toString(), GroupSearchResults.class);
@@ -116,7 +115,7 @@ public class SearchCommandTest extends AbstractCLITest {
 
     @Test
     @Order(7)
-    public void testSearchGroupsOrderBy() throws JsonProcessingException {
+    public void testSearchGroupsOrderBy() {
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("search", "groups", "--order-by", "CreatedOn", "--order", "Desc",
                 "--output-type", "json");
@@ -145,7 +144,7 @@ public class SearchCommandTest extends AbstractCLITest {
 
     @Test
     @Order(10)
-    public void testSearchArtifacts() throws JsonProcessingException {
+    public void testSearchArtifacts() {
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("search", "artifacts", "--output-type", "json");
         var results = MAPPER.readValue(out.toString(), ArtifactSearchResults.class);
@@ -157,7 +156,7 @@ public class SearchCommandTest extends AbstractCLITest {
 
     @Test
     @Order(11)
-    public void testSearchArtifactsWithFilter() throws JsonProcessingException {
+    public void testSearchArtifactsWithFilter() {
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("search", "artifacts", "-g", TEST_GROUP, "-a", TEST_ARTIFACT,
                 "--output-type", "json");
@@ -171,7 +170,7 @@ public class SearchCommandTest extends AbstractCLITest {
 
     @Test
     @Order(12)
-    public void testSearchArtifactsNoResults() throws JsonProcessingException {
+    public void testSearchArtifactsNoResults() {
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("search", "artifacts", "-a", "non-existent-artifact-xyz",
                 "--output-type", "json");
@@ -195,7 +194,7 @@ public class SearchCommandTest extends AbstractCLITest {
 
     @Test
     @Order(14)
-    public void testSearchArtifactsByType() throws JsonProcessingException {
+    public void testSearchArtifactsByType() {
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("search", "artifacts", "--type", "JSON", "--output-type", "json");
         var results = MAPPER.readValue(out.toString(), ArtifactSearchResults.class);
@@ -208,7 +207,7 @@ public class SearchCommandTest extends AbstractCLITest {
 
     @Test
     @Order(15)
-    public void testSearchArtifactsOrderBy() throws JsonProcessingException {
+    public void testSearchArtifactsOrderBy() {
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("search", "artifacts", "--order-by", "CreatedOn", "--order", "Desc",
                 "--output-type", "json");
@@ -221,7 +220,7 @@ public class SearchCommandTest extends AbstractCLITest {
 
     @Test
     @Order(16)
-    public void testSearchVersions() throws JsonProcessingException {
+    public void testSearchVersions() {
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("search", "versions", "--output-type", "json");
         var results = MAPPER.readValue(out.toString(), VersionSearchResults.class);
@@ -233,7 +232,7 @@ public class SearchCommandTest extends AbstractCLITest {
 
     @Test
     @Order(17)
-    public void testSearchVersionsWithFilter() throws JsonProcessingException {
+    public void testSearchVersionsWithFilter() {
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("search", "versions", "-g", TEST_GROUP, "-a", TEST_ARTIFACT,
                 "--output-type", "json");
@@ -247,7 +246,7 @@ public class SearchCommandTest extends AbstractCLITest {
 
     @Test
     @Order(18)
-    public void testSearchVersionsNoResults() throws JsonProcessingException {
+    public void testSearchVersionsNoResults() {
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("search", "versions", "-a", "non-existent-artifact-xyz",
                 "--output-type", "json");
@@ -272,7 +271,7 @@ public class SearchCommandTest extends AbstractCLITest {
 
     @Test
     @Order(20)
-    public void testSearchVersionsByState() throws JsonProcessingException {
+    public void testSearchVersionsByState() {
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("search", "versions", "--state", "ENABLED", "--output-type", "json");
         var results = MAPPER.readValue(out.toString(), VersionSearchResults.class);
@@ -285,7 +284,7 @@ public class SearchCommandTest extends AbstractCLITest {
 
     @Test
     @Order(21)
-    public void testSearchVersionsByVersion() throws JsonProcessingException {
+    public void testSearchVersionsByVersion() {
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("search", "versions", "-v", "1", "--output-type", "json");
         var results = MAPPER.readValue(out.toString(), VersionSearchResults.class);
@@ -297,7 +296,7 @@ public class SearchCommandTest extends AbstractCLITest {
 
     @Test
     @Order(22)
-    public void testSearchVersionsPagination() throws JsonProcessingException {
+    public void testSearchVersionsPagination() {
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("search", "versions", "-p", "1", "-s", "1", "--output-type", "json");
         var results = MAPPER.readValue(out.toString(), VersionSearchResults.class);
@@ -309,7 +308,7 @@ public class SearchCommandTest extends AbstractCLITest {
 
     @Test
     @Order(23)
-    public void testSearchVersionsOrderBy() throws JsonProcessingException {
+    public void testSearchVersionsOrderBy() {
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("search", "versions", "--order-by", "CreatedOn", "--order", "Desc",
                 "--output-type", "json");
@@ -322,7 +321,7 @@ public class SearchCommandTest extends AbstractCLITest {
 
     @Test
     @Order(24)
-    public void testSearchArtifactsByLabel() throws JsonProcessingException {
+    public void testSearchArtifactsByLabel() {
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("search", "artifacts", "-l", "env=test", "--output-type", "json");
         var results = MAPPER.readValue(out.toString(), ArtifactSearchResults.class);

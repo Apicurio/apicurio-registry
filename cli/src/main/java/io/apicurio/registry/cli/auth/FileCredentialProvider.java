@@ -1,6 +1,6 @@
 package io.apicurio.registry.cli.auth;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import tools.jackson.core.type.TypeReference;
 import io.apicurio.registry.cli.config.Config;
 import io.apicurio.registry.cli.utils.Mapper;
 import java.io.IOException;
@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.jboss.logging.Logger;
+import tools.jackson.core.JacksonException;
 
 /**
  * File-based credential provider for environments without an OS keychain.
@@ -103,7 +104,7 @@ class FileCredentialProvider implements CredentialProvider {
         }
         try {
             return Mapper.MAPPER.readValue(path.toFile(), new TypeReference<>() {});
-        } catch (IOException ex) {
+        } catch (JacksonException ex) {
             log.debugf("Could not read credentials file (%s).", ex.getClass().getSimpleName());
             return new HashMap<>();
         }
@@ -117,7 +118,7 @@ class FileCredentialProvider implements CredentialProvider {
             Mapper.MAPPER.writeValue(temp.toFile(), credentials);
             restrictFilePermissions(temp);
             moveFile(temp, path);
-        } catch (IOException ex) {
+        } catch (JacksonException | IOException ex) {
             cleanupTempFile(temp);
             throw new CredentialStoreException("Failed to write credentials file: " + ex.getMessage(), ex);
         }

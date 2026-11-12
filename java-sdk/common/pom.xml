@@ -63,6 +63,11 @@
       <version>${kiota.community.version}</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <scope>test</scope>
+    </dependency>
     <!-- Kiota HTTP libraries at test scope for AdapterDetector tests
          (these are lightweight and don't create the cycle that adapter modules would) -->
     <dependency>

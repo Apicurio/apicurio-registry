@@ -1,6 +1,7 @@
 package io.apicurio.registry.noprofile.compatibility;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
@@ -20,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @QuarkusTest
 class McpToolPublicationCompatibilityTest extends AbstractResourceTestBase {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new JsonMapper();
 
     @ParameterizedTest
     @CsvSource({"BACKWARD,inputSchema,5,20", "FORWARD,inputSchema,20,5",

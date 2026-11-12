@@ -1,12 +1,12 @@
 package io.apicurio.registry.cli.search;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.cli.common.ColumnsMixin;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.common.PaginationMixin;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.cli.utils.TableBuilder;
 import io.apicurio.registry.rest.v3.beans.ArtifactSearchResults;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -31,8 +31,7 @@ final class SearchUtil {
 
     static void printArtifactResults(final OutputBuffer output, final ArtifactSearchResults results,
                                      final OutputTypeMixin outputType, final PaginationMixin pagination,
-                                     final ColumnsMixin columns)
-            throws JsonProcessingException {
+                                     final ColumnsMixin columns) {
         output.writeStdOutChunkWithException(out -> {
             switch (outputType.getOutputType()) {
                 case json -> {

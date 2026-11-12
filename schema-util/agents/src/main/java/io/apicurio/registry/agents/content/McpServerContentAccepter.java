@@ -1,6 +1,6 @@
 package io.apicurio.registry.agents.content;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.agents.rules.validity.McpServerContentValidator;
 import io.apicurio.registry.content.ContentAccepter;
@@ -43,8 +43,8 @@ public class McpServerContentAccepter implements ContentAccepter {
                 return false;
             }
             JsonNode name = tree.get("name");
-            return name != null && name.isTextual()
-                    && McpServerContentValidator.SERVER_NAME_PATTERN.matcher(name.asText()).matches()
+            return name != null && name.isString()
+                    && McpServerContentValidator.SERVER_NAME_PATTERN.matcher(name.asString()).matches()
                     && tree.has("version");
         } catch (Exception e) {
             // Error - invalid syntax

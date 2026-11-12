@@ -1,9 +1,10 @@
 package io.apicurio.registry.agents.mcptools.compatibility;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import org.junit.jupiter.api.Test;
+import tools.jackson.core.JacksonException;
 
 import java.util.List;
 
@@ -13,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CrossToolCompatibilityServiceTest {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new JsonMapper();
 
     private static final String CLOSED_PRODUCER_A = "{'type':'object','properties':{'a':{'type':'string'}},"
             + "'required':['a'],'additionalProperties':false}";
@@ -1564,7 +1565,7 @@ class CrossToolCompatibilityServiceTest {
     private static JsonNode json(String singleQuoted) {
         try {
             return MAPPER.readTree(singleQuoted.replace('\'', '"'));
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new IllegalArgumentException(e);
         }
     }

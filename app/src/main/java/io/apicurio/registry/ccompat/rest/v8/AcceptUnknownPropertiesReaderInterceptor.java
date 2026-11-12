@@ -1,7 +1,7 @@
 package io.apicurio.registry.ccompat.rest.v8;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import jakarta.annotation.Priority;
 import jakarta.ws.rs.Priorities;
 import jakarta.ws.rs.WebApplicationException;
@@ -29,8 +29,7 @@ import java.lang.reflect.Type;
 @Priority(Priorities.ENTITY_CODER)
 public class AcceptUnknownPropertiesReaderInterceptor implements ReaderInterceptor {
 
-    private static final ObjectMapper LENIENT_MAPPER = new ObjectMapper()
-            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    private static final ObjectMapper LENIENT_MAPPER = new JsonMapper();
 
     @Override
     public Object aroundReadFrom(ReaderInterceptorContext context) throws IOException, WebApplicationException {

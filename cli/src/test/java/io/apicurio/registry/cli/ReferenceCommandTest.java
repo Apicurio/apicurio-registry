@@ -1,6 +1,6 @@
 package io.apicurio.registry.cli;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import io.apicurio.registry.rest.client.models.ArtifactReference;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateVersion;
@@ -104,8 +104,8 @@ public class ReferenceCommandTest extends AbstractCLITest {
                 .isGreaterThan(0);
         boolean found = false;
         for (JsonNode ref : refs) {
-            if (TARGET_ARTIFACT.equals(ref.get("artifactId").asText())
-                    && REF_NAME.equals(ref.get("name").asText())) {
+            if (TARGET_ARTIFACT.equals(ref.get("artifactId").asString())
+                    && REF_NAME.equals(ref.get("name").asString())) {
                 found = true;
                 break;
             }

@@ -2,7 +2,8 @@ package io.apicurio.registry.types.provider.configured;
 
 import io.apicurio.registry.types.provider.DefaultArtifactTypeUtilProviderImpl;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.apicurio.common.apps.config.ConfigPropertyCategory;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.config.artifactTypes.ArtifactTypesConfiguration;
@@ -58,7 +59,7 @@ public class ArtifactTypeUtilProviderImpl extends DefaultArtifactTypeUtilProvide
         try {
             log.info("Loading artifact type config from: {}", configFile);
             String configSrc = IoUtil.toString(file);
-            ObjectMapper mapper = new ObjectMapper();
+            ObjectMapper mapper = new JsonMapper();
             return mapper.readValue(configSrc, ArtifactTypesConfiguration.class);
         } catch (Exception e) {
             log.error("Failed to load artifact type configuration file", e);

@@ -1,10 +1,11 @@
 package io.apicurio.registry.agents.noprofile.mcpregistry.rest.v0;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.networknt.schema.JsonSchema;
-import com.networknt.schema.JsonSchemaFactory;
-import com.networknt.schema.SpecVersion.VersionFlag;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+import com.networknt.schema.Schema;
+import com.networknt.schema.SchemaRegistry;
+import com.networknt.schema.SpecificationVersion;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
@@ -23,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @TestProfile(McpRegistryExperimentalFeaturesProfile.class)
 class McpRegistryUpstreamShapeTest extends AbstractResourceTestBase {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new JsonMapper();
 
     @Test
     void responsesValidateAgainstPinnedManifestAndUpstreamMetadataShape() throws Exception {
@@ -33,14 +34,14 @@ class McpRegistryUpstreamShapeTest extends AbstractResourceTestBase {
                 .body(Map.of("name", name, "version", "1.0.0", "description", "Shape test"))
                 .post(base + "/publish").then().statusCode(200).extract().asString();
         JsonNode response = MAPPER.readTree(json);
-        assertEquals(name, response.path("server").path("name").asText());
+        assertEquals(name, response.path("server").path("name").asString());
         try (InputStream stream = getClass().getResourceAsStream(
                 "/io/apicurio/registry/agents/rules/validity/mcp-server-2025-12-11.json")) {
             assertNotNull(stream);
             assertValid(schema(MAPPER.readTree(stream)), response.get("server"));
         }
         // Copied assertion fields from upstream ServerResponse official metadata: no extra id there.
-        JsonSchema metadata = schema(MAPPER.readTree("""
+        Schema metadata = schema(MAPPER.readTree("""
                 {"type":"object","additionalProperties":false,"properties":{
                  "status":{"type":"string","enum":["active","deprecated","deleted"]},
                  "statusMessage":{"type":"string","maxLength":500},
@@ -54,15 +55,15 @@ class McpRegistryUpstreamShapeTest extends AbstractResourceTestBase {
                 .then().statusCode(200).extract().asString());
         assertEquals(1, listed.path("servers").size());
         JsonNode first = listed.path("servers").path(0);
-        assertEquals(name, first.path("server").path("name").asText());
+        assertEquals(name, first.path("server").path("name").asString());
         assertValid(metadata, first.path("_meta").get("io.modelcontextprotocol.registry/official"));
     }
 
-    private static JsonSchema schema(JsonNode schema) {
-        return JsonSchemaFactory.getInstance(VersionFlag.V7).getSchema(schema);
+    private static Schema schema(JsonNode schema) {
+        return SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_7).getSchema(schema);
     }
 
-    private static void assertValid(JsonSchema schema, JsonNode document) {
+    private static void assertValid(Schema schema, JsonNode document) {
         assertNotNull(document);
         var messages = schema.validate(document);
         assertEquals(0, messages.size(), () -> "Response doesn't match the schema: " + messages);

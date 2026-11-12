@@ -1,5 +1,6 @@
 package io.apicurio.registry.storage.impl.gitops;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 /**
@@ -13,6 +14,7 @@ public enum SidecarState {
 
     private final String value;
 
+    @JsonCreator
     SidecarState(String value) {
         this.value = value;
     }

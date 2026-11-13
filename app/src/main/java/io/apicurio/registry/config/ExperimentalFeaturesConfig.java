@@ -82,4 +82,13 @@ public class ExperimentalFeaturesConfig {
     public boolean isExperimentalFeaturesEnabled() {
         return experimentalFeaturesEnabled;
     }
+
+    /**
+     * Whether the given property can be set to {@code true}: always when the gate is enabled, otherwise only
+     * if the property is not an experimental feature toggle.
+     */
+    public boolean canEnable(String propertyName) {
+        return experimentalFeaturesEnabled || experimentalProperties.getExperimentalConfigProperties().stream()
+                .noneMatch(prop -> prop.getName().equals(propertyName));
+    }
 }

@@ -10,6 +10,7 @@ import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.auth.ResourceAccessGuard;
 import io.apicurio.registry.auth.RoleBasedAccessApiOperation;
+import io.apicurio.registry.config.ExperimentalFeaturesConfig;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.federation.FederationConfig;
 import io.apicurio.registry.federation.PeerAddressPolicy;
@@ -154,6 +155,9 @@ public class AdminResourceImpl implements AdminResource {
 
     @Inject
     DynamicConfigPropertyIndex dynamicPropertyIndex;
+
+    @Inject
+    ExperimentalFeaturesConfig experimentalFeatures;
 
     @Inject
     ArtifactTypeUtilProviderFactory factory;
@@ -682,6 +686,10 @@ public class AdminResourceImpl implements AdminResource {
     public void updateConfigProperty(String propertyName, UpdateConfigurationProperty data) {
         DynamicConfigPropertyDef propertyDef = resolveConfigProperty(propertyName);
         validateConfigPropertyValue(propertyDef, data.getValue());
+        if (Boolean.parseBoolean(data.getValue()) && !experimentalFeatures.canEnable(propertyDef.getName())) {
+            throw new ConflictException("'" + propertyDef.getName() + "' is an experimental feature. Enable "
+                    + "'apicurio.features.experimental.enabled' to use it.");
+        }
 
         DynamicConfigPropertyDto dto = new DynamicConfigPropertyDto();
         dto.setName(propertyName);

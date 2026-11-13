@@ -316,6 +316,13 @@ xref:registry-artifact-type-reference-support_{context}[].
 endif::[]
 `DEREFERENCE` resolves references transitively. If the reference graph is deeper than `apicurio.storage.references.max-depth` (default `100`), the request returns HTTP `409`.
 
+The references parameter is supported when you get the content of an artifact version, and when you get
+content by global ID, content ID, or content hash (`/ids/globalIds/\{globalId\}`,
+`/ids/contentIds/\{contentId\}`, and `/ids/contentHashes/\{contentHash\}`). Content IDs and content hashes
+are shared by every version with the same content, so {registry} uses the artifact type of one of those
+versions to dereference or rewrite the content. If no version uses the content any more, the content is still
+returned as stored, but `DEREFERENCE` and `REWRITE` can return HTTP `404`.
+
 NOTE: For Avro and Protobuf artifacts, requesting `references=REWRITE` returns HTTP `400`
 (`DereferencingNotSupportedException`).
 For XSD and WSDL artifacts, requesting `references=DEREFERENCE` returns HTTP `400`

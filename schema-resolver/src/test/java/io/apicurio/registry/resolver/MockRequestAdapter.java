@@ -59,7 +59,7 @@ public class MockRequestAdapter implements RequestAdapter {
     public <ModelType> ModelType sendPrimitive(@Nonnull RequestInformation requestInfo,
             @Nullable HashMap<String, ParsableFactory<? extends Parsable>> errorMappings,
             @Nonnull Class<ModelType> targetClass) {
-        assertEquals("{+baseurl}/ids/contentHashes/{contentHash}", requestInfo.urlTemplate);
+        assertEquals("{+baseurl}/ids/contentHashes/{contentHash}{?references*}", requestInfo.urlTemplate);
         this.timesGetContentByHashCalled++;
         return (ModelType) new ByteArrayInputStream(this.schemaContent.getBytes(StandardCharsets.UTF_8));
     }

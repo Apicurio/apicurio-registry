@@ -241,7 +241,7 @@
     <apitomy-data-models.version>4.0.0-beta.1</apitomy-data-models.version>
 
     <!-- GraphQL -->
-    <graphql.version>26.1</graphql.version>
+    <graphql.version>26.2</graphql.version>
 
     <!-- JSON Schema Validator -->
     <json-sKema.version>0.32.0</json-sKema.version>

@@ -60,6 +60,13 @@ Kafka, on PostgreSQL (outbox table, Debezium outbox event router, delivery after
 KafkaSQL (two replicas, one total order), and converts them to CloudEvents. Its
 [step-by-step guide](registry-events/GUIDE.md) explains the guarantees of each.
 
+## v2 to v3 Migration Example
+This example seeds an Apicurio Registry 2.6 server, migrates it to 3.x with the documented export and
+import scripts, and checks that every version keeps its globalId, contentId, state, content and
+references, through the v3 API and the v2 API. It also covers the import guards, an import with new
+IDs, backup and restore within 3.x, and 3.x refusing a 2.6 KafkaSQL topic. See its
+[step-by-step guide](v2-to-v3-migration/GUIDE.md).
+
 ## Rules and Compatibility Example
 This example runs Apicurio Registry and its web console with Docker Compose and shows its content
 rules: validity, BACKWARD and FORWARD compatibility, which rule wins when rules are set globally, per

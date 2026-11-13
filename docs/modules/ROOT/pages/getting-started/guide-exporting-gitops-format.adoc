@@ -1,0 +1,123 @@
+include::{mod-loc}shared/all-attributes.adoc[]
+
+[id="exporting_gitops_format_{context}"]
+= Exporting {registry} data in GitOps format
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can export {registry} data in a format that is directly loadable by a GitOps-configured registry instance.
+This enables a migration path from a SQL-backed registry to GitOps storage: export the data, commit it to a Git repository, and point a new registry instance at the repository.
+
+IMPORTANT: The GitOps export format (`gitops-v0`) is *experimental*.
+The data format (`*-v0`) might change in future releases.
+The export itself does not require the experimental features gate (`apicurio.features.experimental.enabled`) -- it is primarily used to migrate data from a SQL or KafkaSQL registry to GitOps, where enabling the gate on the source would be unnecessary.
+
+== Prerequisites
+
+* You have a running {registry} instance with data you want to export.
+* You have administrator access to the registry (the export endpoint requires admin privileges).
+* You have a Git repository prepared for the GitOps-configured registry.
+
+[id="gitops-export-format-overview_{context}"]
+== Overview of the GitOps export format
+
+The GitOps export produces a ZIP file containing `*.registry.yaml` metadata files and raw content files that follow the GitOps v0 data model.
+The ZIP layout uses a shared `content/` directory for all artifact content, eliminating duplication when multiple artifacts reference the same content.
+
+.ZIP layout
+[source]
+----
+registry.registry.yaml           <1>
+content/                          <2>
+  {contentId}.avsc
+  {contentId}.json
+  {contentId}.content.registry.yaml  <3>
+{groupId}/
+  {groupId}.registry.yaml         <4>
+  {artifactId}/
+    {artifactId}.registry.yaml    <5>
+----
+<1> Registry-level metadata: registry ID, global rules, and configuration properties.
+<2> Shared content directory containing all artifact content files, named by content ID and file extension.
+<3> Content metadata file: preserves the `contentId` for round-trip fidelity, and includes artifact references when present.
+<4> Group-level metadata: group description, labels, and group rules.
+<5> Artifact-level metadata: artifact type, versions (with relative paths to shared content), and artifact rules.
+
+The `registryId` in `registry.registry.yaml` defaults to `main`, matching the default value of `apicurio.polling-storage.id`.
+If your target GitOps registry uses a different registry ID, edit `registry.registry.yaml` after extracting the ZIP and change `registryId` to match.
+
+[id="exporting-data-in-gitops-format_{context}"]
+== Exporting data in GitOps format
+
+.Procedure
+
+. Export registry data using the `format=gitops-v0` query parameter:
++
+[source,bash]
+----
+curl -o registry-export.zip \
+  "http://MY-REGISTRY-HOST/apis/registry/v3/admin/export?format=gitops-v0"
+----
++
+To export only a specific group, add the `groupId` parameter:
++
+[source,bash]
+----
+curl -o registry-export.zip \
+  "http://MY-REGISTRY-HOST/apis/registry/v3/admin/export?format=gitops-v0&groupId=my-group"
+----
+
+. Verify the exported ZIP contents:
++
+[source,bash]
+----
+unzip -l registry-export.zip
+----
+
+NOTE: The GitOps export does not include branches, comments, or contract rules, as these are not yet part of the v0 data model (see https://github.com/Apicurio/apicurio-registry/issues/9935[#9935]).
+If the export skips any contract rules, a `WARNINGS.txt` file is included in the ZIP.
+
+[id="migrating-sql-to-gitops_{context}"]
+== Migrating from SQL to GitOps storage
+
+.Procedure
+
+. Export the data from the SQL-backed registry:
++
+[source,bash]
+----
+curl -o registry-export.zip \
+  "http://SQL-REGISTRY-HOST/apis/registry/v3/admin/export?format=gitops-v0"
+----
+
+. Extract the ZIP into the Git repository that the GitOps registry will use:
++
+[source,bash]
+----
+cd /path/to/gitops-repo
+unzip registry-export.zip
+----
+
+. Commit and push the data:
++
+[source,bash]
+----
+git add .
+git commit -m "Import registry data from SQL-backed instance"
+git push
+----
+
+. Start a GitOps-configured {registry} instance pointing at the repository.
+See xref:getting-started/assembly-configuring-gitops-storage.adoc[Configuring {registry} with GitOps storage] for configuration details.
+
+. Verify that the GitOps registry loaded the data by querying for groups and artifacts:
++
+[source,bash]
+----
+curl "http://GITOPS-REGISTRY-HOST/apis/registry/v3/groups"
+----
+
+[role="_additional-resources"]
+.Additional resources
+* xref:getting-started/assembly-configuring-gitops-storage.adoc[Configuring {registry} with GitOps storage]

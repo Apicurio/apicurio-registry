@@ -12,6 +12,7 @@ import {
     RuleType, UpdateConfigurationProperty,
     type UpdateRole
 } from "@sdk/lib/generated-client/models";
+import { type GetFormatQueryParameterType } from "@sdk/lib/generated-client/admin/exportEscaped";
 
 
 const getArtifactTypes = async (config: ConfigService, auth: AuthService): Promise<ArtifactTypeInfo[]> => {
@@ -104,14 +105,15 @@ const deleteRoleMapping = async (config: ConfigService, auth: AuthService, princ
     return getRegistryClient(config, auth).admin.roleMappings.byPrincipalId(principalId).delete().then(() => null);
 };
 
-const exportAs = async (config: ConfigService, auth: AuthService, filename: string): Promise<DownloadRef> => {
+const exportAs = async (config: ConfigService, auth: AuthService, filename: string, format?: GetFormatQueryParameterType): Promise<DownloadRef> => {
     const baseHref: string = config.artifactsUrl();
     return getRegistryClient(config, auth).admin.exportEscaped.get({
         headers: {
             "Accept": "application/zip"
         },
         queryParameters: {
-            forBrowser: true
+            forBrowser: true,
+            format: format
         }
     }).then(ref => {
         if (ref?.href?.startsWith("/apis/registry/v2")) {
@@ -168,7 +170,7 @@ export interface AdminService {
     createRoleMapping(principalId: string, role: string, principalName: string): Promise<RoleMapping>;
     updateRoleMapping(principalId: string, role: string): Promise<RoleMapping>;
     deleteRoleMapping(principalId: string): Promise<null>;
-    exportAs(filename: string): Promise<DownloadRef>;
+    exportAs(filename: string, format?: GetFormatQueryParameterType): Promise<DownloadRef>;
     importFrom(file: string | File, progressFunction: (progressEvent: any) => void): Promise<void>;
     listConfigurationProperties(): Promise<ConfigurationProperty[]>;
     setConfigurationProperty(propertyName: string, newValue: string): Promise<void>;
@@ -214,8 +216,8 @@ export const useAdminService: () => AdminService = (): AdminService => {
         deleteRoleMapping(principalId: string): Promise<null> {
             return deleteRoleMapping(config, auth, principalId);
         },
-        exportAs(filename: string): Promise<DownloadRef> {
-            return exportAs(config, auth, filename);
+        exportAs(filename: string, format?: GetFormatQueryParameterType): Promise<DownloadRef> {
+            return exportAs(config, auth, filename, format);
         },
         importFrom(file: string | File, progressFunction: (progressEvent: any) => void): Promise<void> {
             return importFrom(config, auth, file, progressFunction);

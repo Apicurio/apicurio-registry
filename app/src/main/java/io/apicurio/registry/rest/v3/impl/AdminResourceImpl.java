@@ -798,7 +798,11 @@ public class AdminResourceImpl implements AdminResource {
     public GitOpsValidateTask createGitOpsValidateTask(GitOpsValidateRequest data) {
         requireGitOpsStorage();
         validateRepoId(data.getRepoId());
-        return requireValidationTaskManager().createTask(data);
+        try {
+            return requireValidationTaskManager().createTask(data);
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestException(e.getMessage());
+        }
     }
 
     /**
@@ -845,8 +849,12 @@ public class AdminResourceImpl implements AdminResource {
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public void deleteGitOpsValidateTask(String taskId) {
         requireGitOpsStorage();
-        if (!requireValidationTaskManager().deleteTask(taskId)) {
-            throw new jakarta.ws.rs.NotFoundException("Validation task not found: " + taskId);
+        try {
+            if (!requireValidationTaskManager().deleteTask(taskId)) {
+                throw new jakarta.ws.rs.NotFoundException("Validation task not found: " + taskId);
+            }
+        } catch (IllegalStateException e) {
+            throw new ConflictException(e.getMessage());
         }
     }
 

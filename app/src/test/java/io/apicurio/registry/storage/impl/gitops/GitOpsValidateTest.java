@@ -25,7 +25,10 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
 @TestProfile(GitopsTestProfile.class)
@@ -33,6 +36,9 @@ public class GitOpsValidateTest {
 
     @Inject
     GitOpsConfig gitOpsConfig;
+
+    @Inject
+    GitOpsValidationTaskManager taskManager;
 
     private String repoId() {
         return gitOpsConfig.getRepos().get(0).id();
@@ -163,8 +169,28 @@ public class GitOpsValidateTest {
                 .body("state", notNullValue());
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"../etc/passwd", "ABCDEF012345", "not-a-valid-id", "abcdef0123456"})
+    void getTaskRejectsInvalidTaskId(String invalidId) {
+        given()
+                .when()
+                .get("/apis/registry/v3/admin/gitops/validate/" + invalidId)
+                .then()
+                .statusCode(404);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"../etc/passwd", "ABCDEF012345", "not-a-valid-id", "abcdef0123456"})
+    void deleteTaskRejectsInvalidTaskId(String invalidId) {
+        given()
+                .when()
+                .delete("/apis/registry/v3/admin/gitops/validate/" + invalidId)
+                .then()
+                .statusCode(404);
+    }
+
     @Test
-    void deleteTaskRemovesIt() {
+    void deleteTaskRemovesFromLocalMemory() {
         var taskId = given()
                 .contentType("application/json")
                 .body("""
@@ -184,7 +210,7 @@ public class GitOpsValidateTest {
 
         given()
                 .when()
-                .get("/apis/registry/v3/admin/gitops/validate/" + taskId)
+                .delete("/apis/registry/v3/admin/gitops/validate/" + taskId)
                 .then()
                 .statusCode(404);
     }
@@ -295,6 +321,206 @@ public class GitOpsValidateTest {
         });
     }
 
+    @Test
+    void loadPendingTasksSkipsInvalidFileNames() throws Exception {
+        final var testRepository = GitTestRepositoryManager.getTestRepository();
+        final Path validateDir = Path.of(testRepository.getGitRepoUrl()).getParent().resolve("validate");
+        Files.createDirectories(validateDir);
+
+        final Path invalidFile = validateDir.resolve("not-a-valid-id.json");
+        final Path traversalFile = validateDir.resolve("...json");
+        try {
+            final String requestJson = """
+                    {"apiVersion": "v1", "kind": "ValidateRequest",
+                     "spec": {"type": "pull", "repoId": "%s", "ref": "main"}}
+                    """.formatted(repoId());
+            Files.writeString(invalidFile, requestJson);
+            Files.writeString(traversalFile, requestJson);
+
+            taskManager.loadPendingTasks();
+
+            final var taskIds = given()
+                    .when()
+                    .get("/apis/registry/v3/admin/gitops/validate")
+                    .then()
+                    .statusCode(200)
+                    .extract().jsonPath().getList("taskId", String.class);
+
+            assertFalse(taskIds.contains("not-a-valid-id"));
+            assertFalse(taskIds.contains(".."));
+        } finally {
+            Files.deleteIfExists(invalidFile);
+            Files.deleteIfExists(traversalFile);
+        }
+    }
+
+    @Test
+    void getTaskReturns404ForOldFormatId() {
+        given()
+                .when()
+                .get("/apis/registry/v3/admin/gitops/validate/abcdef012345")
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    void getTaskDecodesUnknownSelfDescribingId() {
+        final var taskId = given()
+                .contentType("application/json")
+                .body("""
+                        {"type": "pull", "repoId": "%s", "ref": "main"}
+                        """.formatted(repoId()))
+                .when()
+                .post("/apis/registry/v3/admin/gitops/validate")
+                .then()
+                .statusCode(200)
+                .extract().path("taskId").toString();
+
+        given().delete("/apis/registry/v3/admin/gitops/validate/" + taskId).then().statusCode(204);
+
+        await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> {
+            given()
+                    .when()
+                    .get("/apis/registry/v3/admin/gitops/validate/" + taskId)
+                    .then()
+                    .statusCode(200)
+                    .body("taskId", equalTo(taskId))
+                    .body("state", notNullValue());
+        });
+    }
+
+    @Test
+    void createTaskReturnsSelfDescribingId() {
+        final var taskId = given()
+                .contentType("application/json")
+                .body("""
+                        {"type": "pull", "repoId": "%s", "ref": "main"}
+                        """.formatted(repoId()))
+                .when()
+                .post("/apis/registry/v3/admin/gitops/validate")
+                .then()
+                .statusCode(200)
+                .extract().path("taskId").toString();
+        assertTrue(taskId.length() > 50);
+        assertTrue(taskId.matches("^[A-Za-z0-9_-]+$"));
+    }
+
+    @Test
+    void deleteTaskOnlyAffectsLocalReplica() {
+        final var taskId = given()
+                .contentType("application/json")
+                .body("""
+                        {"type": "pull", "repoId": "%s", "ref": "main"}
+                        """.formatted(repoId()))
+                .when()
+                .post("/apis/registry/v3/admin/gitops/validate")
+                .then()
+                .statusCode(200)
+                .extract().path("taskId").toString();
+        given().delete("/apis/registry/v3/admin/gitops/validate/" + taskId).then().statusCode(204);
+        given().delete("/apis/registry/v3/admin/gitops/validate/" + taskId).then().statusCode(404);
+    }
+
+    @Test
+    void duplicatePostReturnsSameTaskWhilePending() {
+        final var taskId1 = given()
+                .contentType("application/json")
+                .body("""
+                        {"type": "pull", "repoId": "%s", "ref": "dup-test-ref"}
+                        """.formatted(repoId()))
+                .when()
+                .post("/apis/registry/v3/admin/gitops/validate")
+                .then()
+                .statusCode(200)
+                .extract().path("taskId").toString();
+
+        final var taskId2 = given()
+                .contentType("application/json")
+                .body("""
+                        {"type": "pull", "repoId": "%s", "ref": "dup-test-ref"}
+                        """.formatted(repoId()))
+                .when()
+                .post("/apis/registry/v3/admin/gitops/validate")
+                .then()
+                .statusCode(200)
+                .extract().path("taskId").toString();
+
+        assertEquals(taskId1, taskId2);
+    }
+
+    @Test
+    void deleteTaskReturns409WhenFetching() throws Exception {
+        final var testRepository = GitTestRepositoryManager.getTestRepository();
+        testRepository.load("git/smoke01");
+
+        await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
+            given()
+                    .when()
+                    .get("/apis/registry/v3/admin/gitops/status")
+                    .then()
+                    .statusCode(200)
+                    .body("syncState", equalTo("IDLE"));
+        });
+
+        final var taskId = given()
+                .contentType("application/json")
+                .body("""
+                        {"type": "pull", "repoId": "%s", "ref": "main"}
+                        """.formatted(repoId()))
+                .when()
+                .post("/apis/registry/v3/admin/gitops/validate")
+                .then()
+                .statusCode(200)
+                .extract().path("taskId").toString();
+
+        await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> {
+            final var state = given()
+                    .when()
+                    .get("/apis/registry/v3/admin/gitops/validate/" + taskId)
+                    .then()
+                    .extract().path("state").toString();
+            assertNotEquals("pending", state);
+        });
+
+        final String localName = localFileName(taskId);
+        final Path validateDir = Path.of(testRepository.getGitRepoUrl()).getParent().resolve("validate");
+        final Path requestFile = validateDir.resolve(localName + ".json");
+        final var request = JsonObjectMapper.MAPPER.readValue(requestFile.toFile(), ValidationRequest.class);
+        request.setStatus(ValidationRequest.Status.builder()
+                .state(SidecarState.FETCHING)
+                .build());
+        JsonObjectMapper.MAPPER.writerWithDefaultPrettyPrinter()
+                .writeValue(requestFile.toFile(), request);
+
+        await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> {
+            given()
+                    .when()
+                    .get("/apis/registry/v3/admin/gitops/validate/" + taskId)
+                    .then()
+                    .body("state", equalTo("fetching"));
+        });
+
+        given()
+                .when()
+                .delete("/apis/registry/v3/admin/gitops/validate/" + taskId)
+                .then()
+                .statusCode(409);
+    }
+
+    @Test
+    void createTaskRejectsTooLongRef() {
+        final String longRef = "refs/heads/" + "a".repeat(250);
+        given()
+                .contentType("application/json")
+                .body("""
+                        {"type": "pull", "repoId": "%s", "ref": "%s"}
+                        """.formatted(repoId(), longRef))
+                .when()
+                .post("/apis/registry/v3/admin/gitops/validate")
+                .then()
+                .statusCode(400);
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {"../../../../etc", "/etc", "repo/../../etc"})
     void validationRejectsMaliciousCheckoutPath(String maliciousPath) throws Exception {
@@ -347,12 +573,16 @@ public class GitOpsValidateTest {
      * Simulates the sidecar by cloning the test repository into the validation checkout
      * directory and updating the request file with a completed status.
      */
+    private String localFileName(String taskId) {
+        return new ValidationTaskId(taskId).localFileName();
+    }
+
     private void simulateSidecarFetch(String taskId, GitTestRepository testRepository) throws Exception {
+        final String localName = localFileName(taskId);
         Path validateDir = Path.of(testRepository.getGitRepoUrl()).getParent().resolve("validate");
-        Path checkoutDir = validateDir.resolve(taskId).resolve("repo");
+        Path checkoutDir = validateDir.resolve(localName).resolve("repo");
         Files.createDirectories(checkoutDir);
 
-        // Clone the test repo into the checkout dir
         Git.cloneRepository()
                 .setURI(testRepository.getGitRepoUrl())
                 .setDirectory(checkoutDir.toFile())
@@ -360,8 +590,7 @@ public class GitOpsValidateTest {
                 .call()
                 .close();
 
-        // Update the request file with fetched status (simulating sidecar completion)
-        Path requestFile = validateDir.resolve(taskId + ".json");
+        Path requestFile = validateDir.resolve(localName + ".json");
         var request = JsonObjectMapper.MAPPER.readValue(requestFile.toFile(), ValidationRequest.class);
         request.setStatus(ValidationRequest.Status.builder()
                 .state(SidecarState.FETCHED)
@@ -372,14 +601,12 @@ public class GitOpsValidateTest {
                 .writeValue(requestFile.toFile(), request);
     }
 
-    /**
-     * Simulates a malicious sidecar writing a path-traversal checkoutPath to the request file.
-     */
     private void simulateSidecarFetchWithTraversalPath(String taskId, String maliciousPath) throws Exception {
+        final String localName = localFileName(taskId);
         final var testRepository = GitTestRepositoryManager.getTestRepository();
         final Path validateDir = Path.of(testRepository.getGitRepoUrl()).getParent().resolve("validate");
 
-        final Path requestFile = validateDir.resolve(taskId + ".json");
+        final Path requestFile = validateDir.resolve(localName + ".json");
         final var request = JsonObjectMapper.MAPPER.readValue(requestFile.toFile(), ValidationRequest.class);
         request.setStatus(ValidationRequest.Status.builder()
                 .state(SidecarState.FETCHED)
@@ -390,17 +617,13 @@ public class GitOpsValidateTest {
                 .writeValue(requestFile.toFile(), request);
     }
 
-    /**
-     * Simulates the sidecar by creating a fresh git repo with specific test data
-     * and updating the request file.
-     */
     private void simulateSidecarFetchWithData(String taskId, String dataSource) throws Exception {
+        final String localName = localFileName(taskId);
         var testRepository = GitTestRepositoryManager.getTestRepository();
         Path validateDir = Path.of(testRepository.getGitRepoUrl()).getParent().resolve("validate");
-        Path checkoutDir = validateDir.resolve(taskId).resolve("repo");
+        Path checkoutDir = validateDir.resolve(localName).resolve("repo");
         Files.createDirectories(checkoutDir);
 
-        // Create a fresh repo with the specified test data
         var sourcePath = Path.of(Thread.currentThread().getContextClassLoader()
                 .getResource(dataSource).toURI());
         var git = Git.init().setDirectory(checkoutDir.toFile()).setInitialBranch("main").call();
@@ -409,8 +632,7 @@ public class GitOpsValidateTest {
         git.commit().setMessage("test data").call();
         git.close();
 
-        // Update the request file with fetched status (simulating sidecar completion)
-        Path requestFile = validateDir.resolve(taskId + ".json");
+        Path requestFile = validateDir.resolve(localName + ".json");
         var request = JsonObjectMapper.MAPPER.readValue(requestFile.toFile(), ValidationRequest.class);
         request.setStatus(ValidationRequest.Status.builder()
                 .state(SidecarState.FETCHED)

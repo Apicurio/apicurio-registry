@@ -14,18 +14,29 @@ type ContentIdsWithContentItemRequestBuilder struct {
 	i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.BaseRequestBuilder
 }
 
+// ContentIdsWithContentItemRequestBuilderGetQueryParameters gets the content for an artifact version in the registry using the unique contentidentifier for that content.  This content ID may be shared by multiple artifactversions in the case where the artifact versions are identical.This operation may fail for one of the following reasons:* No content with this `contentId` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
+type ContentIdsWithContentItemRequestBuilderGetQueryParameters struct {
+	// Allows the user to specify how references in the content should be treated. Available since 3.4.0.
+	// Deprecated: This property is deprecated, use ReferencesAsHandleReferencesType instead
+	References *string "uriparametername:\"references\""
+	// Allows the user to specify how references in the content should be treated. Available since 3.4.0.
+	ReferencesAsHandleReferencesType *iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.HandleReferencesType "uriparametername:\"references\""
+}
+
 // ContentIdsWithContentItemRequestBuilderGetRequestConfiguration configuration for the request such as headers, query parameters, and middleware options.
 type ContentIdsWithContentItemRequestBuilderGetRequestConfiguration struct {
 	// Request headers
 	Headers *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestHeaders
 	// Request options
 	Options []i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestOption
+	// Request query parameters
+	QueryParameters *ContentIdsWithContentItemRequestBuilderGetQueryParameters
 }
 
 // NewContentIdsWithContentItemRequestBuilderInternal instantiates a new ContentIdsWithContentItemRequestBuilder and sets the default values.
 func NewContentIdsWithContentItemRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ContentIdsWithContentItemRequestBuilder {
 	m := &ContentIdsWithContentItemRequestBuilder{
-		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/ids/contentIds/{contentId}", pathParameters),
+		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/ids/contentIds/{contentId}{?references*}", pathParameters),
 	}
 	return m
 }
@@ -75,6 +86,9 @@ func (m *ContentIdsWithContentItemRequestBuilder) References() *ContentIdsItemRe
 func (m *ContentIdsWithContentItemRequestBuilder) ToGetRequestInformation(ctx context.Context, requestConfiguration *ContentIdsWithContentItemRequestBuilderGetRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.GET, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
+		if requestConfiguration.QueryParameters != nil {
+			requestInfo.AddQueryParameters(*(requestConfiguration.QueryParameters))
+		}
 		requestInfo.Headers.AddAll(requestConfiguration.Headers)
 		requestInfo.AddRequestOptions(requestConfiguration.Options)
 	}

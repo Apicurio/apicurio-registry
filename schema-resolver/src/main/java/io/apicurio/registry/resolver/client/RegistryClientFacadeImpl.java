@@ -64,7 +64,19 @@ public class RegistryClientFacadeImpl implements RegistryClientFacade {
 
     @Override
     public String getSchemaByContentId(Long contentId) {
-        InputStream rawSchema = client.ids().contentIds().byContentId(contentId).get();
+        return getSchemaByContentId(contentId, false);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getSchemaByContentId(Long contentId, boolean dereferenced) {
+        InputStream rawSchema = client.ids().contentIds().byContentId(contentId).get(config -> {
+            if (dereferenced) {
+                config.queryParameters.references = HandleReferencesType.DEREFERENCE;
+            }
+        });
         return IoUtil.toString(rawSchema);
     }
 
@@ -119,7 +131,19 @@ public class RegistryClientFacadeImpl implements RegistryClientFacade {
 
     @Override
     public String getSchemaByContentHash(String contentHash) {
-        InputStream rawSchema = client.ids().contentHashes().byContentHash(contentHash).get();
+        return getSchemaByContentHash(contentHash, false);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getSchemaByContentHash(String contentHash, boolean dereferenced) {
+        InputStream rawSchema = client.ids().contentHashes().byContentHash(contentHash).get(config -> {
+            if (dereferenced) {
+                config.queryParameters.references = HandleReferencesType.DEREFERENCE;
+            }
+        });
         return IoUtil.toString(rawSchema);
     }
 

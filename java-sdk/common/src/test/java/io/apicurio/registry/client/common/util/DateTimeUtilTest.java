@@ -8,8 +8,9 @@ import java.time.format.DateTimeParseException;
 import java.time.temporal.TemporalAccessor;
 
 import org.junit.jupiter.api.Test;
-import com.fasterxml.jackson.databind.node.TextNode;
+
 import com.fasterxml.jackson.databind.node.NullNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.microsoft.kiota.serialization.ParseNode;
 
 import io.kiota.serialization.json.JsonParseNode;

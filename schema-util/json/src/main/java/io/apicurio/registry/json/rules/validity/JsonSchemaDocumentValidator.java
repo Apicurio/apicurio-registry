@@ -1,19 +1,19 @@
 package io.apicurio.registry.json.rules.validity;
 
-import com.networknt.schema.Error;
-import com.networknt.schema.Schema;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.networknt.schema.JsonSchema;
+import com.networknt.schema.JsonSchemaFactory;
+import com.networknt.schema.PathType;
 import com.networknt.schema.SchemaLocation;
-import com.networknt.schema.SchemaRegistry;
-import com.networknt.schema.SchemaRegistryConfig;
-import com.networknt.schema.SpecificationVersion;
-import com.networknt.schema.path.PathType;
-import io.apicurio.registry.json.util.DataModelsJson;
+import com.networknt.schema.SchemaValidatorsConfig;
+import com.networknt.schema.SpecVersion.VersionFlag;
+import com.networknt.schema.SpecVersionDetector;
+import com.networknt.schema.ValidationMessage;
 import io.apicurio.registry.rules.violation.RuleViolation;
 import io.apitomy.datamodels.DataModelsException;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.node.ObjectNode;
+import io.apitomy.datamodels.ModelTypeDetector;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -47,14 +47,14 @@ public final class JsonSchemaDocumentValidator {
      */
     private static final String BASE_IRI = "mem://input/";
 
-    private static final SchemaRegistryConfig META_VALIDATION_CONFIG = SchemaRegistryConfig.builder()
+    private static final SchemaValidatorsConfig META_VALIDATION_CONFIG = SchemaValidatorsConfig.builder()
             .pathType(PathType.JSON_POINTER).build();
 
     /**
      * Meta-schemas are immutable once built, so they are cached per draft. Each is built from a
      * document bundled in the validator library.
      */
-    private static final Map<SpecificationVersion, Schema> META_SCHEMAS = new ConcurrentHashMap<>();
+    private static final Map<VersionFlag, JsonSchema> META_SCHEMAS = new ConcurrentHashMap<>();
 
     /** Chooses the draft of a schema. */
     @FunctionalInterface
@@ -64,11 +64,11 @@ public final class JsonSchemaDocumentValidator {
          * @return the draft the schema declares, or implies when it declares none; empty if its
          *         {@code $schema} names no draft this detector knows
          */
-        Optional<SpecificationVersion> detect(JsonNode schema);
+        Optional<VersionFlag> detect(JsonNode schema);
     }
 
     private final DraftDetector draftDetector;
-    private final SpecificationVersion unrecognisedDraft;
+    private final VersionFlag unrecognisedDraft;
     private final boolean loadSchema;
 
     private JsonSchemaDocumentValidator(Builder builder) {
@@ -88,19 +88,19 @@ public final class JsonSchemaDocumentValidator {
      */
     public static DraftDetector dataModelsDraftDetector() {
         return schema -> {
-            if (!(schema instanceof ObjectNode)) {
-                return Optional.of(SpecificationVersion.DRAFT_7);
+            if (!(schema instanceof ObjectNode objectNode)) {
+                return Optional.of(VersionFlag.V7);
             }
             try {
-                return switch (DataModelsJson.discoverModelType(schema)) {
-                    case JD4 -> Optional.of(SpecificationVersion.DRAFT_4);
-                    case JD6 -> Optional.of(SpecificationVersion.DRAFT_6);
-                    case JD7 -> Optional.of(SpecificationVersion.DRAFT_7);
-                    case JM201909 -> Optional.of(SpecificationVersion.DRAFT_2019_09);
-                    case JM202012 -> Optional.of(SpecificationVersion.DRAFT_2020_12);
+                return switch (ModelTypeDetector.discoverModelType(objectNode)) {
+                    case JD4 -> Optional.of(VersionFlag.V4);
+                    case JD6 -> Optional.of(VersionFlag.V6);
+                    case JD7 -> Optional.of(VersionFlag.V7);
+                    case JM201909 -> Optional.of(VersionFlag.V201909);
+                    case JM202012 -> Optional.of(VersionFlag.V202012);
                     default -> Optional.empty();
                 };
-            } catch (DataModelsException | IOException e) {
+            } catch (DataModelsException e) {
                 return Optional.empty();
             }
         };
@@ -108,44 +108,20 @@ public final class JsonSchemaDocumentValidator {
 
     /**
      * The validator library's own detector. A schema without {@code $schema} is {@code whenAbsent}.
-     * A {@code $schema} that is not a string names no known draft. The comparison ignores a missing
-     * trailing {@code #}: {@code SpecificationVersion.fromDialectId} requires an exact match, but
-     * draft identifiers up to 2019-09 are fragment-only URIs, so both forms name the same draft.
+     * {@code $schema} must be a string, if present.
      */
-    public static DraftDetector networkntDraftDetector(SpecificationVersion whenAbsent) {
+    public static DraftDetector networkntDraftDetector(VersionFlag whenAbsent) {
         requireNonNull(whenAbsent, "whenAbsent");
-        return schema -> {
-            if (!schema.has(SCHEMA_KEYWORD)) {
-                return Optional.of(whenAbsent);
-            }
-            JsonNode declared = schema.path(SCHEMA_KEYWORD);
-            return declared.isString() ? fromDialectId(declared.asString()) : Optional.empty();
-        };
-    }
-
-    /**
-     * {@code SpecificationVersion.fromDialectId}, without requiring an exact match on a trailing
-     * {@code #}: draft identifiers up to 2019-09 are fragment-only URIs, so both forms name the
-     * same draft.
-     */
-    public static Optional<SpecificationVersion> fromDialectId(String dialectId) {
-        for (SpecificationVersion version : SpecificationVersion.values()) {
-            if (withoutTrailingHash(version.getDialectId()).equals(withoutTrailingHash(dialectId))) {
-                return Optional.of(version);
-            }
-        }
-        return Optional.empty();
-    }
-
-    private static String withoutTrailingHash(String uri) {
-        return uri.endsWith("#") ? uri.substring(0, uri.length() - 1) : uri;
+        return schema -> schema.has(SCHEMA_KEYWORD)
+                ? SpecVersionDetector.detectOptionalVersion(schema, false)
+                : Optional.of(whenAbsent);
     }
 
     /**
      * @return the draft the schema is validated as, or empty if its {@code $schema} names no known
      *         draft and that is reported rather than replaced
      */
-    public Optional<SpecificationVersion> draftOf(JsonNode schema) {
+    public Optional<VersionFlag> draftOf(JsonNode schema) {
         return draftDetector.detect(schema).or(() -> Optional.ofNullable(unrecognisedDraft));
     }
 
@@ -168,12 +144,12 @@ public final class JsonSchemaDocumentValidator {
         var draft = draftOf(schema);
         if (draft.isEmpty()) {
             return List.of(new RuleViolation("Unsupported JSON Schema dialect '"
-                    + schema.path(SCHEMA_KEYWORD).asString() + "'", "/$schema"));
+                    + schema.path(SCHEMA_KEYWORD).asText() + "'", "/$schema"));
         }
 
         var violations = new ArrayList<RuleViolation>();
         var reportedLocations = new HashSet<String>();
-        for (Error message : metaSchemaFor(draft.get()).validate(schema)) {
+        for (ValidationMessage message : metaSchemaFor(draft.get()).validate(schema)) {
             var location = message.getInstanceLocation().toString();
             if (reportedLocations.add(location)) {
                 violations.add(new RuleViolation(messageWithoutLocation(message, location), location));
@@ -186,10 +162,9 @@ public final class JsonSchemaDocumentValidator {
         return violations;
     }
 
-    private static Schema metaSchemaFor(SpecificationVersion draft) {
-        return META_SCHEMAS.computeIfAbsent(draft, version -> SchemaRegistry.withDefaultDialect(version,
-                builder -> builder.schemaRegistryConfig(META_VALIDATION_CONFIG))
-                .getSchema(SchemaLocation.of(version.getDialectId())));
+    private static JsonSchema metaSchemaFor(VersionFlag draft) {
+        return META_SCHEMAS.computeIfAbsent(draft, version -> JsonSchemaFactory.getInstance(version)
+                .getSchema(SchemaLocation.of(version.getId()), META_VALIDATION_CONFIG));
     }
 
     /**
@@ -197,23 +172,24 @@ public final class JsonSchemaDocumentValidator {
      * The loader serves every document from {@code documents}, so the library's own loaders, which
      * would read the classpath or the network, are never reached.
      */
-    private static Optional<RuleViolation> load(JsonNode schema, SpecificationVersion draft,
+    private static Optional<RuleViolation> load(JsonNode schema, VersionFlag draft,
             Function<String, String> documents) {
-        var registry = SchemaRegistry.withDefaultDialect(draft, builder -> builder
+        var factory = JsonSchemaFactory.getInstance(draft, builder -> builder.schemaLoaders(loaders -> loaders
                 .schemas((Function<String, String>) iri -> {
                     var content = documents.apply(iri.startsWith(BASE_IRI) ? iri.substring(BASE_IRI.length()) : iri);
                     return content != null ? content : "{}";
-                }));
+                })));
 
         // The draft was chosen above, possibly for a $schema the library doesn't know, so it is
         // declared explicitly rather than left for the library to look up.
         var root = schema;
         if (schema instanceof ObjectNode objectNode) {
-            root = objectNode.deepCopy().put(SCHEMA_KEYWORD, draft.getDialectId());
+            root = objectNode.deepCopy().put(SCHEMA_KEYWORD, draft.getId());
         }
 
         try {
-            registry.getSchema(SchemaLocation.of(BASE_IRI), root).initializeValidators();
+            factory.getSchema(SchemaLocation.of(BASE_IRI), root, SchemaValidatorsConfig.builder().build())
+                    .initializeValidators();
             return Optional.empty();
         } catch (RuntimeException e) {
             var message = String.valueOf(e.getMessage());
@@ -225,7 +201,7 @@ public final class JsonSchemaDocumentValidator {
      * The library prefixes every message with the instance location, which the violation already
      * carries as its context.
      */
-    private static String messageWithoutLocation(Error message, String location) {
+    private static String messageWithoutLocation(ValidationMessage message, String location) {
         var text = message.getMessage();
         var prefix = location + ": ";
         return text.startsWith(prefix) ? text.substring(prefix.length()) : text;
@@ -234,7 +210,7 @@ public final class JsonSchemaDocumentValidator {
     public static final class Builder {
 
         private DraftDetector draftDetector;
-        private SpecificationVersion unrecognisedDraft;
+        private VersionFlag unrecognisedDraft;
         private boolean loadSchema;
 
         private Builder() {
@@ -249,7 +225,7 @@ public final class JsonSchemaDocumentValidator {
          * Validates a schema whose {@code $schema} names no known draft as {@code draft}. By default
          * such a schema is reported as a single violation at {@code /$schema} instead.
          */
-        public Builder treatUnrecognisedDraftAs(SpecificationVersion draft) {
+        public Builder treatUnrecognisedDraftAs(VersionFlag draft) {
             this.unrecognisedDraft = draft;
             return this;
         }

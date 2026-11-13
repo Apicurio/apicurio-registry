@@ -1,5 +1,6 @@
 package io.apicurio.registry.cli;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.rest.v3.beans.VersionMetaData;
 import io.apicurio.registry.rest.v3.beans.VersionSearchResults;
 import io.quarkus.test.junit.QuarkusTest;
@@ -93,7 +94,7 @@ public class ArtifactVersionCommandTest extends AbstractCLITest {
 
     @Test
     @Order(1)
-    public void testVersionListCommand() {
+    public void testVersionListCommand() throws JsonProcessingException {
         // The artifact was created with an initial version
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("artifact", "version", "--output-type", "json",
@@ -139,7 +140,7 @@ public class ArtifactVersionCommandTest extends AbstractCLITest {
 
     @Test
     @Order(3)
-    public void testVersionGetMetadata() {
+    public void testVersionGetMetadata() throws JsonProcessingException {
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("artifact", "version", "get", "--output-type", "json",
                 "--group", "default", "--artifact", "version-test-artifact", "2.0.0");
@@ -175,7 +176,7 @@ public class ArtifactVersionCommandTest extends AbstractCLITest {
 
     @Test
     @Order(6)
-    public void testVersionListWithPagination() {
+    public void testVersionListWithPagination() throws JsonProcessingException {
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("artifact", "version", "--output-type", "json",
                 "--group", "default", "--artifact", "version-test-artifact",
@@ -192,7 +193,7 @@ public class ArtifactVersionCommandTest extends AbstractCLITest {
 
     @Test
     @Order(7)
-    public void testVersionUpdateMetadata() {
+    public void testVersionUpdateMetadata() throws JsonProcessingException {
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("artifact", "version", "update",
                 "--group", "default", "--artifact", "version-test-artifact",
@@ -219,7 +220,7 @@ public class ArtifactVersionCommandTest extends AbstractCLITest {
 
     @Test
     @Order(8)
-    public void testVersionUpdateState() {
+    public void testVersionUpdateState() throws JsonProcessingException {
         // Disable the version
         executeAndAssertSuccess("artifact", "version", "update",
                 "--group", "default", "--artifact", "version-test-artifact",
@@ -242,7 +243,7 @@ public class ArtifactVersionCommandTest extends AbstractCLITest {
 
     @Test
     @Order(9)
-    public void testVersionUpdateStateDeprecated() {
+    public void testVersionUpdateStateDeprecated() throws JsonProcessingException {
         executeAndAssertSuccess("artifact", "version", "update",
                 "--group", "default", "--artifact", "version-test-artifact",
                 "--state", "DEPRECATED", "2.0.0");
@@ -263,7 +264,7 @@ public class ArtifactVersionCommandTest extends AbstractCLITest {
 
     @Test
     @Order(10)
-    public void testVersionDeleteLabel() {
+    public void testVersionDeleteLabel() throws JsonProcessingException {
         // Add a label
         executeAndAssertSuccess("artifact", "version", "update",
                 "--group", "default", "--artifact", "version-test-artifact",
@@ -353,7 +354,7 @@ public class ArtifactVersionCommandTest extends AbstractCLITest {
 
     @Test
     @Order(14)
-    public void testVersionDelete() {
+    public void testVersionDelete() throws JsonProcessingException {
         executeAndAssertSuccess("artifact", "version", "delete",
                 "--group", "default", "--artifact", "version-test-artifact", "2.0.0");
 

@@ -3,7 +3,7 @@ package io.apicurio.registry.agents.rules.validity;
 import io.apicurio.registry.rules.validity.AbstractContentValidator;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 
-import tools.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
@@ -69,8 +69,8 @@ public class ModelSchemaContentValidator extends AbstractContentValidator {
     }
 
     private void validateRequiredFields(JsonNode tree, Set<RuleViolation> violations) {
-        if (!tree.has(MODEL_ID) || !tree.get(MODEL_ID).isString()
-                || tree.get(MODEL_ID).asString().trim().isEmpty()) {
+        if (!tree.has(MODEL_ID) || !tree.get(MODEL_ID).isTextual()
+                || tree.get(MODEL_ID).asText().trim().isEmpty()) {
             violations.add(new RuleViolation(
                     "Missing or invalid required field 'modelId'. Must be a non-empty string.",
                     "/modelId"));

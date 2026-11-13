@@ -1,9 +1,8 @@
 package io.apicurio.registry.agents.content.dereference;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
-import tools.jackson.dataformat.yaml.YAMLMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.types.ContentTypes;
@@ -21,8 +20,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class PromptTemplateDereferencerTest {
 
     private PromptTemplateDereferencer dereferencer;
-    private final ObjectMapper jsonMapper = new JsonMapper();
-    private final ObjectMapper yamlMapper = new YAMLMapper();
+    private final ObjectMapper jsonMapper = new ObjectMapper();
+    private final ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
 
     @BeforeEach
     void setUp() {
@@ -48,8 +47,8 @@ class PromptTemplateDereferencerTest {
         TypedContent result = dereferencer.dereference(createJson(template), Collections.emptyMap());
 
         JsonNode tree = yamlMapper.readTree(result.getContent().content());
-        assertEquals("test", tree.get("templateId").asString());
-        assertEquals("Hello {{name}}", tree.get("template").asString());
+        assertEquals("test", tree.get("templateId").asText());
+        assertEquals("Hello {{name}}", tree.get("template").asText());
     }
 
     @Test
@@ -81,7 +80,7 @@ class PromptTemplateDereferencerTest {
         JsonNode config = tree.get("variables").get("config");
         assertFalse(config.has("$ref"), "The $ref should have been resolved");
         assertTrue(config.has("type"));
-        assertEquals("object", config.get("type").asString());
+        assertEquals("object", config.get("type").asText());
     }
 
     @Test
@@ -113,7 +112,7 @@ class PromptTemplateDereferencerTest {
         JsonNode tree = yamlMapper.readTree(result.getContent().content());
         JsonNode resultProp = tree.get("outputSchema").get("properties").get("result");
         assertFalse(resultProp.has("$ref"));
-        assertEquals("string", resultProp.get("type").asString());
+        assertEquals("string", resultProp.get("type").asText());
     }
 
     @Test
@@ -146,7 +145,7 @@ class PromptTemplateDereferencerTest {
                 Map.of("shared-vars.json", "https://registry.example.com/artifacts/shared/versions/1"));
 
         JsonNode tree = yamlMapper.readTree(result.getContent().content());
-        String rewritten = tree.get("variables").get("config").get("$ref").asString();
+        String rewritten = tree.get("variables").get("config").get("$ref").asText();
         assertEquals("https://registry.example.com/artifacts/shared/versions/1", rewritten);
     }
 
@@ -170,7 +169,7 @@ class PromptTemplateDereferencerTest {
                 Map.of("result.json", "https://registry.example.com/artifacts/result/versions/2"));
 
         JsonNode tree = yamlMapper.readTree(result.getContent().content());
-        String rewritten = tree.get("outputSchema").get("properties").get("result").get("$ref").asString();
+        String rewritten = tree.get("outputSchema").get("properties").get("result").get("$ref").asText();
         assertEquals("https://registry.example.com/artifacts/result/versions/2", rewritten);
     }
 

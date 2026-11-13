@@ -1,10 +1,10 @@
 package io.apicurio.registry.serde.jsonschema;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
-import com.networknt.schema.Schema;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.networknt.schema.JsonSchema;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
@@ -14,13 +14,12 @@ import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.serde.AbstractDeserializer;
 import io.apicurio.registry.serde.config.SerdeConfig;
 import io.apicurio.registry.serde.utils.ByteBufferInputStream;
-import tools.jackson.core.JacksonException;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 
-public class JsonSchemaDeserializer<T> extends AbstractDeserializer<Schema, T> {
+public class JsonSchemaDeserializer<T> extends AbstractDeserializer<JsonSchema, T> {
 
     private ObjectMapper mapper;
     private Boolean validationEnabled;
@@ -35,7 +34,7 @@ public class JsonSchemaDeserializer<T> extends AbstractDeserializer<Schema, T> {
         super();
     }
 
-    public JsonSchemaDeserializer(RegistryClientFacade clientFacade, SchemaResolver<Schema, T> schemaResolver) {
+    public JsonSchemaDeserializer(RegistryClientFacade clientFacade, SchemaResolver<JsonSchema, T> schemaResolver) {
         super(clientFacade, schemaResolver);
     }
 
@@ -43,12 +42,12 @@ public class JsonSchemaDeserializer<T> extends AbstractDeserializer<Schema, T> {
         super(clientFacade);
     }
 
-    public JsonSchemaDeserializer(SchemaResolver<Schema, T> schemaResolver) {
+    public JsonSchemaDeserializer(SchemaResolver<JsonSchema, T> schemaResolver) {
         super(schemaResolver);
     }
 
-    public JsonSchemaDeserializer(RegistryClientFacade clientFacade, SchemaResolver<Schema, T> schemaResolver,
-                                  ArtifactReferenceResolverStrategy<Schema, T> strategy) {
+    public JsonSchemaDeserializer(RegistryClientFacade clientFacade, SchemaResolver<JsonSchema, T> schemaResolver,
+                                  ArtifactReferenceResolverStrategy<JsonSchema, T> strategy) {
         super(clientFacade, strategy, schemaResolver);
     }
 
@@ -68,15 +67,14 @@ public class JsonSchemaDeserializer<T> extends AbstractDeserializer<Schema, T> {
         this.specificReturnClass = (Class<T>) config.getSpecificReturnClass();
 
         if (null == mapper) {
-            mapper = JsonMapper.builder()
-                    .changeDefaultPropertyInclusion(incl -> incl.withContentInclusion(JsonInclude.Include.NON_NULL).withValueInclusion(JsonInclude.Include.NON_NULL))
-                    .build();
+            mapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                    .setSerializationInclusion(JsonInclude.Include.NON_NULL);
             ;
         }
     }
 
     @Override
-    public SchemaParser<Schema, T> schemaParser() {
+    public SchemaParser<JsonSchema, T> schemaParser() {
         return parser;
     }
 
@@ -101,11 +99,11 @@ public class JsonSchemaDeserializer<T> extends AbstractDeserializer<Schema, T> {
      *      int, int)
      */
     @Override
-    public T readData(ParsedSchema<Schema> schema, ByteBuffer buffer, int start, int length) {
+    public T readData(ParsedSchema<JsonSchema> schema, ByteBuffer buffer, int start, int length) {
         return internalReadData(schema, buffer, start, length);
     }
 
-    private T internalReadData(ParsedSchema<Schema> schema, ByteBuffer buffer, int start, int length) {
+    private T internalReadData(ParsedSchema<JsonSchema> schema, ByteBuffer buffer, int start, int length) {
         try {
             // Figure out the Class to use (the message type) for deserialization.  This may end up
             // being null, in which case a Jackson Node will be returned.
@@ -116,7 +114,7 @@ public class JsonSchemaDeserializer<T> extends AbstractDeserializer<Schema, T> {
                 String javaType = null;
                 JsonNode javaTypeNode = schema.getParsedSchema().getSchemaNode().get("javaType");
                 if (javaTypeNode != null && !javaTypeNode.isNull()) {
-                    javaType = javaTypeNode.stringValue();
+                    javaType = javaTypeNode.textValue();
                 }
                 // TODO if javaType is null, maybe warn something like this?
                 // You can try configure the property \"apicurio.registry.serde.json-schema.java-type\" with
@@ -142,9 +140,6 @@ public class JsonSchemaDeserializer<T> extends AbstractDeserializer<Schema, T> {
             } else {
                 return mapper.treeToValue(jsonNode, messageType);
             }
-        } catch (JacksonException e) {
-            // Jackson 3 exceptions are unchecked (unlike Jackson 2's JsonProcessingException)
-            throw new UncheckedIOException(new IOException(e.getMessage(), e));
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

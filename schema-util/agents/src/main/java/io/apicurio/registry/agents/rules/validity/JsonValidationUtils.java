@@ -1,7 +1,7 @@
 package io.apicurio.registry.agents.rules.validity;
 
-import tools.jackson.databind.JsonNode;
-import com.networknt.schema.SpecificationVersion;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.networknt.schema.SpecVersion;
 import io.apicurio.registry.json.rules.validity.JsonSchemaDocumentValidator;
 import io.apicurio.registry.rules.violation.RuleViolation;
 
@@ -19,7 +19,7 @@ public final class JsonValidationUtils {
      * Dialect used when a schema does not declare {@code $schema}, which is the default the MCP
      * specification defines for tool schemas.
      */
-    private static final SpecificationVersion DEFAULT_SCHEMA_DIALECT = SpecificationVersion.DRAFT_2020_12;
+    private static final SpecVersion.VersionFlag DEFAULT_SCHEMA_DIALECT = SpecVersion.VersionFlag.V202012;
 
     /**
      * Agent schemas are validated against their draft's meta-schema only, and a {@code $schema} that
@@ -38,7 +38,7 @@ public final class JsonValidationUtils {
      */
     public static void validateOptionalString(JsonNode tree, String fieldName,
             Set<RuleViolation> violations) {
-        if (tree.has(fieldName) && !tree.get(fieldName).isString()) {
+        if (tree.has(fieldName) && !tree.get(fieldName).isTextual()) {
             violations.add(
                     new RuleViolation("'" + fieldName + "' field must be a string", "/" + fieldName));
         }
@@ -105,7 +105,7 @@ public final class JsonValidationUtils {
             Set<RuleViolation> violations) {
         int index = 0;
         for (JsonNode item : array) {
-            if (!item.isString()) {
+            if (!item.isTextual()) {
                 violations.add(new RuleViolation("Each " + itemName + " must be a string",
                         basePath + "/" + index));
             }
@@ -127,7 +127,7 @@ public final class JsonValidationUtils {
     public static void validateJsonSchema(JsonNode schemaNode, String basePath,
             Set<RuleViolation> violations) {
         JsonNode declaredDialect = schemaNode.get("$schema");
-        if (declaredDialect != null && !declaredDialect.isString()) {
+        if (declaredDialect != null && !declaredDialect.isTextual()) {
             violations.add(new RuleViolation("'$schema' field must be a string", basePath + "/$schema"));
             return;
         }

@@ -1,5 +1,6 @@
 package io.apicurio.registry.cli.gitops;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.cli.utils.TableBuilder;
@@ -45,7 +46,7 @@ final class GitOpsUtil {
     }
 
     static void printStatus(final OutputBuffer output, final GitOpsStatus status,
-            final OutputTypeMixin outputType) {
+            final OutputTypeMixin outputType) throws JsonProcessingException {
         output.writeStdOutChunkWithException(out -> {
             switch (outputType.getOutputType()) {
                 case json -> {
@@ -70,7 +71,7 @@ final class GitOpsUtil {
     }
 
     static void printValidateTask(final OutputBuffer output, final GitOpsValidateTask task,
-            final OutputTypeMixin outputType) {
+            final OutputTypeMixin outputType) throws JsonProcessingException {
         output.writeStdOutChunkWithException(out -> {
             switch (outputType.getOutputType()) {
                 case json -> {

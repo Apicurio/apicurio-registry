@@ -1,6 +1,6 @@
 package io.apicurio.registry.openrpc.content;
 
-import tools.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.registry.content.ContentAccepter;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.util.ContentTypeUtil;

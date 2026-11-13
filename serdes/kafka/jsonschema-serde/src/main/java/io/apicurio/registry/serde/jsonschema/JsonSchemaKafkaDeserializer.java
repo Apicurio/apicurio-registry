@@ -1,7 +1,7 @@
 package io.apicurio.registry.serde.jsonschema;
 
-import tools.jackson.databind.ObjectMapper;
-import com.networknt.schema.Schema;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.networknt.schema.JsonSchema;
 import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
@@ -13,7 +13,7 @@ import org.apache.kafka.common.header.Headers;
 import java.util.HashMap;
 import java.util.Map;
 
-public class JsonSchemaKafkaDeserializer<T> extends KafkaDeserializer<Schema, T> {
+public class JsonSchemaKafkaDeserializer<T> extends KafkaDeserializer<JsonSchema, T> {
 
     private MessageTypeSerdeHeaders serdeHeaders;
 
@@ -25,17 +25,17 @@ public class JsonSchemaKafkaDeserializer<T> extends KafkaDeserializer<Schema, T>
         super(new JsonSchemaDeserializer<>(clientFacade));
     }
 
-    public JsonSchemaKafkaDeserializer(SchemaResolver<Schema, T> schemaResolver) {
+    public JsonSchemaKafkaDeserializer(SchemaResolver<JsonSchema, T> schemaResolver) {
         super(new JsonSchemaDeserializer<>(schemaResolver));
     }
 
-    public JsonSchemaKafkaDeserializer(RegistryClientFacade clientFacade, SchemaResolver<Schema, T> schemaResolver) {
+    public JsonSchemaKafkaDeserializer(RegistryClientFacade clientFacade, SchemaResolver<JsonSchema, T> schemaResolver) {
         super(new JsonSchemaDeserializer<>(clientFacade, schemaResolver));
     }
 
     public JsonSchemaKafkaDeserializer(RegistryClientFacade clientFacade,
-                                       ArtifactReferenceResolverStrategy<Schema, T> strategy,
-                                       SchemaResolver<Schema, T> schemaResolver) {
+                                       ArtifactReferenceResolverStrategy<JsonSchema, T> strategy,
+                                       SchemaResolver<JsonSchema, T> schemaResolver) {
         super(new JsonSchemaDeserializer<>(clientFacade, schemaResolver, strategy));
     }
 

@@ -1,8 +1,8 @@
 package io.apicurio.registry.contracts.tags;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.apicurio.registry.avro.util.AvroParserAccessor;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.types.ArtifactType;
@@ -10,8 +10,8 @@ import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.avro.Schema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tools.jackson.core.JacksonException;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -25,7 +25,7 @@ public class AvroTagExtractor implements TagExtractor {
 
     private static final Logger log = LoggerFactory.getLogger(AvroTagExtractor.class);
 
-    private static final ObjectMapper MAPPER = new JsonMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private static final List<String> TAG_PROPERTY_NAMES = List.of("tags", "confluent:tags");
 
@@ -55,7 +55,7 @@ public class AvroTagExtractor implements TagExtractor {
             Map<String, Set<String>> result = new LinkedHashMap<>();
             extractTagsFromJson(MAPPER.readTree(content.content()), "", result);
             return result;
-        } catch (JacksonException e) {
+        } catch (IOException e) {
             log.debug("Failed to read tags from Avro schema JSON: {}", e.getMessage());
             return Collections.emptyMap();
         }
@@ -78,17 +78,17 @@ public class AvroTagExtractor implements TagExtractor {
         if (!type.isObject()) {
             return;
         }
-        switch (type.path("type").asString()) {
+        switch (type.path("type").asText()) {
         case "record":
         case "error":
             for (JsonNode field : type.path("fields")) {
-                String name = field.path("name").asString();
+                String name = field.path("name").asText();
                 String fieldPath = pathPrefix.isEmpty() ? name : pathPrefix + "." + name;
                 Set<String> tags = new HashSet<>();
                 for (String propertyName : TAG_PROPERTY_NAMES) {
                     for (JsonNode tag : field.path(propertyName)) {
-                        if (tag.isString()) {
-                            tags.add(tag.asString());
+                        if (tag.isTextual()) {
+                            tags.add(tag.asText());
                         }
                     }
                 }

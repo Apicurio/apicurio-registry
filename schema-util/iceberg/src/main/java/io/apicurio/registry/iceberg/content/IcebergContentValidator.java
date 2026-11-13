@@ -1,6 +1,6 @@
 package io.apicurio.registry.iceberg.content;
 
-import tools.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
@@ -93,14 +93,14 @@ public class IcebergContentValidator implements ContentValidator {
         // table-uuid is required
         if (!tree.has("table-uuid")) {
             violations.add(new RuleViolation("Iceberg table metadata must have a 'table-uuid' field", "/table-uuid"));
-        } else if (!tree.get("table-uuid").isString()) {
+        } else if (!tree.get("table-uuid").isTextual()) {
             violations.add(new RuleViolation("'table-uuid' must be a string", "/table-uuid"));
         }
 
         // location is required
         if (!tree.has("location")) {
             violations.add(new RuleViolation("Iceberg table metadata must have a 'location' field", "/location"));
-        } else if (!tree.get("location").isString()) {
+        } else if (!tree.get("location").isTextual()) {
             violations.add(new RuleViolation("'location' must be a string", "/location"));
         }
 
@@ -136,14 +136,14 @@ public class IcebergContentValidator implements ContentValidator {
         // view-uuid is required
         if (!tree.has("view-uuid")) {
             violations.add(new RuleViolation("Iceberg view metadata must have a 'view-uuid' field", "/view-uuid"));
-        } else if (!tree.get("view-uuid").isString()) {
+        } else if (!tree.get("view-uuid").isTextual()) {
             violations.add(new RuleViolation("'view-uuid' must be a string", "/view-uuid"));
         }
 
         // location is required
         if (!tree.has("location")) {
             violations.add(new RuleViolation("Iceberg view metadata must have a 'location' field", "/location"));
-        } else if (!tree.get("location").isString()) {
+        } else if (!tree.get("location").isTextual()) {
             violations.add(new RuleViolation("'location' must be a string", "/location"));
         }
 

@@ -1,7 +1,6 @@
 package io.apicurio.registry.storage.impl.kubernetesops;
 
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.RegistryStorage;
@@ -43,7 +42,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestProfile(KubernetesOpsTestProfile.class)
 class KubernetesOpsSmokeTest {
 
-    private static final ObjectMapper MAPPER = new JsonMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Inject
     @Current

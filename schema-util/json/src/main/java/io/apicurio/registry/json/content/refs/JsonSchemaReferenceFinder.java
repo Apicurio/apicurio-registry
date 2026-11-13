@@ -1,8 +1,7 @@
 package io.apicurio.registry.json.content.refs;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.refs.ExternalReference;
 import io.apicurio.registry.content.refs.JsonPointerExternalReference;
@@ -17,7 +16,7 @@ import java.util.stream.Collectors;
  */
 public class JsonSchemaReferenceFinder implements ReferenceFinder {
 
-    private static final ObjectMapper mapper = new JsonMapper();
+    private static final ObjectMapper mapper = new ObjectMapper();
 
     /**
      * @see io.apicurio.registry.content.refs.ReferenceFinder#findExternalReferences(TypedContent)

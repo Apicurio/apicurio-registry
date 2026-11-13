@@ -1,13 +1,12 @@
 package io.apicurio.registry.agents.mcptools.compatibility;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
-import tools.jackson.core.JacksonException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SchemaProjectorTest {
 
-    private static final ObjectMapper MAPPER = new JsonMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Test
     void testKeepsEvaluatedKeywordsAndDropsAnnotations() {
@@ -375,7 +374,7 @@ class SchemaProjectorTest {
     private static JsonNode json(String singleQuoted) {
         try {
             return MAPPER.readTree(singleQuoted.replace('\'', '"'));
-        } catch (JacksonException e) {
+        } catch (JsonProcessingException e) {
             throw new IllegalArgumentException(e);
         }
     }

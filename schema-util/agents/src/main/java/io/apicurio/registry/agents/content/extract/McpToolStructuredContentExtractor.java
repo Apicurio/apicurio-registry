@@ -3,9 +3,8 @@ package io.apicurio.registry.agents.content.extract;
 import io.apicurio.registry.content.extract.StructuredContentExtractor;
 import io.apicurio.registry.content.extract.StructuredElement;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.content.ContentHandle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,7 +22,7 @@ public class McpToolStructuredContentExtractor implements StructuredContentExtra
 
     private static final Logger log = LoggerFactory.getLogger(McpToolStructuredContentExtractor.class);
 
-    private final ObjectMapper objectMapper = new JsonMapper();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     public List<StructuredElement> extract(ContentHandle content) {
@@ -48,7 +47,7 @@ public class McpToolStructuredContentExtractor implements StructuredContentExtra
         if (!inputSchema.isMissingNode() && inputSchema.isObject()) {
             JsonNode properties = inputSchema.path("properties");
             if (!properties.isMissingNode() && properties.isObject()) {
-                Iterator<String> fieldNames = properties.propertyNames().iterator();
+                Iterator<String> fieldNames = properties.fieldNames();
                 while (fieldNames.hasNext()) {
                     elements.add(new StructuredElement("parameter", fieldNames.next()));
                 }

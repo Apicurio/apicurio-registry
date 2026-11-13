@@ -1,13 +1,13 @@
 package io.apicurio.registry.serde.jsonschema;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import com.networknt.schema.Schema;
-import com.networknt.schema.Error;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.networknt.schema.JsonSchema;
+import com.networknt.schema.ValidationMessage;
 import io.apicurio.registry.resolver.ParsedSchema;
 
 import java.io.IOException;
-import java.util.List;
+import java.util.Set;
 
 /**
  * Utility class for validating JSON data against JSON schemas.
@@ -26,7 +26,7 @@ public class JsonSchemaValidationUtil {
      * @param mapper the object mapper to be used to read the data
      * @throws IOException if validation errors occur or if the data cannot be parsed
      */
-    protected static void validateDataWithSchema(ParsedSchema<Schema> schema, byte[] data,
+    protected static void validateDataWithSchema(ParsedSchema<JsonSchema> schema, byte[] data,
             ObjectMapper mapper) throws IOException {
         final JsonNode jsonNode = mapper.readTree(data);
         validateDataWithSchema(schema, jsonNode);
@@ -40,14 +40,14 @@ public class JsonSchemaValidationUtil {
      * @param jsonNode the parsed JSON data to validate
      * @throws IOException if validation errors occur
      */
-    protected static void validateDataWithSchema(ParsedSchema<Schema> schema, JsonNode jsonNode)
+    protected static void validateDataWithSchema(ParsedSchema<JsonSchema> schema, JsonNode jsonNode)
             throws IOException {
-        final List<Error> validationMessages = schema.getParsedSchema()
+        final Set<ValidationMessage> validationMessages = schema.getParsedSchema()
                 .validate(jsonNode);
         if (validationMessages != null && !validationMessages.isEmpty()) {
             // There are validation failures
             StringBuilder message = new StringBuilder();
-            for (Error validationMessage : validationMessages) {
+            for (ValidationMessage validationMessage : validationMessages) {
                 message.append(validationMessage.getMessage()).append(" ");
             }
             throw new IOException(

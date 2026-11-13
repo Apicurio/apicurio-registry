@@ -1,7 +1,7 @@
 package io.apicurio.registry.utils.tests;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import org.slf4j.Logger;
@@ -26,11 +26,11 @@ public class TooManyRequestsMock {
         // code: "SERVICEREGISTRY-429"
         // reason: "Too Many Requests"
 
-        JsonNode body = new JsonMapper().createObjectNode().put("kind", "Error").put("id", "429")
+        JsonNode body = new ObjectMapper().createObjectNode().put("kind", "Error").put("id", "429")
                 .put("code", "SERVICEREGISTRY-429").put("reason", "Too Many Requests");
 
         server.stubFor(
-                any(anyUrl()).willReturn(new ResponseDefinitionBuilder().withStatus(429).withBody(body.toString())));
+                any(anyUrl()).willReturn(new ResponseDefinitionBuilder().withStatus(429).withJsonBody(body)));
     }
 
     public String getMockUrl() {

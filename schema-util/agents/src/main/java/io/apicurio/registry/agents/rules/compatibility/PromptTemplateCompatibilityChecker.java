@@ -3,10 +3,9 @@ package io.apicurio.registry.agents.rules.compatibility;
 import io.apicurio.registry.rules.compatibility.AbstractCompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.SimpleCompatibilityDifference;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
-import tools.jackson.dataformat.yaml.YAMLMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.agents.rules.validity.PromptTemplateContentValidator;
 
@@ -39,8 +38,8 @@ public class PromptTemplateCompatibilityChecker
     private static final String CONTEXT_DOCUMENT = "/document";
     private static final String MSG_VARIABLE_PREFIX = "Variable '";
 
-    private static final ObjectMapper jsonMapper = new JsonMapper();
-    private static final ObjectMapper yamlMapper = new YAMLMapper();
+    private static final ObjectMapper jsonMapper = new ObjectMapper();
+    private static final ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
 
     @Override
     protected Set<SimpleCompatibilityDifference> isBackwardsCompatibleWith(String existing,
@@ -80,12 +79,12 @@ public class PromptTemplateCompatibilityChecker
         }
 
         List<String> proposedTemplateVars = List.of();
-        if (proposed.has(TEMPLATE) && proposed.get(TEMPLATE).isString()) {
+        if (proposed.has(TEMPLATE) && proposed.get(TEMPLATE).isTextual()) {
             proposedTemplateVars = PromptTemplateContentValidator.extractTemplateVariables(
-                    proposed.get(TEMPLATE).asString());
+                    proposed.get(TEMPLATE).asText());
         }
 
-        Iterator<String> existingVarNames = existingVars.propertyNames().iterator();
+        Iterator<String> existingVarNames = existingVars.fieldNames();
         while (existingVarNames.hasNext()) {
             String varName = existingVarNames.next();
 
@@ -143,13 +142,13 @@ public class PromptTemplateCompatibilityChecker
 
         Set<String> proposedValues = new HashSet<>();
         for (JsonNode val : proposedEnum) {
-            proposedValues.add(val.asString());
+            proposedValues.add(val.asText());
         }
 
         for (JsonNode val : existingEnum) {
-            if (!proposedValues.contains(val.asString())) {
+            if (!proposedValues.contains(val.asText())) {
                 differences.add(new SimpleCompatibilityDifference(
-                        MSG_VARIABLE_PREFIX + varName + "' enum value '" + val.asString() + "' was removed.",
+                        MSG_VARIABLE_PREFIX + varName + "' enum value '" + val.asText() + "' was removed.",
                         CONTEXT_VARIABLES));
             }
         }
@@ -174,7 +173,7 @@ public class PromptTemplateCompatibilityChecker
         JsonNode proposedProps = proposedSchema.get("properties");
 
         if (existingProps != null && existingProps.isObject()) {
-            Iterator<String> propNames = existingProps.propertyNames().iterator();
+            Iterator<String> propNames = existingProps.fieldNames();
             while (propNames.hasNext()) {
                 String propName = propNames.next();
                 if (proposedProps == null || !proposedProps.has(propName)) {
@@ -188,6 +187,6 @@ public class PromptTemplateCompatibilityChecker
 
     private String getTextValue(JsonNode node, String fieldName) {
         JsonNode field = node.get(fieldName);
-        return (field != null && field.isString()) ? field.asString() : null;
+        return (field != null && field.isTextual()) ? field.asText() : null;
     }
 }

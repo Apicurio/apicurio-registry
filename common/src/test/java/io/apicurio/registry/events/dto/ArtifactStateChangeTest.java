@@ -1,8 +1,7 @@
 package io.apicurio.registry.events.dto;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -19,7 +18,7 @@ public class ArtifactStateChangeTest {
         data.setPreviousState("ENABLED");
         data.setState("DEPRECATED");
 
-        ObjectMapper mapper = new JsonMapper();
+        ObjectMapper mapper = new ObjectMapper();
         String json = mapper.writeValueAsString(data);
         ArtifactStateChange roundTripped = mapper.readValue(json, ArtifactStateChange.class);
 
@@ -36,10 +35,10 @@ public class ArtifactStateChangeTest {
         data.setArtifactId("my-artifact");
         data.setState("ENABLED");
 
-        ObjectMapper mapper = new JsonMapper();
+        ObjectMapper mapper = new ObjectMapper();
         JsonNode json = mapper.valueToTree(data);
 
         assertFalse(json.has("previousState"), "previousState should be absent for a first-time state (e.g. after creation)");
-        assertEquals("ENABLED", json.get("state").asString());
+        assertEquals("ENABLED", json.get("state").asText());
     }
 }

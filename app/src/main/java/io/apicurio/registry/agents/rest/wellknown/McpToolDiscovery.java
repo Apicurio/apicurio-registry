@@ -1,9 +1,9 @@
 package io.apicurio.registry.agents.rest.wellknown;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
-import tools.jackson.databind.node.MissingNode;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.MissingNode;
 import io.apicurio.registry.agents.mcptools.McpToolsConfig;
 import io.apicurio.registry.agents.mcptools.compatibility.CompatibilityLimitation;
 import io.apicurio.registry.agents.mcptools.compatibility.CompatibilityReason;
@@ -58,7 +58,6 @@ import java.util.Optional;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tools.jackson.core.JacksonException;
 
 /**
  * MCP tool endpoints: registered tools, tool search and compatible-tool discovery.
@@ -68,7 +67,7 @@ public class McpToolDiscovery {
 
     private static final Logger log = LoggerFactory.getLogger(McpToolDiscovery.class);
 
-    static final ObjectMapper mapper = new JsonMapper();
+    static final ObjectMapper mapper = new ObjectMapper();
 
     private static final String PROPERTIES_FIELD = "properties";
     private static final String BRANCH_LATEST = "branch=latest";
@@ -321,7 +320,7 @@ public class McpToolDiscovery {
     private Optional<JsonNode> readToolRoot(StoredArtifactVersionDto stored) {
         try {
             return Optional.of(mapper.readTree(stored.getContent().content()));
-        } catch (JacksonException e) {
+        } catch (JsonProcessingException e) {
             return Optional.empty();
         }
     }
@@ -506,8 +505,8 @@ public class McpToolDiscovery {
         List<String> parameters = new ArrayList<>();
 
         // Extract title
-        if (root.has(TITLE_FIELD) && root.get(TITLE_FIELD).isString()) {
-            title = root.get(TITLE_FIELD).asString();
+        if (root.has(TITLE_FIELD) && root.get(TITLE_FIELD).isTextual()) {
+            title = root.get(TITLE_FIELD).asText();
         }
 
         // Extract parameter names from inputSchema
@@ -515,7 +514,7 @@ public class McpToolDiscovery {
         if (inputSchema.isObject()) {
             JsonNode properties = inputSchema.path(PROPERTIES_FIELD);
             if (properties.isObject()) {
-                properties.propertyNames().iterator().forEachRemaining(parameters::add);
+                properties.fieldNames().forEachRemaining(parameters::add);
             }
         }
 

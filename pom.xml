@@ -192,7 +192,7 @@
     -->
     <quarkus-mcp-server.version>1.13.2</quarkus-mcp-server.version>
     <!-- MCP client for importing tools from MCP servers (#10115). Only mcp-core is used: mcp-json-jackson2
-         needs networknt json-schema-validator 2.x (Jackson 2 API), which conflicts with the 3.x (Jackson 3) version managed below. -->
+         needs networknt json-schema-validator 2.x, which conflicts with the 1.x version managed below. -->
     <mcp-java-sdk.version>2.1.0</mcp-java-sdk.version>
     <!--
     /WARNING
@@ -203,7 +203,7 @@
 
     <!-- Schema types -->
     <avro.version>1.12.2</avro.version>
-    <json-schema-validator.version>3.0.9</json-schema-validator.version>
+    <json-schema-validator.version>1.5.9</json-schema-validator.version>
     <wire-schema.version>6.4.7</wire-schema.version>
     <okhttp.version>4.12.0</okhttp.version>
     <okio.version>3.18.2</okio.version>

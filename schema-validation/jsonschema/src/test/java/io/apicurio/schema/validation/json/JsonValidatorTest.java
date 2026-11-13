@@ -15,12 +15,11 @@
  */
 package io.apicurio.schema.validation.json;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
-import com.networknt.schema.Schema;
-import com.networknt.schema.SchemaRegistry;
-import com.networknt.schema.SpecificationVersion;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.networknt.schema.JsonSchema;
+import com.networknt.schema.JsonSchemaFactory;
+import com.networknt.schema.SpecVersion;
 import io.apicurio.registry.utils.IoUtil;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -36,7 +35,7 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 public class JsonValidatorTest {
 
-    private static final ObjectMapper objectMapper = new JsonMapper();
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
     public void testValidMessage() {
@@ -44,7 +43,7 @@ public class JsonValidatorTest {
 
         JsonNode jsonPayload = createTestMessageBean();
 
-        Schema validSchema = createSchemaFromResource("message.json");
+        JsonSchema validSchema = createSchemaFromResource("message.json");
 
         var result = validator.validate(validSchema, jsonPayload);
 
@@ -58,7 +57,7 @@ public class JsonValidatorTest {
 
         JsonNode jsonPayload = createTestMessageBean();
 
-        Schema invalidSchema = createSchemaFromResource("message-invalid.json");
+        JsonSchema invalidSchema = createSchemaFromResource("message-invalid.json");
 
         var result = validator.validate(invalidSchema, jsonPayload);
 
@@ -74,7 +73,7 @@ public class JsonValidatorTest {
 
         JsonNode jsonPayload = createTestMessageBean();
 
-        Schema invalidSchema = createSchemaFromResource("message-invalid-multi.json");
+        JsonSchema invalidSchema = createSchemaFromResource("message-invalid-multi.json");
 
         var result = validator.validate(invalidSchema, jsonPayload);
 
@@ -91,9 +90,9 @@ public class JsonValidatorTest {
         return objectMapper.valueToTree(message);
     }
 
-    private Schema createSchemaFromResource(String resource) {
-        SchemaRegistry registry = SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_7);
-        return registry.getSchema(readResource(resource));
+    private JsonSchema createSchemaFromResource(String resource) {
+        JsonSchemaFactory schemaFactory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7);
+        return schemaFactory.getSchema(readResource(resource));
     }
 
     public static String readResource(String resourceName) {

@@ -1,6 +1,7 @@
 package io.apicurio.registry.content.refs.resolve;
 
-import tools.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.apicurio.registry.content.ContentAccepter;
 import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.types.ArtifactType;
@@ -10,7 +11,6 @@ import io.apitomy.datamodels.Library;
 import io.apitomy.datamodels.models.Document;
 import io.apitomy.datamodels.util.ModelTypeUtil;
 
-import java.io.IOException;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -87,9 +87,7 @@ public final class TypeDetector {
                 return Optional.empty();
             }
             if (root.has("openapi") || root.has("swagger") || root.has("asyncapi") || root.has("openrpc")) {
-                // apitomy-data-models only accepts Jackson 2 trees
-                Document doc = Library
-                        .readDocument((com.fasterxml.jackson.databind.node.ObjectNode) toJackson2(root));
+                Document doc = Library.readDocument((ObjectNode) root);
                 if (ModelTypeUtil.isAsyncApiModel(doc)) {
                     return Optional.of(ArtifactType.ASYNCAPI);
                 }
@@ -104,8 +102,8 @@ public final class TypeDetector {
             }
             JsonNode name = root.get("name");
             JsonNode type = root.get("type");
-            if (name != null && name.isString() && type != null && type.isString()
-                    && AVRO_TYPES.contains(type.asString())) {
+            if (name != null && name.isTextual() && type != null && type.isTextual()
+                    && AVRO_TYPES.contains(type.asText())) {
                 return Optional.of(ArtifactType.AVRO);
             }
         } catch (Exception e) {
@@ -126,10 +124,5 @@ public final class TypeDetector {
             }
         }
         return Optional.empty();
-    }
-
-    /** apitomy-data-models only accepts Jackson 2 trees. */
-    private static com.fasterxml.jackson.databind.JsonNode toJackson2(JsonNode node) throws IOException {
-        return new com.fasterxml.jackson.databind.ObjectMapper().readTree(node.toString());
     }
 }

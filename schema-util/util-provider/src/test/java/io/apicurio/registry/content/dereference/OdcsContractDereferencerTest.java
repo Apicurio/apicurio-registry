@@ -1,9 +1,8 @@
 package io.apicurio.registry.content.dereference;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
-import tools.jackson.dataformat.yaml.YAMLMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rules.validity.ArtifactUtilProviderTestBase;
@@ -15,7 +14,7 @@ import java.util.Map;
 
 public class OdcsContractDereferencerTest extends ArtifactUtilProviderTestBase {
 
-    private static final ObjectMapper YAML_MAPPER = new YAMLMapper();
+    private static final ObjectMapper YAML_MAPPER = new ObjectMapper(new YAMLFactory());
     private static final String URL =
             "https://registry.example.com/apis/registry/v3/groups/g/artifacts/OrderEvent/versions/3/content?references=REWRITE";
 
@@ -28,11 +27,11 @@ public class OdcsContractDereferencerTest extends ArtifactUtilProviderTestBase {
 
         JsonNode tree = YAML_MAPPER.readTree(result.getContent().content());
         JsonNode schema = tree.get("schemas").get(0);
-        Assertions.assertEquals("orders/OrderEvent:3", schema.get("location").asString());
+        Assertions.assertEquals("orders/OrderEvent:3", schema.get("location").asText());
         JsonNode schemaDefinition = schema.get("x-apicurio-schemaDefinition");
         Assertions.assertNotNull(schemaDefinition);
-        Assertions.assertEquals("record", schemaDefinition.get("type").asString());
-        Assertions.assertEquals("OrderEvent", schemaDefinition.get("name").asString());
+        Assertions.assertEquals("record", schemaDefinition.get("type").asText());
+        Assertions.assertEquals("OrderEvent", schemaDefinition.get("name").asText());
         Assertions.assertEquals(content.getContentType(), result.getContentType());
     }
 
@@ -46,8 +45,8 @@ public class OdcsContractDereferencerTest extends ArtifactUtilProviderTestBase {
 
         JsonNode tree = YAML_MAPPER.readTree(result.getContent().content());
         JsonNode schemaDefinition = tree.get("schemas").get(0).get("x-apicurio-schemaDefinition");
-        Assertions.assertTrue(schemaDefinition.isString());
-        Assertions.assertEquals("record OrderEvent { string orderId; }", schemaDefinition.asString());
+        Assertions.assertTrue(schemaDefinition.isTextual());
+        Assertions.assertEquals("record OrderEvent { string orderId; }", schemaDefinition.asText());
     }
 
     @Test
@@ -59,8 +58,8 @@ public class OdcsContractDereferencerTest extends ArtifactUtilProviderTestBase {
 
         JsonNode tree = YAML_MAPPER.readTree(result.getContent().content());
         JsonNode schemaDefinition = tree.get("schemas").get(0).get("x-apicurio-schemaDefinition");
-        Assertions.assertTrue(schemaDefinition.isString());
-        Assertions.assertEquals("user-supplied value, must not be overwritten", schemaDefinition.asString());
+        Assertions.assertTrue(schemaDefinition.isTextual());
+        Assertions.assertEquals("user-supplied value, must not be overwritten", schemaDefinition.asText());
     }
 
     @Test
@@ -78,7 +77,7 @@ public class OdcsContractDereferencerTest extends ArtifactUtilProviderTestBase {
                 Map.of("orders/OrderEvent:3", URL));
 
         JsonNode tree = YAML_MAPPER.readTree(result.getContent().content());
-        Assertions.assertEquals(URL, tree.get("schemas").get(0).get("location").asString());
+        Assertions.assertEquals(URL, tree.get("schemas").get(0).get("location").asText());
         Assertions.assertEquals(content.getContentType(), result.getContentType());
     }
 
@@ -100,9 +99,9 @@ public class OdcsContractDereferencerTest extends ArtifactUtilProviderTestBase {
                 Map.of("orders/OrderEvent:3", avro));
 
         Assertions.assertEquals(ContentTypes.APPLICATION_JSON, result.getContentType());
-        JsonNode tree = new JsonMapper().readTree(result.getContent().content());
+        JsonNode tree = new ObjectMapper().readTree(result.getContent().content());
         JsonNode schemaDefinition = tree.get("schemas").get(0).get("x-apicurio-schemaDefinition");
-        Assertions.assertEquals("OrderEvent", schemaDefinition.get("name").asString());
+        Assertions.assertEquals("OrderEvent", schemaDefinition.get("name").asText());
     }
 
     @Test
@@ -114,7 +113,7 @@ public class OdcsContractDereferencerTest extends ArtifactUtilProviderTestBase {
                 Map.of("orders/OrderEvent:3", URL));
 
         Assertions.assertEquals(ContentTypes.APPLICATION_JSON, result.getContentType());
-        JsonNode tree = new JsonMapper().readTree(result.getContent().content());
-        Assertions.assertEquals(URL, tree.get("schemas").get(0).get("location").asString());
+        JsonNode tree = new ObjectMapper().readTree(result.getContent().content());
+        Assertions.assertEquals(URL, tree.get("schemas").get(0).get("location").asText());
     }
 }

@@ -1,7 +1,6 @@
 package io.apicurio.registry.noprofile.ccompat.rest.v8;
 
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.ccompat.rest.ContentTypes;
 import io.apicurio.registry.ccompat.rest.v8.beans.RegisterSchemaRequest;
@@ -19,7 +18,7 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 @QuarkusTest
 public class CCompatV8HeaderTest extends AbstractResourceTestBase {
 
-    private final ObjectMapper objectMapper = new JsonMapper();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
     public void testRegisterSchemaWithUnknownPropertiesHeader() throws Exception {

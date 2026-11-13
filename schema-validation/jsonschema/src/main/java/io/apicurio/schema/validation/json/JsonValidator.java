@@ -16,14 +16,13 @@
 
 package io.apicurio.schema.validation.json;
 
-import tools.jackson.core.JsonParser;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
-import com.networknt.schema.Schema;
-import com.networknt.schema.SchemaRegistry;
-import com.networknt.schema.SpecificationVersion;
-import com.networknt.schema.Error;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.networknt.schema.JsonSchema;
+import com.networknt.schema.JsonSchemaFactory;
+import com.networknt.schema.SpecVersion;
+import com.networknt.schema.ValidationMessage;
 import io.apicurio.registry.resolver.DefaultSchemaResolver;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaLookupResult;
@@ -38,7 +37,6 @@ import io.apicurio.schema.validation.ErrorMessageExtractor;
 import io.apicurio.schema.validation.ValidationError;
 import io.apicurio.schema.validation.ValidationResult;
 import org.json.JSONObject;
-import tools.jackson.core.JacksonException;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -49,6 +47,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -59,10 +58,10 @@ import java.util.stream.Collectors;
  */
 public class JsonValidator {
 
-    private SchemaResolver<Schema, Object> schemaResolver;
+    private SchemaResolver<JsonSchema, Object> schemaResolver;
     private ArtifactReference artifactReference;
 
-    static final ObjectMapper mapper = new JsonMapper();
+    static final ObjectMapper mapper = new ObjectMapper();
 
     /**
      * Creates the JSON validator.
@@ -91,7 +90,7 @@ public class JsonValidator {
     public ValidationResult validateByArtifactReference(Object bean) {
         Objects.requireNonNull(this.artifactReference, "ArtifactReference must be provided when creating JsonValidator in order to use this feature");
         try {
-            SchemaLookupResult<Schema> schema = this.schemaResolver.resolveSchemaByArtifactReference(this.artifactReference);
+            SchemaLookupResult<JsonSchema> schema = this.schemaResolver.resolveSchemaByArtifactReference(this.artifactReference);
             JsonNode jsonPayload = createJSONObject(bean);
             return validate(schema.getParsedSchema().getParsedSchema(), jsonPayload);
         } catch (Exception e) {
@@ -112,7 +111,7 @@ public class JsonValidator {
      */
     public ValidationResult validate(Record<Object> record) {
         try {
-            SchemaLookupResult<Schema> schema = this.schemaResolver.resolveSchema(record);
+            SchemaLookupResult<JsonSchema> schema = this.schemaResolver.resolveSchema(record);
             JsonNode jsonPayload = createJSONObject(record.payload());
             return validate(schema.getParsedSchema().getParsedSchema(), jsonPayload);
         } catch (Exception e) {
@@ -122,8 +121,8 @@ public class JsonValidator {
         }
     }
 
-    protected ValidationResult validate(Schema schema, JsonNode jsonPayload) {
-        List<Error> validate = schema.validate(jsonPayload);
+    protected ValidationResult validate(JsonSchema schema, JsonNode jsonPayload) {
+        Set<ValidationMessage> validate = schema.validate(jsonPayload);
 
         if (!validate.isEmpty()) {
             return ValidationResult.fromErrors(extractValidationErrors(validate));
@@ -135,10 +134,10 @@ public class JsonValidator {
     private JsonNode createJSONObject(Object bean) {
         if (bean instanceof ByteBuffer) {
             try (InputStream inputStream = new ByteBufferInputStream((ByteBuffer) bean);
-                    JsonParser parser = mapper.createParser(inputStream)) {
+                    JsonParser parser = mapper.getFactory().createParser(inputStream)) {
                 return parser.readValueAs(JsonNode.class);
             }
-            catch (JacksonException | IOException e) {
+            catch (IOException e) {
                 throw new RuntimeException(e);
             }
         }
@@ -147,36 +146,37 @@ public class JsonValidator {
         }
     }
 
-    private List<ValidationError> extractValidationErrors(List<Error> validationErrors) {
+    private List<ValidationError> extractValidationErrors(Set<ValidationMessage> validationErrors) {
         List<ValidationError> errors = new ArrayList<>();
         if (validationErrors != null && !validationErrors.isEmpty()) {
-            for (Error cause : validationErrors) {
-                ValidationError error = new ValidationError(cause.getMessage(), cause.getKeyword());
+            for (ValidationMessage cause : validationErrors) {
+                ValidationError error = new ValidationError(cause.getMessage(), cause.getCode());
                 errors.add(error);
             }
         }
         return errors;
     }
 
-    public static class JsonSchemaParser implements SchemaParser<Schema, Object> {
+    public static class JsonSchemaParser implements SchemaParser<JsonSchema, Object> {
         @Override
         public String artifactType() {
             return ArtifactType.JSON;
         }
 
         @Override
-        public Schema parseSchema(byte[] rawSchema, Map<String, ParsedSchema<Schema>> resolvedReferences) {
+        public JsonSchema parseSchema(byte[] rawSchema, Map<String, ParsedSchema<JsonSchema>> resolvedReferences) {
             Map<String, String> referenceSchemas = new HashMap<>();
 
             resolveReferences(resolvedReferences, referenceSchemas);
 
-            SchemaRegistry registry = SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_7,
-                    builder -> builder.schemas(referenceSchemas));
+            JsonSchemaFactory schemaFactory = JsonSchemaFactory
+                    .getInstance(SpecVersion.VersionFlag.V7,
+                            builder -> builder.schemaLoaders(schemaLoaders -> schemaLoaders.schemas(referenceSchemas)));
 
-            return registry.getSchema(IoUtil.toString(rawSchema));
+            return schemaFactory.getSchema(IoUtil.toString(rawSchema));
         }
 
-        private void resolveReferences(Map<String, ParsedSchema<Schema>> resolvedReferences, Map<String, String> referenceSchemas) {
+        private void resolveReferences(Map<String, ParsedSchema<JsonSchema>> resolvedReferences, Map<String, String> referenceSchemas) {
             resolvedReferences.forEach((referenceName, schema) -> {
                 if (schema.hasReferences()) {
                     resolveReferences(schema.getSchemaReferences()
@@ -189,13 +189,13 @@ public class JsonValidator {
         }
 
         @Override
-        public ParsedSchema<Schema> getSchemaFromData(Record<Object> data) {
+        public ParsedSchema<JsonSchema> getSchemaFromData(Record<Object> data) {
             //not supported yet?
             return null;
         }
 
         @Override
-        public ParsedSchema<Schema> getSchemaFromData(Record<Object> record, boolean dereference) {
+        public ParsedSchema<JsonSchema> getSchemaFromData(Record<Object> record, boolean dereference) {
             //not supported yet?
             return null;
         }

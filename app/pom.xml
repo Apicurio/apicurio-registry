@@ -248,7 +248,7 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>tools.jackson.dataformat</groupId>
+      <groupId>com.fasterxml.jackson.dataformat</groupId>
       <artifactId>jackson-dataformat-yaml</artifactId>
       <exclusions>
         <exclusion>
@@ -285,17 +285,13 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>tools.jackson.core</groupId>
-      <artifactId>jackson-databind</artifactId>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jsr310</artifactId>
     </dependency>
     <!-- Jackson 2 modules for LegacyJacksonObjectMapperProducer (Quarkus 4 ships Jackson 3) -->
     <dependency>
       <groupId>com.fasterxml.jackson.datatype</groupId>
       <artifactId>jackson-datatype-jdk8</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.fasterxml.jackson.datatype</groupId>
-      <artifactId>jackson-datatype-jsr310</artifactId>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.module</groupId>

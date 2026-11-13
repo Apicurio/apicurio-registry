@@ -1,5 +1,6 @@
 package io.apicurio.registry.cli.search;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.ColumnsMixin;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
@@ -159,7 +160,7 @@ public class SearchVersionsCommand extends AbstractCommand {
         }
     }
 
-    private void printResults(final OutputBuffer output, final VersionSearchResults results) {
+    private void printResults(final OutputBuffer output, final VersionSearchResults results) throws JsonProcessingException {
         output.writeStdOutChunkWithException(out -> {
             switch (outputType.getOutputType()) {
                 case json -> {

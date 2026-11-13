@@ -1,7 +1,8 @@
 package io.apicurio.registry.agents.services;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.apicurio.registry.auth.ResourceAccessGuard;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
@@ -23,7 +24,6 @@ import io.apicurio.registry.types.ContentTypes;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
-import tools.jackson.core.JacksonException;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -202,7 +202,8 @@ public class EmbeddedSchemaService implements ArtifactVersionWriteHook {
         fieldPlans.add(new FieldPlan(reference, registration));
     }
 
-    private ContentPlan buildContentPlan(ObjectNode rootObj, String contentType, List<FieldPlan> fieldPlans) {
+    private ContentPlan buildContentPlan(ObjectNode rootObj, String contentType, List<FieldPlan> fieldPlans)
+            throws JsonProcessingException {
         String modifiedContentStr = serializeContent(rootObj, contentType);
         List<ArtifactReferenceDto> references = fieldPlans.stream().map(FieldPlan::reference).toList();
         ContentWrapperDto content = ContentWrapperDto.builder()
@@ -361,19 +362,19 @@ public class EmbeddedSchemaService implements ArtifactVersionWriteHook {
                 .orElseThrow(() -> new ArtifactNotFoundException(groupId, artifactId));
     }
 
-    private JsonNode parseContent(String content, String contentType) {
+    private JsonNode parseContent(String content, String contentType) throws JsonProcessingException {
         if (contentType != null && (contentType.contains("yaml") || contentType.equals("text/x-prompt-template"))) {
             return YAML_MAPPER.readTree(content);
         }
         try {
             return MAPPER.readTree(content);
-        } catch (JacksonException e) {
+        } catch (JsonProcessingException e) {
             // Try YAML as fallback
             return YAML_MAPPER.readTree(content);
         }
     }
 
-    private String serializeContent(JsonNode node, String contentType) {
+    private String serializeContent(JsonNode node, String contentType) throws JsonProcessingException {
         if (contentType != null && (contentType.contains("yaml") || contentType.equals("text/x-prompt-template"))) {
             return YAML_MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(node);
         }

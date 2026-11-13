@@ -1,8 +1,8 @@
 package io.apicurio.registry.event.sql;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
@@ -38,7 +38,6 @@ import org.junit.jupiter.api.Test;
 import org.rnorth.ducttape.unreliables.Unreliables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tools.jackson.core.JacksonException;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -77,7 +76,7 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
 
     protected KafkaConsumer<String, String> consumer;
 
-    private static final ObjectMapper objectMapper = new JsonMapper();
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     private static final String ARTIFACT_CONTENT = "{\"name\":\"redhat\"}";
 
@@ -124,17 +123,17 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         JsonNode updateEvent = null;
 
         for (JsonNode event : events) {
-            if (event.get("groupId").asString().equals(groupId)
-                    && event.get("eventType").asString().equals(GROUP_METADATA_UPDATED.name())) {
+            if (event.get("groupId").asText().equals(groupId)
+                    && event.get("eventType").asText().equals(GROUP_METADATA_UPDATED.name())) {
                 updateEvent = event;
             }
         }
 
         Assertions.assertEquals(1, events.size());
-        Assertions.assertEquals(groupId, updateEvent.get("groupId").asString());
-        Assertions.assertEquals(GROUP_METADATA_UPDATED.name(), updateEvent.get("eventType").asString());
+        Assertions.assertEquals(groupId, updateEvent.get("groupId").asText());
+        Assertions.assertEquals(GROUP_METADATA_UPDATED.name(), updateEvent.get("eventType").asText());
         Assertions.assertEquals("updateArtifactMetadataEventDescriptionEdited",
-                updateEvent.get("description").asString());
+                updateEvent.get("description").asText());
     }
 
     @Test
@@ -155,15 +154,15 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         JsonNode deleteEvent = null;
 
         for (JsonNode event : deleteEvents) {
-            if (event.get("groupId").asString().equals(groupId)
-                    && event.get("eventType").asString().equals(GROUP_DELETED.name())) {
+            if (event.get("groupId").asText().equals(groupId)
+                    && event.get("eventType").asText().equals(GROUP_DELETED.name())) {
                 deleteEvent = event;
             }
         }
 
         Assertions.assertEquals(1, deleteEvents.size());
-        Assertions.assertEquals(groupId, deleteEvent.get("groupId").asString());
-        Assertions.assertEquals(GROUP_DELETED.name(), deleteEvent.get("eventType").asString());
+        Assertions.assertEquals(groupId, deleteEvent.get("groupId").asText());
+        Assertions.assertEquals(GROUP_DELETED.name(), deleteEvent.get("eventType").asText());
     }
 
     @Test
@@ -206,17 +205,17 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         JsonNode updateEvent = null;
 
         for (JsonNode event : updateEvents) {
-            if (event.get("groupId").asString().equals(groupId)
-                    && event.get("eventType").asString().equals(ARTIFACT_METADATA_UPDATED.name())) {
+            if (event.get("groupId").asText().equals(groupId)
+                    && event.get("eventType").asText().equals(ARTIFACT_METADATA_UPDATED.name())) {
                 updateEvent = event;
             }
         }
 
         Assertions.assertEquals(1, updateEvents.size());
-        Assertions.assertEquals(groupId, updateEvent.get("groupId").asString());
-        Assertions.assertEquals(ARTIFACT_METADATA_UPDATED.name(), updateEvent.get("eventType").asString());
-        Assertions.assertEquals(artifactId, updateEvent.get("artifactId").asString());
-        Assertions.assertEquals("updateArtifactMetadataEventNameEdited", updateEvent.get("name").asString());
+        Assertions.assertEquals(groupId, updateEvent.get("groupId").asText());
+        Assertions.assertEquals(ARTIFACT_METADATA_UPDATED.name(), updateEvent.get("eventType").asText());
+        Assertions.assertEquals(artifactId, updateEvent.get("artifactId").asText());
+        Assertions.assertEquals("updateArtifactMetadataEventNameEdited", updateEvent.get("name").asText());
     }
 
     @Test
@@ -240,16 +239,16 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         JsonNode updateEvent = null;
 
         for (JsonNode event : deleteEvents) {
-            if (event.get("groupId").asString().equals(groupId)
-                    && event.get("eventType").asString().equals(ARTIFACT_DELETED.name())) {
+            if (event.get("groupId").asText().equals(groupId)
+                    && event.get("eventType").asText().equals(ARTIFACT_DELETED.name())) {
                 updateEvent = event;
             }
         }
 
         Assertions.assertEquals(1, deleteEvents.size());
-        Assertions.assertEquals(groupId, updateEvent.get("groupId").asString());
-        Assertions.assertEquals(ARTIFACT_DELETED.name(), updateEvent.get("eventType").asString());
-        Assertions.assertEquals(artifactId, updateEvent.get("artifactId").asString());
+        Assertions.assertEquals(groupId, updateEvent.get("groupId").asText());
+        Assertions.assertEquals(ARTIFACT_DELETED.name(), updateEvent.get("eventType").asText());
+        Assertions.assertEquals(artifactId, updateEvent.get("artifactId").asText());
     }
 
     @Test
@@ -269,15 +268,15 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         JsonNode updateEvent = null;
 
         for (JsonNode event : events) {
-            if (event.get("groupId").asString().equals(groupId)
-                    && event.get("eventType").asString().equals(ARTIFACT_VERSION_CREATED.name())) {
+            if (event.get("groupId").asText().equals(groupId)
+                    && event.get("eventType").asText().equals(ARTIFACT_VERSION_CREATED.name())) {
                 updateEvent = event;
             }
         }
 
         Assertions.assertEquals(1, events.size());
-        Assertions.assertEquals(groupId, updateEvent.get("groupId").asString());
-        Assertions.assertEquals(ARTIFACT_VERSION_CREATED.name(), updateEvent.get("eventType").asString());
+        Assertions.assertEquals(groupId, updateEvent.get("groupId").asText());
+        Assertions.assertEquals(ARTIFACT_VERSION_CREATED.name(), updateEvent.get("eventType").asText());
     }
 
     @Test
@@ -298,9 +297,9 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
                 Map.of("groupId", groupId, "artifactId", artifactId));
 
         Assertions.assertEquals(1, events.size());
-        Assertions.assertEquals("realCreateName", events.get(0).get("name").asString());
+        Assertions.assertEquals("realCreateName", events.get(0).get("name").asText());
         for (JsonNode event : events) {
-            Assertions.assertNotEquals("dryRunLeakName", event.get("name").asString());
+            Assertions.assertNotEquals("dryRunLeakName", event.get("name").asText());
         }
     }
 
@@ -326,9 +325,9 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
                 Map.of("groupId", groupId, "artifactId", artifactId, "version", "2"));
 
         Assertions.assertEquals(1, events.size());
-        Assertions.assertEquals("realVersionName", events.get(0).get("name").asString());
+        Assertions.assertEquals("realVersionName", events.get(0).get("name").asText());
         for (JsonNode event : events) {
-            Assertions.assertNotEquals("dryRunLeakVersionName", event.get("name").asString());
+            Assertions.assertNotEquals("dryRunLeakVersionName", event.get("name").asText());
         }
     }
 
@@ -355,18 +354,18 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         JsonNode updateEvent = null;
 
         for (JsonNode event : events) {
-            if (event.get("groupId").asString().equals(groupId)
-                    && event.get("eventType").asString().equals(ARTIFACT_VERSION_METADATA_UPDATED.name())) {
+            if (event.get("groupId").asText().equals(groupId)
+                    && event.get("eventType").asText().equals(ARTIFACT_VERSION_METADATA_UPDATED.name())) {
                 updateEvent = event;
             }
         }
 
         Assertions.assertEquals(1, events.size());
-        Assertions.assertEquals(groupId, updateEvent.get("groupId").asString());
+        Assertions.assertEquals(groupId, updateEvent.get("groupId").asText());
         Assertions.assertEquals(ARTIFACT_VERSION_METADATA_UPDATED.name(),
-                updateEvent.get("eventType").asString());
+                updateEvent.get("eventType").asText());
         Assertions.assertEquals("updateArtifactVersionMetadataEventDescriptionEdited",
-                updateEvent.get("description").asString());
+                updateEvent.get("description").asText());
     }
 
     @Test
@@ -393,20 +392,20 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         JsonNode stateEvent = null;
 
         for (JsonNode event : events) {
-            if (event.get("groupId").asString().equals(groupId)
-                    && event.get("eventType").asString().equals(ARTIFACT_VERSION_STATE_CHANGED.name())) {
+            if (event.get("groupId").asText().equals(groupId)
+                    && event.get("eventType").asText().equals(ARTIFACT_VERSION_STATE_CHANGED.name())) {
                 stateEvent = event;
             }
         }
 
         Assertions.assertEquals(1, events.size());
-        Assertions.assertEquals(groupId, stateEvent.get("groupId").asString());
-        Assertions.assertEquals(artifactId, stateEvent.get("artifactId").asString());
+        Assertions.assertEquals(groupId, stateEvent.get("groupId").asText());
+        Assertions.assertEquals(artifactId, stateEvent.get("artifactId").asText());
         Assertions.assertEquals(ARTIFACT_VERSION_STATE_CHANGED.name(),
-                stateEvent.get("eventType").asString());
-        Assertions.assertEquals("1", stateEvent.get("version").asString());
-        Assertions.assertEquals(VersionState.ENABLED.name(), stateEvent.get("oldState").asString());
-        Assertions.assertEquals(VersionState.DEPRECATED.name(), stateEvent.get("newState").asString());
+                stateEvent.get("eventType").asText());
+        Assertions.assertEquals("1", stateEvent.get("version").asText());
+        Assertions.assertEquals(VersionState.ENABLED.name(), stateEvent.get("oldState").asText());
+        Assertions.assertEquals(VersionState.DEPRECATED.name(), stateEvent.get("newState").asText());
     }
 
     @Test
@@ -442,21 +441,21 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         JsonNode stateEvent = null;
 
         for (JsonNode event : events) {
-            if (event.get("groupId").asString().equals(groupId)
-                    && event.get("eventType").asString().equals(ARTIFACT_VERSION_STATE_CHANGED.name())) {
+            if (event.get("groupId").asText().equals(groupId)
+                    && event.get("eventType").asText().equals(ARTIFACT_VERSION_STATE_CHANGED.name())) {
                 stateEvent = event;
             }
             // The dry-run transition to DISABLED must never have produced an event.
-            Assertions.assertNotEquals(VersionState.DISABLED.name(), event.get("newState").asString());
+            Assertions.assertNotEquals(VersionState.DISABLED.name(), event.get("newState").asText());
         }
 
         // Only the real DEPRECATED change is emitted; the dry-run produced nothing. The
         // oldState is ENABLED (not DISABLED), which also confirms the dry-run did not persist.
         Assertions.assertEquals(1, events.size());
         Assertions.assertEquals(ARTIFACT_VERSION_STATE_CHANGED.name(),
-                stateEvent.get("eventType").asString());
-        Assertions.assertEquals(VersionState.ENABLED.name(), stateEvent.get("oldState").asString());
-        Assertions.assertEquals(VersionState.DEPRECATED.name(), stateEvent.get("newState").asString());
+                stateEvent.get("eventType").asText());
+        Assertions.assertEquals(VersionState.ENABLED.name(), stateEvent.get("oldState").asText());
+        Assertions.assertEquals(VersionState.DEPRECATED.name(), stateEvent.get("newState").asText());
     }
 
     @Test
@@ -479,15 +478,15 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         JsonNode deleteEvent = null;
 
         for (JsonNode event : deleteEvents) {
-            if (event.get("groupId").asString().equals(groupId)
-                    && event.get("eventType").asString().equals(ARTIFACT_VERSION_DELETED.name())) {
+            if (event.get("groupId").asText().equals(groupId)
+                    && event.get("eventType").asText().equals(ARTIFACT_VERSION_DELETED.name())) {
                 deleteEvent = event;
             }
         }
 
         Assertions.assertEquals(1, deleteEvents.size());
-        Assertions.assertEquals(groupId, deleteEvent.get("groupId").asString());
-        Assertions.assertEquals(ARTIFACT_VERSION_DELETED.name(), deleteEvent.get("eventType").asString());
+        Assertions.assertEquals(groupId, deleteEvent.get("groupId").asText());
+        Assertions.assertEquals(ARTIFACT_VERSION_DELETED.name(), deleteEvent.get("eventType").asText());
     }
 
     @Test
@@ -501,13 +500,13 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         JsonNode updateEvent = null;
 
         for (JsonNode event : events) {
-            if (event.get("eventType").asString().equals(GLOBAL_RULE_CONFIGURED.name())) {
+            if (event.get("eventType").asText().equals(GLOBAL_RULE_CONFIGURED.name())) {
                 updateEvent = event;
             }
         }
 
         Assertions.assertEquals(1, events.size());
-        Assertions.assertEquals(GLOBAL_RULE_CONFIGURED.name(), updateEvent.get("eventType").asString());
+        Assertions.assertEquals(GLOBAL_RULE_CONFIGURED.name(), updateEvent.get("eventType").asText());
     }
 
     @Test
@@ -524,14 +523,14 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         JsonNode updateEvent = null;
 
         for (JsonNode event : events) {
-            if (event.get("eventType").asString().equals(GLOBAL_RULE_CONFIGURED.name())) {
+            if (event.get("eventType").asText().equals(GLOBAL_RULE_CONFIGURED.name())) {
                 updateEvent = event;
             }
         }
 
         Assertions.assertEquals(1, events.size());
-        Assertions.assertEquals(GLOBAL_RULE_CONFIGURED.name(), updateEvent.get("eventType").asString());
-        Assertions.assertEquals(ValidityLevel.FULL.name(), updateEvent.get("rule").asString());
+        Assertions.assertEquals(GLOBAL_RULE_CONFIGURED.name(), updateEvent.get("eventType").asText());
+        Assertions.assertEquals(ValidityLevel.FULL.name(), updateEvent.get("rule").asText());
     }
 
     @Test
@@ -547,14 +546,14 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         JsonNode updateEvent = null;
 
         for (JsonNode event : events) {
-            if (event.get("eventType").asString().equals(GLOBAL_RULE_CONFIGURED.name())) {
+            if (event.get("eventType").asText().equals(GLOBAL_RULE_CONFIGURED.name())) {
                 updateEvent = event;
             }
         }
 
         Assertions.assertEquals(1, events.size());
-        Assertions.assertEquals(GLOBAL_RULE_CONFIGURED.name(), updateEvent.get("eventType").asString());
-        Assertions.assertEquals(ValidityLevel.NONE.name(), updateEvent.get("rule").asString());
+        Assertions.assertEquals(GLOBAL_RULE_CONFIGURED.name(), updateEvent.get("eventType").asText());
+        Assertions.assertEquals(ValidityLevel.NONE.name(), updateEvent.get("rule").asText());
     }
 
     @Test
@@ -575,14 +574,14 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         JsonNode updateEvent = null;
 
         for (JsonNode event : events) {
-            if (event.get("eventType").asString().equals(GROUP_RULE_CONFIGURED.name())) {
+            if (event.get("eventType").asText().equals(GROUP_RULE_CONFIGURED.name())) {
                 updateEvent = event;
             }
         }
 
         Assertions.assertEquals(1, events.size());
-        Assertions.assertEquals(GROUP_RULE_CONFIGURED.name(), updateEvent.get("eventType").asString());
-        Assertions.assertEquals(groupId, updateEvent.get("groupId").asString());
+        Assertions.assertEquals(GROUP_RULE_CONFIGURED.name(), updateEvent.get("eventType").asText());
+        Assertions.assertEquals(groupId, updateEvent.get("groupId").asText());
     }
 
     @Test
@@ -606,15 +605,15 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         JsonNode updateEvent = null;
 
         for (JsonNode event : events) {
-            if (event.get("eventType").asString().equals(GROUP_RULE_CONFIGURED.name())) {
+            if (event.get("eventType").asText().equals(GROUP_RULE_CONFIGURED.name())) {
                 updateEvent = event;
             }
         }
 
         Assertions.assertEquals(1, events.size());
-        Assertions.assertEquals(GROUP_RULE_CONFIGURED.name(), updateEvent.get("eventType").asString());
-        Assertions.assertEquals(ValidityLevel.FULL.name(), updateEvent.get("rule").asString());
-        Assertions.assertEquals(groupId, updateEvent.get("groupId").asString());
+        Assertions.assertEquals(GROUP_RULE_CONFIGURED.name(), updateEvent.get("eventType").asText());
+        Assertions.assertEquals(ValidityLevel.FULL.name(), updateEvent.get("rule").asText());
+        Assertions.assertEquals(groupId, updateEvent.get("groupId").asText());
     }
 
     @Test
@@ -638,15 +637,15 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         JsonNode updateEvent = null;
 
         for (JsonNode event : events) {
-            if (event.get("eventType").asString().equals(GROUP_RULE_CONFIGURED.name())) {
+            if (event.get("eventType").asText().equals(GROUP_RULE_CONFIGURED.name())) {
                 updateEvent = event;
             }
         }
 
         Assertions.assertEquals(1, events.size());
-        Assertions.assertEquals(GROUP_RULE_CONFIGURED.name(), updateEvent.get("eventType").asString());
-        Assertions.assertEquals(ValidityLevel.NONE.name(), updateEvent.get("rule").asString());
-        Assertions.assertEquals(groupId, updateEvent.get("groupId").asString());
+        Assertions.assertEquals(GROUP_RULE_CONFIGURED.name(), updateEvent.get("eventType").asText());
+        Assertions.assertEquals(ValidityLevel.NONE.name(), updateEvent.get("rule").asText());
+        Assertions.assertEquals(groupId, updateEvent.get("groupId").asText());
     }
 
     @Test
@@ -669,15 +668,15 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         JsonNode updateEvent = null;
 
         for (JsonNode event : events) {
-            if (event.get("eventType").asString().equals(ARTIFACT_RULE_CONFIGURED.name())) {
+            if (event.get("eventType").asText().equals(ARTIFACT_RULE_CONFIGURED.name())) {
                 updateEvent = event;
             }
         }
 
         Assertions.assertEquals(1, events.size());
-        Assertions.assertEquals(ARTIFACT_RULE_CONFIGURED.name(), updateEvent.get("eventType").asString());
-        Assertions.assertEquals(groupId, updateEvent.get("groupId").asString());
-        Assertions.assertEquals(artifactId, updateEvent.get("artifactId").asString());
+        Assertions.assertEquals(ARTIFACT_RULE_CONFIGURED.name(), updateEvent.get("eventType").asText());
+        Assertions.assertEquals(groupId, updateEvent.get("groupId").asText());
+        Assertions.assertEquals(artifactId, updateEvent.get("artifactId").asText());
     }
 
     @Test
@@ -702,16 +701,16 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         JsonNode updateEvent = null;
 
         for (JsonNode event : events) {
-            if (event.get("eventType").asString().equals(ARTIFACT_RULE_CONFIGURED.name())) {
+            if (event.get("eventType").asText().equals(ARTIFACT_RULE_CONFIGURED.name())) {
                 updateEvent = event;
             }
         }
 
         Assertions.assertEquals(1, events.size());
-        Assertions.assertEquals(ARTIFACT_RULE_CONFIGURED.name(), updateEvent.get("eventType").asString());
-        Assertions.assertEquals(ValidityLevel.FULL.name(), updateEvent.get("rule").asString());
-        Assertions.assertEquals(groupId, updateEvent.get("groupId").asString());
-        Assertions.assertEquals(artifactId, updateEvent.get("artifactId").asString());
+        Assertions.assertEquals(ARTIFACT_RULE_CONFIGURED.name(), updateEvent.get("eventType").asText());
+        Assertions.assertEquals(ValidityLevel.FULL.name(), updateEvent.get("rule").asText());
+        Assertions.assertEquals(groupId, updateEvent.get("groupId").asText());
+        Assertions.assertEquals(artifactId, updateEvent.get("artifactId").asText());
     }
 
     @Test
@@ -737,16 +736,16 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         JsonNode updateEvent = null;
 
         for (JsonNode event : events) {
-            if (event.get("eventType").asString().equals(ARTIFACT_RULE_CONFIGURED.name())) {
+            if (event.get("eventType").asText().equals(ARTIFACT_RULE_CONFIGURED.name())) {
                 updateEvent = event;
             }
         }
 
         Assertions.assertEquals(1, events.size());
-        Assertions.assertEquals(ARTIFACT_RULE_CONFIGURED.name(), updateEvent.get("eventType").asString());
-        Assertions.assertEquals(ValidityLevel.NONE.name(), updateEvent.get("rule").asString());
-        Assertions.assertEquals(groupId, updateEvent.get("groupId").asString());
-        Assertions.assertEquals(artifactId, updateEvent.get("artifactId").asString());
+        Assertions.assertEquals(ARTIFACT_RULE_CONFIGURED.name(), updateEvent.get("eventType").asText());
+        Assertions.assertEquals(ValidityLevel.NONE.name(), updateEvent.get("rule").asText());
+        Assertions.assertEquals(groupId, updateEvent.get("groupId").asText());
+        Assertions.assertEquals(artifactId, updateEvent.get("artifactId").asText());
     }
 
     @Test
@@ -792,10 +791,10 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
 
         Assertions.assertEquals(1, events.size());
         JsonNode event = events.get(0);
-        Assertions.assertEquals(CONTRACT_RULESET_CONFIGURED.name(), event.get("eventType").asString());
-        Assertions.assertEquals(groupId, event.get("groupId").asString());
-        Assertions.assertEquals(artifactId, event.get("artifactId").asString());
-        Assertions.assertEquals("SET", event.get("action").asString());
+        Assertions.assertEquals(CONTRACT_RULESET_CONFIGURED.name(), event.get("eventType").asText());
+        Assertions.assertEquals(groupId, event.get("groupId").asText());
+        Assertions.assertEquals(artifactId, event.get("artifactId").asText());
+        Assertions.assertEquals("SET", event.get("action").asText());
     }
 
     @Test
@@ -859,10 +858,10 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
 
         Assertions.assertEquals(1, events.size());
         JsonNode event = events.get(0);
-        Assertions.assertEquals(CONTRACT_RULESET_CONFIGURED.name(), event.get("eventType").asString());
-        Assertions.assertEquals(groupId, event.get("groupId").asString());
-        Assertions.assertEquals(artifactId, event.get("artifactId").asString());
-        Assertions.assertEquals("DELETE", event.get("action").asString());
+        Assertions.assertEquals(CONTRACT_RULESET_CONFIGURED.name(), event.get("eventType").asText());
+        Assertions.assertEquals(groupId, event.get("groupId").asText());
+        Assertions.assertEquals(artifactId, event.get("artifactId").asText());
+        Assertions.assertEquals("DELETE", event.get("action").asText());
     }
 
     @Test
@@ -909,11 +908,11 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
 
         Assertions.assertEquals(1, events.size());
         JsonNode event = events.get(0);
-        Assertions.assertEquals(CONTRACT_RULESET_CONFIGURED.name(), event.get("eventType").asString());
-        Assertions.assertEquals(groupId, event.get("groupId").asString());
-        Assertions.assertEquals(artifactId, event.get("artifactId").asString());
-        Assertions.assertEquals(version, event.get("version").asString());
-        Assertions.assertEquals("SET", event.get("action").asString());
+        Assertions.assertEquals(CONTRACT_RULESET_CONFIGURED.name(), event.get("eventType").asText());
+        Assertions.assertEquals(groupId, event.get("groupId").asText());
+        Assertions.assertEquals(artifactId, event.get("artifactId").asText());
+        Assertions.assertEquals(version, event.get("version").asText());
+        Assertions.assertEquals("SET", event.get("action").asText());
     }
 
     @Test
@@ -981,11 +980,11 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
 
         Assertions.assertEquals(1, events.size());
         JsonNode event = events.get(0);
-        Assertions.assertEquals(CONTRACT_RULESET_CONFIGURED.name(), event.get("eventType").asString());
-        Assertions.assertEquals(groupId, event.get("groupId").asString());
-        Assertions.assertEquals(artifactId, event.get("artifactId").asString());
-        Assertions.assertEquals(version, event.get("version").asString());
-        Assertions.assertEquals("DELETE", event.get("action").asString());
+        Assertions.assertEquals(CONTRACT_RULESET_CONFIGURED.name(), event.get("eventType").asText());
+        Assertions.assertEquals(groupId, event.get("groupId").asText());
+        Assertions.assertEquals(artifactId, event.get("artifactId").asText());
+        Assertions.assertEquals(version, event.get("version").asText());
+        Assertions.assertEquals("DELETE", event.get("action").asText());
     }
 
     @Test
@@ -1018,10 +1017,10 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
 
         Assertions.assertEquals(1, events.size());
         JsonNode event = events.get(0);
-        Assertions.assertEquals(CONTRACT_RULESET_CONFIGURED.name(), event.get("eventType").asString());
-        Assertions.assertEquals("__GLOBAL__", event.get("groupId").asString());
-        Assertions.assertEquals("__GLOBAL__", event.get("artifactId").asString());
-        Assertions.assertEquals("SET", event.get("action").asString());
+        Assertions.assertEquals(CONTRACT_RULESET_CONFIGURED.name(), event.get("eventType").asText());
+        Assertions.assertEquals("__GLOBAL__", event.get("groupId").asText());
+        Assertions.assertEquals("__GLOBAL__", event.get("artifactId").asText());
+        Assertions.assertEquals("SET", event.get("action").asText());
     }
 
     @Test
@@ -1070,10 +1069,10 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
 
         Assertions.assertEquals(1, events.size());
         JsonNode event = events.get(0);
-        Assertions.assertEquals(CONTRACT_RULESET_CONFIGURED.name(), event.get("eventType").asString());
-        Assertions.assertEquals("__GLOBAL__", event.get("groupId").asString());
-        Assertions.assertEquals("__GLOBAL__", event.get("artifactId").asString());
-        Assertions.assertEquals("DELETE", event.get("action").asString());
+        Assertions.assertEquals(CONTRACT_RULESET_CONFIGURED.name(), event.get("eventType").asText());
+        Assertions.assertEquals("__GLOBAL__", event.get("groupId").asText());
+        Assertions.assertEquals("__GLOBAL__", event.get("artifactId").asText());
+        Assertions.assertEquals("DELETE", event.get("action").asText());
     }
 
     private ContractRuleSet newRuleSet(String ruleName) {
@@ -1132,9 +1131,9 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
 
         Assertions.assertEquals(1, events.size());
         JsonNode event = events.get(0);
-        Assertions.assertEquals(CONTRACT_METADATA_UPDATED.name(), event.get("eventType").asString());
-        Assertions.assertEquals(groupId, event.get("groupId").asString());
-        Assertions.assertEquals(artifactId, event.get("artifactId").asString());
+        Assertions.assertEquals(CONTRACT_METADATA_UPDATED.name(), event.get("eventType").asText());
+        Assertions.assertEquals(groupId, event.get("groupId").asText());
+        Assertions.assertEquals(artifactId, event.get("artifactId").asText());
     }
 
     @Test
@@ -1202,30 +1201,30 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
 
         Assertions.assertEquals(1, events.size());
         JsonNode event = events.get(0);
-        Assertions.assertEquals(CONTRACT_STATUS_CHANGED.name(), event.get("eventType").asString());
-        Assertions.assertEquals(groupId, event.get("groupId").asString());
-        Assertions.assertEquals(artifactId, event.get("artifactId").asString());
-        Assertions.assertEquals("DRAFT", event.get("fromStatus").asString());
-        Assertions.assertEquals("STABLE", event.get("toStatus").asString());
+        Assertions.assertEquals(CONTRACT_STATUS_CHANGED.name(), event.get("eventType").asText());
+        Assertions.assertEquals(groupId, event.get("groupId").asText());
+        Assertions.assertEquals(artifactId, event.get("artifactId").asText());
+        Assertions.assertEquals("DRAFT", event.get("fromStatus").asText());
+        Assertions.assertEquals("STABLE", event.get("toStatus").asText());
     }
 
     private void checkGroupEvent(String groupId, List<JsonNode> events) {
         JsonNode createEvent = null;
         for (JsonNode event : events) {
-            if (event.get("groupId").asString().equals(groupId)) {
+            if (event.get("groupId").asText().equals(groupId)) {
                 createEvent = event;
             }
         }
 
-        Assertions.assertEquals(groupId, createEvent.get("groupId").asString());
-        Assertions.assertEquals(GROUP_CREATED.name(), createEvent.get("eventType").asString());
+        Assertions.assertEquals(groupId, createEvent.get("groupId").asText());
+        Assertions.assertEquals(GROUP_CREATED.name(), createEvent.get("eventType").asText());
     }
 
     private void checkArtifactEvent(String groupId, String artifactId, String name, JsonNode event) {
-        Assertions.assertEquals(groupId, event.get("groupId").asString());
-        Assertions.assertEquals(ARTIFACT_CREATED.name(), event.get("eventType").asString());
-        Assertions.assertEquals(artifactId, event.get("artifactId").asString());
-        Assertions.assertEquals(name, event.get("name").asString());
+        Assertions.assertEquals(groupId, event.get("groupId").asText());
+        Assertions.assertEquals(ARTIFACT_CREATED.name(), event.get("eventType").asText());
+        Assertions.assertEquals(artifactId, event.get("artifactId").asText());
+        Assertions.assertEquals(name, event.get("name").asText());
     }
 
     public CreateArtifactResponse ensureArtifactCreated(String groupId, String artifactId, String name,
@@ -1338,8 +1337,8 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
 
             // Check if any matching event exists in the accumulated events
             boolean matchFound = events.stream().anyMatch(event -> 
-                event.get(fieldLookupName).asString().equals(fieldValue)
-                && event.get("eventType").asString().equals(eventType.name())
+                event.get(fieldLookupName).asText().equals(fieldValue)
+                && event.get("eventType").asText().equals(eventType.name())
             );
             
             if (matchFound) {
@@ -1381,7 +1380,7 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
             
             // Find all matching events from the accumulated events
             for (JsonNode event : consumedEvents) {
-                if (event.get("eventType").asString().equals(eventType.name()) && lookups.keySet().stream()
+                if (event.get("eventType").asText().equals(eventType.name()) && lookups.keySet().stream()
                         .allMatch(fieldName -> checkField(event, fieldName, lookups.get(fieldName)))) {
                     lookedUpEvents.add(event);
                 }
@@ -1401,20 +1400,20 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
     }
 
     private boolean checkField(JsonNode event, String fieldName, String expectedFieldValue) {
-        return event.get(fieldName).asString().equals(expectedFieldValue);
+        return event.get(fieldName).asText().equals(expectedFieldValue);
     }
 
     private JsonNode readEventPayload(ConsumerRecord<String, String> event) {
         String eventPayload = null;
         try {
-            eventPayload = objectMapper.readTree(event.value()).asString();
+            eventPayload = objectMapper.readTree(event.value()).asText();
 
             if (eventPayload.isBlank()) {
                 eventPayload = event.value();
             }
 
             return objectMapper.readValue(eventPayload, JsonNode.class);
-        } catch (JacksonException e) {
+        } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
     }

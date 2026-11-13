@@ -1,5 +1,6 @@
 package io.apicurio.registry.cli.serverconfig;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.cli.utils.TableBuilder;
@@ -18,7 +19,7 @@ final class ServerConfigUtil {
     }
 
     static void printProperty(final OutputBuffer output, final ConfigurationProperty prop,
-                              final OutputTypeMixin outputType) {
+                              final OutputTypeMixin outputType) throws JsonProcessingException {
         output.writeStdOutChunkWithException(out -> {
             switch (outputType.getOutputType()) {
                 case json -> {

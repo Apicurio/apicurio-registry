@@ -1,8 +1,7 @@
 package io.apicurio.registry.avro.content.canon;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.types.ContentTypes;
@@ -20,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class AvroContentCanonicalizerTest {
 
-    private static final ObjectMapper MAPPER = new JsonMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private static final String CITY = "{\"type\":\"record\",\"name\":\"City\","
             + "\"namespace\":\"com.example\",\"fields\":[{\"name\":\"name\",\"type\":\"string\"}]}";
@@ -51,11 +50,11 @@ class AvroContentCanonicalizerTest {
         JsonNode result = MAPPER.readTree(new AvroContentCanonicalizer()
                 .canonicalize(content(PERSON_WITH_COMMENT), references).getContent().content());
 
-        assertEquals("com.example.Person", result.get("namespace").asString() + "." + result.get("name").asString());
+        assertEquals("com.example.Person", result.get("namespace").asText() + "." + result.get("name").asText());
         // Referenced types stay as name references rather than being inlined. Avro writes the short name
         // because Address shares Person's namespace.
         JsonNode addressType = result.get("fields").get(0).get("type");
-        assertTrue(addressType.isString(), "expected a name reference, got: " + addressType);
-        assertEquals("Address", addressType.asString());
+        assertTrue(addressType.isTextual(), "expected a name reference, got: " + addressType);
+        assertEquals("Address", addressType.asText());
     }
 }

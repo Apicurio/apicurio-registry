@@ -1,5 +1,6 @@
 package io.apicurio.registry.cli.version;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.CliException;
 import io.apicurio.registry.cli.common.IdUtil;
@@ -113,7 +114,7 @@ public class VersionGetCommand extends AbstractCommand {
     }
 
     private void fetchMetadata(final RegistryClient client, final String resolvedGroupId,
-                               final String resolvedArtifactId, final OutputBuffer output) {
+                               final String resolvedArtifactId, final OutputBuffer output) throws JsonProcessingException {
         //noinspection ConstantConditions
         final var version = convert(client
                 .groups().byGroupId(resolvedGroupId).artifacts().byArtifactId(resolvedArtifactId)
@@ -124,7 +125,7 @@ public class VersionGetCommand extends AbstractCommand {
     }
 
     static void printVersion(final OutputBuffer output, final VersionMetaData version,
-                             final OutputType outputType) {
+                             final OutputType outputType) throws JsonProcessingException {
         output.writeStdOutChunkWithException(out -> {
             switch (outputType) {
                 case json -> {

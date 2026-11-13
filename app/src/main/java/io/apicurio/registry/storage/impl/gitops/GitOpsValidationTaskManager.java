@@ -12,7 +12,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
-import tools.jackson.core.JacksonException;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -220,7 +219,7 @@ public class GitOpsValidationTaskManager {
                     failTask(taskState, taskState.getSidecarError());
                 }
             }
-        } catch (JacksonException e) {
+        } catch (IOException e) {
             log.warn("[validate:{}] Failed to read sidecar status: {}", taskState.getTaskId(), e.getMessage());
         }
     }
@@ -386,7 +385,7 @@ public class GitOpsValidationTaskManager {
 
             JsonObjectMapper.MAPPER.writerWithDefaultPrettyPrinter()
                     .writeValue(getRequestFilePath(taskState.getTaskId()).toFile(), request);
-        } catch (JacksonException | IOException e) {
+        } catch (IOException e) {
             log.error("[validate:{}] Failed to write request file: {}. "
                     + "Workspace={}, exists={}, writable={}, uid={}",
                     taskState.getTaskId(), e.getMessage(),

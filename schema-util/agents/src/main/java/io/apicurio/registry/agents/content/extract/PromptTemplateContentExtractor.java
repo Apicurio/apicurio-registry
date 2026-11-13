@@ -3,13 +3,13 @@ package io.apicurio.registry.agents.content.extract;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.ExtractedMetaData;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.content.ContentHandle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tools.jackson.core.JacksonException;
+
+import java.io.IOException;
 
 /**
  * Performs metadata extraction for Prompt Template content.
@@ -20,7 +20,7 @@ public class PromptTemplateContentExtractor implements ContentExtractor {
 
     private static final Logger log = LoggerFactory.getLogger(PromptTemplateContentExtractor.class);
 
-    private static final ObjectMapper mapper = new JsonMapper();
+    private static final ObjectMapper mapper = new ObjectMapper();
 
     @Override
     public ExtractedMetaData extract(ContentHandle content) {
@@ -29,21 +29,21 @@ public class PromptTemplateContentExtractor implements ContentExtractor {
             ExtractedMetaData metaData = null;
 
             JsonNode templateId = root.get("templateId");
-            if (templateId != null && !templateId.isNull() && templateId.isString()) {
+            if (templateId != null && !templateId.isNull() && templateId.isTextual()) {
                 metaData = new ExtractedMetaData();
-                metaData.setName(templateId.asString());
+                metaData.setName(templateId.asText());
             }
 
             JsonNode description = root.get("description");
-            if (description != null && !description.isNull() && description.isString()) {
+            if (description != null && !description.isNull() && description.isTextual()) {
                 if (metaData == null) {
                     metaData = new ExtractedMetaData();
                 }
-                metaData.setDescription(description.asString());
+                metaData.setDescription(description.asText());
             }
 
             return metaData;
-        } catch (JacksonException e) {
+        } catch (IOException e) {
             log.warn("Error extracting metadata from Prompt Template content: {}", e.getMessage());
             return null;
         }

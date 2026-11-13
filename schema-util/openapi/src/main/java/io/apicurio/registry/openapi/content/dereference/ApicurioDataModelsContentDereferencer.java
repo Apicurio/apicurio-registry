@@ -9,9 +9,9 @@ import io.apitomy.datamodels.TraverserDirection;
 import io.apitomy.datamodels.models.Document;
 import io.apitomy.datamodels.util.ModelTypeUtil;
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.openapi.content.DataModelsJson;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
+import io.apicurio.registry.content.util.ContentTypeUtil;
 
 import java.io.IOException;
 import java.util.Locale;
@@ -22,7 +22,7 @@ public class ApicurioDataModelsContentDereferencer implements ContentDereference
     @Override
     public TypedContent dereference(TypedContent content, Map<String, TypedContent> resolvedReferences) {
         try {
-            JsonNode node = DataModelsJson.parseJsonOrYaml(content);
+            JsonNode node = ContentTypeUtil.parseJsonOrYaml(content);
             Document doc = Library.readDocument((ObjectNode) node);
             RegistryReferenceResolver resolver = new RegistryReferenceResolver(resolvedReferences);
             if (ModelTypeUtil.isAsyncApi2Model(doc)) {
@@ -53,7 +53,7 @@ public class ApicurioDataModelsContentDereferencer implements ContentDereference
     @Override
     public TypedContent rewriteReferences(TypedContent content, Map<String, String> resolvedReferenceUrls) {
         try {
-            JsonNode node = DataModelsJson.parseJsonOrYaml(content);
+            JsonNode node = ContentTypeUtil.parseJsonOrYaml(content);
             Document doc = Library.readDocument((ObjectNode) node);
             ReferenceRewriter visitor = new ReferenceRewriter(resolvedReferenceUrls);
             Library.visitTree(doc, visitor, TraverserDirection.down);

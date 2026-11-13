@@ -1,8 +1,8 @@
 package io.apicurio.registry.content.canon;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.dataformat.yaml.YAMLMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.types.ContentTypes;
@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class YamlContentCanonicalizerTest {
 
     private YamlContentCanonicalizer canonicalizer;
-    private final ObjectMapper yamlMapper = new YAMLMapper();
+    private final ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
 
     @BeforeEach
     void setUp() {
@@ -46,7 +46,7 @@ class YamlContentCanonicalizerTest {
         TypedContent result = canonicalizer.canonicalize(createJson(input), Collections.emptyMap());
 
         JsonNode tree = yamlMapper.readTree(result.getContent().content());
-        Iterator<String> fields = tree.propertyNames().iterator();
+        Iterator<String> fields = tree.fieldNames();
         assertEquals("alpha", fields.next());
         assertEquals("middle", fields.next());
         assertEquals("zebra", fields.next());
@@ -76,7 +76,7 @@ class YamlContentCanonicalizerTest {
         TypedContent result = canonicalizer.canonicalize(createYaml(input), Collections.emptyMap());
 
         JsonNode tree = yamlMapper.readTree(result.getContent().content());
-        Iterator<String> fields = tree.propertyNames().iterator();
+        Iterator<String> fields = tree.fieldNames();
         assertEquals("alpha", fields.next());
         assertEquals("middle", fields.next());
         assertEquals("zebra", fields.next());
@@ -97,11 +97,11 @@ class YamlContentCanonicalizerTest {
         TypedContent result = canonicalizer.canonicalize(createJson(input), Collections.emptyMap());
 
         JsonNode tree = yamlMapper.readTree(result.getContent().content());
-        Iterator<String> outerFields = tree.propertyNames().iterator();
+        Iterator<String> outerFields = tree.fieldNames();
         assertEquals("alpha", outerFields.next());
         assertEquals("outer", outerFields.next());
 
-        Iterator<String> innerFields = tree.get("outer").propertyNames().iterator();
+        Iterator<String> innerFields = tree.get("outer").fieldNames();
         assertEquals("a_field", innerFields.next());
         assertEquals("z_field", innerFields.next());
     }
@@ -143,7 +143,7 @@ class YamlContentCanonicalizerTest {
         TypedContent result = canonicalizer.canonicalize(createJson(input), Collections.emptyMap());
 
         JsonNode tree = yamlMapper.readTree(result.getContent().content());
-        Iterator<String> fields = tree.propertyNames().iterator();
+        Iterator<String> fields = tree.fieldNames();
         assertEquals("template", fields.next());
         assertEquals("templateId", fields.next());
         assertEquals("variables", fields.next());

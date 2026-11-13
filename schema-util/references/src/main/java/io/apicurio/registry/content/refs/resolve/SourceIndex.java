@@ -1,6 +1,6 @@
 package io.apicurio.registry.content.refs.resolve;
 
-import tools.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.types.ArtifactType;
 
@@ -165,17 +165,17 @@ public final class SourceIndex {
                 return null;
             }
             JsonNode name = root.get("name");
-            if (name == null || !name.isString() || name.asString().isBlank()) {
+            if (name == null || !name.isTextual() || name.asText().isBlank()) {
                 return null;
             }
-            if (name.asString().contains(".")) {
-                return name.asString();
+            if (name.asText().contains(".")) {
+                return name.asText();
             }
             JsonNode namespace = root.get("namespace");
-            if (namespace == null || !namespace.isString() || namespace.asString().isBlank()) {
-                return name.asString();
+            if (namespace == null || !namespace.isTextual() || namespace.asText().isBlank()) {
+                return name.asText();
             }
-            return namespace.asString() + "." + name.asString();
+            return namespace.asText() + "." + name.asText();
         } catch (RuntimeException e) {
             return null;
         }
@@ -187,10 +187,10 @@ public final class SourceIndex {
                 return null;
             }
             JsonNode id = root.get("$id");
-            if (id == null || !id.isString()) {
+            if (id == null || !id.isTextual()) {
                 return null;
             }
-            String value = stripFragment(id.asString());
+            String value = stripFragment(id.asText());
             return value.isEmpty() ? null : value;
         } catch (RuntimeException e) {
             return null;

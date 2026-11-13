@@ -1,15 +1,13 @@
 package io.apicurio.registry.util;
 
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class JsonObjectMapper {
 
     public static final ObjectMapper MAPPER;
 
     static {
-        MAPPER = JsonMapper.builder()
-                .findAndAddModules()
-                .build();
+        MAPPER = new ObjectMapper();
+        MAPPER.findAndRegisterModules();
     }
 }

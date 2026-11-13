@@ -1,6 +1,6 @@
 package io.apicurio.registry.storage.impl.kafkasql;
 
-import tools.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.storage.dto.PeerDto;
 import io.apicurio.registry.storage.error.InvalidPeerException;
@@ -172,10 +172,10 @@ public class KafkaSqlPeerJournalTest extends AbstractResourceTestBase {
             JsonNode root = JsonObjectMapper.MAPPER.readTree(recordValue);
             JsonNode direct = root.get("peerId");
             if (direct != null && !direct.isNull()) {
-                return direct.asString();
+                return direct.asText();
             }
             JsonNode nested = root.path("peer").get("peerId");
-            return nested != null && !nested.isNull() ? nested.asString() : null;
+            return nested != null && !nested.isNull() ? nested.asText() : null;
         } catch (Exception ex) {
             return null;
         }

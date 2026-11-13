@@ -1,14 +1,14 @@
 package io.apicurio.registry.content;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.dataformat.yaml.YAMLMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 
 import java.util.Map;
 
 public class OdcsContractContentAccepter implements ContentAccepter {
 
-    private static final ObjectMapper YAML_MAPPER = new YAMLMapper();
+    private static final ObjectMapper YAML_MAPPER = new ObjectMapper(new YAMLFactory());
 
     @Override
     public boolean acceptsContent(TypedContent content, Map<String, TypedContent> resolvedReferences) {
@@ -23,8 +23,8 @@ public class OdcsContractContentAccepter implements ContentAccepter {
             }
 
             JsonNode apiVersion = tree.get("apiVersion");
-            if (apiVersion == null || !apiVersion.isString()
-                    || !apiVersion.asString().startsWith("v3")) {
+            if (apiVersion == null || !apiVersion.isTextual()
+                    || !apiVersion.asText().startsWith("v3")) {
                 return false;
             }
 
@@ -41,6 +41,6 @@ public class OdcsContractContentAccepter implements ContentAccepter {
 
     private boolean hasTextValue(JsonNode tree, String field, String expected) {
         JsonNode node = tree.get(field);
-        return node != null && node.isString() && expected.equals(node.asString());
+        return node != null && node.isTextual() && expected.equals(node.asText());
     }
 }

@@ -1,8 +1,8 @@
 package io.apicurio.registry.events.dto;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -26,7 +26,7 @@ public class ArtifactMetadataTest {
         data.setCreatedOn(Instant.parse("2026-01-01T00:00:00Z"));
         data.setModifiedOn(Instant.parse("2026-02-01T00:00:00Z"));
 
-        ObjectMapper mapper = new JsonMapper();
+        ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule());
         String json = mapper.writeValueAsString(data);
         ArtifactMetadata roundTripped = mapper.readValue(json, ArtifactMetadata.class);
 
@@ -47,7 +47,7 @@ public class ArtifactMetadataTest {
         data.setGroupId("my-group");
         data.setArtifactId("my-artifact");
 
-        ObjectMapper mapper = new JsonMapper();
+        ObjectMapper mapper = new ObjectMapper();
         JsonNode json = mapper.valueToTree(data);
 
         assertFalse(json.has("description"));

@@ -1,6 +1,6 @@
 package io.apicurio.registry.cli;
 
-import tools.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.JsonNode;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import org.junit.jupiter.api.Order;
@@ -105,7 +105,7 @@ public class ContentCommandTest extends AbstractCLITest {
         assertThat(json.get("globalId").asLong())
                 .as(withCliOutput("JSON globalId should match queried ID"))
                 .isEqualTo(globalId);
-        assertThat(json.get("content").asString())
+        assertThat(json.get("content").asText())
                 .as(withCliOutput("JSON content field should match artifact content"))
                 .isEqualTo(TEST_CONTENT);
     }

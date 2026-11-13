@@ -9,7 +9,7 @@ import io.apicurio.registry.content.refs.JsonPointerExternalReference;
 import io.apicurio.registry.content.refs.ReferenceFinder;
 import io.apicurio.registry.rules.validity.ArtifactUtilProviderTestBase;
 import io.apicurio.registry.types.ContentTypes;
-import tools.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.registry.content.util.ContentTypeUtil;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -379,45 +379,45 @@ public class AsyncApiContentDereferencerTest extends ArtifactUtilProviderTestBas
         // Avro without a declared schemaFormat: inlined, default versioned format
         JsonNode channelMessage = document.path("channels").path("userEvents").path("publish").path("message");
         Assertions.assertEquals("application/vnd.apache.avro+json;version=1.9.0",
-                channelMessage.path("schemaFormat").asString());
-        Assertions.assertEquals("UserEvent", channelMessage.path("payload").path("name").asString());
+                channelMessage.path("schemaFormat").asText());
+        Assertions.assertEquals("UserEvent", channelMessage.path("payload").path("name").asText());
 
         // Avro with a versionless schemaFormat, inside oneOf: normalized
         JsonNode oneOfAvro = document.path("channels").path("mixedEvents").path("subscribe").path("message")
                 .path("oneOf").path(1);
         Assertions.assertEquals("application/vnd.apache.avro+json;version=1.9.0",
-                oneOfAvro.path("schemaFormat").asString());
-        Assertions.assertEquals("record", oneOfAvro.path("payload").path("type").asString());
+                oneOfAvro.path("schemaFormat").asText());
+        Assertions.assertEquals("record", oneOfAvro.path("payload").path("type").asText());
 
         // Avro with a versioned schemaFormat: kept
         Assertions.assertEquals("application/vnd.apache.avro;version=1.9.0",
-                messages.path("DeclaredAvroMessage").path("schemaFormat").asString());
+                messages.path("DeclaredAvroMessage").path("schemaFormat").asText());
         Assertions.assertEquals("UserEvent",
-                messages.path("DeclaredAvroMessage").path("payload").path("name").asString());
+                messages.path("DeclaredAvroMessage").path("payload").path("name").asText());
 
         // Protobuf: inlined as text, version inferred from the schema or kept when declared
         JsonNode profile = messages.path("ProfileMessage");
-        Assertions.assertEquals("application/vnd.google.protobuf;version=3", profile.path("schemaFormat").asString());
-        Assertions.assertTrue(profile.path("payload").asString().contains("message UserProfile"),
+        Assertions.assertEquals("application/vnd.google.protobuf;version=3", profile.path("schemaFormat").asText());
+        Assertions.assertTrue(profile.path("payload").asText().contains("message UserProfile"),
                 "Protobuf payload should be inlined as text but was: " + profile.path("payload"));
         JsonNode settings = messages.path("SettingsMessage");
         Assertions.assertEquals("application/vnd.google.protobuf;version=3",
-                settings.path("schemaFormat").asString());
-        Assertions.assertTrue(settings.path("payload").asString().contains("message UserSettings"));
+                settings.path("schemaFormat").asText());
+        Assertions.assertTrue(settings.path("payload").asText().contains("message UserSettings"));
 
         // Self-contained JSON Schema: inlined, schemaFormat left unset (AsyncAPI default)
         JsonNode jsonSchema = messages.path("JsonSchemaMessage");
         Assertions.assertTrue(jsonSchema.path("schemaFormat").isMissingNode());
         Assertions.assertEquals("string",
-                jsonSchema.path("payload").path("properties").path("street").path("type").asString());
+                jsonSchema.path("payload").path("properties").path("street").path("type").asText());
 
         // JSON Schema with internal $refs, local refs and unknown refs: left untouched
         Assertions.assertEquals("http://schemas.example.org/order.json",
-                messages.path("JsonSchemaWithRefsMessage").path("payload").path("$ref").asString());
+                messages.path("JsonSchemaWithRefsMessage").path("payload").path("$ref").asText());
         Assertions.assertEquals("#/components/schemas/Local",
-                messages.path("LocalRefMessage").path("payload").path("$ref").asString());
+                messages.path("LocalRefMessage").path("payload").path("$ref").asText());
         Assertions.assertEquals("http://schemas.example.org/missing.avsc",
-                messages.path("UnknownRefMessage").path("payload").path("$ref").asString());
+                messages.path("UnknownRefMessage").path("payload").path("$ref").asText());
     }
 
     /**
@@ -467,7 +467,7 @@ public class AsyncApiContentDereferencerTest extends ArtifactUtilProviderTestBas
         JsonNode schemaFormat = document.path("components").path("messages").path(messageName)
                 .path("payload").get("schemaFormat");
         Assertions.assertNotNull(schemaFormat, "No schemaFormat on the payload of " + messageName);
-        return schemaFormat.asString();
+        return schemaFormat.asText();
     }
 
     /**
@@ -483,7 +483,7 @@ public class AsyncApiContentDereferencerTest extends ArtifactUtilProviderTestBas
                 "No components/schemas entry named " + schemaName + " in: " + document);
         JsonNode schemaFormat = schema.get("schemaFormat");
         Assertions.assertNotNull(schemaFormat, "No schemaFormat on components/schemas/" + schemaName);
-        return schemaFormat.asString();
+        return schemaFormat.asText();
     }
 
 }

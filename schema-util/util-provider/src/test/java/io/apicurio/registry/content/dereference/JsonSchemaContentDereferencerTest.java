@@ -1,7 +1,7 @@
 package io.apicurio.registry.content.dereference;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.refs.ExternalReference;
@@ -267,7 +267,7 @@ public class JsonSchemaContentDereferencerTest extends ArtifactUtilProviderTestB
     }
 
     private static JsonNode dereference(String schema, Map<String, TypedContent> references) throws Exception {
-        return new JsonMapper()
+        return new ObjectMapper()
                 .readTree(new JsonSchemaDereferencer().dereference(json(schema), references).getContent().content());
     }
 
@@ -279,8 +279,8 @@ public class JsonSchemaContentDereferencerTest extends ArtifactUtilProviderTestB
         JsonNode result = dereference(CUSTOMER_WITH_ID,
                 Map.of("address.json#/definitions/Address", json(ADDRESS_SCHEMA)));
         Assertions.assertEquals("string",
-                result.at("/properties/address/properties/street/type").asString());
-        Assertions.assertEquals("https://example.com/schemas/customer/", result.get("$id").asString());
+                result.at("/properties/address/properties/street/type").asText());
+        Assertions.assertEquals("https://example.com/schemas/customer/", result.get("$id").asText());
     }
 
     /**
@@ -291,7 +291,7 @@ public class JsonSchemaContentDereferencerTest extends ArtifactUtilProviderTestB
         JsonNode result = dereference(CUSTOMER_WITH_ID, Map.of(
                 "https://example.com/schemas/customer/address.json#/definitions/Address", json(ADDRESS_SCHEMA)));
         Assertions.assertEquals("string",
-                result.at("/properties/address/properties/street/type").asString());
+                result.at("/properties/address/properties/street/type").asText());
     }
 
     /**
@@ -312,9 +312,9 @@ public class JsonSchemaContentDereferencerTest extends ArtifactUtilProviderTestB
                 json("{\"type\": \"object\", \"properties\": {\"iban\": {\"type\": \"string\"}}}"),
                 "https://example.com/shipping/address.json",
                 json("{\"type\": \"object\", \"properties\": {\"street\": {\"type\": \"string\"}}}")));
-        Assertions.assertEquals("string", result.at("/properties/billing/properties/a/properties/iban/type").asString());
+        Assertions.assertEquals("string", result.at("/properties/billing/properties/a/properties/iban/type").asText());
         Assertions.assertEquals("string",
-                result.at("/properties/shipping/properties/a/properties/street/type").asString());
+                result.at("/properties/shipping/properties/a/properties/street/type").asText());
         Assertions.assertTrue(result.at("/properties/billing/properties/a/properties/street").isMissingNode());
     }
 
@@ -332,10 +332,10 @@ public class JsonSchemaContentDereferencerTest extends ArtifactUtilProviderTestB
         TypedContent rewritten = new JsonSchemaDereferencer().rewriteReferences(json(schema), Map.of(
                 "https://example.com/schemas/customer/address.json", "https://registry/address",
                 "ssn.json", "https://registry/ssn"));
-        JsonNode result = new JsonMapper().readTree(rewritten.getContent().content());
+        JsonNode result = new ObjectMapper().readTree(rewritten.getContent().content());
         Assertions.assertEquals("https://registry/address#/definitions/Address",
-                result.at("/properties/address/$ref").asString());
-        Assertions.assertEquals("https://registry/ssn", result.at("/properties/ssn/$ref").asString());
+                result.at("/properties/address/$ref").asText());
+        Assertions.assertEquals("https://registry/ssn", result.at("/properties/ssn/$ref").asText());
     }
 
 }

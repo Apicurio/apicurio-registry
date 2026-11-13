@@ -1,6 +1,6 @@
 package io.apicurio.registry.iceberg.content;
 
-import tools.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.extract.StructuredContentExtractor;
 import io.apicurio.registry.content.extract.StructuredElement;
@@ -64,8 +64,8 @@ public class IcebergStructuredContentExtractor implements StructuredContentExtra
      */
     private void extractName(JsonNode tree, List<StructuredElement> elements) {
         String uuidField = isTable ? "table-uuid" : "view-uuid";
-        if (tree.has(uuidField) && tree.get(uuidField).isString()) {
-            elements.add(new StructuredElement("name", tree.get(uuidField).asString()));
+        if (tree.has(uuidField) && tree.get(uuidField).isTextual()) {
+            elements.add(new StructuredElement("name", tree.get(uuidField).asText()));
         }
     }
 
@@ -110,8 +110,8 @@ public class IcebergStructuredContentExtractor implements StructuredContentExtra
     private void extractFieldsFromSchema(JsonNode schema, List<StructuredElement> elements) {
         if (schema.has("fields") && schema.get("fields").isArray()) {
             for (JsonNode field : schema.get("fields")) {
-                if (field.has("name") && field.get("name").isString()) {
-                    elements.add(new StructuredElement("column", field.get("name").asString()));
+                if (field.has("name") && field.get("name").isTextual()) {
+                    elements.add(new StructuredElement("column", field.get("name").asText()));
                 }
             }
         }
@@ -139,8 +139,8 @@ public class IcebergStructuredContentExtractor implements StructuredContentExtra
 
             if (spec.has("fields") && spec.get("fields").isArray()) {
                 for (JsonNode field : spec.get("fields")) {
-                    if (field.has("name") && field.get("name").isString()) {
-                        elements.add(new StructuredElement("partition", field.get("name").asString()));
+                    if (field.has("name") && field.get("name").isTextual()) {
+                        elements.add(new StructuredElement("partition", field.get("name").asText()));
                     }
                 }
             }
@@ -169,8 +169,8 @@ public class IcebergStructuredContentExtractor implements StructuredContentExtra
 
             if (order.has("fields") && order.get("fields").isArray()) {
                 for (JsonNode field : order.get("fields")) {
-                    if (field.has("transform") && field.get("transform").isString()) {
-                        elements.add(new StructuredElement("sort", field.get("transform").asString()));
+                    if (field.has("transform") && field.get("transform").isTextual()) {
+                        elements.add(new StructuredElement("sort", field.get("transform").asText()));
                     }
                 }
             }
@@ -199,8 +199,8 @@ public class IcebergStructuredContentExtractor implements StructuredContentExtra
 
             if (version.has("representations") && version.get("representations").isArray()) {
                 for (JsonNode rep : version.get("representations")) {
-                    if (rep.has("sql") && rep.get("sql").isString()) {
-                        elements.add(new StructuredElement("sql", rep.get("sql").asString()));
+                    if (rep.has("sql") && rep.get("sql").isTextual()) {
+                        elements.add(new StructuredElement("sql", rep.get("sql").asText()));
                     }
                 }
             }

@@ -1,8 +1,8 @@
 package io.apicurio.registry.serde.jsonschema;
 
-import com.networknt.schema.Schema;
-import com.networknt.schema.SchemaRegistry;
-import com.networknt.schema.SpecificationVersion;
+import com.networknt.schema.JsonSchema;
+import com.networknt.schema.JsonSchemaFactory;
+import com.networknt.schema.SpecVersion;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.ParsedSchemaImpl;
 import io.apicurio.registry.resolver.SchemaParser;
@@ -14,7 +14,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class JsonSchemaParser<T> implements SchemaParser<Schema, T> {
+public class JsonSchemaParser<T> implements SchemaParser<JsonSchema, T> {
     /**
      * @see io.apicurio.registry.resolver.SchemaParser#artifactType()
      */
@@ -27,19 +27,19 @@ public class JsonSchemaParser<T> implements SchemaParser<Schema, T> {
      * @see io.apicurio.registry.resolver.SchemaParser#parseSchema(byte[], Map)
      */
     @Override
-    public Schema parseSchema(byte[] rawSchema,
-            Map<String, ParsedSchema<Schema>> resolvedReferences) {
+    public JsonSchema parseSchema(byte[] rawSchema,
+            Map<String, ParsedSchema<JsonSchema>> resolvedReferences) {
         Map<String, String> referenceSchemas = new HashMap<>();
 
         resolveReferences(resolvedReferences, referenceSchemas);
 
-        SchemaRegistry registry = SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_7,
-                builder -> builder.schemas(referenceSchemas));
+        JsonSchemaFactory schemaFactory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7,
+                builder -> builder.schemaLoaders(schemaLoaders -> schemaLoaders.schemas(referenceSchemas)));
 
-        return registry.getSchema(IoUtil.toString(rawSchema));
+        return schemaFactory.getSchema(IoUtil.toString(rawSchema));
     }
 
-    private void resolveReferences(Map<String, ParsedSchema<Schema>> resolvedReferences,
+    private void resolveReferences(Map<String, ParsedSchema<JsonSchema>> resolvedReferences,
             Map<String, String> referenceSchemas) {
         resolvedReferences.forEach((referenceName, schema) -> {
             if (schema.hasReferences()) {
@@ -57,24 +57,24 @@ public class JsonSchemaParser<T> implements SchemaParser<Schema, T> {
      * @see io.apicurio.registry.resolver.SchemaParser#getSchemaFromData(Record)
      */
     @Override
-    public ParsedSchema<Schema> getSchemaFromData(Record<T> data) {
+    public ParsedSchema<JsonSchema> getSchemaFromData(Record<T> data) {
         // not supported for jsonschema type
         return null;
     }
 
     @Override
-    public ParsedSchema<Schema> getSchemaFromData(Record<T> data, boolean dereference) {
+    public ParsedSchema<JsonSchema> getSchemaFromData(Record<T> data, boolean dereference) {
         // not supported for jsonschema type
         return null;
     }
 
     @Override
-    public ParsedSchema<Schema> getSchemaFromLocation(String location) {
+    public ParsedSchema<JsonSchema> getSchemaFromLocation(String location) {
         String rawSchema = IoUtil
                 .toString(Thread.currentThread().getContextClassLoader().getResourceAsStream(location));
-        SchemaRegistry registry = SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_7);
-        return new ParsedSchemaImpl<Schema>()
-                .setParsedSchema(registry.getSchema(IoUtil.toStream(rawSchema)))
+        JsonSchemaFactory factory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7);
+        return new ParsedSchemaImpl<JsonSchema>()
+                .setParsedSchema(factory.getSchema(IoUtil.toStream(rawSchema)))
                 .setRawSchema(rawSchema.getBytes());
     }
 

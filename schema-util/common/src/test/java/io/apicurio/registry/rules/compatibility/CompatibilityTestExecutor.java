@@ -1,8 +1,7 @@
 package io.apicurio.registry.rules.compatibility;
 
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
-import tools.jackson.datatype.jsonorg.JsonOrgModule;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsonorg.JsonOrgModule;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.types.ContentTypes;
 import org.json.JSONArray;
@@ -25,9 +24,11 @@ public class CompatibilityTestExecutor {
 
     private static final Logger log = LoggerFactory.getLogger(CompatibilityTestExecutor.class);
 
-    public static final ObjectMapper MAPPER = JsonMapper.builder()
-            .addModule(new JsonOrgModule())
-            .build();
+    public static final ObjectMapper MAPPER = new ObjectMapper();
+
+    static {
+        MAPPER.registerModule(new JsonOrgModule());
+    }
 
     private CompatibilityChecker checker;
 

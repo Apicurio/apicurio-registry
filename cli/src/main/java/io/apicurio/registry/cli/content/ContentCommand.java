@@ -12,7 +12,6 @@ import java.util.Map;
 import picocli.CommandLine.ArgGroup;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
-import tools.jackson.core.JacksonException;
 
 import static io.apicurio.registry.cli.common.CliException.APPLICATION_ERROR_RETURN_CODE;
 import static io.apicurio.registry.cli.common.CliException.VALIDATION_ERROR_RETURN_CODE;
@@ -79,7 +78,7 @@ public class ContentCommand extends AbstractCommand {
                     }
                 }
             });
-        } catch (JacksonException | IOException ex) {
+        } catch (IOException ex) {
             throw new CliException("Could not read content.", ex, APPLICATION_ERROR_RETURN_CODE);
         }
     }

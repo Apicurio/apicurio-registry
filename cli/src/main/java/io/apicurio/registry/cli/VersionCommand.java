@@ -1,6 +1,7 @@
 package io.apicurio.registry.cli;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.utils.OutputBuffer;
@@ -45,7 +46,7 @@ public class VersionCommand extends AbstractCommand {
     String cliVersion;
 
     @Override
-    public void run(final OutputBuffer output) {
+    public void run(final OutputBuffer output) throws JsonProcessingException {
         final var builder = VersionOutput.builder()
                 .cliVersion(cliVersion);
 
@@ -79,7 +80,7 @@ public class VersionCommand extends AbstractCommand {
                 .toList() : null);
     }
 
-    private static void printVersion(final OutputBuffer output, final VersionOutput versionOutput, final OutputTypeMixin outputType) {
+    private static void printVersion(final OutputBuffer output, final VersionOutput versionOutput, final OutputTypeMixin outputType) throws JsonProcessingException {
         output.writeStdOutChunkWithException(out -> {
             switch (outputType.getOutputType()) {
                 case json -> {

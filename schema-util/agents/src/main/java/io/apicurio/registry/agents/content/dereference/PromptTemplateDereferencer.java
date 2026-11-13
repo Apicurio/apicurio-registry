@@ -2,13 +2,13 @@ package io.apicurio.registry.agents.content.dereference;
 
 import io.apicurio.registry.content.dereference.ContentDereferencer;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.SerializationFeature;
-import tools.jackson.databind.json.JsonMapper;
-import tools.jackson.databind.node.ArrayNode;
-import tools.jackson.databind.node.ObjectNode;
-import tools.jackson.dataformat.yaml.YAMLMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.refs.JsonPointerExternalReference;
@@ -28,11 +28,12 @@ public class PromptTemplateDereferencer implements ContentDereferencer {
     private static final String VARIABLES = "variables";
     private static final String OUTPUT_SCHEMA = "outputSchema";
     private static final String REF = "$ref";
-    private static final ObjectMapper jsonMapper = new JsonMapper();
-    private static final ObjectMapper yamlReader = new YAMLMapper();
-    private static final ObjectMapper yamlWriter = YAMLMapper.builder()
-            .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
-            .build();
+    private static final ObjectMapper jsonMapper = new ObjectMapper();
+    private static final ObjectMapper yamlReader = new ObjectMapper(new YAMLFactory());
+    private static final ObjectMapper yamlWriter = new ObjectMapper(
+            new YAMLFactory()
+                    .enable(YAMLGenerator.Feature.MINIMIZE_QUOTES))
+            .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
 
     @Override
     public TypedContent dereference(TypedContent content, Map<String, TypedContent> resolvedReferences) {
@@ -107,8 +108,8 @@ public class PromptTemplateDereferencer implements ContentDereferencer {
 
     private TypedContent findExternalReference(ObjectNode obj,
             Map<String, TypedContent> resolvedReferences) {
-        if (obj.has(REF) && obj.get(REF).isString()) {
-            String ref = obj.get(REF).asString();
+        if (obj.has(REF) && obj.get(REF).isTextual()) {
+            String ref = obj.get(REF).asText();
             if (!ref.startsWith("#")) {
                 return resolvedReferences.get(ref);
             }
@@ -118,7 +119,7 @@ public class PromptTemplateDereferencer implements ContentDereferencer {
 
     private void resolveObjectFields(ObjectNode obj,
             Map<String, TypedContent> resolvedReferences) throws Exception {
-        Iterator<String> fieldNames = obj.propertyNames().iterator();
+        Iterator<String> fieldNames = obj.fieldNames();
         while (fieldNames.hasNext()) {
             String fieldName = fieldNames.next();
             JsonNode child = obj.get(fieldName);
@@ -142,10 +143,10 @@ public class PromptTemplateDereferencer implements ContentDereferencer {
     private void rewriteRefsRecursive(JsonNode node, Map<String, String> resolvedReferenceUrls) {
         if (node.isObject()) {
             ObjectNode obj = (ObjectNode) node;
-            if (obj.has(REF) && obj.get(REF).isString()) {
-                rewriteRef(obj, obj.get(REF).asString(), resolvedReferenceUrls);
+            if (obj.has(REF) && obj.get(REF).isTextual()) {
+                rewriteRef(obj, obj.get(REF).asText(), resolvedReferenceUrls);
             }
-            Iterator<String> fieldNames = obj.propertyNames().iterator();
+            Iterator<String> fieldNames = obj.fieldNames();
             while (fieldNames.hasNext()) {
                 rewriteRefsRecursive(obj.get(fieldNames.next()), resolvedReferenceUrls);
             }

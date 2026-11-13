@@ -1,9 +1,8 @@
 package io.apicurio.registry.agents.mcpimport;
 
-import tools.jackson.databind.DeserializationFeature;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rbac.MockAuditLogService;
 import io.apicurio.registry.types.ArtifactType;
@@ -53,9 +52,8 @@ public class McpImportTest extends AbstractResourceTestBase {
 
     static final String LOCK = "mcp-import";
 
-    private static final ObjectMapper MAPPER = JsonMapper.builder()
-            .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
-            .build();
+    private static final ObjectMapper MAPPER = new ObjectMapper()
+            .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS);
     private static final String SERVER = "srv";
 
     McpTestServer mcp;
@@ -199,7 +197,7 @@ public class McpImportTest extends AbstractResourceTestBase {
                 .body("tools[0].status", equalTo("NEW_VERSION")).body("tools[0].version", equalTo("2"))
                 .body("status", equalTo("NEW_VERSION")).body("version", equalTo("3"));
 
-        assertEquals("Searches better", content("srv.search", "2").get("description").asString());
+        assertEquals("Searches better", content("srv.search", "2").get("description").asText());
         assertEquals(List.of("search=srv.search@2"), references("3"));
         assertEquals(List.of("search=srv.search@1"), references("2"));
     }
@@ -295,7 +293,7 @@ public class McpImportTest extends AbstractResourceTestBase {
         assertEquals(1, versionCount("srv.changed"));
         assertEquals(1, versionCount("srv.broken"));
         assertEquals(2, versionCount(SERVER));
-        assertEquals("The changed tool", content("srv.changed", "1").get("description").asString());
+        assertEquals("The changed tool", content("srv.changed", "1").get("description").asText());
     }
 
     /**

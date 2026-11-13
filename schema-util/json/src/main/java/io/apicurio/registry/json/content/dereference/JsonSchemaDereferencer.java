@@ -1,11 +1,14 @@
 package io.apicurio.registry.json.content.dereference;
 
-import tools.jackson.databind.cfg.JsonNodeFeature;
-import tools.jackson.databind.DeserializationFeature;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
-import tools.jackson.datatype.jsonorg.JsonOrgModule;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.fasterxml.jackson.datatype.jsonorg.JsonOrgModule;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
@@ -19,11 +22,12 @@ import io.vertx.json.schema.JsonSchemaOptions;
 import io.vertx.json.schema.impl.JsonRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tools.jackson.core.JacksonException;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+
+import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES;
 
 public class JsonSchemaDereferencer implements ContentDereferencer {
 
@@ -34,11 +38,14 @@ public class JsonSchemaDereferencer implements ContentDereferencer {
     private static final String REF = "$ref";
 
     static {
-        objectMapper = JsonMapper.builder()
-                .addModule(new JsonOrgModule())
-                .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
-                .disable(JsonNodeFeature.STRIP_TRAILING_BIGDECIMAL_ZEROES)
-                .build();
+        objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new ParameterNamesModule());
+        objectMapper.registerModule(new Jdk8Module());
+        objectMapper.registerModule(new JavaTimeModule());
+        objectMapper.registerModule(new JsonOrgModule());
+        objectMapper.enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS);
+        objectMapper.disable(FAIL_ON_UNKNOWN_PROPERTIES);
+        objectMapper.setNodeFactory(JsonNodeFactory.withExactBigDecimals(true));
     }
 
     @Override
@@ -54,12 +61,12 @@ public class JsonSchemaDereferencer implements ContentDereferencer {
             JsonNode schemaNode = contentNode.path(schemaKey);
 
             if (!idNode.isMissingNode() && !idNode.isNull()) {
-                id = idNode.asString();
+                id = idNode.asText();
             }
             if (!schemaNode.isMissingNode() && !schemaNode.isNull()) {
-                schema = schemaNode.asString();
+                schema = schemaNode.asText();
             }
-        } catch (JacksonException e) {
+        } catch (JsonProcessingException e) {
             log.warn("Failed to parse JSON Schema content: {}", e.getMessage());
         }
 
@@ -147,7 +154,7 @@ public class JsonSchemaDereferencer implements ContentDereferencer {
             }
             return changed ? objectMapper.writeValueAsString(objectMapper.treeToValue(tree, Object.class))
                     : content;
-        } catch (JacksonException e) {
+        } catch (JsonProcessingException e) {
             return content;
         }
     }

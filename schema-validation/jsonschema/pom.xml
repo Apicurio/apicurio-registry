@@ -17,10 +17,6 @@
 
   <dependencies>
     <dependency>
-      <groupId>tools.jackson.core</groupId>
-      <artifactId>jackson-databind</artifactId>
-    </dependency>
-    <dependency>
       <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-schema-validation-common</artifactId>
     </dependency>

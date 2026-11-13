@@ -1,6 +1,6 @@
 package io.apicurio.registry.noprofile.ccompat.rest.v7;
 
-import tools.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.ccompat.rest.ContentTypes;
 import io.apicurio.registry.ccompat.rest.v7.beans.ConfigUpdateRequest;
@@ -36,7 +36,7 @@ public class ConfluentCompatibilityConfigTest extends AbstractResourceTestBase {
         var subject = TestUtils.generateSubject();
         var schema = "{\"type\" : \"string\"}";
 
-        var objectMapper = new JsonMapper();
+        var objectMapper = new ObjectMapper();
 
         var schemaContent = new RegisterSchemaRequest();
         schemaContent.setSchema(schema);
@@ -66,7 +66,7 @@ public class ConfluentCompatibilityConfigTest extends AbstractResourceTestBase {
         // Create a subject
         var subject = TestUtils.generateSubject();
         var schema = "{\"type\" : \"string\"}";
-        var objectMapper = new JsonMapper();
+        var objectMapper = new ObjectMapper();
         var schemaContent = new RegisterSchemaRequest();
         schemaContent.setSchema(schema);
         given().log().all().when().contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)

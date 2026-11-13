@@ -1,12 +1,12 @@
 package io.apicurio.registry.cli.rolemapping;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.cli.common.CliException;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.cli.utils.TableBuilder;
 import io.apicurio.registry.rest.client.models.RoleMapping;
 import io.apicurio.registry.rest.client.models.RoleType;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -36,7 +36,7 @@ public final class RoleMappingUtil {
     }
 
     static void printRoleMapping(final OutputBuffer output, final RoleMapping mapping,
-                                 final OutputTypeMixin outputType) {
+                                 final OutputTypeMixin outputType) throws JsonProcessingException {
         output.writeStdOutChunkWithException(out -> {
             switch (outputType.getOutputType()) {
                 case json -> out.append(MAPPER.writeValueAsString(mapping)).append('\n');
@@ -54,7 +54,8 @@ public final class RoleMappingUtil {
         });
     }
 
-    static void printRoleMappingJson(final OutputBuffer output, final List<RoleMapping> mappings) {
+    static void printRoleMappingJson(final OutputBuffer output, final List<RoleMapping> mappings)
+            throws JsonProcessingException {
         output.writeStdOutChunkWithException(out ->
                 out.append(MAPPER.writeValueAsString(mappings)).append('\n'));
     }

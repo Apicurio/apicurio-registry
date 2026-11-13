@@ -1,6 +1,6 @@
 package io.apicurio.registry.noprofile.rest.v3;
 
-import tools.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.v3.beans.CreateArtifact;
 import io.apicurio.registry.rest.v3.beans.CreateVersion;
@@ -104,7 +104,7 @@ public class HttpCompressionTest extends AbstractResourceTestBase {
                         .contentType(ContentTypes.APPLICATION_JSON).build()).build())
                 .build();
 
-        byte[] requestJson = new JsonMapper().writeValueAsBytes(createArtifact);
+        byte[] requestJson = new ObjectMapper().writeValueAsBytes(createArtifact);
         byte[] gzippedRequestJson = gzip(requestJson);
         assertTrue(gzippedRequestJson.length < requestJson.length, "the request body used by this test "
                 + "must actually shrink when gzipped, otherwise it isn't exercising decompression");

@@ -1,9 +1,8 @@
 package io.apicurio.registry.json.content.canon;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.SerializationFeature;
-import tools.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
@@ -18,9 +17,8 @@ import java.util.Map;
  */
 public class JsonContentCanonicalizer implements ContentCanonicalizer {
 
-    private final ObjectMapper mapper = JsonMapper.builder()
-            .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
-            .build();
+    private final ObjectMapper mapper = new ObjectMapper()
+            .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
 
     /**
      * @see ContentCanonicalizer#canonicalize(TypedContent, Map)

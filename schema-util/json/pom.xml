@@ -32,11 +32,6 @@
       <groupId>io.apitomy</groupId>
       <artifactId>apitomy-data-models</artifactId>
     </dependency>
-    <!-- apitomy-data-models only supports Jackson 2 (see DataModelsJson) -->
-    <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-databind</artifactId>
-    </dependency>
     <dependency>
       <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-schema-util-common</artifactId>
@@ -46,7 +41,7 @@
     </dependency>
 
     <dependency>
-      <groupId>tools.jackson.datatype</groupId>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
       <artifactId>jackson-datatype-json-org</artifactId>
     </dependency>
     <dependency>
@@ -61,11 +56,19 @@
     </dependency>
 
     <dependency>
-      <groupId>tools.jackson.core</groupId>
-      <artifactId>jackson-databind</artifactId>
+      <groupId>com.fasterxml.jackson.module</groupId>
+      <artifactId>jackson-module-parameter-names</artifactId>
     </dependency>
 
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jdk8</artifactId>
+    </dependency>
 
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jsr310</artifactId>
+    </dependency>
 
     <dependency>
       <groupId>org.junit.jupiter</groupId>

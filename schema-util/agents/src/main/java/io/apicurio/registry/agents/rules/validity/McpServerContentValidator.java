@@ -9,14 +9,15 @@ import io.apicurio.registry.rules.violation.RuleViolation;
 import io.apicurio.registry.rules.violation.RuleViolationException;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
-import tools.jackson.databind.json.JsonMapper;
-import com.networknt.schema.Schema;
-import com.networknt.schema.SchemaRegistry;
-import com.networknt.schema.path.PathType;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.networknt.schema.JsonSchema;
+import com.networknt.schema.JsonSchemaFactory;
+import com.networknt.schema.PathType;
 import com.networknt.schema.SchemaLocation;
-import com.networknt.schema.SchemaRegistryConfig;
-import com.networknt.schema.SpecificationVersion;
-import com.networknt.schema.Error;
+import com.networknt.schema.SchemaValidatorsConfig;
+import com.networknt.schema.SpecVersion.VersionFlag;
+import com.networknt.schema.ValidationMessage;
+import com.networknt.schema.resource.DisallowSchemaLoader;
 
 import java.io.InputStream;
 import java.util.HashSet;
@@ -30,22 +31,20 @@ import java.util.regex.Pattern;
 public class McpServerContentValidator implements ContentValidator {
 
     public static final Pattern SERVER_NAME_PATTERN = Pattern.compile("^[a-zA-Z0-9.-]+/[a-zA-Z0-9._-]+$");
-    private static final Schema SCHEMA = loadSchema();
+    private static final JsonSchema SCHEMA = loadSchema();
 
-    private static Schema loadSchema() {
+    private static JsonSchema loadSchema() {
         try (InputStream stream = McpServerContentValidator.class.getResourceAsStream("mcp-server-2025-12-11.json")) {
             if (stream == null) {
                 throw new IllegalStateException("Missing bundled MCP server schema");
             }
-            var schema = new JsonMapper().readTree(stream);
-            var config = SchemaRegistryConfig.builder().pathType(PathType.JSON_POINTER).build();
+            var schema = new ObjectMapper().readTree(stream);
             // The bundled schema refers only to its own definitions. Every loader is replaced by one
             // that refuses, so no document is ever fetched, from the network or the classpath.
-            var registry = SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_7, builder -> builder
-                    .schemaRegistryConfig(config)
-                    .schemaLoader(loader -> loader.resourceLoaders(loaders -> loaders.values(List::clear))
-                            .allow(iri -> false)));
-            var loaded = registry.getSchema(SchemaLocation.of(schema.path("$id").asString()), schema);
+            var factory = JsonSchemaFactory.getInstance(VersionFlag.V7, builder -> builder
+                    .schemaLoaders(loaders -> loaders.values(List::clear).add(DisallowSchemaLoader.getInstance())));
+            var config = SchemaValidatorsConfig.builder().pathType(PathType.JSON_POINTER).build();
+            var loaded = factory.getSchema(SchemaLocation.of(schema.path("$id").asText()), schema, config);
             loaded.initializeValidators();
             return loaded;
         } catch (Exception e) {
@@ -58,20 +57,20 @@ public class McpServerContentValidator implements ContentValidator {
         if (level == ValidityLevel.NONE) {
             return;
         }
-        List<Error> messages;
+        Set<ValidationMessage> messages;
         try {
             var tree = ContentTypeUtil.parseJson(content.getContent());
             if (!tree.isObject()) {
                 throw new IllegalArgumentException("Expected an object");
             }
-            messages = level == ValidityLevel.FULL ? SCHEMA.validate(tree) : List.of();
+            messages = level == ValidityLevel.FULL ? SCHEMA.validate(tree) : Set.of();
         } catch (Exception e) {
             throw new RuleViolationException("MCP server definition must be a JSON object", RuleType.VALIDITY,
                     level.name(), Set.of(new RuleViolation("Invalid JSON object", "")));
         }
         if (!messages.isEmpty()) {
             Set<RuleViolation> violations = new HashSet<>();
-            for (Error message : messages) {
+            for (ValidationMessage message : messages) {
                 var location = message.getInstanceLocation().toString();
                 violations.add(new RuleViolation(withoutLocation(message.getMessage(), location), location));
             }

@@ -3,13 +3,13 @@ package io.apicurio.registry.agents.content.extract;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.ExtractedMetaData;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.content.ContentHandle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tools.jackson.core.JacksonException;
+
+import java.io.IOException;
 
 /**
  * Generic content extractor for JSON artifacts that have top-level "name" and "description" fields.
@@ -19,7 +19,7 @@ public class JsonNameDescriptionContentExtractor implements ContentExtractor {
 
     private static final Logger log = LoggerFactory.getLogger(JsonNameDescriptionContentExtractor.class);
 
-    private static final ObjectMapper mapper = new JsonMapper();
+    private static final ObjectMapper mapper = new ObjectMapper();
 
     @Override
     public ExtractedMetaData extract(ContentHandle content) {
@@ -30,20 +30,20 @@ public class JsonNameDescriptionContentExtractor implements ContentExtractor {
 
             ExtractedMetaData metaData = null;
 
-            if (name != null && !name.isNull() && name.isString()) {
+            if (name != null && !name.isNull() && name.isTextual()) {
                 metaData = new ExtractedMetaData();
-                metaData.setName(name.asString());
+                metaData.setName(name.asText());
             }
 
-            if (description != null && !description.isNull() && description.isString()) {
+            if (description != null && !description.isNull() && description.isTextual()) {
                 if (metaData == null) {
                     metaData = new ExtractedMetaData();
                 }
-                metaData.setDescription(description.asString());
+                metaData.setDescription(description.asText());
             }
 
             return metaData;
-        } catch (JacksonException e) {
+        } catch (IOException e) {
             log.warn("Error extracting metadata from JSON content: {}", e.getMessage());
             return null;
         }

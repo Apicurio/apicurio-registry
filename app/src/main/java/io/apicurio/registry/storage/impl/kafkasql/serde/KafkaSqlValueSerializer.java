@@ -1,13 +1,12 @@
 package io.apicurio.registry.storage.impl.kafkasql.serde;
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlMessage;
 import org.apache.commons.io.output.UnsynchronizedByteArrayOutputStream;
 import org.apache.kafka.common.serialization.Serializer;
-import tools.jackson.core.JacksonException;
 
+import java.io.IOException;
 import java.io.UncheckedIOException;
 
 /**
@@ -15,9 +14,10 @@ import java.io.UncheckedIOException;
  */
 public class KafkaSqlValueSerializer implements Serializer<KafkaSqlMessage> {
 
-    private static final ObjectMapper mapper = JsonMapper.builder()
-            .changeDefaultPropertyInclusion(incl -> incl.withContentInclusion(Include.NON_NULL).withValueInclusion(Include.NON_NULL))
-            .build();
+    private static final ObjectMapper mapper = new ObjectMapper();
+    static {
+        mapper.setSerializationInclusion(Include.NON_NULL);
+    }
 
     /**
      * @see Serializer#serialize(String, Object)
@@ -31,9 +31,7 @@ public class KafkaSqlValueSerializer implements Serializer<KafkaSqlMessage> {
         try (UnsynchronizedByteArrayOutputStream out = UnsynchronizedByteArrayOutputStream.builder().get()) {
             mapper.writeValue(out, message);
             return out.toByteArray();
-        } catch (JacksonException e) {
-            throw new UncheckedIOException(new java.io.IOException(e.getMessage(), e));
-        } catch (java.io.IOException e) {
+        } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
     }

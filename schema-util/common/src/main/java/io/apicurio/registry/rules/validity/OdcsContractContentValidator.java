@@ -1,8 +1,8 @@
 package io.apicurio.registry.rules.validity;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.dataformat.yaml.YAMLMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rules.violation.RuleViolation;
 import io.apicurio.registry.rules.violation.RuleViolationException;
@@ -18,7 +18,7 @@ import java.util.Set;
 
 public class OdcsContractContentValidator implements ContentValidator {
 
-    private static final ObjectMapper YAML_MAPPER = new YAMLMapper();
+    private static final ObjectMapper YAML_MAPPER = new ObjectMapper(new YAMLFactory());
 
     @Override
     public void validate(ValidityLevel level, TypedContent content,
@@ -50,7 +50,7 @@ public class OdcsContractContentValidator implements ContentValidator {
 
         Set<RuleViolation> violations = new HashSet<>();
 
-        if (!tree.has("kind") || !"DataContract".equals(tree.get("kind").asString())) {
+        if (!tree.has("kind") || !"DataContract".equals(tree.get("kind").asText())) {
             violations.add(
                     new RuleViolation("Missing or invalid 'kind' field (expected 'DataContract')",
                             "/kind"));

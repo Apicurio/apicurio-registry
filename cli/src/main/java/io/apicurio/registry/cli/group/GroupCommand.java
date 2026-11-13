@@ -1,5 +1,6 @@
 package io.apicurio.registry.cli.group;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.cli.Acr;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.ColumnsMixin;
@@ -57,7 +58,7 @@ public class GroupCommand extends AbstractCommand {
     private Acr parent;
 
     @Override
-    public void run(OutputBuffer output) {
+    public void run(OutputBuffer output) throws JsonProcessingException {
         //noinspection ConstantConditions
         var groups = convert(client.getRegistryClient().groups().get(r -> {
             //noinspection ConstantConditions

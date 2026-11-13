@@ -1,8 +1,7 @@
 package io.apicurio.registry.noprofile.storage;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlSubmitter;
 import io.apicurio.registry.storage.impl.kafkasql.messages.UpdateArtifactMetaData3Message;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
@@ -33,7 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 public class FeatureLabelPreservationKafkaSqlTest extends FeatureLabelPreservationTest {
 
     private static final String JOURNAL_TOPIC = "kafkasql-journal";
-    private static final ObjectMapper MAPPER = new JsonMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     /**
      * The journal holds the merged label map, so a replay writes the same labels. A replay of a
@@ -68,7 +67,7 @@ public class FeatureLabelPreservationKafkaSqlTest extends FeatureLabelPreservati
         JsonNode update = null;
         for (String value : journaled) {
             JsonNode node = MAPPER.readTree(value);
-            if (artifactId.equals(node.path("artifactId").asString())
+            if (artifactId.equals(node.path("artifactId").asText())
                     && node.path("metaData").path("labels").has("team")) {
                 update = node;
             }

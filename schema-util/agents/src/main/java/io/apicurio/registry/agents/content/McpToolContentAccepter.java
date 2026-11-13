@@ -3,7 +3,7 @@ package io.apicurio.registry.agents.content;
 import io.apicurio.registry.content.ContentAccepter;
 import io.apicurio.registry.content.TypedContent;
 
-import tools.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.registry.content.util.ContentTypeUtil;
 
 import java.util.Map;
@@ -32,8 +32,8 @@ public class McpToolContentAccepter implements ContentAccepter {
             // An MCP tool definition must have a non-empty name and an object input schema.
             JsonNode name = tree.get("name");
             JsonNode inputSchema = tree.get("inputSchema");
-            if (tree.isObject() && name != null && name.isString()
-                    && !name.asString().trim().isEmpty() && inputSchema != null
+            if (tree.isObject() && name != null && name.isTextual()
+                    && !name.asText().trim().isEmpty() && inputSchema != null
                     && inputSchema.isObject()) {
                 return true;
             }

@@ -1,10 +1,10 @@
 package io.apicurio.registry.contracts.tags;
-import tools.jackson.databind.json.JsonMapper;
+
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.types.ArtifactType;
 import jakarta.enterprise.context.ApplicationScoped;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,7 +21,7 @@ public class JsonSchemaTagExtractor implements TagExtractor {
 
     private static final Logger log = LoggerFactory.getLogger(JsonSchemaTagExtractor.class);
 
-    private static final ObjectMapper MAPPER = new JsonMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final List<String> TAG_PROPERTY_NAMES = List.of("x-tags", "x-confluent-tags");
 
     @Override
@@ -78,7 +78,7 @@ public class JsonSchemaTagExtractor implements TagExtractor {
     private void extractTagsFromProperties(JsonNode root, JsonNode properties, String pathPrefix,
             Map<String, Set<String>> result, Set<String> visited) {
         if (properties != null && properties.isObject()) {
-            Iterator<Map.Entry<String, JsonNode>> fields = properties.properties().iterator();
+            Iterator<Map.Entry<String, JsonNode>> fields = properties.fields();
             while (fields.hasNext()) {
                 Map.Entry<String, JsonNode> entry = fields.next();
                 String fieldName = entry.getKey();
@@ -109,8 +109,8 @@ public class JsonSchemaTagExtractor implements TagExtractor {
 
     private void extractTagsFromRef(JsonNode root, JsonNode ref, String pathPrefix,
             Map<String, Set<String>> result, Set<String> visited) {
-        if (ref != null && ref.isString()) {
-            String refPath = ref.asString();
+        if (ref != null && ref.isTextual()) {
+            String refPath = ref.asText();
             if (refPath.startsWith("#/")) {
                 JsonNode resolved = resolveLocalRef(root, refPath);
                 if (resolved != null) {
@@ -129,8 +129,8 @@ public class JsonSchemaTagExtractor implements TagExtractor {
             JsonNode value = fieldSchema.get(propertyName);
             if (value != null && value.isArray()) {
                 for (JsonNode item : value) {
-                    if (item != null && item.isString()) {
-                        tags.add(item.asString());
+                    if (item != null && item.isTextual()) {
+                        tags.add(item.asText());
                     }
                 }
             }
@@ -140,12 +140,12 @@ public class JsonSchemaTagExtractor implements TagExtractor {
 
     private String nodeIdentity(JsonNode node) {
         JsonNode id = node.get("$id");
-        if (id != null && id.isString()) {
-            return id.asString();
+        if (id != null && id.isTextual()) {
+            return id.asText();
         }
         JsonNode title = node.get("title");
-        if (title != null && title.isString()) {
-            return title.asString();
+        if (title != null && title.isTextual()) {
+            return title.asText();
         }
         return null;
     }

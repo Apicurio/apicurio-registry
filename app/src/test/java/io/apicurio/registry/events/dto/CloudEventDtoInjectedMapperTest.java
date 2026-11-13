@@ -5,8 +5,8 @@
  */
 package io.apicurio.registry.events.dto;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.events.ArtifactCreated;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.quarkus.test.junit.QuarkusTest;
@@ -117,13 +117,13 @@ public class CloudEventDtoInjectedMapperTest {
         JsonNode data = objectMapper.readTree(json).get("data");
 
         assertNotNull(data, "Expected a 'data' node in the serialized CloudEvent, but was: " + json);
-        assertEquals("test-group", data.get("groupId").asString(),
+        assertEquals("test-group", data.get("groupId").asText(),
                 "Expected the event payload groupId on the wire, but was: " + json);
-        assertEquals("test-artifact", data.get("artifactId").asString(),
+        assertEquals("test-artifact", data.get("artifactId").asText(),
                 "Expected the event payload artifactId on the wire, but was: " + json);
-        assertEquals("ARTIFACT_CREATED", data.get("eventType").asString(),
+        assertEquals("ARTIFACT_CREATED", data.get("eventType").asText(),
                 "Expected the event payload eventType on the wire, but was: " + json);
-        assertEquals(event.getId(), data.get("id").asString(),
+        assertEquals(event.getId(), data.get("id").asText(),
                 "Expected the event payload id on the wire, but was: " + json);
     }
 }

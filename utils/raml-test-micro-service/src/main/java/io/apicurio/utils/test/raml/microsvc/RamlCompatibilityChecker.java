@@ -1,8 +1,8 @@
 package io.apicurio.utils.test.raml.microsvc;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.dataformat.yaml.YAMLMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.CompatibilityExecutionResult;
@@ -13,7 +13,7 @@ import java.util.Map;
 
 public class RamlCompatibilityChecker implements CompatibilityChecker {
 
-    private static final ObjectMapper mapper = new YAMLMapper();
+    private static final ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
 
     @Override
     public CompatibilityExecutionResult testCompatibility(CompatibilityLevel compatibilityLevel,

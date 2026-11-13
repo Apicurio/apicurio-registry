@@ -1,10 +1,10 @@
 package io.apicurio.registry.agents.rules.compatibility;
 
-import tools.jackson.databind.cfg.JsonNodeFeature;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.DeserializationFeature;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.json.rules.compatibility.ApitomyJsonSchemaCompatibilityChecker;
@@ -14,8 +14,7 @@ import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.rules.compatibility.SimpleCompatibilityDifference;
 import io.apicurio.registry.rules.violation.UnprocessableSchemaException;
 import io.apicurio.registry.types.ContentTypes;
-import tools.jackson.core.JacksonException;
-import com.networknt.schema.SpecificationVersion;
+import com.networknt.schema.SpecVersion.VersionFlag;
 
 import java.math.BigDecimal;
 import java.util.HashSet;
@@ -34,10 +33,9 @@ public class McpToolCompatibilityChecker extends AbstractCompatibilityChecker<Si
     private static final String CONST = "const";
     // Numbers reach the shared checker as written, rather than rounded through a double: two
     // different high-precision enum values or bounds must not compare as one.
-    private static final ObjectMapper MAPPER = JsonMapper.builder()
+    private static final ObjectMapper MAPPER = new ObjectMapper()
             .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
-            .disable(JsonNodeFeature.STRIP_TRAILING_BIGDECIMAL_ZEROES)
-            .build();
+            .setNodeFactory(JsonNodeFactory.withExactBigDecimals(true));
     private static final JsonSchemaDocumentValidator VALIDATOR = JsonSchemaDocumentValidator.builder()
             .draftDetector(JsonSchemaDocumentValidator.dataModelsDraftDetector()).build();
     private static final Set<String> ANNOTATIONS = Set.of("title", "description", "default", "examples",
@@ -87,7 +85,7 @@ public class McpToolCompatibilityChecker extends AbstractCompatibilityChecker<Si
             if (tool != null && tool.isObject()) {
                 return tool;
             }
-        } catch (JacksonException e) {
+        } catch (JsonProcessingException e) {
             throw new UnprocessableSchemaException("MCP tool compatibility requires a JSON object.", e);
         }
         throw new UnprocessableSchemaException("MCP tool compatibility requires a JSON object.");
@@ -100,7 +98,7 @@ public class McpToolCompatibilityChecker extends AbstractCompatibilityChecker<Si
         if (!VALIDATOR.validate(schema).isEmpty()) {
             throw new UnprocessableSchemaException("Invalid or unsupported JSON Schema at " + path);
         }
-        boolean draft4 = VALIDATOR.draftOf(schema).filter(SpecificationVersion.DRAFT_4::equals).isPresent();
+        boolean draft4 = VALIDATOR.draftOf(schema).filter(VersionFlag.V4::equals).isPresent();
         checkSupported(schema, path, draft4);
     }
 
@@ -115,13 +113,13 @@ public class McpToolCompatibilityChecker extends AbstractCompatibilityChecker<Si
         if (schema.isBoolean()) {
             return;
         }
-        var fields = schema.properties().iterator();
+        var fields = schema.fields();
         while (fields.hasNext()) {
             var field = fields.next();
             String keyword = field.getKey();
             String location = path + "/" + escape(keyword);
             if (keyword.equals("properties")) {
-                field.getValue().properties().iterator().forEachRemaining(property ->
+                field.getValue().fields().forEachRemaining(property ->
                         checkSupported(property.getValue(), location + "/" + escape(property.getKey()), draft4));
             } else if (keyword.equals("items") || keyword.equals("additionalProperties")) {
                 if (field.getValue().isArray()) {
@@ -158,9 +156,9 @@ public class McpToolCompatibilityChecker extends AbstractCompatibilityChecker<Si
                 throw new UnprocessableSchemaException(
                         "MCP tool compatibility cannot compare a number beyond double precision at " + location);
             }
-        } else if (value.isContainer()) {
+        } else if (value.isContainerNode()) {
             int index = 0;
-            for (var entries = value.properties().iterator(); entries.hasNext();) {
+            for (var entries = value.fields(); entries.hasNext();) {
                 var entry = entries.next();
                 checkNumbersAreDoubleExact(entry.getValue(), location + "/" + escape(entry.getKey()), instanceValue);
             }

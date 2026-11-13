@@ -1,5 +1,6 @@
 package io.apicurio.registry.cli.artifact;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.CliException;
 import io.apicurio.registry.cli.common.IdUtil;
@@ -104,7 +105,7 @@ public class ArtifactGetCommand extends AbstractCommand {
     }
 
     // Fetches and prints the artifact metadata.
-    private void fetchMetadata(final RegistryClient client, final String resolvedGroupId, final OutputBuffer output) {
+    private void fetchMetadata(final RegistryClient client, final String resolvedGroupId, final OutputBuffer output) throws JsonProcessingException {
         //noinspection ConstantConditions
         final var artifact = convert(client
                 .groups().byGroupId(resolvedGroupId).artifacts().byArtifactId(artifactId).get());
@@ -113,7 +114,7 @@ public class ArtifactGetCommand extends AbstractCommand {
         printArtifact(output, artifact, type);
     }
 
-    static void printArtifact(final OutputBuffer output, final ArtifactMetaData artifact, final OutputType outputType) {
+    static void printArtifact(final OutputBuffer output, final ArtifactMetaData artifact, final OutputType outputType) throws JsonProcessingException {
         output.writeStdOutChunkWithException(out -> {
             switch (outputType) {
                 case json -> {

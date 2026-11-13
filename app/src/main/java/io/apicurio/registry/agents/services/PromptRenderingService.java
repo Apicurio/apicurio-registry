@@ -1,6 +1,6 @@
 package io.apicurio.registry.agents.services;
 
-import tools.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.agents.content.util.PromptTemplateVariableUtil;
 import io.apicurio.registry.rest.v3.beans.RenderPromptResponse;
@@ -154,10 +154,10 @@ public class PromptRenderingService {
         if (templateField.isNull()) {
             throw new InvalidContentException("Prompt template 'template' field must not be null");
         }
-        if (!templateField.isString()) {
+        if (!templateField.isTextual()) {
             throw new InvalidContentException("Prompt template 'template' field must be a string");
         }
-        String templateText = templateField.asString();
+        String templateText = templateField.asText();
         if (templateText.isBlank()) {
             throw new InvalidContentException("Prompt template 'template' field must not be blank");
         }
@@ -178,7 +178,7 @@ public class PromptRenderingService {
 
         Map<String, Object> effective = null;
 
-        Iterator<Map.Entry<String, JsonNode>> fields = variablesSchema.properties().iterator();
+        Iterator<Map.Entry<String, JsonNode>> fields = variablesSchema.fields();
         while (fields.hasNext()) {
             Map.Entry<String, JsonNode> field = fields.next();
             String varName = field.getKey();
@@ -197,7 +197,7 @@ public class PromptRenderingService {
             if (effective == null) {
                 effective = new HashMap<>(variables);
             }
-            String declaredType = field.getValue().path("type").asString(TYPE_STRING);
+            String declaredType = field.getValue().path("type").asText(TYPE_STRING);
             effective.put(varName, convertDefaultValue(defaultNode, declaredType));
         }
 
@@ -238,7 +238,7 @@ public class PromptRenderingService {
             if (!(entry.getValue() instanceof Double)) {
                 continue;
             }
-            String declaredType = variablesSchema.path(entry.getKey()).path("type").asString(TYPE_STRING);
+            String declaredType = variablesSchema.path(entry.getKey()).path("type").asText(TYPE_STRING);
             Object converted = coerceWholeNumberForInteger(entry.getValue(), declaredType);
             if (converted != entry.getValue()) {
                 if (coerced == null) {
@@ -277,7 +277,7 @@ public class PromptRenderingService {
         }
 
         // Check each defined variable in the schema
-        Iterator<Map.Entry<String, JsonNode>> fields = variablesSchema.properties().iterator();
+        Iterator<Map.Entry<String, JsonNode>> fields = variablesSchema.fields();
         while (fields.hasNext()) {
             Map.Entry<String, JsonNode> field = fields.next();
             String varName = field.getKey();
@@ -310,7 +310,7 @@ public class PromptRenderingService {
      */
     private void validateValue(String varName, Object value, JsonNode varSchema,
             List<RenderValidationError> errors) {
-        String expectedType = varSchema.path("type").asString(TYPE_STRING);
+        String expectedType = varSchema.path("type").asText(TYPE_STRING);
         RenderValidationError typeError = validateType(varName, value, expectedType);
         if (typeError != null) {
             errors.add(typeError);
@@ -402,7 +402,7 @@ public class PromptRenderingService {
             // value (7), the same way supplied values and defaults are coerced.
             String enumText = enumValue.isFloatingPointNumber()
                 ? String.valueOf(coerceWholeNumberForInteger(enumValue.doubleValue(), declaredType))
-                : enumValue.asString();
+                : enumValue.asText();
             if (enumText.equals(strValue)) {
                 return null; // Valid
             }
@@ -411,7 +411,7 @@ public class PromptRenderingService {
         StringBuilder allowedValues = new StringBuilder();
         for (int i = 0; i < enumNode.size(); i++) {
             if (i > 0) allowedValues.append(", ");
-            allowedValues.append(enumNode.get(i).asString());
+            allowedValues.append(enumNode.get(i).asText());
         }
 
         return RenderValidationError.builder()

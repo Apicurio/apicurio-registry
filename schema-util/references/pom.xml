@@ -38,14 +38,8 @@
       <artifactId>apitomy-data-models</artifactId>
     </dependency>
 
-    <!-- apitomy-data-models only supports Jackson 2 -->
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-databind</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>tools.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
     </dependency>
 

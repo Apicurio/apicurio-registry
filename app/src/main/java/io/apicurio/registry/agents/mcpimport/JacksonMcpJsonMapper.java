@@ -1,10 +1,9 @@
 package io.apicurio.registry.agents.mcpimport;
 
-import tools.jackson.databind.cfg.JsonNodeFeature;
-import tools.jackson.databind.DeserializationFeature;
-import tools.jackson.databind.JavaType;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import io.modelcontextprotocol.json.McpJsonMapper;
 import io.modelcontextprotocol.json.TypeRef;
 
@@ -22,10 +21,10 @@ import java.io.IOException;
  */
 final class JacksonMcpJsonMapper implements McpJsonMapper {
 
-    private final ObjectMapper mapper = JsonMapper.builder()
+    private final ObjectMapper mapper = new ObjectMapper()
             .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
-            .disable(JsonNodeFeature.STRIP_TRAILING_BIGDECIMAL_ZEROES)
-            .build();
+            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+            .setNodeFactory(JsonNodeFactory.withExactBigDecimals(true));
 
     @Override
     public <T> T readValue(String content, Class<T> type) throws IOException {

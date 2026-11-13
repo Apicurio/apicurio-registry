@@ -10,8 +10,8 @@ import io.apitomy.datamodels.models.asyncapi.AsyncApiMultiFormatSchema;
 import io.apitomy.datamodels.refs.LocalReferenceResolver;
 import io.apitomy.datamodels.refs.ResolvedReference;
 import io.apicurio.registry.content.TypedContent;
-import io.apicurio.registry.openapi.content.DataModelsJson;
 import io.apicurio.registry.content.refs.JsonPointerExternalReference;
+import io.apicurio.registry.content.util.ContentTypeUtil;
 
 import java.io.IOException;
 import java.util.Locale;
@@ -58,7 +58,7 @@ public class RegistryReferenceResolver extends LocalReferenceResolver {
 
         // For JSON/YAML content, parse and inspect the structure
         try {
-            JsonNode node = DataModelsJson.parseJsonOrYaml(resolvedRefContent);
+            JsonNode node = ContentTypeUtil.parseJsonOrYaml(resolvedRefContent);
 
             // Check for OpenAPI (has "openapi" property or "swagger" property)
             if (node.has("openapi") || node.has("swagger")) {
@@ -122,7 +122,7 @@ public class RegistryReferenceResolver extends LocalReferenceResolver {
                     case OPENAPI:
                     case ASYNCAPI:
                         // For OpenAPI, AsyncAPI, and JSON Schema, parse as Document and resolve the JSON pointer
-                        JsonNode node = DataModelsJson.parseJsonOrYaml(resolvedRefContent);
+                        JsonNode node = ContentTypeUtil.parseJsonOrYaml(resolvedRefContent);
                         Document resolvedRefDoc = Library.readDocument((ObjectNode) node);
                         JsonPointerExternalReference ref = new JsonPointerExternalReference(reference);
                         Node resolvedNode = super.resolveRef(ref.getComponent(), resolvedRefDoc).asNode();
@@ -131,7 +131,7 @@ public class RegistryReferenceResolver extends LocalReferenceResolver {
                     case JSON_SCHEMA:
                         // For JSON Schema, return as JSON with appropriate media type
                         // The dereferencer will wrap it in a Multi-Format Schema Object
-                        JsonNode jsonSchemaNode = DataModelsJson.parseJsonOrYaml(resolvedRefContent);
+                        JsonNode jsonSchemaNode = ContentTypeUtil.parseJsonOrYaml(resolvedRefContent);
 
                         // Parse the reference to extract the JSON pointer component
                         JsonPointerExternalReference jsonSchemaRef = new JsonPointerExternalReference(reference);
@@ -156,7 +156,7 @@ public class RegistryReferenceResolver extends LocalReferenceResolver {
                     case AVRO:
                         // For Avro, return as JSON with appropriate media type
                         // The dereferencer will wrap it in a Multi-Format Schema Object
-                        JsonNode avroNode = DataModelsJson.parseJsonOrYaml(resolvedRefContent);
+                        JsonNode avroNode = ContentTypeUtil.parseJsonOrYaml(resolvedRefContent);
                         return ResolvedReference.fromJson(avroNode,
                                 AsyncApiSchemaFormats.forAvro(declaredSchemaFormat(from)));
 

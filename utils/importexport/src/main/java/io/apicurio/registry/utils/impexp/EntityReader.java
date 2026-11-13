@@ -1,9 +1,8 @@
 package io.apicurio.registry.utils.impexp;
 
-import tools.jackson.core.StreamWriteFeature;
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.impexp.v3.ArtifactEntity;
 import io.apicurio.registry.utils.impexp.v3.ArtifactRuleEntity;
@@ -16,7 +15,6 @@ import io.apicurio.registry.utils.impexp.v3.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.GroupEntity;
 import io.apicurio.registry.utils.impexp.v3.GroupRuleEntity;
 import org.apache.commons.io.FileUtils;
-import tools.jackson.core.json.JsonFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -29,10 +27,9 @@ public class EntityReader {
 
     private static final ObjectMapper mapper;
     static {
-        JsonFactory jsonFactory = JsonFactory.builder()
-                .configure(StreamWriteFeature.AUTO_CLOSE_TARGET, false)
-                .build();
-        mapper = JsonMapper.builder(jsonFactory).build();
+        JsonFactory jsonFactory = new JsonFactory();
+        jsonFactory.configure(JsonGenerator.Feature.AUTO_CLOSE_TARGET, false);
+        mapper = new ObjectMapper(jsonFactory);
     }
 
     private final transient Path importDirectory;
@@ -309,13 +306,8 @@ public class EntityReader {
     private <T> T readEntry(EntityInfo entry, Class<T> theClass) throws IOException {
         File file = entry.toFile();
         byte[] bytes = IoUtil.toBytes(file);
-        try {
-            return mapper.readerFor(theClass).readValue(bytes);
-        } catch (JacksonException e) {
-            // Jackson 3 exceptions are unchecked (unlike Jackson 2's JsonProcessingException),
-            // so callers relying on the checked IOException contract must still see one.
-            throw new IOException(e.getMessage(), e);
-        }
+        T entity = mapper.readerFor(theClass).readValue(bytes);
+        return entity;
     }
 
     private long getArtifactVersionGlobalId(EntityInfo artifactVersionEntityInfo) {

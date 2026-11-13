@@ -7,9 +7,9 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.extract.StructuredContentExtractor;
 import io.apicurio.registry.content.extract.StructuredElement;
@@ -22,7 +22,7 @@ public class JsonSchemaStructuredContentExtractor implements StructuredContentEx
 
     private static final Logger log = LoggerFactory.getLogger(JsonSchemaStructuredContentExtractor.class);
 
-    private final ObjectMapper objectMapper = new JsonMapper();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     public List<StructuredElement> extract(ContentHandle content) {
@@ -47,7 +47,7 @@ public class JsonSchemaStructuredContentExtractor implements StructuredContentEx
      */
     private void extractId(JsonNode root, List<StructuredElement> elements) {
         if (root.has("$id")) {
-            elements.add(new StructuredElement("id", root.get("$id").asString()));
+            elements.add(new StructuredElement("id", root.get("$id").asText()));
         }
     }
 
@@ -57,7 +57,7 @@ public class JsonSchemaStructuredContentExtractor implements StructuredContentEx
     private void extractProperties(JsonNode root, List<StructuredElement> elements) {
         JsonNode properties = root.path("properties");
         if (!properties.isMissingNode() && properties.isObject()) {
-            properties.propertyNames().iterator().forEachRemaining(name -> {
+            properties.fieldNames().forEachRemaining(name -> {
                 elements.add(new StructuredElement("property", name));
             });
         }
@@ -70,7 +70,7 @@ public class JsonSchemaStructuredContentExtractor implements StructuredContentEx
         // JSON Schema draft 2019-09+ uses $defs
         JsonNode defs = root.path("$defs");
         if (!defs.isMissingNode() && defs.isObject()) {
-            defs.propertyNames().iterator().forEachRemaining(name -> {
+            defs.fieldNames().forEachRemaining(name -> {
                 elements.add(new StructuredElement("definition", name));
             });
         }
@@ -78,7 +78,7 @@ public class JsonSchemaStructuredContentExtractor implements StructuredContentEx
         // Older drafts use definitions
         JsonNode definitions = root.path("definitions");
         if (!definitions.isMissingNode() && definitions.isObject()) {
-            definitions.propertyNames().iterator().forEachRemaining(name -> {
+            definitions.fieldNames().forEachRemaining(name -> {
                 elements.add(new StructuredElement("definition", name));
             });
         }
@@ -91,8 +91,8 @@ public class JsonSchemaStructuredContentExtractor implements StructuredContentEx
         JsonNode required = root.path("required");
         if (!required.isMissingNode() && required.isArray()) {
             for (JsonNode req : required) {
-                if (req.isString()) {
-                    elements.add(new StructuredElement("required", req.asString()));
+                if (req.isTextual()) {
+                    elements.add(new StructuredElement("required", req.asText()));
                 }
             }
         }

@@ -1,7 +1,7 @@
 package io.apicurio.registry.cli.auth;
 
-import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.cli.config.Config;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -72,7 +72,7 @@ public class FileCredentialProviderTest {
         // Simulate an existing credentials.json from before encryption was introduced.
         Map<String, String> legacy = new HashMap<>();
         legacy.put(ACCOUNT, SECRET);
-        Files.writeString(home.resolve("credentials.json"), new JsonMapper().writeValueAsString(legacy));
+        Files.writeString(home.resolve("credentials.json"), new ObjectMapper().writeValueAsString(legacy));
 
         var provider = newProvider();
 
@@ -108,7 +108,7 @@ public class FileCredentialProviderTest {
         newProvider().store(ACCOUNT, SECRET);
 
         var path = home.resolve("credentials.json");
-        Map<String, String> credentials = new JsonMapper().readValue(path.toFile(), new TypeReference<>() {});
+        Map<String, String> credentials = new ObjectMapper().readValue(path.toFile(), new TypeReference<>() {});
         var encrypted = credentials.get(ACCOUNT);
         var prefixEnd = CredentialEncryption.ENCRYPTED_PREFIX.length();
         var separator = encrypted.indexOf(':', prefixEnd);
@@ -120,7 +120,7 @@ public class FileCredentialProviderTest {
         decoded[0] ^= 0x01;
         var tamperedCiphertext = Base64.getEncoder().encodeToString(decoded);
         credentials.put(ACCOUNT, CredentialEncryption.ENCRYPTED_PREFIX + iv + ":" + tamperedCiphertext);
-        Files.writeString(path, new JsonMapper().writeValueAsString(credentials));
+        Files.writeString(path, new ObjectMapper().writeValueAsString(credentials));
 
         // A corrupted/tampered credential must not surface a stack trace to the caller —
         // retrieve() reports it as absent so the CLI can prompt the user to log in again.
@@ -131,7 +131,7 @@ public class FileCredentialProviderTest {
     public void testRetrieveReturnsNullForMalformedEncryptedValueMissingSeparator() throws Exception {
         Map<String, String> credentials = new HashMap<>();
         credentials.put(ACCOUNT, CredentialEncryption.ENCRYPTED_PREFIX + "not-a-valid-payload");
-        Files.writeString(home.resolve("credentials.json"), new JsonMapper().writeValueAsString(credentials));
+        Files.writeString(home.resolve("credentials.json"), new ObjectMapper().writeValueAsString(credentials));
 
         assertThat(newProvider().retrieve(ACCOUNT)).isNull();
     }
@@ -140,7 +140,7 @@ public class FileCredentialProviderTest {
     public void testRetrieveReturnsNullForMalformedEncryptedValueInvalidBase64() throws Exception {
         Map<String, String> credentials = new HashMap<>();
         credentials.put(ACCOUNT, CredentialEncryption.ENCRYPTED_PREFIX + "not-base64!!:also-not-base64!!");
-        Files.writeString(home.resolve("credentials.json"), new JsonMapper().writeValueAsString(credentials));
+        Files.writeString(home.resolve("credentials.json"), new ObjectMapper().writeValueAsString(credentials));
 
         assertThat(newProvider().retrieve(ACCOUNT)).isNull();
     }

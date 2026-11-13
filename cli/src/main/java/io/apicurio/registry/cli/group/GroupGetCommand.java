@@ -1,5 +1,6 @@
 package io.apicurio.registry.cli.group;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.IdUtil;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
@@ -62,7 +63,7 @@ public class GroupGetCommand extends AbstractCommand {
         printGroup(output, group, outputType);
     }
 
-    static void printGroup(OutputBuffer output, GroupMetaData group, OutputTypeMixin outputType) {
+    static void printGroup(OutputBuffer output, GroupMetaData group, OutputTypeMixin outputType) throws JsonProcessingException {
         output.writeStdOutChunkWithException(out -> {
             switch (outputType.getOutputType()) {
                 case json -> {

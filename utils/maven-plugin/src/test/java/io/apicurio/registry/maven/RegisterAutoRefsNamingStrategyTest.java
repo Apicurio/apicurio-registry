@@ -1,7 +1,6 @@
 package io.apicurio.registry.maven;
 
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
@@ -49,7 +48,7 @@ class RegisterAutoRefsNamingStrategyTest {
 
     private final File root = Paths.get("src/test/resources/autorefs-json/citizen.json").toAbsolutePath()
             .toFile();
-    private final ObjectMapper mapper = new JsonMapper();
+    private final ObjectMapper mapper = new ObjectMapper();
     private WireMockServer server;
     private RegisterRegistryMojo mojo;
 
@@ -206,7 +205,7 @@ class RegisterAutoRefsNamingStrategyTest {
         return server.findAll(postRequestedFor(urlPathEqualTo(ARTIFACTS_PATH))).stream()
                 .map(r -> {
                     try {
-                        return mapper.readTree(r.getBodyAsString()).get("artifactId").asString();
+                        return mapper.readTree(r.getBodyAsString()).get("artifactId").asText();
                     } catch (Exception e) {
                         throw new IllegalStateException(e);
                     }

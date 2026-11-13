@@ -1,9 +1,8 @@
 package io.apicurio.registry.maven;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
-import tools.jackson.dataformat.yaml.YAMLMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.client.refs.ReferenceRegistrar;
 import io.apicurio.registry.client.refs.RegistrationException;
@@ -32,7 +31,6 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
-import tools.jackson.core.JacksonException;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -672,13 +670,13 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
     private static String readArtifactData(RegisterArtifact artifact, InputStream artifactContent) {
         try {
             if (artifact.getMinify() != null && artifact.getMinify()) {
-                ObjectMapper objectMapper = new JsonMapper();
+                ObjectMapper objectMapper = new ObjectMapper();
                 JsonNode jsonNode = objectMapper.readValue(artifactContent, JsonNode.class);
                 return jsonNode.toString();
             } else {
                 return new String(artifactContent.readAllBytes(), StandardCharsets.UTF_8);
             }
-        } catch (JacksonException | IOException e) {
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
@@ -779,21 +777,21 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         try {
             JsonNode root = getVersionExtractionMapper(artifact).readTree(data);
             JsonNode versionNode = root.path("info").path(VERSION);
-            if (versionNode.isString()) {
-                String version = versionNode.asString();
+            if (versionNode.isTextual()) {
+                String version = versionNode.asText();
                 if (!version.isBlank()) {
                     return version;
                 }
             }
             return null;
-        } catch (JacksonException e) {
+        } catch (IOException e) {
             throw new MojoExecutionException("Failed to extract info.version from API artifact: "
                     + artifact.getFile().getPath(), e);
         }
     }
 
     private ObjectMapper getVersionExtractionMapper(RegisterArtifact artifact) {
-        return isYamlContent(artifact) ? new YAMLMapper() : new JsonMapper();
+        return isYamlContent(artifact) ? new ObjectMapper(new YAMLFactory()) : new ObjectMapper();
     }
 
     private boolean isYamlContent(RegisterArtifact artifact) {

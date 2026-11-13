@@ -1,7 +1,6 @@
 package io.apicurio.registry.config.artifactTypes;
 
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -78,7 +77,7 @@ public class ArtifactTypesConfigurationTest {
 
     @Test
     void testLoadArtifactTypesConfiguration_Simple() throws Exception {
-        ObjectMapper mapper = new JsonMapper();
+        ObjectMapper mapper = new ObjectMapper();
         ArtifactTypesConfiguration config = mapper.readValue(ARTIFACT_TYPES_CONFIG_SIMPLE, ArtifactTypesConfiguration.class);
 
         Assertions.assertNotNull(config);
@@ -89,7 +88,7 @@ public class ArtifactTypesConfigurationTest {
 
     @Test
     void testLoadArtifactTypesConfiguration_EmptyArtifactType() throws Exception {
-        ObjectMapper mapper = new JsonMapper();
+        ObjectMapper mapper = new ObjectMapper();
         ArtifactTypesConfiguration config = mapper.readValue(ARTIFACT_TYPES_CONFIG_EMPTY_ARTIFACT_TYPE, ArtifactTypesConfiguration.class);
 
         Assertions.assertNotNull(config);
@@ -105,7 +104,7 @@ public class ArtifactTypesConfigurationTest {
 
     @Test
     void testLoadArtifactTypesConfiguration_Java() throws Exception {
-        ObjectMapper mapper = new JsonMapper();
+        ObjectMapper mapper = new ObjectMapper();
         ArtifactTypesConfiguration config = mapper.readValue(ARTIFACT_TYPES_CONFIG_JAVA, ArtifactTypesConfiguration.class);
 
         Assertions.assertNotNull(config);
@@ -126,7 +125,7 @@ public class ArtifactTypesConfigurationTest {
 
     @Test
     void testLoadArtifactTypesConfiguration_Webhook() throws Exception {
-        ObjectMapper mapper = new JsonMapper();
+        ObjectMapper mapper = new ObjectMapper();
         ArtifactTypesConfiguration config = mapper.readValue(ARTIFACT_TYPES_CONFIG_WEBHOOK, ArtifactTypesConfiguration.class);
 
         Assertions.assertNotNull(config.getArtifactTypes().get(0).getContentAccepter());

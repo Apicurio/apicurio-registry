@@ -1,8 +1,8 @@
 package io.apicurio.registry.maven;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.common.FileSource;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
@@ -15,7 +15,6 @@ import io.apicurio.registry.types.ArtifactType;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import tools.jackson.core.JacksonException;
 
 import java.io.File;
 import java.nio.file.Paths;
@@ -142,13 +141,13 @@ public class RegisterAsyncApiAvroAutoRefsTest {
             try {
                 String responseBody = generateResponseBasedOnRequest(request);
                 return Response.Builder.like(response).but().body(responseBody).build();
-            } catch (JacksonException e) {
+            } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);
             }
 
         }
 
-        private String generateResponseBasedOnRequest(Request request) {
+        private String generateResponseBasedOnRequest(Request request) throws JsonProcessingException {
             String url = request.getUrl();
             String body = request.getBodyAsString();
 
@@ -186,19 +185,19 @@ public class RegisterAsyncApiAvroAutoRefsTest {
             return "default";
         }
 
-        private String extractArtifactIdFromBody(String body) {
-            ObjectMapper mapper = new JsonMapper();
+        private String extractArtifactIdFromBody(String body) throws JsonProcessingException {
+            ObjectMapper mapper = new ObjectMapper();
             JsonNode jsonNode = mapper.readTree(body);
 
             JsonNode artifactIdNode = jsonNode.get("artifactId");
             if (artifactIdNode != null && !artifactIdNode.isNull()) {
-                return artifactIdNode.asString();
+                return artifactIdNode.asText();
             }
             throw new RuntimeException("ArtifactId not found in request body");
         }
 
-        private String extractContentTypeFromBody(String body) {
-            ObjectMapper mapper = new JsonMapper();
+        private String extractContentTypeFromBody(String body) throws JsonProcessingException {
+            ObjectMapper mapper = new ObjectMapper();
             JsonNode jsonNode = mapper.readTree(body);
 
             JsonNode firstVersionNode = jsonNode.get("firstVersion");
@@ -207,7 +206,7 @@ public class RegisterAsyncApiAvroAutoRefsTest {
                 if (contentNode != null && !contentNode.isNull()) {
                     JsonNode contentTypeNode = contentNode.get("contentType");
                     if (contentTypeNode != null && !contentTypeNode.isNull()) {
-                        return contentTypeNode.asString();
+                        return contentTypeNode.asText();
                     }
                 }
             }

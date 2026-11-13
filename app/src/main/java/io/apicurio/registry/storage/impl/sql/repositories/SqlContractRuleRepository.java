@@ -1,7 +1,7 @@
 package io.apicurio.registry.storage.impl.sql.repositories;
 
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.storage.dto.ContractRuleDto;
 import io.apicurio.registry.storage.dto.ContractRuleSetDto;
 import io.apicurio.registry.storage.dto.ContractRuleWithCoordinatesDto;
@@ -13,7 +13,6 @@ import io.apicurio.registry.storage.impl.sql.mappers.ContractRuleDtoMapper;
 import io.apicurio.registry.utils.impexp.v3.ContractRuleEntity;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
-import tools.jackson.core.JacksonException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,7 +28,7 @@ public class SqlContractRuleRepository {
     private static final String CATEGORY_DOMAIN = "DOMAIN";
     private static final String CATEGORY_MIGRATION = "MIGRATION";
     private static final String RULE_CATEGORY_COLUMN = "ruleCategory";
-    private static final ObjectMapper objectMapper = new JsonMapper();
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     private final Logger log;
     private final SqlStatements sqlStatements;
@@ -180,7 +179,7 @@ public class SqlContractRuleRepository {
         }
         try {
             return objectMapper.writeValueAsString(params);
-        } catch (JacksonException e) {
+        } catch (JsonProcessingException e) {
             throw new RegistryStorageException("Failed to serialize contract rule params", e);
         }
     }
@@ -191,7 +190,7 @@ public class SqlContractRuleRepository {
         }
         try {
             return objectMapper.writeValueAsString(tags);
-        } catch (JacksonException e) {
+        } catch (JsonProcessingException e) {
             throw new RegistryStorageException("Failed to serialize contract rule tags", e);
         }
     }

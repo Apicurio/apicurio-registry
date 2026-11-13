@@ -1,9 +1,8 @@
 package io.apicurio.registry.avro.content.refs;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
-import tools.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.refs.ExternalReference;
 import io.apicurio.registry.content.refs.ReferenceFinder;
@@ -18,7 +17,7 @@ import java.util.stream.Collectors;
  */
 public class AvroReferenceFinder implements ReferenceFinder {
 
-    private static final ObjectMapper mapper = new JsonMapper();
+    private static final ObjectMapper mapper = new ObjectMapper();
 
     private static final Set<String> PRIMITIVE_TYPES = Set.of("null", "boolean", "int", "long", "float",
             "double", "bytes", "string");
@@ -50,7 +49,7 @@ public class AvroReferenceFinder implements ReferenceFinder {
     private static String extractNamespace(JsonNode schema) {
         if (schema != null && schema.isObject() && schema.has("namespace")
                 && !schema.get("namespace").isNull()) {
-            return schema.get("namespace").asString();
+            return schema.get("namespace").asText();
         }
         return null;
     }
@@ -103,7 +102,7 @@ public class AvroReferenceFinder implements ReferenceFinder {
                 findExternalTypesIn(fieldNode, internalTypes, externalTypes, effectiveNamespace);
             });
         }
-        String qualifiedType = qualifyTypeName(schema.get("name").asString(), effectiveNamespace);
+        String qualifiedType = qualifyTypeName(schema.get("name").asText(), effectiveNamespace);
         internalTypes.add(qualifiedType);
         externalTypes.remove(qualifiedType);
     }
@@ -118,8 +117,8 @@ public class AvroReferenceFinder implements ReferenceFinder {
         }
 
         // Handle primitive/external types
-        if (schema.isString()) {
-            addExternalType(schema.asString(), internalTypes, externalTypes, namespace);
+        if (schema.isTextual()) {
+            addExternalType(schema.asText(), internalTypes, externalTypes, namespace);
         }
 
         // Handle unions
@@ -129,8 +128,8 @@ public class AvroReferenceFinder implements ReferenceFinder {
         }
 
         // Handle records
-        else if (schema.isObject() && schema.has("type") && schema.get("type").isString()) {
-            String type = schema.get("type").asString();
+        else if (schema.isObject() && schema.has("type") && schema.get("type").isTextual()) {
+            String type = schema.get("type").asText();
             switch (type) {
                 case "record" -> findExternalTypesInRecord(schema, internalTypes, externalTypes, namespace);
                 case "array" -> {
@@ -144,7 +143,7 @@ public class AvroReferenceFinder implements ReferenceFinder {
                 case "enum", "fixed" -> {
                     String typeNamespace = extractNamespace(schema);
                     String effectiveNamespace = typeNamespace != null ? typeNamespace : namespace;
-                    String typeName = schema.get("name").asString();
+                    String typeName = schema.get("name").asText();
                     String qualifiedType = qualifyTypeName(typeName, effectiveNamespace);
                     internalTypes.add(qualifiedType);
                     externalTypes.remove(qualifiedType);
@@ -154,7 +153,7 @@ public class AvroReferenceFinder implements ReferenceFinder {
         }
 
         // If the schema has a "type" property that is not textual, process the type (object or array)
-        else if (schema.isObject() && schema.has("type") && !schema.get("type").isString()) {
+        else if (schema.isObject() && schema.has("type") && !schema.get("type").isTextual()) {
             findExternalTypesIn(schema.get("type"), internalTypes, externalTypes, namespace);
         }
     }

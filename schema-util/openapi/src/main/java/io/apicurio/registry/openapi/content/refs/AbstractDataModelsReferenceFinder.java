@@ -15,11 +15,11 @@ import io.apitomy.datamodels.models.asyncapi.MultiFormatSchemaSchemaUnion;
 import io.apitomy.datamodels.models.visitors.AllNodeVisitor;
 import io.apitomy.datamodels.util.ModelTypeUtil;
 import io.apicurio.registry.content.TypedContent;
-import io.apicurio.registry.openapi.content.DataModelsJson;
 import io.apicurio.registry.content.refs.ExternalReference;
 import io.apicurio.registry.content.refs.JsonPointerExternalReference;
 import io.apicurio.registry.content.refs.ReferenceFinderException;
 import io.apicurio.registry.content.refs.ReferenceFinder;
+import io.apicurio.registry.content.util.ContentTypeUtil;
 
 import java.io.IOException;
 import java.util.HashSet;
@@ -39,7 +39,7 @@ public abstract class AbstractDataModelsReferenceFinder implements ReferenceFind
     @Override
     public Set<ExternalReference> findExternalReferences(TypedContent content) {
         try {
-            JsonNode node = DataModelsJson.parseJsonOrYaml(content);
+            JsonNode node = ContentTypeUtil.parseJsonOrYaml(content);
             Document doc = Library.readDocument((ObjectNode) node);
 
             // Find all the $refs

@@ -1,8 +1,8 @@
 package io.apicurio.registry.agents.mcptools.compatibility;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.node.BooleanNode;
-import tools.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.BooleanNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.util.List;
 

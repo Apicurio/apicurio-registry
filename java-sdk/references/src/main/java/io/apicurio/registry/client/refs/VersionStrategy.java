@@ -1,13 +1,11 @@
 package io.apicurio.registry.client.refs;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
-import tools.jackson.dataformat.yaml.YAMLMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.apicurio.registry.content.refs.resolve.PlannedArtifact;
 import io.apicurio.registry.content.refs.resolve.RootArtifact;
 import io.apicurio.registry.types.ArtifactType;
-import tools.jackson.core.JacksonException;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -81,12 +79,12 @@ public interface VersionStrategy {
 
         static String version(String content, String contentType) {
             boolean yaml = contentType != null && contentType.toLowerCase(Locale.ROOT).contains("yaml");
-            ObjectMapper mapper = yaml ? new YAMLMapper() : new JsonMapper();
+            ObjectMapper mapper = yaml ? new ObjectMapper(new YAMLFactory()) : new ObjectMapper();
             try {
                 JsonNode node = mapper.readTree(content).path("info").path("version");
-                return node.isString() && !node.asString().isBlank() ? node.asString().trim() : null;
-            } catch (JacksonException e) {
-                throw new UncheckedIOException("Unable to read info.version", new IOException(e.getMessage(), e));
+                return node.isTextual() && !node.asText().isBlank() ? node.asText().trim() : null;
+            } catch (IOException e) {
+                throw new UncheckedIOException("Unable to read info.version", e);
             }
         }
     }

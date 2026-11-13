@@ -1,6 +1,6 @@
 package io.apicurio.registry.json.rules.validity;
 
-import tools.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Getter;
 
 import java.util.List;
@@ -39,7 +39,7 @@ public enum JsonSchemaVersion {
 
     public static JsonSchemaVersion detect(JsonNode data) {
         if (data.has(SCHEMA_KEYWORD)) {
-            String rawSchema = data.get(SCHEMA_KEYWORD).asString();
+            String rawSchema = data.get(SCHEMA_KEYWORD).asText();
             if (!rawSchema.isBlank()) {
                 return VERSIONS.stream().filter(v -> v.pattern.matcher(rawSchema).matches()).findFirst().orElse(UNKNOWN);
             }

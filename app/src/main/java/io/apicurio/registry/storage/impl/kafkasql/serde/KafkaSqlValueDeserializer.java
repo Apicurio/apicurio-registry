@@ -1,8 +1,7 @@
 package io.apicurio.registry.storage.impl.kafkasql.serde;
 
-import tools.jackson.databind.DeserializationFeature;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlMessage;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.Headers;
@@ -24,9 +23,12 @@ public class KafkaSqlValueDeserializer implements Deserializer<KafkaSqlMessage> 
 
     private static final Logger log = LoggerFactory.getLogger(KafkaSqlValueDeserializer.class);
 
-    private static final ObjectMapper mapper = JsonMapper.builder()
-            .configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, true)
-            .build();
+    private static final ObjectMapper mapper = new ObjectMapper();
+
+    static {
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        mapper.configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, true);
+    }
 
     /**
      * @see org.apache.kafka.common.serialization.Deserializer#deserialize(java.lang.String, byte[])

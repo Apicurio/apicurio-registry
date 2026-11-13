@@ -1,5 +1,6 @@
 package io.apicurio.registry.cli.common;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.cli.utils.TableBuilder;
 import io.apicurio.registry.rest.client.models.RuleType;
@@ -92,7 +93,7 @@ public final class RuleUtil {
     }
 
     public static void printRuleTypes(final List<RuleType> ruleTypes, final OutputBuffer output,
-                                        final OutputTypeMixin outputType) {
+                                        final OutputTypeMixin outputType) throws JsonProcessingException {
         final List<String> ruleTypeNames = ruleTypes != null
                 ? ruleTypes.stream().map(RuleType::getValue).toList()
                 : List.of();
@@ -112,7 +113,7 @@ public final class RuleUtil {
         });
     }
 
-    public static void printRule(final OutputBuffer output, final Rule rule, final OutputTypeMixin outputType) {
+    public static void printRule(final OutputBuffer output, final Rule rule, final OutputTypeMixin outputType) throws JsonProcessingException {
         output.writeStdOutChunkWithException(out -> {
             switch (outputType.getOutputType()) {
                 case json -> {

@@ -1,6 +1,7 @@
 package io.apicurio.registry.rest.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import io.apicurio.common.apps.config.Info;
 import io.quarkus.jackson.JsonMapperBuilderCustomizer;
 import jakarta.annotation.PostConstruct;
@@ -102,6 +103,7 @@ public class JacksonDateTimeCustomizer implements JsonMapperBuilderCustomizer {
     protected static void configureDateFormat(ObjectMapper mapper, String format, String tz) {
         SimpleDateFormat df = new SimpleDateFormat(format);
         df.setTimeZone(TimeZone.getTimeZone(tz));
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         mapper.setDateFormat(df);
     }
 

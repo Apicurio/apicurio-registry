@@ -1,8 +1,7 @@
 package io.apicurio.registry.references.auto;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.refs.ExternalReference;
 import io.apicurio.registry.content.refs.resolve.SchemaSourceSet;
@@ -10,8 +9,8 @@ import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.types.ArtifactType;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import tools.jackson.core.JacksonException;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -36,7 +35,7 @@ import java.util.stream.Collectors;
 @ApplicationScoped
 public class ReferenceMatcher {
 
-    private static final ObjectMapper MAPPER = new JsonMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Inject
     ArtifactLookup lookup;
@@ -229,25 +228,25 @@ public class ReferenceMatcher {
     private static String avroFullName(ContentHandle content) {
         try {
             JsonNode node = MAPPER.readTree(content.content());
-            String name = node.path("name").asString(null);
+            String name = node.path("name").asText(null);
             if (name == null) {
                 return null;
             }
             if (name.contains(".")) {
                 return name;
             }
-            String namespace = node.path("namespace").asString("");
+            String namespace = node.path("namespace").asText("");
             return namespace.isBlank() ? name : namespace + "." + name;
-        } catch (JacksonException e) {
+        } catch (IOException e) {
             return null;
         }
     }
 
     private static String jsonSchemaId(ContentHandle content) {
         try {
-            String id = MAPPER.readTree(content.content()).path("$id").asString(null);
+            String id = MAPPER.readTree(content.content()).path("$id").asText(null);
             return id == null ? null : stripFragment(id);
-        } catch (JacksonException e) {
+        } catch (IOException e) {
             return null;
         }
     }

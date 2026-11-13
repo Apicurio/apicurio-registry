@@ -2,7 +2,7 @@
     width: 100%;
     max-width: 100%;
     min-width: 0;
-    overflow-x: auto;
+    overflow-x: hidden;
     overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
 }
@@ -15,7 +15,7 @@
 
 .resizable-overview-drawer .pf-v6-c-drawer__content,
 .resizable-overview-drawer .pf-v6-c-drawer__body {
-    overflow-x: auto;
+    overflow-x: hidden;
     overflow-y: hidden;
 }
 
@@ -30,13 +30,20 @@
 
 /* Keep tabular data readable by scrolling horizontally instead of hiding columns. */
 .resizable-overview-drawer :is(.versions-table, .artifacts-table, .comments) {
+    min-width: 0;
     max-width: 100%;
     overflow-x: auto;
+    overflow-y: hidden;
 }
 
 .resizable-overview-drawer .pf-v6-c-table {
-    min-width: 0;
-    width: 100%;
+    min-width: 100%;
+    width: max-content;
+}
+
+.resizable-overview-drawer .pf-v6-c-table th,
+.resizable-overview-drawer .pf-v6-c-table td {
+    min-width: max-content;
 }
 
 .resizable-overview-drawer .pf-v6-c-toolbar__content {
@@ -61,4 +68,24 @@
 .resizable-overview-drawer .pf-v6-c-data-list__item-content {
     min-width: 0;
     overflow-wrap: anywhere;
+}
+
+@media (max-width: 1024px) {
+    .resizable-overview-drawer .pf-v6-c-drawer__content {
+        flex-direction: column;
+    }
+
+    .resizable-overview-drawer .resizable-overview-drawer__panel {
+        width: 100% !important;
+        max-width: 100% !important;
+        flex: 0 0 auto;
+    }
+
+    .resizable-overview-drawer .pf-v6-c-drawer__body {
+        width: 100%;
+    }
+
+    .resizable-overview-drawer .pf-v6-c-drawer__splitter {
+        display: none;
+    }
 }

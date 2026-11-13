@@ -1,4 +1,4 @@
-$type: group-v0
+$type: group-v1
 registryIds: [test]
 groupId: com.example.yaml
 description: Group for testing YAML content preservation

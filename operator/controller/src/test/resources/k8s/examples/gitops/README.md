@@ -46,13 +46,13 @@ gitops:
 
 Then your `registry.registry.yaml` must contain:
 ```yaml
-$type: registry-v0
+$type: registry-v1
 registryId: prod
 ```
 
 And your group/artifact files should include `prod` in their `registryIds` list:
 ```yaml
-$type: group-v0
+$type: group-v1
 registryIds: [prod]
 ```
 
@@ -96,7 +96,7 @@ gitops:
 
 When `storage.type: gitops` is set, the operator automatically:
 
-- Sets `APICURIO_STORAGE_KIND=gitops` and `APICURIO_FEATURES_EXPERIMENTAL_ENABLED=true`
+- Sets `APICURIO_STORAGE_KIND=gitops`
 - Injects the GitOps sync sidecar container with a default image
 - Creates an `emptyDir` shared volume mounted on both containers
 - Sets repo configuration env vars on both the sidecar and registry containers

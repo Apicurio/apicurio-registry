@@ -82,7 +82,8 @@ refuses writes, so every change goes through the source's own review.
 
 ### GitOps and KubernetesOps
 
-- Data is a set of files with a `$type` (`registry-v0`, `group-v0`, `artifact-v0`, `content-v0`);
+- Data is a set of files with a `$type` (`registry-v1`, `group-v1`, `artifact-v1`, `content-v1`;
+  the format versions and their lifecycle are in [ADR-0013](0013-gitops-data-format-versions.md));
   a file is loaded by registries whose `apicurio.polling-storage.id` is in its `registryIds`.
 - GitOps reads a local checkout (`apicurio.gitops.workspace`, one or several repositories) and never
   fetches; a sidecar or a volume keeps it current. KubernetesOps lists labelled ConfigMaps in a
@@ -91,7 +92,8 @@ refuses writes, so every change goes through the source's own review.
   two databases (blue/green), validated with the registry's rules, and published by switching. A
   failed load keeps the last good data and is reported (`GET /admin/gitops/status`).
 - IDs are deterministic (SHA-256 of content, and of coordinates), so replicas and restarts agree.
-- Both are experimental: they need `apicurio.features.experimental.enabled`.
+- GitOps is supported since 3.4.0. KubernetesOps is experimental: it needs
+  `apicurio.features.experimental.enabled`.
 
 ### Behaviour across storage variants
 
@@ -141,7 +143,7 @@ refuses writes, so every change goes through the source's own review.
    ([#11080](https://github.com/Apicurio/apicurio-registry/issues/11080)).
 3. KafkaSQL replicas are eventually consistent: a client may not read its write on another replica.
 4. Every KafkaSQL start replays the journal; startup time grows with it unless snapshots are used.
-5. GitOps and KubernetesOps are experimental; KubernetesOps has no status endpoint.
+5. KubernetesOps is experimental and has no status endpoint.
 
 ## Alternatives
 

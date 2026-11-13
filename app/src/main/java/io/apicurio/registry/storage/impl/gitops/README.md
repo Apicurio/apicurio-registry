@@ -6,8 +6,8 @@ GitOps storage enables managing Apicurio Registry data (schemas, artifacts, grou
 Git repositories. The registry operates in **read-only mode** — all changes are made by modifying files in Git, and
 the registry automatically detects and loads them.
 
-**Current Status**: GitOps storage is available as an experimental feature. The data format (`*-v0`) may change in
-future releases. Enable with `apicurio.storage.kind=gitops` and `apicurio.features.experimental.enabled=true`.
+**Current Status**: GitOps storage is supported since 3.4.0. Enable it with `apicurio.storage.kind=gitops`. The data
+format is versioned: see [ADR-0013](../../../../../../../../../../adr/0013-gitops-data-format-versions.md).
 
 ### Why GitOps for a Schema Registry?
 
@@ -91,10 +91,10 @@ discriminator field. Content files are plain schema files referenced via relativ
 
 | `$type` | Description |
 |---------|-------------|
-| `registry-v0` | Registry configuration — global rules, settings, peer registries, scoped by `registryId` |
-| `group-v0` | Group definition, scoped by `registryIds` |
-| `artifact-v0` | Artifact with inline versions, scoped by `registryIds` |
-| `content-v0` | *(Optional)* Content metadata for explicit `contentId` and references |
+| `registry-v1` | Registry configuration — global rules, settings, peer registries, scoped by `registryId` |
+| `group-v1` | Group definition, scoped by `registryIds` |
+| `artifact-v1` | Artifact with inline versions, scoped by `registryIds` |
+| `content-v1` | *(Optional)* Content metadata for explicit `contentId` and references |
 
 ### Multi-Registry and Multi-Repository (N:M)
 
@@ -130,16 +130,16 @@ Key fields:
 ```
 my-schemas/
 ├── config/
-│   ├── prod.registry.yaml            # registry-v0: registryId: prod
-│   └── staging.registry.yaml         # registry-v0: registryId: staging
+│   ├── prod.registry.yaml            # registry-v1: registryId: prod
+│   └── staging.registry.yaml         # registry-v1: registryId: staging
 ├── payments/
-│   ├── payments.registry.yaml        # group-v0: registryIds: [prod, staging]
-│   ├── order-created.registry.yaml   # artifact-v0: registryIds: [prod, staging]
+│   ├── payments.registry.yaml        # group-v1: registryIds: [prod, staging]
+│   ├── order-created.registry.yaml   # artifact-v1: registryIds: [prod, staging]
 │   ├── order-created-v1.avsc
 │   └── order-created-v2.avsc
 └── experimental/
-    ├── experimental.registry.yaml    # group-v0: registryIds: [staging]
-    ├── user-activity.registry.yaml   # artifact-v0: registryIds: [staging]
+    ├── experimental.registry.yaml    # group-v1: registryIds: [staging]
+    ├── user-activity.registry.yaml   # artifact-v1: registryIds: [staging]
     └── user-activity.avsc
 ```
 
@@ -346,7 +346,7 @@ The `validatedUpTo` field on an artifact controls which versions are validated:
 Example:
 
 ```yaml
-$type: artifact-v0
+$type: artifact-v1
 groupId: orders
 artifactId: order-created
 artifactType: AVRO
@@ -369,7 +369,7 @@ versions:
 |------|-----------|-------|
 | VALIDITY | Yes | Validates content syntax against artifact type |
 | COMPATIBILITY | Yes | Checks consecutive version pairs |
-| INTEGRITY | Yes | Validates references exist via `content-v0` metadata files |
+| INTEGRITY | Yes | Validates references exist via `content-v1` metadata files |
 
 ## Error Handling
 

@@ -1,0 +1,9 @@
+$type: artifact-v0
+registryIds: [test]
+groupId: bar
+artifactId: user
+name: User Avro Schema
+versions:
+  - version: "1"
+    state: ENABLED
+    content: ./content/user.avsc

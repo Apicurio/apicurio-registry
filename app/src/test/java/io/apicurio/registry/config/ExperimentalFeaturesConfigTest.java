@@ -57,15 +57,12 @@ class ExperimentalFeaturesConfigTest {
     }
 
     @Test
-    void gitopsStorageWithoutGateFailsStartup() {
+    void gitopsStorageWithoutGatePasses() {
+        // GitOps storage is supported since 3.4.0, so it starts without the gate.
         config.experimentalFeaturesEnabled = false;
         when(mpConfig.getOptionalValue(STORAGE_KIND, String.class)).thenReturn(Optional.of("gitops"));
 
-        IllegalStateException thrown = assertThrows(IllegalStateException.class, () -> config.validate());
-        assertTrue(thrown.getMessage().contains("apicurio.storage.kind=gitops"),
-                "message should name the gitops violation, was: " + thrown.getMessage());
-        assertTrue(thrown.getMessage().contains("apicurio.features.experimental.enabled"),
-                "message should point at the gate property, was: " + thrown.getMessage());
+        assertDoesNotThrow(() -> config.validate());
     }
 
     @Test
@@ -77,6 +74,8 @@ class ExperimentalFeaturesConfigTest {
         IllegalStateException thrown = assertThrows(IllegalStateException.class, () -> config.validate());
         assertTrue(thrown.getMessage().contains("apicurio.storage.kind=kubernetesops"),
                 "message should name the kubernetesops violation, was: " + thrown.getMessage());
+        assertTrue(thrown.getMessage().contains("apicurio.features.experimental.enabled"),
+                "message should point at the gate property, was: " + thrown.getMessage());
     }
 
     @Test

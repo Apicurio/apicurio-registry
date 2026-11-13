@@ -1,4 +1,4 @@
-$type: artifact-v0
+$type: artifact-v1
 registryIds: [test]
 groupId: bar
 artifactId: person

@@ -17,7 +17,7 @@ public class ConfigMapDataFile extends AbstractPollingDataFile {
     private static final String SOURCE_ID = "kubernetes";
 
     private ConfigMapDataFile(String path, ContentHandle data, ProcessingState state) {
-        super(SOURCE_ID, path, data, Any.from(state, path, data));
+        super(SOURCE_ID, path, data, Any.parse(state, path, data));
     }
 
     /**

@@ -1,4 +1,4 @@
-$type: group-v0
+$type: group-v1
 registryIds: [demo]
 groupId: orders
 description: Order events

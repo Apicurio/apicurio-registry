@@ -57,7 +57,7 @@ The variant is two environment variables, in [`docker-compose.yml`](docker-compo
 | PostgreSQL, MySQL, SQL Server | `APICURIO_STORAGE_KIND=sql`, `APICURIO_STORAGE_SQL_KIND=postgresql`, `mysql` or `mssql`, and `APICURIO_DATASOURCE_URL`, `_USERNAME`, `_PASSWORD` |
 | In-memory (the default) | `sql` with the H2 database in memory: data is lost on restart |
 | KafkaSQL | `APICURIO_STORAGE_KIND=kafkasql`, `APICURIO_KAFKASQL_BOOTSTRAP_SERVERS` |
-| GitOps | `APICURIO_STORAGE_KIND=gitops`, a repository in `/repos/default`, `APICURIO_FEATURES_EXPERIMENTAL_ENABLED=true` |
+| GitOps | `APICURIO_STORAGE_KIND=gitops`, a repository in `/repos/default` |
 | KubernetesOps | `APICURIO_STORAGE_KIND=kubernetesops`, `APICURIO_KUBERNETESOPS_NAMESPACE`, `APICURIO_FEATURES_EXPERIMENTAL_ENABLED=true` |
 
 ## Step 3: What every variant does the same
@@ -121,7 +121,7 @@ fail ([#11079](https://github.com/Apicurio/apicurio-registry/issues/11079)).
 
 ```yaml
 # order-placed.registry.yaml
-$type: artifact-v0
+$type: artifact-v1
 registryIds: [demo]           # loaded by registries whose APICURIO_POLLING_STORAGE_ID is "demo"
 groupId: orders
 artifactId: order-placed
@@ -135,8 +135,8 @@ versions:
     content: ./order-placed-v1.avsc
 ```
 
-with `registry.registry.yaml` (`$type: registry-v0`: the registry's id and global rules) and
-`orders.registry.yaml` (`$type: group-v0`).
+with `registry.registry.yaml` (`$type: registry-v1`: the registry's id and global rules) and
+`orders.registry.yaml` (`$type: group-v1`).
 
 What `demo.sh` checks:
 

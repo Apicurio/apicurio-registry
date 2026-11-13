@@ -135,7 +135,7 @@ for the full scenario description and directory layout.
 ### Registry Configuration (`*.registry.yaml`)
 
 ```yaml
-$type: registry-v0
+$type: registry-v1
 registryId: my-registry
 globalRules:
   - ruleType: VALIDITY
@@ -148,7 +148,7 @@ The `registryId` must match the Registry instance's `apicurio.polling-storage.id
 ### Group Definition (`*.registry.yaml`)
 
 ```yaml
-$type: group-v0
+$type: group-v1
 registryIds: [my-registry]
 groupId: my-group
 description: Description of the group
@@ -161,7 +161,7 @@ If omitted or empty, the group is loaded by all registry instances.
 ### Artifact Definition (`*.registry.yaml`)
 
 ```yaml
-$type: artifact-v0
+$type: artifact-v1
 registryIds: [my-registry]
 groupId: my-group
 artifactId: my-artifact

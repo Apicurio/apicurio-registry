@@ -5,9 +5,12 @@
 - **Author:** Apicurio Registry maintainers.
 - **Tracking:** [#7971](https://github.com/Apicurio/apicurio-registry/pull/7971),
   [#7974](https://github.com/Apicurio/apicurio-registry/pull/7974),
-  [#7985](https://github.com/Apicurio/apicurio-registry/pull/7985).
+  [#7985](https://github.com/Apicurio/apicurio-registry/pull/7985),
+  [#11124](https://github.com/Apicurio/apicurio-registry/issues/11124),
+  [#11125](https://github.com/Apicurio/apicurio-registry/issues/11125).
 - **Scope:** The Confluent Schema Registry-compatible REST API (`/apis/ccompat/v7/`, `/apis/ccompat/v8/`):
-  ID mapping, error codes, registration, compatibility checks, serialization and mode. It does not
+  subject and group mapping, ID mapping, deletes, error codes, registration, compatibility checks,
+  serialization and mode. It does not
   cover the Confluent-to-Apicurio export utility or the Apicurio serdes.
 
 ## Context
@@ -33,6 +36,13 @@ changes, 26 of 53 tests passed (49%). After, 52 of 53 pass (98%); see
 5. **Null suppression is scoped with Jackson mixins** on ccompat bean classes, not set globally.
 6. **`ModeUpdateRequest.mode` is a plain string** in the OpenAPI spec, not an enum, so the handler
    validates it and returns Confluent's error.
+7. **A subject is an artifact in the `default` group** (the subject is the artifact ID). Groups are
+   opt-in: per request with the `X-Registry-GroupId` header, or for every subject with
+   `apicurio.ccompat.group-concat.enabled` (`group:artifact`).
+8. **Confluent's soft delete is the `DISABLED` version state;** a permanent delete deletes the version
+   (or the artifact), and requires a soft delete first, as in Confluent.
+9. **A subject's compatibility level is the artifact's `COMPATIBILITY` rule**, so it is the same
+   whether set through ccompat or the Apicurio API.
 
 ### Why these choices
 
@@ -49,6 +59,10 @@ changes, 26 of 53 tests passed (49%). After, 52 of 53 pass (98%); see
   harness compares response bodies, so formatting differences cause test failures.
 - **Scoped mixins:** a previous approach set `NON_NULL` globally, which broke the v3 API (labels with
   null values were silently dropped). Mixins scope the behavior to ccompat beans only.
+- **Subjects as default-group artifacts:** Confluent has no groups. Mapping subjects to one group
+  keeps subject names unchanged; group-concat is for registries that need Apicurio groups.
+- **Soft delete as a state:** `DISABLED` already hides a version from lookups and `latest`, and keeps
+  it for `?deleted=true`; no second deletion model is needed.
 - **Mode as string:** with an enum, JAX-RS returns 400 (Bad Request) for invalid values before the
   handler runs. Confluent returns 422 with a specific error code. Using a plain string allows the
   handler to validate and return the correct Confluent-style error response.
@@ -88,6 +102,29 @@ per content hash). Confluent uses a single incrementing `schema ID`. The mapping
 - **`true`:** Confluent `id` maps to Apicurio `globalId`. Each registration gets a unique ID
   regardless of content.
 
+### Subjects and groups
+
+| Configuration | Subject `orders-value` | Artifact `orders/order-placed` |
+|---|---|---|
+| Default | `default/orders-value` | Not a subject, unless the request has `X-Registry-GroupId: orders` |
+| `apicurio.ccompat.group-concat.enabled=true` | Invalid: must be `group:artifact` | Subject `orders:order-placed` |
+
+### Deletes
+
+| Request | Effect |
+|---|---|
+| `DELETE /subjects/{s}/versions/{v}` | Version state `DISABLED`: hidden from lookups and `latest`, listed with `?deleted=true` |
+| The same, again | `40406` |
+| `DELETE /subjects/{s}/versions/{v}?permanent=true` | Deletes the version; `40407` if it was not soft deleted |
+| `DELETE /subjects/{s}` | Every version `DISABLED`; reading the subject returns `40401` |
+| `DELETE /subjects/{s}?permanent=true` | Deletes the artifact; `40405` if it was not soft deleted |
+
+### v7 and v8
+
+v8 delegates to v7 (Decision 1), so they return the same data. Known differences: v8 includes an
+empty `references` list in schema responses where v7 omits it. Unknown request properties are
+ignored on both, whether or not `X-Confluent-Accept-Unknown-Properties` is sent.
+
 ### Error handling
 
 Confluent uses numeric error codes in JSON responses. The mapping is in `CCompatExceptionMapperService`:
@@ -101,8 +138,11 @@ Confluent uses numeric error codes in JSON responses. The mapping is in `CCompat
 | `UnprocessableEntityException` | 42201 (INVALID_SCHEMA) | 422 |
 | `InvalidCompatibilityLevelException` | 42203 (INVALID_COMPATIBILITY_LEVEL) | 422 |
 | `ReferenceExistsException` | 42206 (REFERENCE_EXISTS) | 422 |
-| `SchemaSoftDeletedException` | 40406 | 404 |
 | `SubjectSoftDeletedException` | 40404 | 404 |
+| `SubjectNotSoftDeletedException` | 40405 | 409 (Confluent: 404) |
+| `SchemaSoftDeletedException` | 40406 | 409 (Confluent: 404) |
+| `SchemaNotSoftDeletedException` | 40407 | 409 (Confluent: 404) |
+| `RuleViolationException` | 409 | 409 |
 
 Error messages are formatted to match Confluent's style (e.g., `"Subject 'foo' not found."`).
 
@@ -136,7 +176,9 @@ Avro schemas are compacted to canonical single-line JSON in ccompat responses vi
 
 Read/write mode is stored as a `DynamicConfigProperty` string (`apicurio.ccompat.mode` for global,
 `apicurio.ccompat.mode.subject.<groupId>/<artifactId>` for per-subject). Valid modes: `READWRITE`,
-`READONLY`, `IMPORT`.
+`READONLY`, `READONLY_OVERRIDE`, `IMPORT`. The mode is stored and returned, but **not enforced**:
+writes succeed in `READONLY` ([#11124](https://github.com/Apicurio/apicurio-registry/issues/11124)).
+To block writes, use the storage read-only mode (`apicurio.storage.read-only.enabled`).
 
 ### Behaviour across storage variants
 
@@ -205,7 +247,12 @@ The per-subject lock is per JVM only; see [Limitations](#limitations-and-open-wo
    system. Invalid mode values can be written directly to storage without validation (the
    validation in `validateMode()` only runs on API requests, not direct storage writes). Consider
    promoting mode to a first-class storage entity.
-7. **Single remaining harness test failure.** `lookupVersion_unregisteredSchema` fails: Confluent
+7. **Modes are not enforced** ([#11124](https://github.com/Apicurio/apicurio-registry/issues/11124)).
+8. **Error responses that differ from Confluent** ([#11125](https://github.com/Apicurio/apicurio-registry/issues/11125)):
+   `40405`, `40406` and `40407` return 409 where Confluent returns 404; the incompatibility message
+   includes the Java exception class name; with group-concat, a subject without the separator
+   returns 400 with an empty body.
+9. **Single remaining harness test failure.** `lookupVersion_unregisteredSchema` fails: Confluent
    returns 405 (Method Not Allowed) when a non-matching schema is POSTed to
    `POST /subjects/{subject}/versions/{version}`. Apicurio returns 404 (Schema Not Found). This
    appears to be a Confluent-specific edge case where 405 may indicate the endpoint doesn't validate
@@ -232,8 +279,12 @@ The per-subject lock is per JVM only; see [Limitations](#limitations-and-open-wo
 
 ## Example and verification
 
-- **Example:** [`examples/confluent-serdes`](../examples/confluent-serdes/) shows Confluent serdes
-  against Apicurio. It is a minimal client without self-checks; a verifiable replacement is planned.
+- **Example:** [`examples/confluent-compatibility`](../examples/confluent-compatibility/):
+  `./demo.sh` runs Confluent's console producers and consumers (Avro, Protobuf, JSON Schema) against
+  the v7 and v8 APIs, and checks the wire format and IDs, subject and group mapping, references,
+  compatibility, soft and permanent deletes, errors, and the v7/v8 differences. CI runs it. The
+  `confluent` step of [`examples/kafka-serdes`](../examples/kafka-serdes/) mixes Confluent's and
+  Apicurio's Avro serdes, both ways.
 - **User documentation:**
   [`assembly-confluent-schema-registry-compatibility.adoc`](../docs/modules/ROOT/pages/getting-started/assembly-confluent-schema-registry-compatibility.adoc).
 
@@ -266,3 +317,4 @@ results, before 26/53 (49%), after 52/53 (98%):
 |---|---|
 | [#7971](https://github.com/Apicurio/apicurio-registry/pull/7971), [#7974](https://github.com/Apicurio/apicurio-registry/pull/7974), [#7985](https://github.com/Apicurio/apicurio-registry/pull/7985) | Harness conformance raised from 26/53 to 52/53 |
 | This ADR reformatted to [the ADR template](TEMPLATE.md) | Structure only; no change to the decisions |
+| Subject mapping, deletes and v7/v8 documented | Decisions 7 to 9 recorded; a verified example; mode and error-status gaps filed (#11124, #11125) |

@@ -113,6 +113,8 @@ check "step 10: orders-value has 2 versions (the rejected one was not added)" "1
   "$(get /groups/default/artifacts/orders-value/versions | jq -r '[.versions[].version] | join(",")')"
 check "step 11: the custom strategy registered inventory/stock-levels" AVRO "$(get /groups/inventory/artifacts/stock-levels | jq -r .artifactType)"
 check "step 12: greetings/greeting still has only the Maven plugin's version" 1 "$(get /groups/greetings/artifacts/greeting/versions | jq -r .count)"
+check "step 5 (confluent): Confluent's serializer registered default/orders-from-confluent-value through ccompat" AVRO \
+  "$(get /groups/default/artifacts/orders-from-confluent-value | jq -r .artifactType)"
 
 part "Step 5: the wire format"
 content_id=$(get "/groups/default/artifacts/orders-value/versions/1" | jq -r .contentId)

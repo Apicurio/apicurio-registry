@@ -45,7 +45,27 @@
       <artifactId>kafka-clients</artifactId>
       <version>${kafka.version}</version>
     </dependency>
+    <!-- Confluent's Avro serdes, for the confluent step: mixed clients through the ccompat API -->
+    <dependency>
+      <groupId>io.confluent</groupId>
+      <artifactId>kafka-avro-serializer</artifactId>
+      <!-- The root pom manages Confluent artifacts with test scope -->
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.confluent</groupId>
+      <artifactId>kafka-schema-registry-client</artifactId>
+      <scope>compile</scope>
+    </dependency>
   </dependencies>
+
+  <repositories>
+    <repository>
+      <id>confluent</id>
+      <name>Confluent</name>
+      <url>https://packages.confluent.io/maven/</url>
+    </repository>
+  </repositories>
 
   <build>
     <resources>

@@ -744,7 +744,7 @@ A working example that demonstrates Debezium, Kafka, and {registry} working toge
 * xref:schema-evolution-strategies_{context}[]
 * {managing-registry-artifacts-api}
 * xref:getting-started/assembly-rule-reference.adoc[]
-* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/event-driven-architecture[Event-driven architecture example]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/registry-events[Registry events example]
 
 // ref-schema-lifecycle-checklist
 [id="schema-lifecycle-checklist_{context}"]

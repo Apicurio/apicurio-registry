@@ -54,6 +54,12 @@ sharing a journal topic, GitOps loading a git repository the demo commits to (in
 commit that is reported and not applied), and KubernetesOps loading ConfigMaps from k3s. Its
 [step-by-step guide](storage-variants/GUIDE.md) explains how each one works and how to choose.
 
+## Registry Events Example
+This example makes a fixed sequence of changes in the registry and checks the events it publishes to
+Kafka, on PostgreSQL (outbox table, Debezium outbox event router, delivery after an outage) and on
+KafkaSQL (two replicas, one total order), and converts them to CloudEvents. Its
+[step-by-step guide](registry-events/GUIDE.md) explains the guarantees of each.
+
 ## Rules and Compatibility Example
 This example runs Apicurio Registry and its web console with Docker Compose and shows its content
 rules: validity, BACKWARD and FORWARD compatibility, which rule wins when rules are set globally, per

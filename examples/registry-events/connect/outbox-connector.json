@@ -1,0 +1,18 @@
+{
+  "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+  "plugin.name": "pgoutput",
+  "database.hostname": "postgres",
+  "database.port": "5432",
+  "database.user": "registry",
+  "database.password": "registry",
+  "database.dbname": "registry",
+  "topic.prefix": "registry",
+  "schema.include.list": "public",
+  "table.include.list": "public.outbox",
+  "tombstones.on.delete": "false",
+  "transforms": "outbox",
+  "transforms.outbox.type": "io.debezium.transforms.outbox.EventRouter",
+  "transforms.outbox.table.fields.additional.placement": "type:header:eventType",
+  "key.converter": "org.apache.kafka.connect.storage.StringConverter",
+  "value.converter": "org.apache.kafka.connect.storage.StringConverter"
+}

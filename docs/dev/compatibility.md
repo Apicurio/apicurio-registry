@@ -157,6 +157,19 @@ Treat `common/src/main/resources/META-INF/openapi.json` as a public contract.
   usually the next major.
 - When a property stops having any effect, deprecate it with a note rather than
   deleting it, so that users who still set it get a warning instead of silence.
+- **Exception for experimental features.** A property of an experimental feature
+  (one marked `@Info(experimental = true)`, or one read only by a feature behind
+  the gate) can be renamed or removed in a minor release without a deprecation
+  period, because users had to opt in. Still register the old name in
+  `DeprecatedPropertiesCheck` as removed, with its replacement or a note, so that
+  a configuration that still sets it fails at startup with that message instead
+  of starting with the property silently ignored. List it on the version's
+  upgrade page. Once the feature graduates (see
+  [Experimental features](#5-experimental-features)), its properties follow the
+  rules above. For example, 3.3.0 removed six GitOps and KubernetesOps properties
+  while both were experimental, without registering them; they are registered as
+  removed in 3.4.0, when GitOps graduates
+  ([#11101](https://github.com/Apicurio/apicurio-registry/issues/11101)).
 - Do not change default values unless that is the explicit goal of the PR and is
   called out on the version's upgrade page.
 - Mark every new `@ConfigProperty` with `@Info` and an accurate
@@ -257,6 +270,9 @@ Treat `common/src/main/resources/META-INF/openapi.json` as a public contract.
   configuration key unless absolutely necessary; just remove the gate.
 - Before removing or changing an experimental feature, announce it in the
   release notes because users may have enabled the gate.
+- Its configuration properties may be renamed or removed without a deprecation
+  period, but the old names are still registered as removed; see the exception in
+  [Configuration compatibility](#3-configuration-compatibility).
 
 ### What to update when this area changes
 

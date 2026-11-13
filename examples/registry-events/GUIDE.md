@@ -53,7 +53,10 @@ and keep it running to look around: `VARIANTS=kafkasql KEEP=1 ./demo.sh`.
 | Configure a global rule | `GLOBAL_RULE_CONFIGURED` | `VALIDITY` |
 | Delete version 1, the artifact, the group | `ARTIFACT_VERSION_DELETED`, `ARTIFACT_DELETED`, `GROUP_DELETED` | |
 
-Only changes that happen produce events: a dry run or a rejected change does not.
+Only changes that happen produce events: a dry run or a rejected change does not. Not every change
+produces one, though: deleting all of a group's artifacts at once, and imports, produce none
+([#11109](https://github.com/Apicurio/apicurio-registry/issues/11109)). Events are a notification
+stream, not a complete change log.
 
 Each event is a flat JSON object, keyed by what changed, so a consumer can partition by it:
 
@@ -85,7 +88,9 @@ docker compose --profile postgresql exec kafka-pg /opt/kafka/bin/kafka-console-c
 
 What this gives you:
 
-- **An event if, and only if, the change was committed.** A failed request writes nothing.
+- **An event if, and only if, the change was committed.** A failed request writes nothing. One
+  exception: contract ruleset events are written after their change's transaction
+  ([#11109](https://github.com/Apicurio/apicurio-registry/issues/11109)).
 - **At least once.** `demo.sh` stops Kafka Connect, makes a change (it succeeds), checks that no event
   is published, starts Kafka Connect again, and checks that the event arrives: Debezium resumes from
   the log. A consumer should use the event `id` to ignore duplicates.

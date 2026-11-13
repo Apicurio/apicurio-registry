@@ -20,12 +20,15 @@ jq -c --arg source "${CE_SOURCE:-/apicurio-registry}" '
       CONTRACT_RULESET_CONFIGURED: "contract.ruleset.configured",
       CONTRACT_METADATA_UPDATED: "contract.metadata.updated", CONTRACT_STATUS_CHANGED: "contract.status.changed"
     }[.eventType] | "io.apicurio.registry." + .;
-  {
-    specversion: "1.0",
-    id: .id,
-    source: $source,
-    type: ce_type,
-    subject: ([.groupId, .artifactId, .version] | map(select(. != null)) | join("/")),
-    datacontenttype: "application/json",
-    data: .
-  }'
+  # subject: what changed; omitted when there is nothing to name (it must not be empty)
+  ([.groupId, .artifactId, .version] | map(select(. != null)) | join("/")) as $coordinates
+  | (if $coordinates != "" then $coordinates else .ruleType end) as $subject
+  | {
+      specversion: "1.0",
+      id: .id,
+      source: $source,
+      type: ce_type,
+      datacontenttype: "application/json",
+      data: .
+    }
+  + (if $subject != null and $subject != "" then {subject: $subject} else {} end)'

@@ -11,9 +11,9 @@ cd "$(dirname "$0")"
 
 [ -n "${CI_VARIANT:-}" ] && VARIANTS=$CI_VARIANT
 VARIANTS=${VARIANTS:-postgresql kafkasql}
-A=${API:-http://localhost:8081/apis}/registry/v3
-B=${API_B:-http://localhost:8082/apis}/registry/v3
-CONNECT=${CONNECT:-http://localhost:8083}
+A=${API:-http://localhost:${REGISTRY_PORT:-8081}/apis}/registry/v3
+B=${API_B:-http://localhost:${REGISTRY_B_PORT:-8082}/apis}/registry/v3
+CONNECT=${CONNECT:-http://localhost:${CONNECT_PORT:-8083}}
 failures=0
 current=""
 
@@ -140,6 +140,9 @@ check_events() {
   check "to-cloudevents.sh: a valid CloudEvent with the reserved type name" \
     "1.0 io.apicurio.registry.artifact.version.created orders/order-placed/1" \
     "$(jq -r '"\(.specversion) \(.type) \(.subject)"' <<< "$(jq -c '.value' <<< "$all" | ./to-cloudevents.sh | grep 'version.created' | head -1)")"
+  check "to-cloudevents.sh: no empty attributes; a global rule's subject is the rule type" \
+    "0 io.apicurio.registry.global.rule.configured VALIDITY" \
+    "$(jq -c '.value' <<< "$all" | ./to-cloudevents.sh | jq -s '[.[] | to_entries[] | select(.value == "")] | length') $(jq -c '.value' <<< "$all" | ./to-cloudevents.sh | jq -r 'select(.type | endswith("global.rule.configured")) | "\(.type) \(.subject)"')"
 }
 
 # ------------------------------------------------------------------------------------ postgresql

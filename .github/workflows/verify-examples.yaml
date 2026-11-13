@@ -125,12 +125,15 @@ jobs:
       - name: Check that the stack runs this commit's images
         env:
           TAG: ${{ inputs.image-tag }}
+          RELEASED: ${{ matrix.example.releasedImages }}
         run: |
           # An Apicurio Registry image with any other tag (latest-snapshot, a release) would test
-          # published code instead of this commit's, and pass while the change is broken.
+          # published code instead of this commit's, and pass while the change is broken. Released
+          # images the example runs on purpose (CI_RELEASED_IMAGES) are exempt.
           images=$(docker compose config --images)
           echo "$images"
-          stale=$(echo "$images" | grep -E '(^|/)apicurio-registry[a-z-]*:' | grep -v ":$TAG\$" || true)
+          stale=$(echo "$images" | grep -E '(^|/)apicurio-registry[a-z-]*:' | grep -v ":$TAG\$" \
+            | grep -vxF -f <(printf '%s\n' $RELEASED) || true)
           if [ -n "$stale" ]; then
             echo "::error::these images are not built from this commit; select them with REGISTRY_IMAGE, REGISTRY_UI_IMAGE or MCP_SERVER_IMAGE (see examples/TEMPLATE.md):"
             echo "$stale"

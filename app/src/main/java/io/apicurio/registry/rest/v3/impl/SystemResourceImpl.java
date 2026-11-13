@@ -8,6 +8,7 @@ import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.extensions.McpToolImportHandler;
 import io.apicurio.registry.cdi.Current;
+import io.apicurio.registry.config.ExperimentalFeaturesConfig;
 import io.apicurio.registry.core.System;
 import io.apicurio.registry.limits.RegistryLimitsConfiguration;
 import io.apicurio.registry.logging.Logged;
@@ -46,6 +47,9 @@ public class SystemResourceImpl implements SystemResource {
 
     @Inject
     UserInterfaceConfigProperties uiConfig;
+
+    @Inject
+    ExperimentalFeaturesConfig experimentalFeatures;
 
     @Inject
     RegistryLimitsConfiguration registryLimitsConfiguration;
@@ -109,7 +113,7 @@ public class SystemResourceImpl implements SystemResource {
                         .deleteArtifact(restConfig.isArtifactDeletionEnabled() && !readOnly)
                         .deleteVersion(restConfig.isArtifactVersionDeletionEnabled() && !readOnly)
                         .draftMutability(restConfig.isArtifactVersionMutabilityEnabled())
-                        .agents(uiConfig.featureAgents.get())
+                        .agents(experimentalFeatures.isExperimentalFeaturesEnabled() && uiConfig.featureAgents.get())
                         .searchIndex(esSearchConfig.isEnabled())
                         .mcpImport(mcpToolImportHandler.isResolvable() && mcpToolImportHandler.get().isEnabled()
                                 && !readOnly)

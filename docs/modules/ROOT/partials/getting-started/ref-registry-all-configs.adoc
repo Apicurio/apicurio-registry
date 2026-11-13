@@ -550,6 +550,56 @@ The following {registry} configuration options are available for each component 
 |`false`
 |`3.4.0`
 |Allow peer registry URLs that point at a loopback address or a localhost name, for development and tests. Server-wide: applies to every peer, whether created through the admin API or loaded declaratively
+|`apicurio.federation.search.breaker.delay-ms`
+|`long`
+|`30000`
+|`3.4.0`
+|Time in milliseconds an open circuit breaker waits before letting a call through to a peer registry again
+|`apicurio.federation.search.breaker.failure-ratio`
+|`double`
+|`0.5`
+|`3.4.0`
+|Share of recent calls to a peer registry that must have failed for its circuit breaker to open
+|`apicurio.federation.search.breaker.request-volume-threshold`
+|`int`
+|`4`
+|`3.4.0`
+|Number of recent calls to a peer registry that must have been made before its circuit breaker can open
+|`apicurio.federation.search.deadline-ms`
+|`long`
+|`5000`
+|`3.4.0`
+|Time in milliseconds a federated search may take in total. Peers that have not answered by then are reported as deadline_exceeded
+|`apicurio.federation.search.max-concurrent-calls`
+|`int`
+|`64`
+|`3.4.0`
+|Maximum number of peer registry calls in progress at once, across all federated searches, from the name lookup until the answer has been read or the call cancelled. Calls beyond it are reported as capacity_exceeded
+|`apicurio.federation.search.max-peers`
+|`int`
+|`16`
+|`3.4.0`
+|Maximum number of peer registries one federated search queries. Enabling more through the peer management API is refused. If more are enabled anyway, for example after this value was lowered or through declarative loading, a search queries the first ones in peer id order and reports the rest as capacity_exceeded
+|`apicurio.federation.search.max-response-bytes`
+|`int`
+|`1048576`
+|`3.4.0`
+|Maximum size in bytes of the response accepted from one peer registry. Larger responses are discarded
+|`apicurio.federation.search.max-searches-per-caller`
+|`int`
+|`2`
+|`3.4.0`
+|Maximum number of federated searches one caller can have in progress at once. A search beyond it still searches this registry, but calls no peer and reports every peer as capacity_exceeded. Authenticated callers are told apart by principal name and anonymous callers by network address, so all anonymous callers behind a proxy that does not forward the client address share one limit. A search calls every enabled peer, up to max-peers, so with the defaults one caller can hold at most 32 of the 64 peer calls (max-concurrent-calls)
+|`apicurio.federation.search.peer-timeout-ms`
+|`long`
+|`3000`
+|`3.4.0`
+|Time in milliseconds a single peer registry has to answer a federated search
+|`apicurio.federation.search.per-source-limit.max`
+|`int`
+|`100`
+|`3.4.0`
+|Upper bound for the perSourceLimit a federated search may ask for
 |===
 
 == gitops

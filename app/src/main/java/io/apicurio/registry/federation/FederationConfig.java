@@ -1,16 +1,27 @@
 package io.apicurio.registry.federation;
 
 import io.apicurio.common.apps.config.Info;
+import io.apicurio.registry.rest.ConflictException;
+import io.quarkus.runtime.Startup;
+import jakarta.annotation.PostConstruct;
 import jakarta.inject.Singleton;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_FEDERATION;
 
 /**
- * Configuration properties for federated agent search across peer registries.
+ * Configuration properties for federated agent search across peer registries. When federation is
+ * enabled, the search settings are checked at startup, and the registry does not start if one is
+ * out of range.
  */
 @Singleton
+@Startup
 public class FederationConfig {
+
+    private static final String NOT_ENABLED = "Federation is not enabled on this registry instance.";
 
     @ConfigProperty(name = "apicurio.federation.enabled", defaultValue = "false")
     @Info(category = CATEGORY_FEDERATION, description = "Enable federation with peer registries, including the peer management API", availableSince = "3.4.0", experimental = true)
@@ -24,8 +35,96 @@ public class FederationConfig {
     @Info(category = CATEGORY_FEDERATION, description = "Allow peer registry URLs that point at a loopback address or a localhost name, for development and tests. Server-wide: applies to every peer, whether created through the admin API or loaded declaratively", availableSince = "3.4.0")
     boolean loopbackEnabled;
 
+    @ConfigProperty(name = "apicurio.federation.search.deadline-ms", defaultValue = "5000")
+    @Info(category = CATEGORY_FEDERATION, description = "Time in milliseconds a federated search may take in total. Peers that have not answered by then are reported as deadline_exceeded", availableSince = "3.4.0")
+    long searchDeadlineMs;
+
+    @ConfigProperty(name = "apicurio.federation.search.peer-timeout-ms", defaultValue = "3000")
+    @Info(category = CATEGORY_FEDERATION, description = "Time in milliseconds a single peer registry has to answer a federated search", availableSince = "3.4.0")
+    long searchPeerTimeoutMs;
+
+    @ConfigProperty(name = "apicurio.federation.search.max-peers", defaultValue = "16")
+    @Info(category = CATEGORY_FEDERATION, description = "Maximum number of peer registries one federated search queries. Enabling more through the peer management API is refused. If more are enabled anyway, for example after this value was lowered or through declarative loading, a search queries the first ones in peer id order and reports the rest as capacity_exceeded", availableSince = "3.4.0")
+    int searchMaxPeers;
+
+    @ConfigProperty(name = "apicurio.federation.search.max-concurrent-calls", defaultValue = "64")
+    @Info(category = CATEGORY_FEDERATION, description = "Maximum number of peer registry calls in progress at once, across all federated searches, from the name lookup until the answer has been read or the call cancelled. Calls beyond it are reported as capacity_exceeded", availableSince = "3.4.0")
+    int searchMaxConcurrentCalls;
+
+    @ConfigProperty(name = "apicurio.federation.search.max-searches-per-caller", defaultValue = "2")
+    @Info(category = CATEGORY_FEDERATION, description = "Maximum number of federated searches one caller can have in progress at once. A search beyond it still searches this registry, but calls no peer and reports every peer as capacity_exceeded. Authenticated callers are told apart by principal name and anonymous callers by network address, so all anonymous callers behind a proxy that does not forward the client address share one limit. A search calls every enabled peer, up to max-peers, so with the defaults one caller can hold at most 32 of the 64 peer calls (max-concurrent-calls)", availableSince = "3.4.0")
+    int searchMaxSearchesPerCaller;
+
+    @ConfigProperty(name = "apicurio.federation.search.max-response-bytes", defaultValue = "1048576")
+    @Info(category = CATEGORY_FEDERATION, description = "Maximum size in bytes of the response accepted from one peer registry. Larger responses are discarded", availableSince = "3.4.0")
+    int searchMaxResponseBytes;
+
+    @ConfigProperty(name = "apicurio.federation.search.per-source-limit.max", defaultValue = "100")
+    @Info(category = CATEGORY_FEDERATION, description = "Upper bound for the perSourceLimit a federated search may ask for", availableSince = "3.4.0")
+    int searchPerSourceLimitMax;
+
+    @ConfigProperty(name = "apicurio.federation.search.breaker.request-volume-threshold", defaultValue = "4")
+    @Info(category = CATEGORY_FEDERATION, description = "Number of recent calls to a peer registry that must have been made before its circuit breaker can open", availableSince = "3.4.0")
+    int breakerRequestVolumeThreshold;
+
+    @ConfigProperty(name = "apicurio.federation.search.breaker.failure-ratio", defaultValue = "0.5")
+    @Info(category = CATEGORY_FEDERATION, description = "Share of recent calls to a peer registry that must have failed for its circuit breaker to open", availableSince = "3.4.0")
+    double breakerFailureRatio;
+
+    @ConfigProperty(name = "apicurio.federation.search.breaker.delay-ms", defaultValue = "30000")
+    @Info(category = CATEGORY_FEDERATION, description = "Time in milliseconds an open circuit breaker waits before letting a call through to a peer registry again", availableSince = "3.4.0")
+    long breakerDelayMs;
+
+    @PostConstruct
+    void validate() {
+        if (!enabled) {
+            return;
+        }
+        List<String> problems = new ArrayList<>();
+        atLeastOne(problems, "apicurio.federation.search.deadline-ms", searchDeadlineMs);
+        atLeastOne(problems, "apicurio.federation.search.peer-timeout-ms", searchPeerTimeoutMs);
+        if (searchPeerTimeoutMs > 0 && searchPeerTimeoutMs >= searchDeadlineMs) {
+            // Otherwise every slow peer is cut off by the deadline first and reported as
+            // deadline_exceeded, and its own timeout is never reported.
+            problems.add("apicurio.federation.search.peer-timeout-ms (" + searchPeerTimeoutMs
+                    + ") must be below apicurio.federation.search.deadline-ms (" + searchDeadlineMs + ")");
+        }
+        atLeastOne(problems, "apicurio.federation.search.max-peers", searchMaxPeers);
+        atLeastOne(problems, "apicurio.federation.search.max-concurrent-calls", searchMaxConcurrentCalls);
+        atLeastOne(problems, "apicurio.federation.search.max-searches-per-caller", searchMaxSearchesPerCaller);
+        atLeastOne(problems, "apicurio.federation.search.max-response-bytes", searchMaxResponseBytes);
+        atLeastOne(problems, "apicurio.federation.search.per-source-limit.max", searchPerSourceLimitMax);
+        atLeastOne(problems, "apicurio.federation.search.breaker.request-volume-threshold",
+                breakerRequestVolumeThreshold);
+        if (!(breakerFailureRatio > 0 && breakerFailureRatio <= 1)) {
+            problems.add("apicurio.federation.search.breaker.failure-ratio (" + breakerFailureRatio
+                    + ") must be above 0 and at most 1");
+        }
+        if (breakerDelayMs < 0) {
+            problems.add("apicurio.federation.search.breaker.delay-ms (" + breakerDelayMs + ") must not be negative");
+        }
+        if (!problems.isEmpty()) {
+            throw new IllegalStateException("Invalid federation configuration: " + String.join("; ", problems) + ".");
+        }
+    }
+
+    private static void atLeastOne(List<String> problems, String name, long value) {
+        if (value < 1) {
+            problems.add(name + " (" + value + ") must be at least 1");
+        }
+    }
+
     public boolean isEnabled() {
         return enabled;
+    }
+
+    /**
+     * @throws ConflictException if federation is not enabled
+     */
+    public void requireEnabled() {
+        if (!enabled) {
+            throw new ConflictException(NOT_ENABLED);
+        }
     }
 
     public boolean isInsecureHttpEnabled() {
@@ -34,5 +133,45 @@ public class FederationConfig {
 
     public boolean isLoopbackEnabled() {
         return loopbackEnabled;
+    }
+
+    public long getSearchDeadlineMs() {
+        return searchDeadlineMs;
+    }
+
+    public long getSearchPeerTimeoutMs() {
+        return searchPeerTimeoutMs;
+    }
+
+    public int getSearchMaxPeers() {
+        return searchMaxPeers;
+    }
+
+    public int getSearchMaxConcurrentCalls() {
+        return searchMaxConcurrentCalls;
+    }
+
+    public int getSearchMaxSearchesPerCaller() {
+        return searchMaxSearchesPerCaller;
+    }
+
+    public int getSearchMaxResponseBytes() {
+        return searchMaxResponseBytes;
+    }
+
+    public int getSearchPerSourceLimitMax() {
+        return searchPerSourceLimitMax;
+    }
+
+    public int getBreakerRequestVolumeThreshold() {
+        return breakerRequestVolumeThreshold;
+    }
+
+    public double getBreakerFailureRatio() {
+        return breakerFailureRatio;
+    }
+
+    public long getBreakerDelayMs() {
+        return breakerDelayMs;
     }
 }

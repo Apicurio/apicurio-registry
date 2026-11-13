@@ -50,6 +50,8 @@ public final class Tour {
     private static final String JSON_DESERIALIZER = "io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaDeserializer";
     private static final String PROTOBUF_SERIALIZER = "io.apicurio.registry.serde.protobuf.ProtobufKafkaSerializer";
     private static final String PROTOBUF_DESERIALIZER = "io.apicurio.registry.serde.protobuf.ProtobufKafkaDeserializer";
+    private static final String CONFLUENT_AVRO_SERIALIZER = "io.confluent.kafka.serializers.KafkaAvroSerializer";
+    private static final String CONFLUENT_AVRO_DESERIALIZER = "io.confluent.kafka.serializers.KafkaAvroDeserializer";
 
     private static final Schema ORDER_V1 = avro("""
             {"type": "record", "name": "OrderPlaced", "namespace": "com.example.orders",
@@ -74,7 +76,7 @@ public final class Tour {
 
     private static final List<String> STEPS = List.of("avro", "headers", "json", "protobuf",
             "protobuf-find-latest", "reflect", "record-strategy", "evolution", "rules", "custom-strategy",
-            "custom-resolver", "preregistered");
+            "custom-resolver", "preregistered", "confluent");
 
     private static String registryUrl;
     private static String bootstrap;
@@ -116,6 +118,7 @@ public final class Tour {
                 case "custom-strategy" -> customStrategy();
                 case "custom-resolver" -> customResolver();
                 case "preregistered" -> preregistered();
+                case "confluent" -> confluent();
                 default -> throw new IllegalArgumentException("Unknown step " + step + "; steps: " + STEPS);
             }
         }
@@ -286,6 +289,26 @@ public final class Tour {
         produce("greetings", AVRO_SERIALIZER, config, List.of(greeting));
         check("the greeting is sent with the pre-registered schema and read back", "hello",
                 ids(consume("greetings", AVRO_DESERIALIZER, Map.of(), 1, null), "message"));
+    }
+
+    /**
+     * Mixed clients: Confluent's Avro serdes use the registry's Confluent-compatible API, Apicurio's use
+     * the v3 API, and each reads what the other wrote, because both put the content ID after a magic byte.
+     */
+    private static void confluent() throws Exception {
+        String ccompatUrl = registryUrl.replace("/apis/registry/v3", "/apis/ccompat/v7");
+        Map<String, Object> confluentConfig = Map.of("schema.registry.url", ccompatUrl,
+                "auto.register.schemas", "true");
+        produce("orders-from-confluent", CONFLUENT_AVRO_SERIALIZER, confluentConfig,
+                List.of(order(ORDER_V1, "c-1", 10.0), order(ORDER_V1, "c-2", 20.0)));
+        List<GenericRecord> fromConfluent = consume("orders-from-confluent", AVRO_DESERIALIZER, Map.of(), 2, null);
+        check("Confluent's serializer writes, Apicurio's deserializer reads", "c-1,c-2", ids(fromConfluent, "orderId"));
+
+        produce("orders-to-confluent", AVRO_SERIALIZER, Map.of("apicurio.registry.auto-register", "true"),
+                List.of(order(ORDER_V1, "a-1", 30.0), order(ORDER_V1, "a-2", 40.0)));
+        List<GenericRecord> toConfluent = consume("orders-to-confluent", CONFLUENT_AVRO_DESERIALIZER,
+                Map.of("schema.registry.url", ccompatUrl), 2, null);
+        check("Apicurio's serializer writes, Confluent's deserializer reads", "a-1,a-2", ids(toConfluent, "orderId"));
     }
 
     // ---------------------------------------------------------------------------------------- Kafka

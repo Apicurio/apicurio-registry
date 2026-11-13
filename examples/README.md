@@ -98,13 +98,12 @@ onto the schema as labels, field tags and rules, and the Kafka serializer enforc
 before records are sent. Its [step-by-step guide](odcs-data-contracts/GUIDE.md) walks through each
 feature in the REST API and the UI, and works as a script for a team demo.
 
-## Confluent Serdes Integration
-This example shows how Apicurio Registry serdes classes can be used along with Confluent serdes
-classes in a mixed application environment.  In other words, some applications can be using
-Confluent classes while other applications can be using Apicurio Registry classes - and they
-can all work together seamlessly with just a little bit of extra configuration.  This example
-is essentially the same as the Simple Avro Example, but using a Confluent serializer with an
-Apicurio Registry deserializer.
+## Confluent Compatibility Example
+This example runs Confluent's own serializers and console tools (Avro, Protobuf, JSON Schema) against
+Apicurio Registry's Confluent-compatible API, and checks the wire format and schema IDs, how subjects
+map to artifacts and groups, references, compatibility, soft and permanent deletes, errors, and the
+v7 and v8 APIs. See its [step-by-step guide](confluent-compatibility/GUIDE.md). Mixing Confluent's and
+Apicurio's serdes in one system is the `confluent` step of the Kafka Serdes Example.
 
 ## Rest Client example
 This example application demonstrates how to use the Apicurio Registry rest client to create,

@@ -31,7 +31,6 @@
   </licenses>
 
   <modules>
-    <module>confluent-serdes</module>
     <module>rest-client</module>
     <module>docker-compose</module>
     <module>openshift-template</module>

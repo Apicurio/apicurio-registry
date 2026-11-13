@@ -1,0 +1,3 @@
+{"type": "record", "name": "Customer", "namespace": "com.example.orders", "fields": [
+  {"name": "id", "type": "string"}, {"name": "address", "type": "com.example.common.Address"},
+  {"name": "loyaltyTier", "type": "string"}]}

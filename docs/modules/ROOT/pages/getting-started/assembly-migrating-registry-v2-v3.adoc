@@ -50,6 +50,7 @@ The v3 REST API focuses on consistency and discoverability:
 * Version-focused endpoints streamline content management and require explicit `Content-Type` headers.
 * A `dryRun` query parameter on artifact and version creation endpoints replaces the former `/test` endpoints. When `dryRun=true`, the API validates the request and returns a response without committing changes.
 * A dedicated Branch API enables multitrack artifact development.
+* A change rejected by a rule returns HTTP `400 Bad Request`; {registry-v2} returned `409 Conflict`. To keep `409` for clients that depend on it, set `apicurio.rest.legacy-error-codes.enabled=true`.
 --
 
 
@@ -567,6 +568,7 @@ The script performs the following validation:
 .Additional resources
 * xref:migration-scripts_{context}[]
 * {LinkServiceRegistryUser}[{NameServiceRegistryUser}]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/v2-to-v3-migration[v2 to v3 migration example]: migrates a seeded {registry-v2} server with these scripts and checks that every version keeps its IDs, state, content, and references.
 
 
 // con-client-backward-compatibility
@@ -1916,12 +1918,12 @@ export IMPORT_FILE="registry-export.zip"
 
 `REGISTRY_API_VERSION`:: API version to use (default: `v3`)
 `IMPORT_FILE`:: Import file path (default: `registry-export.zip`)
+`REQUIRE_EMPTY_REGISTRY`:: Set to `false` to import into a registry that already has data (default: `true`)
 
 *Important notes:*
 
-* The import adds to existing data and does not replace it.
-* The script warns if the registry already contains artifacts.
-* Import into an empty v3 registry for best results.
+* By default, the registry refuses an import unless it is empty (HTTP 409), and the script stops before importing. Set `REQUIRE_EMPTY_REGISTRY=false` to add to existing data; the import never replaces data.
+* The import keeps the global IDs and content IDs of the export, so that Kafka messages serialized against {registry-v2} still resolve to the same schemas.
 
 *apicurio-verify-registry-version.sh*
 
@@ -1957,6 +1959,7 @@ export AUTH_CLIENT_SECRET="your-secret"
 *Script-specific environment variables:*
 
 `REGISTRY_VERSION`:: Registry version to test (default: `v3`)
+`MANAGEMENT_URL`:: Base URL of the health endpoints (default: `REGISTRY_URL`). {registry} 3.x serves them on the management port, `9000` by default, for example `http://registry.example.com:9000`.
 
 *Exit codes:*
 

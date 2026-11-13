@@ -2663,7 +2663,10 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         ParameterValidationUtils.requireParameter("groupId", groupId);
 
-        int effectiveLimit = limit != null ? (limit < 0 ? 1 : Math.min(limit, 500)) : 20;
+        int effectiveLimit = 20;
+        if (limit != null) {
+            effectiveLimit = limit < 0 ? 1 : Math.min(limit, 500);
+        }
         int effectiveOffset = offset != null ? Math.max(0, offset) : 0;
 
         String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();

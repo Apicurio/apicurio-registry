@@ -29,8 +29,19 @@ on:
     types: [opened, reopened, synchronize, labeled]
     branches: [main, '3.3.x']
 
+# A labeled event fires its own run of this workflow (to re-evaluate docs-only
+# classification from a manually toggled label), but quick-verify/build-ui-fast
+# deliberately skip themselves on it — the opened/synchronize run on the same
+# SHA already covers them. If a labeled run shared the opened/synchronize run's
+# concurrency group, cancel-in-progress would kill that still-running build the
+# moment a label lands on a just-opened PR (opening a PR with a label attached,
+# e.g. `gh pr create --label`, fires opened and labeled within a second or two
+# of each other): the older run's gate then sees its own jobs' results as
+# "cancelled", which it correctly treats as a failure, not a skip. Scoping
+# labeled events to their own group avoids that race entirely, since the two
+# kinds of run don't need to exclude each other.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event.action == 'labeled' && 'labeled' || 'build' }}
   cancel-in-progress: true
 
 permissions:

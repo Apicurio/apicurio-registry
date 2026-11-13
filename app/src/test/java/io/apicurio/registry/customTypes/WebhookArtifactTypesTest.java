@@ -3,6 +3,7 @@ package io.apicurio.registry.customTypes;
 import io.apicurio.registry.rest.client.models.ArtifactReference;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.types.ContentTypes;
+import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.utils.test.raml.microsvc.RamlTestMicroService;
 import io.quarkus.test.junit.QuarkusTest;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 
@@ -40,13 +42,14 @@ public class WebhookArtifactTypesTest extends AbstractCustomArtifactTypesTest {
     }
 
     @Test
-    public void testCanonicalizerReceivesReferenceContentType() {
+    public void testCanonicalizerReceivesReferenceContentType() throws Exception {
         String groupId = TestUtils.generateGroupId();
         String referenceName = "schemas/order.yaml";
 
         // Create the artifact that will be referenced, stored as YAML.  Its artifact type is "RAML"
         // (this profile disables the built-in types), which differs from its content type.
-        CreateArtifact createReferenced = TestUtils.clientCreateArtifact("order-yaml", "RAML", "orderId: 1", ContentTypes.APPLICATION_YAML);
+        String referencedArtifactId = TestUtils.generateArtifactId();
+        CreateArtifact createReferenced = TestUtils.clientCreateArtifact(referencedArtifactId, "RAML", "orderId: 1", ContentTypes.APPLICATION_YAML);
         createReferenced.getFirstVersion().setVersion("1.0");
         clientV3.groups().byGroupId(groupId).artifacts().post(createReferenced);
 
@@ -57,7 +60,7 @@ public class WebhookArtifactTypesTest extends AbstractCustomArtifactTypesTest {
         ArtifactReference reference = new ArtifactReference();
         reference.setName(referenceName);
         reference.setGroupId(groupId);
-        reference.setArtifactId("order-yaml");
+        reference.setArtifactId(referencedArtifactId);
         reference.setVersion("1.0");
         createArtifact.getFirstVersion().getContent().setReferences(List.of(reference));
         clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
@@ -68,8 +71,16 @@ public class WebhookArtifactTypesTest extends AbstractCustomArtifactTypesTest {
 
             // Fetching the canonical content canonicalizes it again, this time with the references
             // resolved by RegistryContentUtils.recursivelyResolveReferences.
-            clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("1.0")
-                    .content().get(config -> config.queryParameters.canonical = true);
+            String canonicalContent;
+            try (InputStream stream = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
+                    .versions().byVersionExpression("1.0")
+                    .content().get(config -> config.queryParameters.canonical = true)) {
+                canonicalContent = IoUtil.toString(stream);
+            }
+
+            // The canonicalizer leaves this content unchanged, so a successful webhook round trip
+            // returns it as is.
+            Assertions.assertEquals("#%RAML 1.0\ntitle: testCanonicalizerReceivesReferenceContentType", canonicalContent);
 
             // The webhook must receive the reference with its content type, not its artifact type.
             Assertions.assertEquals(Map.of(referenceName, ContentTypes.APPLICATION_YAML),

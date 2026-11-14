@@ -190,7 +190,7 @@
     <quarkus-mcp-server.version>1.13.2</quarkus-mcp-server.version>
     <!-- MCP client for importing tools from MCP servers (#10115). Only mcp-core is used: mcp-json-jackson2
          needs networknt json-schema-validator 2.x, which conflicts with the 1.x version managed below. -->
-    <mcp-java-sdk.version>2.1.0</mcp-java-sdk.version>
+    <mcp-java-sdk.version>2.2.0</mcp-java-sdk.version>
     <!--
     /WARNING
     -->

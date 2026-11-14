@@ -103,7 +103,9 @@ jobs:
             # so any non-app change produces a real shadow document here (what
             # would have been skipped, per module, with the decisionId). An app
             # change yields a skip-status document, because app is not in the
-            # session; the app-side assertion is the open half of REG-246.
+            # session; the app-side assertion is the open half of REG-246. From
+            # Scalpel 0.5.0 a change set with a root-level file no module owns
+            # (README.md, .gitignore) yields a skip-status document too.
             scalpel-shadow: true
     steps:
       # Resolved once in plain shell because the GitHub expression form of the

@@ -106,11 +106,8 @@ Errors have Confluent's shape and codes: `40401` subject not found, `40402` vers
 
 - v8 is the same implementation as v7: the same subjects, schema types, config and versions. One
   difference: v8 includes an empty `references` list in a schema; v7 leaves it out.
-- **Modes are stored but not enforced:** `PUT /mode/{subject}` with `READONLY` is returned by
-  `GET /mode/{subject}`, but writes still succeed. Confluent rejects them (`422`, `42205`)
-  ([#11124](https://github.com/Apicurio/apicurio-registry/issues/11124)). Do not rely on `READONLY` to
-  freeze a registry during a migration; use Apicurio's read-only mode
-  (`apicurio.storage.read-only.enabled`) instead.
+- **Modes are enforced:** `PUT /mode/{subject}` sets `READONLY` mode for a subject, rejecting
+  schema registrations with HTTP `422` and error code `42205`, matching Confluent Schema Registry.
 - Not supported at all: schema linking (exporters), KEKs and DEKs, the metadata API, and the
   enforcement of Confluent data contract rules. See the documentation.
 
@@ -123,7 +120,7 @@ Errors have Confluent's shape and codes: `40401` subject not found, `40402` vers
 - **The story in one sentence per step:** Confluent's own tools just work, and the ID is the content
   ID (1); a subject is an artifact, groups are opt-in (2); references (3) and compatibility (4) map to
   Apicurio's; deletes are states (5); errors look like Confluent's (6); v7 and v8 are one
-  implementation, and modes are not enforced yet (7).
+  implementation, and modes are enforced (7).
 - **Questions that usually come up:**
   - *Do I have to change my producers?* Only `schema.registry.url`.
   - *Do my existing schema IDs survive a migration from Confluent?* Yes, with `utils/exportConfluent`
@@ -137,4 +134,3 @@ Errors have Confluent's shape and codes: `40401` subject not found, `40402` vers
 |---|---|
 | `Subject 'x' not found` for an artifact you can see in the UI | It is not in the `default` group: send `X-Registry-GroupId`, or enable group-concat |
 | Incompatible schemas are accepted | Configure a compatibility level: `PUT /config` or `PUT /config/{subject}` |
-| `READONLY` does not block writes | Known issue (#11124): use `apicurio.storage.read-only.enabled` |

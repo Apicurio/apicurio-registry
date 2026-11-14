@@ -189,10 +189,9 @@ check "GET a schema: v8 adds an empty references list" '{"v7":null,"v8":[]}' \
   "$(jq -nc --argjson a "$(curl -s "$V7/schemas/ids/$CID")" --argjson b "$(curl -s "$V8/schemas/ids/$CID")" '{v7: $a.references, v8: $b.references}')"
 check "the mode is stored per subject" '200 {"mode":"READONLY"}' \
   "$(cc PUT "$V7/mode/payments-value" '{"mode": "READONLY"}' > /dev/null; cc GET "$V7/mode/payments-value")"
-# Confluent rejects writes in READONLY (422, 42205); Apicurio stores the mode only (#11124)
-check "  but not enforced today: a write in READONLY succeeds (should be 422, #11124)" 200 \
-  "$(cc POST "$V7/subjects/payments-value/versions" "$(schema 'syntax = "proto3"; package com.example; message Payment { string id = 1; double amount = 2; string note = 3; }' PROTOBUF)" \
-     | cut -d' ' -f1)"
+# Confluent rejects writes in READONLY (422, 42205)
+check "  a write in READONLY is rejected: 422, error_code 42205" "422 42205" \
+  "$(err "$(cc POST "$V7/subjects/payments-value/versions" "$(schema 'syntax = "proto3"; package com.example; message Payment { string id = 1; double amount = 2; string note = 3; }' PROTOBUF)")")"
 
 if [[ $failures -gt 0 ]]; then
   echo

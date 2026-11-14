@@ -493,6 +493,38 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
                 .statusCode(404);
     }
 
+    @Test
+    public void testSearchAgentsInDefaultGroup() throws Exception {
+        String artifactId = "defaultgroupagent-" + TestUtils.generateArtifactId();
+        createAgentCard("default", artifactId, AGENT_CARD_CONTENT);
+
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .queryParam("name", artifactId)
+                .get("/.well-known/agents")
+                .then()
+                .statusCode(200)
+                .body("count", greaterThanOrEqualTo(1))
+                .body("agents.find { it.artifactId == '" + artifactId + "' }.groupId", equalTo("default"));
+    }
+
+    @Test
+    public void testSearchMcpToolsInDefaultGroup() throws Exception {
+        String artifactId = "defaultgrouptool-" + TestUtils.generateArtifactId();
+        createMcpTool("default", artifactId, MCP_TOOL_CONTENT);
+
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .queryParam("name", artifactId)
+                .get("/.well-known/mcp-tools")
+                .then()
+                .statusCode(200)
+                .body("count", greaterThanOrEqualTo(1))
+                .body("tools.find { it.artifactId == '" + artifactId + "' }.groupId", equalTo("default"));
+    }
+
     private void createAgentCard(String groupId, String artifactId, String content) throws Exception {
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);

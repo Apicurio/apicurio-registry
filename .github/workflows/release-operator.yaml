@@ -288,6 +288,178 @@ jobs:
             EXCLUDED_GROUPS="${{ matrix.excluded-groups }}" \
             test-remote-group
 
+  # Keeps the branch's install files tracking the version bump release.yaml
+  # already pushed, independent of whether release-test passes. Split out
+  # from release-post (#10841): that job gates everything on release-test, so
+  # a test failure — unrelated to whether this housekeeping itself would
+  # succeed — used to skip it entirely, leaving install.yaml and
+  # install-namespaced.yaml silently out of date on the branch (and, for a
+  # maintenance release, un-synced to main) until Verify went red from the
+  # drift and someone noticed and fixed it by hand (#10837).
+  #
+  # The Makefile's PREVIOUS_PACKAGE_VERSION bump and the catalog template
+  # update are NOT here: they record the upgrade graph of what has actually
+  # been published (the next bundle's `replaces` comes from
+  # PREVIOUS_PACKAGE_VERSION), so they stay gated on release-test passing, in
+  # release-post below — otherwise a release abandoned after a test failure
+  # would still advance the catalog graph past a version nothing ever
+  # published to Community Operators.
+  #
+  # `if: !cancelled()` rather than `always()`: a cancelled run should not
+  # still push housekeeping changes.
+  release-post-sync:
+    name: Post-Release Housekeeping
+    needs: [release-build]
+    if: "!cancelled() && needs.release-build.result == 'success'"
+    runs-on: ubuntu-26.04
+    timeout-minutes: 60
+    # Read by the notify job, which leaves out a failure already reported here.
+    outputs:
+      notified: ${{ steps.notify.outcome }}
+    env:
+      RELEASE_VERSION: ${{ needs.release-build.outputs.release-version }}
+      BRANCH: ${{ needs.release-build.outputs.branch }}
+      PACKAGE_VERSION: ${{ needs.release-build.outputs.package-version }}
+    steps:
+
+      - name: Configure env. variables
+        run: |
+          echo "GH_TOKEN=${{ secrets.ACCESS_TOKEN }}" >> "$GITHUB_ENV"
+
+      - name: Download Source Code
+        run: |
+          git config --global user.name apicurio-ci
+          git config --global user.email apicurio.ci@gmail.com
+          git clone "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-registry.git" registry
+          cd registry && git checkout "$RELEASE_VERSION"
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
+        with:
+          java-version: '25'
+          distribution: temurin
+          cache: maven
+
+      # Generates install/apicurio-registry-operator-$RELEASE_VERSION.yaml and its
+      # namespaced counterpart as untracked files in this checkout, from the release
+      # tag (VERSION is read from pom.xml). They used to be a side effect of the old
+      # release-post job's own `make dist`, done in the same job/workspace that later
+      # committed install files; now that this is a separate job, generate them here,
+      # before switching to $BRANCH below — "Sync install files to main" and the
+      # branch commit both expect them to already be on disk.
+      #
+      # `build` has to run first: dist-install-file's kustomization reads the CRD at
+      # controller/src/main/deploy/crd/apicurioregistries3.registry.apicur.io-v1.yml,
+      # which is gitignored and only exists after copy-crd (controller/pom.xml) runs
+      # as part of `mvn install`. Without it this step fails on every release, on a
+      # fresh clone of the tag — the exact "housekeeping silently skipped" failure
+      # mode #10841 exists to fix. `dist` itself isn't needed here (it also builds the
+      # tar.gz archive, which only release-post uses), just the two install targets.
+      - name: Generate versioned install files
+        working-directory: registry/operator
+        run: |
+          make BUILD_OPTS=--no-transfer-progress SKIP_TESTS=true OPERAND_IMAGE_TAG=$RELEASE_VERSION build dist-install-file dist-install-file-namespaced
+
+      - name: Prepare post-release changes
+        working-directory: registry/operator
+        run: |
+          # This job now starts right after release-build, not after release-test, so
+          # there's less time for release.yaml's own snapshot-bump commit (a
+          # monorepo-wide mvn versions:set + npm version, which can take a few
+          # minutes) to have landed on $BRANCH by the time we get here. Poll for it
+          # instead of checking once: wait up to 10 minutes (20 x 30s), then fail
+          # loudly rather than silently regenerate install files against the
+          # just-released (non-snapshot) version if it still hasn't shown up.
+          MAX_ATTEMPTS=20
+          SLEEP_SECONDS=30
+          for ATTEMPT in $(seq 1 "$MAX_ATTEMPTS"); do
+            # Switch to the branch and pull latest to pick up the snapshot version
+            # update by release.yaml . It could have been pushed after the initial
+            # clone, or even after a previous attempt in this loop.
+            git fetch origin
+            git checkout "$BRANCH"
+            git pull origin "$BRANCH"
+
+            CURRENT_VERSION=$(make VAR=VERSION variable-get)
+            case "$CURRENT_VERSION" in
+              *-SNAPSHOT)
+                if [ "$CURRENT_VERSION" != "$RELEASE_VERSION-SNAPSHOT" ]; then
+                  echo "$BRANCH is at $CURRENT_VERSION; the post-release bump has landed."
+                  exit 0
+                fi
+                ;;
+            esac
+
+            if [ "$ATTEMPT" -eq "$MAX_ATTEMPTS" ]; then
+              echo "::error::$BRANCH's version ($CURRENT_VERSION) still isn't a -SNAPSHOT past the release's own snapshot name ($RELEASE_VERSION-SNAPSHOT) after $((MAX_ATTEMPTS * SLEEP_SECONDS / 60)) minutes; release.yaml's post-release bump hasn't landed, or landed with an unexpected version."
+              exit 1
+            fi
+            echo "$BRANCH is still at $CURRENT_VERSION (attempt $ATTEMPT/$MAX_ATTEMPTS); waiting ${SLEEP_SECONDS}s for release.yaml's snapshot-bump commit..."
+            sleep "$SLEEP_SECONDS"
+          done
+
+      - name: Update install file
+        working-directory: registry/operator
+        run: |
+          make IMAGE_TAG=latest-snapshot OPERAND_IMAGE_TAG=latest-snapshot SKIP_TESTS=true build INSTALL_FILE=install/install.yaml dist-install-file
+          make IMAGE_TAG=latest-snapshot OPERAND_IMAGE_TAG=latest-snapshot SKIP_TESTS=true INSTALL_NAMESPACED_FILE=install/install-namespaced.yaml dist-install-file-namespaced
+          git add install/*
+
+      - name: Commit & push post-release changes
+        working-directory: registry/operator
+        run: |
+          git commit -m "ci(operator): post-release install files for $RELEASE_VERSION"
+          # Rebase in case somebody else pushed to the branch
+          git fetch origin
+          git rebase "origin/$BRANCH"
+          git push origin "$BRANCH"
+
+      - name: Sync install files to main
+        if: env.BRANCH != 'main'
+        working-directory: registry
+        run: |
+          # Save the versioned install files before switching branches
+          INSTALL_FILE="operator/install/apicurio-registry-operator-$RELEASE_VERSION.yaml"
+          INSTALL_NAMESPACED_FILE="operator/install/apicurio-registry-operator-namespaced-$RELEASE_VERSION.yaml"
+          cp "$INSTALL_FILE" /tmp/install-file.yaml
+          cp "$INSTALL_NAMESPACED_FILE" /tmp/install-file-namespaced.yaml
+
+          # Switch to main
+          git checkout main
+          git pull origin main
+
+          # Copy the versioned install files
+          cp /tmp/install-file.yaml "$INSTALL_FILE"
+          cp /tmp/install-file-namespaced.yaml "$INSTALL_NAMESPACED_FILE"
+
+          git add "$INSTALL_FILE" "$INSTALL_NAMESPACED_FILE"
+          git commit -m "ci(operator): sync $RELEASE_VERSION install files from $BRANCH to main"
+          git rebase origin/main
+          git push origin main
+
+      # Before tmate, which holds the job open until it times out, so whoever is
+      # notified can still connect. tmate lets in only github.actor's SSH keys,
+      # and apicurio-ci (which dispatches this workflow from release-images)
+      # has none: then there is no session, and the notify job reports the
+      # failure, mentioning whoever ran the release.
+      - name: Notify failure
+        id: notify
+        if: failure() && github.actor != 'apicurio-ci'
+        uses: Apicurio/apicurio-github-actions/notify-slack@bd19cbe33797325a571cd7ffd58f639b62e128a2 # v2.4.0
+        with:
+          level: important
+          text: ":x: ${{ github.workflow }} failed for ${{ inputs.tag }} in release-post-sync. :mag: Debug it on the runner: @${{ github.actor }} can SSH in with tmate until the job times out. The ssh command is in the job log."
+          link: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          mention: ${{ github.actor }},${{ github.triggering_actor }}
+          user-map: ${{ secrets.SLACK_USER_MAP }}
+          important-webhook: ${{ secrets.SLACK_IMPORTANT_NOTIFICATION_WEBHOOK }}
+
+      - name: Setup tmate session on failure
+        if: failure() && github.actor != 'apicurio-ci'
+        uses: mxschmitt/action-tmate@35b54afac29c97fb54faba5b513f8fbd1882f113 # v3
+        with:
+          limit-access-to-actor: true
+
   release-post:
     name: Post-Release
     needs: [release-build, release-test]
@@ -493,63 +665,40 @@ jobs:
         if: steps.openshift-community-operators-catalog-pr.outcome == 'failure'
         run: echo "::warning::Failed to create Openshift Community Operators Catalog PR. Please create it manually."
 
-      - name: Prepare post-release changes
+      # The Makefile's PREVIOUS_PACKAGE_VERSION and the catalog template record the
+      # upgrade graph of what has actually been published — this job's own gate
+      # (release-test passing or skipped) is what makes it safe to advance them here,
+      # rather than in release-post-sync, which runs independent of test results.
+      - name: Update Makefile and catalog template
         working-directory: registry/operator
         run: |
-          # Switch to the branch and pull latest to pick up the snapshot version update by release.yaml .
-          # It could have been pushed after the initial clone.
           git fetch origin
           git checkout "$BRANCH"
           git pull origin "$BRANCH"
-
-      - name: Update Makefile
-        working-directory: registry/operator
-        run: |
           make VAR=PREVIOUS_PACKAGE_VERSION "VAL=$PACKAGE_VERSION" variable-set
           git add Makefile
-
-      - name: Update catalog template
-        working-directory: registry/operator
-        run: |
           make release-catalog-template-update
           git add "$(make VAR=CATALOG_DIR variable-get)"
 
-      - name: Update install file
+      - name: Commit & push catalog bookkeeping
         working-directory: registry/operator
         run: |
-          make IMAGE_TAG=latest-snapshot OPERAND_IMAGE_TAG=latest-snapshot SKIP_TESTS=true build INSTALL_FILE=install/install.yaml dist-install-file
-          make IMAGE_TAG=latest-snapshot OPERAND_IMAGE_TAG=latest-snapshot SKIP_TESTS=true INSTALL_NAMESPACED_FILE=install/install-namespaced.yaml dist-install-file-namespaced
-          git add install/*
-
-      - name: Commit & push post-release changes
-        working-directory: registry/operator
-        run: |
-          git commit -m "ci(operator): post-release changes for $RELEASE_VERSION"
+          git commit -m "ci(operator): post-release catalog bookkeeping for $RELEASE_VERSION"
           # Rebase in case somebody else pushed to the branch
           git fetch origin
           git rebase "origin/$BRANCH"
           git push origin "$BRANCH"
 
-      - name: Sync post-release changes to main
+      - name: Sync catalog bookkeeping to main
         if: env.BRANCH != 'main'
         working-directory: registry
         run: |
-          # Save the versioned install files before switching branches
-          INSTALL_FILE="operator/install/apicurio-registry-operator-$RELEASE_VERSION.yaml"
-          INSTALL_NAMESPACED_FILE="operator/install/apicurio-registry-operator-namespaced-$RELEASE_VERSION.yaml"
-          cp "$INSTALL_FILE" /tmp/install-file.yaml
-          cp "$INSTALL_NAMESPACED_FILE" /tmp/install-file-namespaced.yaml
-
-          # Switch to main
           git checkout main
           git pull origin main
 
-          # Copy the versioned install files
-          cp /tmp/install-file.yaml "$INSTALL_FILE"
-          cp /tmp/install-file-namespaced.yaml "$INSTALL_NAMESPACED_FILE"
-
           RELEASE_CHANNEL=$(echo "$PACKAGE_VERSION" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
           MAIN_CHANNEL=$(cd operator && make VAR=CHANNEL variable-get)
+          CATALOG_DIR=$(cd operator && make VAR=CATALOG_DIR variable-get)
 
           cd operator
           if [ "$RELEASE_CHANNEL" = "$MAIN_CHANNEL" ]; then
@@ -560,12 +709,12 @@ jobs:
             # Maintenance release from an older minor — only update its channel (and the
             # rolling channel if it is the newest release) and add the bundle image.
             # Do NOT touch PREVIOUS_PACKAGE_VERSION or other minor channels on main.
-            CATALOG_DIR=$(make VAR=CATALOG_DIR variable-get)
             CATALOG_FILE="$CATALOG_DIR/catalog.template.yaml"
             PKG_NAME=$(make VAR=PACKAGE_NAME variable-get)
             LC_VERSION=$(echo "$PACKAGE_VERSION" | tr A-Z a-z)
             BUNDLE_IMG="$(make VAR=IMAGE_REGISTRY variable-get)/$(make VAR=BUNDLE_IMAGE_NAME variable-get):$LC_VERSION"
-            # "Update install file" runs mvn clean, which deletes target/bin/yq.
+            # install-yq is also a dependency of release-catalog-template-update (the "if"
+            # branch above), but that branch doesn't run here, so make sure it's present.
             make install-yq
             YQ=$(make VAR=YQ variable-get)
 
@@ -594,8 +743,13 @@ jobs:
           fi
 
           cd ..
-          git add .
-          git commit -m "ci(operator): sync $RELEASE_VERSION post-release changes from $BRANCH to main"
+          # Scoped, not `git add .`: this workspace's own `make dist` (in "Build dist
+          # archive and attach to the release", above) leaves the versioned install
+          # files untracked on disk here too. They're identical to what
+          # release-post-sync already committed to main, so picking them up would be
+          # benign, but this step is only meant to touch the Makefile/catalog bump.
+          git add operator/Makefile "operator/$CATALOG_DIR"
+          git commit -m "ci(operator): sync $RELEASE_VERSION catalog bookkeeping from $BRANCH to main"
           git rebase origin/main
           git push origin main
 
@@ -625,7 +779,7 @@ jobs:
   # Slack: see "Notifications" in .github/workflows/README.md.
   notify:
     name: Notify
-    needs: [release-build, release-test, release-post]
+    needs: [release-build, release-test, release-post-sync, release-post]
     if: "!cancelled() && github.repository_owner == 'Apicurio'"
     permissions:
       actions: read

@@ -1,6 +1,7 @@
 package io.apicurio.registry.protobuf.content.dereference;
 
 import com.google.protobuf.DescriptorProtos;
+import com.squareup.wire.schema.internal.parser.MessageElement;
 import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
@@ -27,8 +28,11 @@ public class ProtobufDereferencer implements ContentDereferencer {
                 .unmodifiableMap(resolvedReferences.entrySet().stream().collect(
                         Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getContent().content())));
 
+        MessageElement firstMessage = FileDescriptorUtils.firstMessage(protoFileElement);
+        String fileName = firstMessage != null ? firstMessage.getName() : "schema";
+
         DescriptorProtos.FileDescriptorProto fileDescriptorProto = FileDescriptorUtils.toFileDescriptorProto(
-                content.getContent().content(), FileDescriptorUtils.firstMessage(protoFileElement).getName(),
+                content.getContent().content(), fileName,
                 Optional.ofNullable(protoFileElement.getPackageName()), schemaDefs);
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 

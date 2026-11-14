@@ -1,0 +1,14 @@
+.mcp-tool-compatibility {
+    padding: 22px;
+    background-color: var(--registry-card-bg, white);
+}
+
+.mcp-tool-compatibility-summary {
+    margin-bottom: 12px;
+}
+
+.mcp-tool-compatibility-id,
+.mcp-tool-compatibility-pointer {
+    font-size: var(--pf-t--global--font--size--body--sm);
+    color: var(--pf-t--global--text--color--subtle);
+}

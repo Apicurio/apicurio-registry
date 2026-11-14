@@ -312,10 +312,48 @@ public class FileDescriptorUtilsTest {
         assertThat(actualFileDescriptorProto).ignoringRepeatedFieldOrder()
             .isEqualTo(expectedFileDescriptorProto);
 
-        // This assertion is not working for json_name as the generation of FileDescriptorProto will always
-        // contain
-        // the json_name field as long as it is specifies (no matter it is default or non default)
-        // assertThat(expectedFileDescriptorProto).ignoringRepeatedFieldOrder().isEqualTo(fileDescriptorProto);
+        // The text to descriptor path drops a json_name equal to the default derived from the field name,
+        // while the generated descriptor keeps every json_name its schema declares.
+        assertThat(expectedFileDescriptorProto).ignoringRepeatedFieldOrder()
+            .isEqualTo(withoutDefaultJsonNames(fileDescriptorProto));
+    }
+
+    private static DescriptorProtos.FileDescriptorProto withoutDefaultJsonNames(
+            DescriptorProtos.FileDescriptorProto file) {
+        DescriptorProtos.FileDescriptorProto.Builder builder = file.toBuilder();
+        builder.getMessageTypeBuilderList().forEach(FileDescriptorUtilsTest::clearDefaultJsonNames);
+        return builder.build();
+    }
+
+    private static void clearDefaultJsonNames(DescriptorProtos.DescriptorProto.Builder message) {
+        for (DescriptorProtos.FieldDescriptorProto.Builder field : message.getFieldBuilderList()) {
+            if (field.hasJsonName() && field.getJsonName().equals(defaultJsonName(field.getName()))) {
+                field.clearJsonName();
+            }
+        }
+        for (DescriptorProtos.DescriptorProto.Builder nested : message.getNestedTypeBuilderList()) {
+            clearDefaultJsonNames(nested);
+        }
+    }
+
+    // Same rule as protoc's ToJsonName: drop each underscore and capitalize the letter that follows
+    // it (a run of underscores capitalizes only the next letter). Kept apart from FileDescriptorUtils
+    // on purpose, so the comparison cannot agree with the code under test by construction.
+    private static String defaultJsonName(String fieldName) {
+        StringBuilder jsonName = new StringBuilder(fieldName.length());
+        boolean capitalizeNext = false;
+        for (int i = 0; i < fieldName.length(); i++) {
+            char c = fieldName.charAt(i);
+            if (c == '_') {
+                capitalizeNext = true;
+            } else if (capitalizeNext) {
+                jsonName.append(Character.toUpperCase(c));
+                capitalizeNext = false;
+            } else {
+                jsonName.append(c);
+            }
+        }
+        return jsonName.toString();
     }
 
     /**

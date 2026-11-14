@@ -620,3 +620,184 @@ ifndef::service-registry-downstream[]
 * {registry-rules}
 * link:https://github.com/Apicurio/apicurio-registry/tree/main/distro/gitops[GitOps sync container README]
 endif::[]
+
+
+[id="gitops-multi-replica-deployment_{context}"]
+== Multi-replica deployment model
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+In a {kubernetes} deployment, a *replica* is one copy of the registry pod. A Deployment with `replicas: 3` runs three identical pods, and a Service spreads incoming requests across them. When you run GitOps storage with multiple replicas, each replica operates independently with its own volume and its own sync sidecar.
+
+*Architecture*
+
+Each replica has:
+
+* Its own `emptyDir` volume, created empty when the pod starts and deleted with the pod.
+* Its own sync sidecar (`apicurio-registry-gitops-sync`), which clones the configured repositories into that volume.
+
+No replica reads another replica's volume. Every sidecar independently clones and fetches the same remote repositories, so all replicas converge on the same data. For a few seconds after a change, different replicas can serve different commits. This is the *convergence window*, described below.
+
+This design avoids any single point of failure: if one pod is lost, its replacement clones the repositories again from the remote. No `ReadWriteMany` storage or cross-pod coordination is required.
+
+
+[id="gitops-volume-strategy_{context}"]
+== Volume strategy
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+GitOps storage uses an `emptyDir` volume per pod. This is the only supported volume strategy.
+
+`emptyDir`:: Each pod gets its own volume that is created empty on startup and deleted with the pod. Nothing outside the pod can see it. The {operator} configures this automatically.
+
+A `PersistentVolumeClaim` (PVC) with `ReadWriteOnce` access mode is not suitable for multi-replica Deployments. A `ReadWriteOnce` PVC can only be mounted by pods on a single node. Because a Deployment's replicas all share the same pod template, they would all reference one PVC, and {kubernetes} cannot schedule the pods onto different nodes. In practice, pods on other nodes remain in a `Pending` state.
+
+A PVC per pod would require a StatefulSet with `volumeClaimTemplates`, but the {operator} uses a Deployment.
+
+
+[id="gitops-modes-and-replicas_{context}"]
+== Synchronization modes and replicas
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+The synchronization mode determines whether multiple replicas can run.
+
+Pull mode (recommended for high availability):: Every sidecar pulls from the same remote repository independently. Any replica can serve requests, and losing one does not lose data. Pull mode is the default.
+
+Push mode (single replica only):: In push mode, CI runs `git push` to an SSH server in the sidecar, reached through a Service. A Service sends each connection to one of its pods, so the push lands in one pod's volume and the other replicas never receive it. Their data silently diverges. For this reason, *push mode supports a single replica only*.
+
+IMPORTANT: Do not configure `replicas > 1` with push mode. Running push mode with multiple replicas causes silent data divergence across replicas.
+
+
+[id="gitops-convergence-window_{context}"]
+== Convergence window
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+In pull mode, each sidecar fetches updates from the remote independently. After a new commit is pushed to the remote, each sidecar picks it up on its next pull cycle. Until all sidecars have fetched the new commit and their registries have loaded it, different replicas can serve data from different commits.
+
+This period is the *convergence window*. With the default pull interval of 30 seconds and the default poll and debounce settings, expect a convergence window of up to roughly 60 seconds in the worst case: the sidecar that pulls last is at most one pull interval behind, and the registry needs an additional poll-plus-debounce cycle to load the new data.
+
+*Detecting the convergence window*
+
+Use the GitOps status endpoint to check which commit each repository is serving:
+
+[source,bash]
+----
+$ curl http://localhost:8080/apis/registry/v3/admin/gitops/status
+----
+
+The `sources` field in the response maps each repository identifier to the abbreviated commit that the replica has loaded. When you query different replicas (for example, by targeting individual pod IPs), the commit values can differ during the convergence window. When all replicas report the same commit for a repository, the window has closed.
+
+
+[id="gitops-validation-across-replicas_{context}"]
+== Validation tasks across replicas
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+Dry-run validation is asynchronous. The client sends a `POST` request to create a task and receives a task ID, then polls a `GET` endpoint until the task finishes. The pod that receives the `POST` writes a request file to its volume, its sidecar fetches the reference, and that same pod runs the validation.
+
+In a multi-replica deployment, the task is tied to the pod that created it. Another replica has neither the request files nor the result. When the Service routes the client's `GET` poll to a different pod, that pod does not find the task.
+
+To handle this, the task ID encodes the validation request itself, so any replica that receives a `GET` for an unknown task ID can decode it, start the same validation on its own volume, and answer from its own copy. No replica needs anything from another.
+
+This design has the following characteristics:
+
+Repeated work:: Without sticky routing, a client polling every few seconds can reach every replica, and each one runs the validation independently. This is bounded by the `max-tasks` setting.
+Listing and deleting:: The `GET /admin/gitops/validate` (list) and `DELETE /admin/gitops/validate/\{taskId}` endpoints operate on the replica that receives the request only. A task created on one replica is not listed or deleted on another.
+Commit SHA vs. branch:: CI should validate a commit SHA, not a branch name. A branch can move while replicas are fetching it, and different replicas can end up validating different commits. This is the same convergence window as data sync, but with a commit SHA every replica validates the same content.
+
+TIP: Use sticky routing (described below) to keep a client's polls on the same pod. This avoids repeated work and makes listing and deleting tasks consistent.
+
+
+[id="gitops-sticky-routing_{context}"]
+== Configuring sticky routing
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+*Sticky routing*, or *session affinity*, keeps a load balancer sending the same client to the same pod. This is an optimization, not a correctness mechanism: without it, self-describing task IDs still produce the right answer, with some repeated work. You can configure sticky routing to reduce repeated validation work across replicas.
+
+How to configure sticky routing depends on where the client's requests enter the cluster.
+
+*Clients inside the cluster*
+
+Clients inside the cluster (for example, Tekton, Argo Workflows, or CI runners on the cluster) call the registry's Service directly. Configure `sessionAffinity: ClientIP` on the Service:
+
+[source,yaml]
+----
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-registry-service
+spec:
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 3600
+----
+
+{kubernetes} remembers which pod each client IP was sent to and keeps sending it there for up to the configured timeout (default 3 hours). A pod's IP does not change during a CI job, so this works well.
+
+NOTE: The {operator} does not set `sessionAffinity` by default, because pinning clients to pods can unbalance load when a few clients produce most of the traffic. Enable it when you need it.
+
+*Clients outside the cluster through OpenShift Routes*
+
+OpenShift Routes are sticky by default. The router sets a cookie on the first response and uses it to route subsequent requests to the same pod. For this to work, the client must send the cookie back. Command-line tools such as `curl` require explicit cookie handling:
+
+[source,bash]
+----
+# Create the task and save cookies
+$ curl -c cookies.txt -X POST -H "Content-Type: application/json" \
+  -d '{"type": "pull", "repoId": "default", "ref": "refs/pull/42/head"}' \
+  https://registry.example.com/apis/registry/v3/admin/gitops/validate
+
+# Poll with the same cookies
+$ curl -b cookies.txt \
+  https://registry.example.com/apis/registry/v3/admin/gitops/validate/TASK_ID
+----
+
+Alternatively, configure IP-based affinity that requires no cookies:
+
+[source,yaml]
+----
+kind: Route
+metadata:
+  annotations:
+    haproxy.router.openshift.io/balance: source
+----
+
+*Clients outside the cluster through nginx-ingress*
+
+For nginx-ingress, configure cookie-based or IP-based affinity with annotations on the Ingress resource:
+
+[source,yaml]
+----
+# Cookie-based affinity
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/session-cookie-name: REGISTRY_AFFINITY
+    nginx.ingress.kubernetes.io/session-cookie-max-age: "3600"
+----
+
+[source,yaml]
+----
+# IP-based affinity (alternative)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/upstream-hash-by: $remote_addr
+----
+
+*Hosted CI runners*
+
+Hosted CI runners such as GitHub-hosted runners reach the internet through cloud NAT. Their outgoing IP can change during a job, so IP-based stickiness is best-effort for them. Cookie-based stickiness is more reliable if the CI tool supports it.

@@ -159,6 +159,7 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
     @Audited
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
     public List<BigInteger> deleteSubject(String subject, Boolean permanent, String groupId) {
+        checkMode(subject, groupId);
         GA ga = getGA(groupId, subject);
 
         // This will throw an exception if the artifact does not exist.
@@ -246,6 +247,8 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
             throw new UnprocessableEntityException("The schema provided is null.");
         }
 
+        checkMode(subject, groupId);
+
         Lock lock;
         try {
             // Get or create a lock for the specific subject (GA) using the cache
@@ -327,6 +330,7 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
     @Audited
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
     public BigInteger deleteSchemaVersion(String subject, String versionString, Boolean permanent, String groupId) {
+        checkMode(subject, groupId);
         final GA ga = getGA(groupId, subject);
         try {
             if (doesArtifactExist(ga.getRawArtifactId(), ga.getRawGroupIdWithNull())) {

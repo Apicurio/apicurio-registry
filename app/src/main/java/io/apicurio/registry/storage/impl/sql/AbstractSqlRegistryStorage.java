@@ -1078,17 +1078,23 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Override
     public void setArtifactContractRuleset(String groupId, String artifactId,
             ContractRuleSetDto ruleset) throws RegistryStorageException {
-        contractRuleRepository.setArtifactContractRuleset(groupId, artifactId, ruleset);
-        outboxEvent.fire(SqlOutboxEvent.of(ContractRulesetConfigured.of(
-                groupId, artifactId, null, ContractRulesetConfigured.Action.SET)));
+        // Outer transaction so the ruleset rows and the outbox write either both commit or both
+        // roll back. The nested repository and outbox handles join this one.
+        handles.withHandleNoException(handle -> {
+            contractRuleRepository.setArtifactContractRuleset(groupId, artifactId, ruleset);
+            outboxEvent.fire(SqlOutboxEvent.of(ContractRulesetConfigured.of(
+                    groupId, artifactId, null, ContractRulesetConfigured.Action.SET)));
+        });
     }
 
     @Override
     public void deleteArtifactContractRuleset(String groupId, String artifactId)
             throws RegistryStorageException {
-        contractRuleRepository.deleteArtifactContractRuleset(groupId, artifactId);
-        outboxEvent.fire(SqlOutboxEvent.of(ContractRulesetConfigured.of(
-                groupId, artifactId, null, ContractRulesetConfigured.Action.DELETE)));
+        handles.withHandleNoException(handle -> {
+            contractRuleRepository.deleteArtifactContractRuleset(groupId, artifactId);
+            outboxEvent.fire(SqlOutboxEvent.of(ContractRulesetConfigured.of(
+                    groupId, artifactId, null, ContractRulesetConfigured.Action.DELETE)));
+        });
     }
 
     @Override
@@ -1100,17 +1106,21 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Override
     public void setVersionContractRuleset(String groupId, String artifactId, String version,
             ContractRuleSetDto ruleset) throws VersionNotFoundException, RegistryStorageException {
-        contractRuleRepository.setVersionContractRuleset(groupId, artifactId, version, ruleset);
-        outboxEvent.fire(SqlOutboxEvent.of(ContractRulesetConfigured.of(
-                groupId, artifactId, version, ContractRulesetConfigured.Action.SET)));
+        handles.withHandleNoException(handle -> {
+            contractRuleRepository.setVersionContractRuleset(groupId, artifactId, version, ruleset);
+            outboxEvent.fire(SqlOutboxEvent.of(ContractRulesetConfigured.of(
+                    groupId, artifactId, version, ContractRulesetConfigured.Action.SET)));
+        });
     }
 
     @Override
     public void deleteVersionContractRuleset(String groupId, String artifactId, String version)
             throws VersionNotFoundException, RegistryStorageException {
-        contractRuleRepository.deleteVersionContractRuleset(groupId, artifactId, version);
-        outboxEvent.fire(SqlOutboxEvent.of(ContractRulesetConfigured.of(
-                groupId, artifactId, version, ContractRulesetConfigured.Action.DELETE)));
+        handles.withHandleNoException(handle -> {
+            contractRuleRepository.deleteVersionContractRuleset(groupId, artifactId, version);
+            outboxEvent.fire(SqlOutboxEvent.of(ContractRulesetConfigured.of(
+                    groupId, artifactId, version, ContractRulesetConfigured.Action.DELETE)));
+        });
     }
 
     @Override
@@ -1120,16 +1130,20 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     public void setGlobalContractRuleset(ContractRuleSetDto ruleset) throws RegistryStorageException {
-        contractRuleRepository.setGlobalContractRuleset(ruleset);
-        outboxEvent.fire(SqlOutboxEvent
-                .of(ContractRulesetConfigured.ofGlobal(ContractRulesetConfigured.Action.SET)));
+        handles.withHandleNoException(handle -> {
+            contractRuleRepository.setGlobalContractRuleset(ruleset);
+            outboxEvent.fire(SqlOutboxEvent
+                    .of(ContractRulesetConfigured.ofGlobal(ContractRulesetConfigured.Action.SET)));
+        });
     }
 
     @Override
     public void deleteGlobalContractRuleset() throws RegistryStorageException {
-        contractRuleRepository.deleteGlobalContractRuleset();
-        outboxEvent.fire(SqlOutboxEvent
-                .of(ContractRulesetConfigured.ofGlobal(ContractRulesetConfigured.Action.DELETE)));
+        handles.withHandleNoException(handle -> {
+            contractRuleRepository.deleteGlobalContractRuleset();
+            outboxEvent.fire(SqlOutboxEvent
+                    .of(ContractRulesetConfigured.ofGlobal(ContractRulesetConfigured.Action.DELETE)));
+        });
     }
 
     @Override
@@ -1174,33 +1188,41 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Override
     public void updateContractMetadata(String groupId, String artifactId, String prefix,
             Map<String, String> labels) throws RegistryStorageException {
-        // Atomic merge scoped to the contract prefix.
-        mergeArtifactLabels(groupId, artifactId, prefix, labels);
+        // Outer transaction so the label merge and the outbox write either both commit or both roll
+        // back; an outbox failure must not leave committed metadata without its contract event.
+        handles.withHandleNoException(handle -> {
+            // Atomic merge scoped to the contract prefix.
+            mergeArtifactLabels(groupId, artifactId, prefix, labels);
 
-        outboxEvent.fire(SqlOutboxEvent.of(ContractMetadataUpdated.of(groupId, artifactId)));
+            outboxEvent.fire(SqlOutboxEvent.of(ContractMetadataUpdated.of(groupId, artifactId)));
+        });
     }
 
     @Override
     public void transitionContractStatus(String groupId, String artifactId, String fromStatus,
             String toStatus, String prefix, String effectiveDate) throws RegistryStorageException {
-        // Each merge is scoped to a single label key so that the other contract labels
-        // are left untouched.
-        String statusKey = prefix + ContractLabels.SUFFIX_STATUS;
-        mergeArtifactLabels(groupId, artifactId, statusKey, Map.of(statusKey, toStatus));
+        // Outer transaction covering the status label, the lifecycle date and the outbox write, so a
+        // failure in any of them cannot leave the status changed without its date or its event.
+        handles.withHandleNoException(handle -> {
+            // Each merge is scoped to a single label key so that the other contract labels
+            // are left untouched.
+            String statusKey = prefix + ContractLabels.SUFFIX_STATUS;
+            mergeArtifactLabels(groupId, artifactId, statusKey, Map.of(statusKey, toStatus));
 
-        if (ContractStatus.STABLE.name().equals(toStatus)) {
-            String stableDateKey = prefix + ContractLabels.SUFFIX_STABLE_DATE;
-            mergeArtifactLabels(groupId, artifactId, stableDateKey,
-                    Map.of(stableDateKey, effectiveDate));
-        }
-        if (ContractStatus.DEPRECATED.name().equals(toStatus)) {
-            String deprecatedDateKey = prefix + ContractLabels.SUFFIX_DEPRECATED_DATE;
-            mergeArtifactLabels(groupId, artifactId, deprecatedDateKey,
-                    Map.of(deprecatedDateKey, effectiveDate));
-        }
+            if (ContractStatus.STABLE.name().equals(toStatus)) {
+                String stableDateKey = prefix + ContractLabels.SUFFIX_STABLE_DATE;
+                mergeArtifactLabels(groupId, artifactId, stableDateKey,
+                        Map.of(stableDateKey, effectiveDate));
+            }
+            if (ContractStatus.DEPRECATED.name().equals(toStatus)) {
+                String deprecatedDateKey = prefix + ContractLabels.SUFFIX_DEPRECATED_DATE;
+                mergeArtifactLabels(groupId, artifactId, deprecatedDateKey,
+                        Map.of(deprecatedDateKey, effectiveDate));
+            }
 
-        outboxEvent.fire(SqlOutboxEvent
-                .of(ContractStatusChanged.of(groupId, artifactId, fromStatus, toStatus)));
+            outboxEvent.fire(SqlOutboxEvent
+                    .of(ContractStatusChanged.of(groupId, artifactId, fromStatus, toStatus)));
+        });
     }
 
     @Override

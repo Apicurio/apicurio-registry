@@ -61,15 +61,21 @@ jobs:
           ./mvnw -s "${GITHUB_WORKSPACE}/.github/ci-settings.xml" -B clean package \
             -Pprod,perf-comparison-tests -pl distro/docker,perf-comparison-tests -am \
             -DskipTests -Dmaven.javadoc.skip -Daether.syncContext.named.factory=noop
-          docker build -f distro/docker/target/docker/Dockerfile.jvm \
-            -t "$APICURIO_IMAGE" distro/docker/target/docker
 
+      # Minikube has to start before the image is built: with the none driver it switches Docker
+      # to the overlay2 storage driver and restarts it, which hides images in the containerd image
+      # store (ubuntu-26.04). See perf-main.yaml.
       - uses: apicurio/apicurio-github-actions/setup-minikube@bd19cbe33797325a571cd7ffd58f639b62e128a2 # v2
         with:
           driver: none
           ingress-enable: "false"
           olm-enable: "false"
           olm-v1-enable: "false"
+
+      - name: Build Apicurio image
+        run: |
+          docker build -f distro/docker/target/docker/Dockerfile.jvm \
+            -t "$APICURIO_IMAGE" distro/docker/target/docker
 
       - name: Enable resource metrics
         run: |

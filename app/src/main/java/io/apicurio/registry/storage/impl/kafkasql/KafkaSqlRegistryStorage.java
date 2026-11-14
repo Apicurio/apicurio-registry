@@ -1519,7 +1519,7 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
 
     /**
      * Usage writes are best effort and their callers never wait for the result, so they must not register a
-     * latch in the coordinator that nothing would ever remove. A broker outage fails every event of a flush,
+     * pending entry in the coordinator that nothing would ever remove. A broker outage fails every event of a flush,
      * so the failure is logged at WARN at most once a minute and at DEBUG otherwise.
      */
     private void submitWithoutResponse(KafkaSqlMessage message) {

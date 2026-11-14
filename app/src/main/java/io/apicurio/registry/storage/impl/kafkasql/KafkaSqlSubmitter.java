@@ -3,8 +3,6 @@ package io.apicurio.registry.storage.impl.kafkasql;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.storage.impl.util.ProducerActions;
-
-import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_STORAGE;
 import io.quarkus.arc.lookup.LookupIfProperty;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
@@ -21,6 +19,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_STORAGE;
 import static io.apicurio.registry.utils.ConcurrentUtil.blockOnResult;
 
 @ApplicationScoped
@@ -64,11 +63,9 @@ public class KafkaSqlSubmitter {
     }
 
     /**
-     * Sends a message to the Kafka topic.
-     *
-     * @param key
-     * @param value
-     * @param requestId the id written to the request header; only an id from the coordinator can be waited for
+     * Sends a message to the Kafka topic. The caller supplies the request ID: tracked
+     * sends get one from the coordinator, untracked sends a random UUID that keeps the
+     * header shape journal-record classification relies on.
      */
     private CompletableFuture<UUID> send(KafkaSqlMessageKey key, KafkaSqlMessage value, UUID requestId) {
         RecordHeader requestIdHeader = new RecordHeader(REQUEST_ID_HEADER,
@@ -88,17 +85,39 @@ public class KafkaSqlSubmitter {
     public void submitBootstrap(String bootstrapId) {
         KafkaSqlMessageKey key = KafkaSqlMessageKey.builder().messageType(BOOTSTRAP_MESSAGE_TYPE).uuid(bootstrapId)
                 .build();
-        blockOnResult(send(key, null, coordinator.get().createUUID()));
+        blockOnResult(send(key, null, UUID.randomUUID()));
     }
 
+    /**
+     * Submits a message whose result a caller will wait for; pass the returned UUID to
+     * KafkaSqlCoordinator.waitForResponse (see createUUID). Messages nobody waits for go
+     * through submitMessageWithoutResponse instead.
+     */
     public CompletableFuture<UUID> submitMessage(KafkaSqlMessage message) {
         var key = message.getKey();
-        return send(key, message, coordinator.get().createUUID());
+        // Resolved once: a second lookup throwing on a cleanup path would lose the forget and
+        // replace the send failure the caller is waiting on with the lookup failure.
+        KafkaSqlCoordinator kafkaSqlCoordinator = coordinator.get();
+        UUID requestId = kafkaSqlCoordinator.createUUID();
+        try {
+            return send(key, message, requestId).whenComplete((uuid, error) -> {
+                if (error != null) {
+                    // Forgets even if the record did reach the log. A response arriving
+                    // later then finds no entry, and notifyResponse drops it.
+                    kafkaSqlCoordinator.forget(requestId);
+                }
+            });
+        } catch (Throwable e) {
+            // The record never reached the broker, so no response will ever arrive for
+            // this UUID; the entry registered above must not linger in the coordinator.
+            kafkaSqlCoordinator.forget(requestId);
+            throw e;
+        }
     }
 
     /**
      * Submits a message whose result nobody waits for. The request id still goes into the journal header,
-     * but the coordinator never learns about it, so no latch or return value is kept for the message.
+     * but the coordinator never learns about it, so no pending entry is kept for the message.
      * Callers must handle a failed send themselves.
      */
     public CompletableFuture<UUID> submitMessageWithoutResponse(KafkaSqlMessage message) {

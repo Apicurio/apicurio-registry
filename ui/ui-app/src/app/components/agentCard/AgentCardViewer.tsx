@@ -20,6 +20,7 @@ import { ExternalLinkAltIcon } from "@patternfly/react-icons";
 import { AgentCardCapabilities, AgentCapabilities } from "./AgentCardCapabilities";
 import { AgentCardSkills, AgentSkill } from "./AgentCardSkills";
 import { AgentCardAuthentication, AgentAuthentication } from "./AgentCardAuthentication";
+import { hasProviderContent, providerLinkText } from "./AgentCardViewer.utils";
 
 /**
  * Agent provider structure
@@ -126,18 +127,21 @@ export const AgentCardViewer: FunctionComponent<AgentCardViewerProps> = (props: 
     };
 
     const renderProvider = (): React.ReactElement | null => {
-        if (!agentCard.provider) {
+        const provider = agentCard.provider;
+        if (!hasProviderContent(provider)) {
             return null;
         }
         return (
             <DescriptionListGroup>
                 <DescriptionListTerm>Provider</DescriptionListTerm>
                 <DescriptionListDescription>
-                    {agentCard.provider.organization}
-                    {agentCard.provider.url && (
-                        <a href={agentCard.provider.url} target="_blank" rel="noopener noreferrer" className="provider-url">
+                    {provider.url ? (
+                        <a href={provider.url} target="_blank" rel="noopener noreferrer" className="provider-url">
+                            {providerLinkText(provider)}
                             <ExternalLinkAltIcon className="external-link-icon" />
                         </a>
+                    ) : (
+                        provider.organization
                     )}
                 </DescriptionListDescription>
             </DescriptionListGroup>

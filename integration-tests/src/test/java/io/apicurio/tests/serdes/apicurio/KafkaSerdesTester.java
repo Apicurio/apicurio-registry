@@ -25,6 +25,7 @@ import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -38,6 +39,8 @@ public class KafkaSerdesTester<K, P, C> {
     private static final Logger LOGGER = LoggerFactory.getLogger(KafkaSerdesTester.class);
 
     private static final int MILLIS_PER_MESSAGE = 700;
+    // How long a timed out consume waits for its consumer thread to end after wakeup().
+    private static final long WAKEUP_JOIN_MILLIS = 5000L;
     private static final String BOOTSTRAP_SERVERS = "localhost:9092";
     private static final String MAC_OS_BOOTSTRAP_SERVERS = "docker.host.internal:9092";
 
@@ -167,50 +170,110 @@ public class KafkaSerdesTester<K, P, C> {
 
     public void consumeMessages(Consumer<K, C> consumer, String topicName, int messageCount,
             Predicate<C> dataValidator) throws Exception {
-        CompletableFuture<Integer> resultPromise = CompletableFuture.supplyAsync(() -> {
-
-            consumer.subscribe(Collections.singletonList(topicName));
-
-            AtomicInteger consumedMessages = new AtomicInteger();
-
-            try {
-                while (consumedMessages.get() < messageCount) {
-
-                    final ConsumerRecords<K, C> records = consumer.poll(Duration.ofSeconds(1));
-                    if (records.count() == 0) {
-                        LOGGER.info("None found");
-                    } else
-                        records.forEach(record -> {
-
-                            if (dataValidator != null) {
-                                assertTrue(dataValidator.test(record.value()),
-                                        "Consumed record validation failed");
-                            }
-
-                            consumedMessages.getAndIncrement();
-                            LOGGER.info("{} {} {} {}", record.topic(), record.partition(), record.offset(),
-                                    record.value());
-                        });
-                }
-
-                LOGGER.info("Consumed {} messages", consumedMessages.get());
-            } finally {
-                if (autoClose) {
-                    consumer.close();
-                }
-            }
-
-            return consumedMessages.get();
-        });
+        // A named thread of its own, so a timeout can dump this consumer's stack and wake it up.
+        FutureTask<Integer> resultPromise = new FutureTask<>(
+                () -> pollUntilConsumed(consumer, topicName, messageCount, dataValidator));
+        Thread consumerThread = new Thread(resultPromise, "kafka-serdes-consumer-" + topicName);
+        consumerThread.setDaemon(true);
+        consumerThread.start();
 
         try {
             Integer messagesConsumed = resultPromise.get((MILLIS_PER_MESSAGE * messageCount) + 2000,
                     TimeUnit.MILLISECONDS);
             assertEquals(messageCount, messagesConsumed.intValue());
-        } catch (Exception e) {
+        } catch (TimeoutException e) {
+            LOGGER.error("Consumer for topic {} did not finish in time. Stack of {} ({}):\n{}", topicName,
+                    consumerThread.getName(), consumerThread.getState(),
+                    formatStack(consumerThread.getStackTrace()));
+            stopConsumer(consumer, consumerThread, e);
+            throw e;
+        } catch (InterruptedException e) {
+            // The exception reports the interrupt, so the flag is not set again here.
+            stopConsumer(consumer, consumerThread, e);
             throw e;
         }
+    }
 
+    /**
+     * Ends a consume that did not finish, so its consumer does not stay open after the test fails. Any
+     * failure while doing so is added to {@code failure}, which is the one to report. An interrupt that
+     * arrives during the cleanup is kept as the thread's interrupt flag.
+     */
+    private void stopConsumer(Consumer<K, C> consumer, Thread consumerThread, Exception failure) {
+        try {
+            // Safe from another thread: unlike poll() and close(), it does not call acquire() in
+            // ClassicKafkaConsumer. It ends a poll() that waits on the broker, but does not interrupt a
+            // deserializer call.
+            consumer.wakeup();
+        } catch (RuntimeException cleanupFailure) {
+            failure.addSuppressed(cleanupFailure);
+        }
+        // Lets the helper's close() finish, and lets poll() end before a caller's close():
+        // close() calls acquire() and throws ConcurrentModificationException while another thread
+        // is inside poll(). An interrupt does not cut the wait short, for the same reason.
+        boolean interruptedDuringCleanup = false;
+        long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(WAKEUP_JOIN_MILLIS);
+        long remainingNanos = TimeUnit.MILLISECONDS.toNanos(WAKEUP_JOIN_MILLIS);
+        while (consumerThread.isAlive() && remainingNanos > 0) {
+            try {
+                TimeUnit.NANOSECONDS.timedJoin(consumerThread, remainingNanos);
+            } catch (InterruptedException cleanupInterrupted) {
+                failure.addSuppressed(cleanupInterrupted);
+                interruptedDuringCleanup = true;
+            }
+            remainingNanos = deadline - System.nanoTime();
+        }
+        if (consumerThread.isAlive()) {
+            LOGGER.error("Consumer thread {} survived wakeup(). Stack:\n{}", consumerThread.getName(),
+                    formatStack(consumerThread.getStackTrace()));
+        }
+        if (interruptedDuringCleanup) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    private int pollUntilConsumed(Consumer<K, C> consumer, String topicName, int messageCount,
+            Predicate<C> dataValidator) {
+        consumer.subscribe(Collections.singletonList(topicName));
+
+        AtomicInteger consumedMessages = new AtomicInteger();
+
+        try {
+            while (consumedMessages.get() < messageCount) {
+
+                final ConsumerRecords<K, C> records = consumer.poll(Duration.ofSeconds(1));
+                if (records.count() == 0) {
+                    LOGGER.info("None found");
+                } else
+                    records.forEach(record -> {
+
+                        if (dataValidator != null) {
+                            assertTrue(dataValidator.test(record.value()),
+                                    "Consumed record validation failed");
+                        }
+
+                        consumedMessages.getAndIncrement();
+                        LOGGER.info("{} {} {} {}", record.topic(), record.partition(), record.offset(),
+                                record.value());
+                    });
+            }
+
+            LOGGER.info("Consumed {} messages", consumedMessages.get());
+        } finally {
+            if (autoClose) {
+                consumer.close();
+            }
+        }
+
+        return consumedMessages.get();
+    }
+
+    private static String formatStack(StackTraceElement[] stack) {
+        StringBuilder out = new StringBuilder();
+        for (StackTraceElement frame : stack) {
+            out.append("\tat ").append(frame).append('\n');
+        }
+        return out.toString();
     }
 
     @FunctionalInterface

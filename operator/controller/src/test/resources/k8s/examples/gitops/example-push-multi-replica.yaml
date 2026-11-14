@@ -1,0 +1,18 @@
+# Invalid: push mode with replicas > 1
+# The operator should report a ValidationError condition.
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: gitops-push-multi
+spec:
+  app:
+    replicas: 3
+    storage:
+      type: gitops
+      gitops:
+        mode: push
+        registryId: prod
+        push:
+          authorizedKeys:
+            name: gitops-push-authorized-keys
+            key: authorized_keys

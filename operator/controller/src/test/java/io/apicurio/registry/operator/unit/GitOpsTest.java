@@ -5,6 +5,8 @@ import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.ContainerNames;
 import io.apicurio.registry.operator.feat.GitOps;
 import io.apicurio.registry.operator.resource.ResourceFactory;
+import io.apicurio.registry.operator.status.StatusManager;
+import io.apicurio.registry.operator.status.ValidationErrorConditionManager;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
@@ -12,7 +14,10 @@ import io.fabric8.kubernetes.api.model.PodSpec;
 import io.fabric8.kubernetes.api.model.PodTemplateSpec;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentSpec;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -23,6 +28,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class GitOpsTest {
 
     private static final ClassLoader CLASS_LOADER = GitOpsTest.class.getClassLoader();
+
+    private ApicurioRegistry3 lastRegistry;
+
+    @AfterEach
+    void cleanup() {
+        if (lastRegistry != null) {
+            StatusManager.clean(lastRegistry);
+            lastRegistry = null;
+        }
+    }
 
     @Test
     public void testPullHttpsConfiguration() {
@@ -136,6 +151,7 @@ public class GitOpsTest {
     @Test
     public void testPushMode() {
         var registry = deserialize("k8s/examples/gitops/example-push.yaml");
+        lastRegistry = registry;
         var envVars = new LinkedHashMap<String, EnvVar>();
         var deployment = createDeployment();
 
@@ -237,6 +253,7 @@ public class GitOpsTest {
     @Test
     public void testPushSecretRef() {
         var registry = deserialize("k8s/examples/gitops/example-push.yaml");
+        lastRegistry = registry;
         var envVars = new LinkedHashMap<String, EnvVar>();
         var deployment = createDeployment();
 
@@ -258,6 +275,54 @@ public class GitOpsTest {
         assertThat(sidecar.getEnv())
                 .anyMatch(e -> "APICURIO_GITOPS_PUSH_SSH_AUTHORIZED_KEYS".equals(e.getName())
                         && e.getValue().contains("authorized_keys"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "k8s/examples/gitops/example-push-multi-replica.yaml",
+            "k8s/examples/gitops/example-push-autoscaling.yaml",
+            "k8s/examples/gitops/example-push-replicas-and-autoscaling.yaml"
+    })
+    void testPushModeInvalidConfigRecordsValidationError(String fixture) {
+        final var registry = deserialize(fixture);
+        lastRegistry = registry;
+        final var envVars = new LinkedHashMap<String, EnvVar>();
+        final var deployment = createDeployment();
+
+        GitOps.configureGitOps(registry, deployment, envVars);
+
+        final var validationManager = StatusManager.get(registry)
+                .getConditionManager(ValidationErrorConditionManager.class);
+        assertThat(validationManager.hasErrors()).isTrue();
+    }
+
+    @Test
+    void testPushModeWithSingleReplicaNoValidationError() {
+        final var registry = deserialize("k8s/examples/gitops/example-push.yaml");
+        lastRegistry = registry;
+        final var envVars = new LinkedHashMap<String, EnvVar>();
+        final var deployment = createDeployment();
+
+        GitOps.configureGitOps(registry, deployment, envVars);
+
+        final var validationManager = StatusManager.get(registry)
+                .getConditionManager(ValidationErrorConditionManager.class);
+        assertThat(validationManager.hasErrors()).isFalse();
+    }
+
+    @Test
+    void testPullModeWithMultipleReplicasNoValidationError() {
+        final var registry = deserialize("k8s/examples/gitops/example-pull-https.yaml");
+        lastRegistry = registry;
+        registry.getSpec().getApp().setReplicas(3);
+        final var envVars = new LinkedHashMap<String, EnvVar>();
+        final var deployment = createDeployment();
+
+        GitOps.configureGitOps(registry, deployment, envVars);
+
+        final var validationManager = StatusManager.get(registry)
+                .getConditionManager(ValidationErrorConditionManager.class);
+        assertThat(validationManager.hasErrors()).isFalse();
     }
 
     @Test

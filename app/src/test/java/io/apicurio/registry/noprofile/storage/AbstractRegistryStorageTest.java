@@ -937,6 +937,29 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         }
     }
 
+    @Test
+    public void testSearchRoleMappingsPaging() {
+        storage().deleteAllUserData();
+        try {
+            // Inserted out of order so the pages only line up if the query sorts by principalId.
+            storage().createRoleMapping("principal-c", "READ_ONLY", "C");
+            storage().createRoleMapping("principal-a", "DEVELOPER", "A");
+            storage().createRoleMapping("principal-b", "ADMIN", "B");
+
+            RoleMappingSearchResultsDto page1 = storage().searchRoleMappings(0, 2);
+            Assertions.assertEquals(3, page1.getCount());
+            Assertions.assertEquals(List.of("principal-a", "principal-b"),
+                    page1.getRoleMappings().stream().map(RoleMappingDto::getPrincipalId).toList());
+
+            RoleMappingSearchResultsDto page2 = storage().searchRoleMappings(2, 2);
+            Assertions.assertEquals(3, page2.getCount());
+            Assertions.assertEquals(List.of("principal-c"),
+                    page2.getRoleMappings().stream().map(RoleMappingDto::getPrincipalId).toList());
+        } finally {
+            storage().deleteAllUserData();
+        }
+    }
+
     private void testPeersBody() {
         Assertions.assertTrue(storage().getPeers().isEmpty());
 

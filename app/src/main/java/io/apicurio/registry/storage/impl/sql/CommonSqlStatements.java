@@ -1091,7 +1091,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectRoleMappings() {
-        return "SELECT a.* FROM acls a ";
+        return "SELECT a.* FROM acls a ORDER BY a.principalId";
     }
 
     /**

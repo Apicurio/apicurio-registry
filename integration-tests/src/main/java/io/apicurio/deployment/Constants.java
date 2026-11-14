@@ -34,6 +34,7 @@ public final class Constants {
     public static final String DEBEZIUM_SNAPSHOT = "debezium-snapshot";
     public static final String DEBEZIUM_MYSQL_SNAPSHOT = "debezium-mysql-snapshot";
     public static final String KUBERNETES_OPS = "kubernetesops";
+    public static final String GITOPS = "gitops";
     public static final String ICEBERG = "iceberg";
     public static final String SEARCH = "search";
 

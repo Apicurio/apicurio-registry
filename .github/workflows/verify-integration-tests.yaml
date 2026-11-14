@@ -52,6 +52,8 @@ jobs:
           - { storage: kafkasql, groups: kafkasql-startup, remote-profile: remote-kafka }
           # kubernetesops storage
           - { storage: kubernetesops, groups: kubernetesops, remote-profile: remote-kubernetesops }
+          # gitops storage
+          - { storage: gitops, groups: gitops, remote-profile: remote-gitops }
     steps:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7

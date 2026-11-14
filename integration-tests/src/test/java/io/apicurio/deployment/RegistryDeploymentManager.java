@@ -186,6 +186,12 @@ public class RegistryDeploymentManager implements TestExecutionListener {
                     registryImage);
             KubernetesOpsDeploymentManager.deployKubernetesOpsApp(registryImage);
             testLogsIdentifier = "apicurio-registry-kubernetesops";
+        } else if (Boolean.parseBoolean(System.getProperty("deployGitOps"))) {
+            LOGGER.info(
+                    "Deploying GitOps Registry Variant with image: {} ##################################################",
+                    registryImage);
+            GitOpsDeploymentManager.deployGitOpsApp(registryImage);
+            testLogsIdentifier = "apicurio-registry-gitops";
         }
 
         // Deploy Debezium infrastructure based on active test groups.

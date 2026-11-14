@@ -28,6 +28,9 @@ public class JsonSchemaStructuredContentExtractor implements StructuredContentEx
     /** Composition keywords whose array elements are sub-schemas to recurse into. */
     private static final Set<String> COMPOSITION_KEYWORDS = Set.of("allOf", "anyOf", "oneOf", "if", "then", "else", "not");
 
+    /** Maximum recursion depth to prevent stack exhaustion on deeply nested pathological schemas. */
+    private static final int MAX_RECURSION_DEPTH = 32;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
@@ -37,7 +40,7 @@ public class JsonSchemaStructuredContentExtractor implements StructuredContentEx
             List<StructuredElement> elements = new ArrayList<>();
 
             extractId(root, elements);
-            extractFromSchema(root, elements);
+            extractFromSchema(root, elements, 0);
 
             return elements;
         } catch (Exception e) {
@@ -58,10 +61,10 @@ public class JsonSchemaStructuredContentExtractor implements StructuredContentEx
     /**
      * Recursively extracts properties, definitions, and required fields from a schema node,
      * including sub-schemas reachable through composition keywords (allOf, anyOf, oneOf,
-     * if/then/else, not).
+     * if/then/else, not), up to {@link #MAX_RECURSION_DEPTH}.
      */
-    private void extractFromSchema(JsonNode schema, List<StructuredElement> elements) {
-        if (schema == null || !schema.isObject()) {
+    private void extractFromSchema(JsonNode schema, List<StructuredElement> elements, int depth) {
+        if (schema == null || !schema.isObject() || depth > MAX_RECURSION_DEPTH) {
             return;
         }
 
@@ -74,11 +77,11 @@ public class JsonSchemaStructuredContentExtractor implements StructuredContentEx
             JsonNode child = schema.path(keyword);
             if (child.isArray()) {
                 for (JsonNode subSchema : child) {
-                    extractFromSchema(subSchema, elements);
+                    extractFromSchema(subSchema, elements, depth + 1);
                 }
             } else if (child.isObject()) {
                 // "not", "if", "then", "else" hold a single sub-schema
-                extractFromSchema(child, elements);
+                extractFromSchema(child, elements, depth + 1);
             }
         }
     }

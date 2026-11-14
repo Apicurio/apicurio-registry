@@ -142,6 +142,21 @@ class JsonSchemaStructuredContentExtractorTest {
         assertEquals(0, elements.size());
     }
 
+    @Test
+    void respectsMaxRecursionDepth() {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < 40; i++) {
+            sb.append("{\"allOf\":[");
+        }
+        sb.append("{\"properties\":{\"deepProp\":{\"type\":\"string\"}}}");
+        for (int i = 0; i < 40; i++) {
+            sb.append("]}");
+        }
+
+        List<StructuredElement> elements = extractor.extract(ContentHandle.create(sb.toString()));
+        assertEquals(0, elements.size());
+    }
+
     // ── helpers ─────────────────────────────────────────────────────────────
 
     private boolean elementExists(List<StructuredElement> elements, String kind, String name) {

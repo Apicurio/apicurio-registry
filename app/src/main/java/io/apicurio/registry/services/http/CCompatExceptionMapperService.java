@@ -102,17 +102,18 @@ public class CCompatExceptionMapperService implements ExceptionMapperService {
         }
 
         Response.ResponseBuilder builder;
-        if (response != null) {
+        if (response != null && response.hasEntity()) {
             builder = Response.fromResponse(response);
         } else {
-            Error error = toError(t);
-            builder = Response.status(code).entity(error);
+            Error error = toError(t, code);
+            builder = response == null ? Response.status(code) : Response.fromResponse(response);
+            builder.entity(error);
         }
 
         return builder.type(MediaType.APPLICATION_JSON).build();
     }
 
-    private Error toError(Throwable t) {
+    private Error toError(Throwable t, int responseCode) {
         Error error;
 
         if (t instanceof RuleViolationException) {
@@ -123,7 +124,7 @@ public class CCompatExceptionMapperService implements ExceptionMapperService {
             error = new Error();
         }
 
-        error.setErrorCode(CONFLUENT_CODE_MAP.getOrDefault(t.getClass(), 0));
+        error.setErrorCode(CONFLUENT_CODE_MAP.getOrDefault(t.getClass(), responseCode));
         error.setMessage(toConfluentMessage(t));
         return error;
     }

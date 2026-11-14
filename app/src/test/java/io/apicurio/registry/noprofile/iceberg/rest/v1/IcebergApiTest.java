@@ -18,6 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.anything;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -41,6 +42,19 @@ public class IcebergApiTest extends AbstractResourceTestBase {
             .statusCode(200)
             .body("defaults", notNullValue())
             .body("overrides", notNullValue());
+    }
+
+    @Test
+    public void testMalformedNamespaceBodyUsesIcebergErrorShape() {
+        given()
+            .contentType(CT_JSON)
+            .body("{\"namespace\":{}}")
+            .post(ICEBERG_API_BASE + "/iceberg/v1/default/namespaces")
+            .then()
+            .statusCode(400)
+            .body("error.code", equalTo(400))
+            .body("error.type", equalTo("BadRequestException"))
+            .body("error.message", containsString("Cannot deserialize value of type"));
     }
 
     @Test

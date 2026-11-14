@@ -2,7 +2,6 @@ package io.apicurio.registry.agents.noprofile.rest.a2a;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.client.RegistryClientFactory;
-import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
@@ -32,8 +31,8 @@ class OpenApiAgentCardAdminOverrideTest extends AbstractResourceTestBase {
 
     @Override
     protected RegistryClient createRestClientV3(Vertx vertx) {
-        return RegistryClientFactory.create(RegistryClientOptions.create().registryUrl(registryV3ApiUrl)
-                .vertx(vertx).basicAuth("alice", "alice"));
+        return RegistryClientFactory.create(
+                boundedClientOptions(registryV3ApiUrl, vertx).basicAuth("alice", "alice"));
     }
 
     @Test

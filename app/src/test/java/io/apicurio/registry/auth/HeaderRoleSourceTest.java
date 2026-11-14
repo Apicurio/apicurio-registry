@@ -2,7 +2,6 @@ package io.apicurio.registry.auth;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.client.RegistryClientFactory;
-import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
@@ -37,7 +36,7 @@ public class HeaderRoleSourceTest extends AbstractResourceTestBase {
 
     @Override
     protected RegistryClient createRestClientV3(Vertx vertx) {
-        return RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+        return RegistryClientFactory.create(boundedClientOptions(registryV3ApiUrl, vertx)
                 .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1"));
     }
 
@@ -51,14 +50,14 @@ public class HeaderRoleSourceTest extends AbstractResourceTestBase {
         rule.setRuleType(io.apicurio.registry.rest.client.models.RuleType.VALIDITY);
 
         var noRoleClient = RegistryClientFactory.create(
-                RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                boundedClientOptions(registryV3ApiUrl, vertx)
                 .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.NO_ROLE_CLIENT_ID, "test1"));
-        var readClient = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+        var readClient = RegistryClientFactory.create(boundedClientOptions(registryV3ApiUrl, vertx)
                 .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.READONLY_CLIENT_ID, "test1"));
-        var devClient = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+        var devClient = RegistryClientFactory.create(boundedClientOptions(registryV3ApiUrl, vertx)
                 .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.DEVELOPER_CLIENT_ID, "test1"));
         var adminClient = RegistryClientFactory.create(
-                RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                boundedClientOptions(registryV3ApiUrl, vertx)
                 .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1"));
 
         // User is authenticated but no roles assigned - operations should fail.

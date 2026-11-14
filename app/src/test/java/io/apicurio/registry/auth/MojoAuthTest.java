@@ -1,7 +1,6 @@
 package io.apicurio.registry.auth;
 
 import io.apicurio.registry.client.RegistryClientFactory;
-import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.maven.RegisterRegistryMojo;
 import io.apicurio.registry.noprofile.maven.RegistryMojoTestBase;
 import io.apicurio.registry.rest.client.RegistryClient;
@@ -40,7 +39,7 @@ public class MojoAuthTest extends RegistryMojoTestBase {
 
     @Override
     protected RegistryClient createRestClientV3(Vertx vertx) {
-        return RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+        return RegistryClientFactory.create(boundedClientOptions(registryV3ApiUrl, vertx)
                 .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1"));
     }
 

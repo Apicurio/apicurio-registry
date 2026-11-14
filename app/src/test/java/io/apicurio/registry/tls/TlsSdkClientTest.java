@@ -1,13 +1,10 @@
 package io.apicurio.registry.tls;
 
-import com.microsoft.kiota.RequestAdapter;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.client.RegistryClientFactory;
-import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.client.RegistryV2ClientFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.SystemInfo;
-import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.common.http.TestHTTPResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
@@ -55,7 +52,7 @@ public class TlsSdkClientTest extends AbstractResourceTestBase {
         Assertions.assertNotNull(truststoreUrl, "Truststore file not found");
 
         RegistryClient client = RegistryClientFactory.create(
-                RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                boundedClientOptions(registryV3ApiUrl, vertx)
                         .trustStoreJks(truststoreUrl.getPath(), "registrytest"));
 
         SystemInfo systemInfo = client.system().info().get();
@@ -76,7 +73,7 @@ public class TlsSdkClientTest extends AbstractResourceTestBase {
         Assertions.assertNotNull(truststoreUrl, "Truststore file not found");
 
         io.apicurio.registry.rest.client.v2.RegistryClient client = RegistryV2ClientFactory.create(
-                RegistryClientOptions.create(registryV2ApiUrl, vertx)
+                boundedClientOptions(registryV2ApiUrl, vertx)
                         .trustStoreJks(truststoreUrl.getPath(), "registrytest"));
 
         io.apicurio.registry.rest.client.v2.models.SystemInfo systemInfo = client.system().info().get();
@@ -96,7 +93,7 @@ public class TlsSdkClientTest extends AbstractResourceTestBase {
         Assertions.assertNotNull(certUrl, "PEM certificate file not found");
 
         RegistryClient client = RegistryClientFactory.create(
-                RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                boundedClientOptions(registryV3ApiUrl, vertx)
                         .trustStorePem(certUrl.getPath()));
 
         SystemInfo systemInfo = client.system().info().get();
@@ -115,7 +112,7 @@ public class TlsSdkClientTest extends AbstractResourceTestBase {
         Assertions.assertNotNull(certUrl, "PEM certificate file not found");
 
         io.apicurio.registry.rest.client.v2.RegistryClient client = RegistryV2ClientFactory.create(
-                RegistryClientOptions.create(registryV2ApiUrl, vertx)
+                boundedClientOptions(registryV2ApiUrl, vertx)
                         .trustStorePem(certUrl.getPath()));
 
         io.apicurio.registry.rest.client.v2.models.SystemInfo systemInfo = client.system().info().get();
@@ -137,7 +134,7 @@ public class TlsSdkClientTest extends AbstractResourceTestBase {
                 java.nio.file.Paths.get(certUrl.toURI())));
 
         RegistryClient client = RegistryClientFactory.create(
-                RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                boundedClientOptions(registryV3ApiUrl, vertx)
                         .trustStorePemContent(pemContent));
 
         SystemInfo systemInfo = client.system().info().get();
@@ -160,7 +157,7 @@ public class TlsSdkClientTest extends AbstractResourceTestBase {
                 java.nio.file.Paths.get(certUrl.toURI())));
 
         io.apicurio.registry.rest.client.v2.RegistryClient client = RegistryV2ClientFactory.create(
-                RegistryClientOptions.create(registryV2ApiUrl, vertx)
+                boundedClientOptions(registryV2ApiUrl, vertx)
                         .trustStorePemContent(pemContent));
 
         io.apicurio.registry.rest.client.v2.models.SystemInfo systemInfo = client.system().info().get();
@@ -186,7 +183,7 @@ public class TlsSdkClientTest extends AbstractResourceTestBase {
         String multipleCerts = singleCert + "\n" + singleCert;
 
         RegistryClient client = RegistryClientFactory.create(
-                RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                boundedClientOptions(registryV3ApiUrl, vertx)
                         .trustStorePemContent(multipleCerts));
 
         SystemInfo systemInfo = client.system().info().get();
@@ -201,7 +198,7 @@ public class TlsSdkClientTest extends AbstractResourceTestBase {
     @Test
     public void testV3ClientWithTrustAll() throws Exception {
         RegistryClient client = RegistryClientFactory.create(
-                RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                boundedClientOptions(registryV3ApiUrl, vertx)
                         .trustAll(true));
 
         SystemInfo systemInfo = client.system().info().get();
@@ -217,7 +214,7 @@ public class TlsSdkClientTest extends AbstractResourceTestBase {
     @SuppressWarnings("removal")
     public void testV2ClientWithTrustAll() throws Exception {
         io.apicurio.registry.rest.client.v2.RegistryClient client = RegistryV2ClientFactory.create(
-                RegistryClientOptions.create(registryV2ApiUrl, vertx)
+                boundedClientOptions(registryV2ApiUrl, vertx)
                         .trustAll(true));
 
         io.apicurio.registry.rest.client.v2.models.SystemInfo systemInfo = client.system().info().get();
@@ -232,9 +229,7 @@ public class TlsSdkClientTest extends AbstractResourceTestBase {
     @Test
     public void testV3ClientWithoutSslConfig() {
         // Create a client with no SSL configuration - should fail
-        RequestAdapter adapter = new VertXRequestAdapter(vertx);
-        adapter.setBaseUrl(registryV3ApiUrl);
-        RegistryClient client = new RegistryClient(adapter);
+        RegistryClient client = RegistryClientFactory.create(boundedClientOptions(registryV3ApiUrl, vertx));
 
         Exception exception = Assertions.assertThrows(Exception.class, () -> {
             client.system().info().get();
@@ -257,12 +252,11 @@ public class TlsSdkClientTest extends AbstractResourceTestBase {
      * Test v2 SDK client without SSL configuration - should fail with SSL error
      */
     @Test
+    @SuppressWarnings("removal")
     public void testV2ClientWithoutSslConfig() {
         // Create a client with no SSL configuration - should fail
-        RequestAdapter adapter = new VertXRequestAdapter(vertx);
-        adapter.setBaseUrl(registryV2ApiUrl);
         io.apicurio.registry.rest.client.v2.RegistryClient client =
-                new io.apicurio.registry.rest.client.v2.RegistryClient(adapter);
+                RegistryV2ClientFactory.create(boundedClientOptions(registryV2ApiUrl, vertx));
 
         Exception exception = Assertions.assertThrows(Exception.class, () -> {
             client.system().info().get();
@@ -287,7 +281,7 @@ public class TlsSdkClientTest extends AbstractResourceTestBase {
     @Test
     public void testV3ClientWithVerifyHostDisabled() throws Exception {
         RegistryClient client = RegistryClientFactory.create(
-                RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                boundedClientOptions(registryV3ApiUrl, vertx)
                         .trustAll(true)
                         .verifyHost(false));
 

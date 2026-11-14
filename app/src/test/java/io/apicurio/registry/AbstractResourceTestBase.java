@@ -111,20 +111,23 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         return new RestService("http://localhost:" + testPort + "/apis/ccompat/v7");
     }
 
+    /**
+     * Options for any SDK client that talks to the test server: start every client from this helper, so a
+     * lost response fails after the read-idle bound instead of hanging until the class timeout (#10424).
+     */
+    protected static RegistryClientOptions boundedClientOptions(String registryUrl, Vertx vertx) {
+        return RegistryClientOptions.create(registryUrl, vertx)
+                .requestTimeout(CLIENT_CONNECT_TIMEOUT_MS, CLIENT_READ_IDLE_TIMEOUT_MS);
+    }
+
     protected io.apicurio.registry.rest.client.v2.RegistryClient createRestClientV2(Vertx vertx) {
         // The v2 factory is deprecated with the whole v2 API, and it is what the v2 tests target, so using
         // it here keeps one translation of the timeout options for both test clients.
-        return RegistryV2ClientFactory.create(RegistryClientOptions.create()
-                .registryUrl(registryV2ApiUrl)
-                .vertx(vertx)
-                .requestTimeout(CLIENT_CONNECT_TIMEOUT_MS, CLIENT_READ_IDLE_TIMEOUT_MS));
+        return RegistryV2ClientFactory.create(boundedClientOptions(registryV2ApiUrl, vertx));
     }
 
     protected RegistryClient createRestClientV3(Vertx vertx) {
-        return RegistryClientFactory.create(RegistryClientOptions.create()
-                .registryUrl(registryV3ApiUrl)
-                .vertx(vertx)
-                .requestTimeout(CLIENT_CONNECT_TIMEOUT_MS, CLIENT_READ_IDLE_TIMEOUT_MS));
+        return RegistryClientFactory.create(boundedClientOptions(registryV3ApiUrl, vertx));
     }
 
     @BeforeEach

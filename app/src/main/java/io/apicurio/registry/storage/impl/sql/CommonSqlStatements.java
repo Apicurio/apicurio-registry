@@ -153,7 +153,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
         String query;
         // NOTE: The caller's artifact row lock, or its uncommitted artifact insert, serializes both
         // branches, and UQ_versions_3 (groupId, artifactId, versionOrder) rejects a duplicate
-        // versionOrder if it does not.
+        // versionOrder if it does not. See DEVELOPING.md, Concurrency Considerations.
         if (firstVersion) {
             query = "INSERT INTO versions (globalId, groupId, artifactId, version, versionSortKey, versionOrder, state, name, description, owner, createdOn, modifiedBy, modifiedOn, labels, contentId)"
                     + " VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?)";

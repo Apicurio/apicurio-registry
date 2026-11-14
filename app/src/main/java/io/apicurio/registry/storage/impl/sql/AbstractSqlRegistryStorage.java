@@ -1438,10 +1438,11 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             if (dryRun) {
                 handle.setRollback(true);
             }
-            VersionState currentState = versionRepository.getArtifactVersionState(groupId, artifactId, version);
             versionRepository.updateArtifactVersionState(groupId, artifactId, version, newState, dryRun);
             // Published drafts need real content hashes; deduplication must not abort this transaction.
-            if (!dryRun && currentState == VersionState.DRAFT && newState != VersionState.DRAFT) {
+            // A draft disabled without being published keeps its draft marker, so enabling it later still
+            // runs the rules.
+            if (!dryRun && newState != VersionState.DRAFT && newState != VersionState.DISABLED) {
                 ArtifactVersionMetaDataDto versionMeta = versionRepository.getArtifactVersionMetaData(groupId,
                         artifactId, version);
                 ContentWrapperDto contentDto = contentRepository.getContentById(versionMeta.getContentId());

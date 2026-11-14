@@ -1285,8 +1285,11 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         }
 
         List<Runnable> afterPublish = List.of();
-        // If the current state is DRAFT, apply rules.
-        if (currentState == VersionState.DRAFT) {
+        // Rules are applied when content is published, and a draft may be disabled without being
+        // published. Such a version still holds draft content, so validate it when it is enabled later.
+        if (data.getState() != VersionState.DISABLED
+                && (currentState == VersionState.DRAFT || hasDraftContent(gav.getRawGroupIdWithNull(),
+                        gav.getRawArtifactId(), gav.getRawVersionId()))) {
             VersionMetaData vmd = getArtifactVersionMetaData(gav.getRawGroupIdWithDefaultString(),
                     gav.getRawArtifactId(), gav.getRawVersionId());
             StoredArtifactVersionDto artifact = storage.getArtifactVersionContent(gav.getRawGroupIdWithNull(),
@@ -1300,11 +1303,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             rulesService.applyRules(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(),
                     vmd.getArtifactType(), typedContent, RuleApplicationType.UPDATE, references,
                     resolvedReferences);
-            if (data.getState() != VersionState.DISABLED) {
-                afterPublish = beforePublish(new VersionWriteContext(VersionWriteContext.Operation.PUBLISH_DRAFT,
-                        storage, gav, vmd.getArtifactType(), securityIdentity.getPrincipal().getName()),
-                        typedContent);
-            }
+            afterPublish = beforePublish(new VersionWriteContext(VersionWriteContext.Operation.PUBLISH_DRAFT,
+                    storage, gav, vmd.getArtifactType(), securityIdentity.getPrincipal().getName()),
+                    typedContent);
         }
 
         // Now update the state.
@@ -1313,6 +1314,16 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         if (!Boolean.TRUE.equals(dryRun)) {
             afterPublish.forEach(Runnable::run);
         }
+    }
+
+    /**
+     * Draft content is stored with a {@code draft:} content hash until it is published, so a version that
+     * still has one was never published (for example a draft that was disabled).
+     */
+    private boolean hasDraftContent(String groupId, String artifactId, String version) {
+        long contentId = storage.getArtifactVersionMetaData(groupId, artifactId, version).getContentId();
+        String contentHash = storage.getContentById(contentId).getContentHash();
+        return contentHash != null && contentHash.startsWith("draft:");
     }
 
     /**

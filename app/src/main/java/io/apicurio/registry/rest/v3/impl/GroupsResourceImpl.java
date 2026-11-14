@@ -1,5 +1,6 @@
 package io.apicurio.registry.rest.v3.impl;
 
+import io.apicurio.registry.logging.audit.AuditExempt;
 import io.apicurio.registry.rest.v3.beans.McpToolImportResult;
 import io.apicurio.registry.rest.v3.beans.McpToolImportRequest;
 import io.apicurio.registry.extensions.McpToolImportHandler;
@@ -2273,6 +2274,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      *      java.lang.String, java.lang.String, io.apicurio.registry.rest.v3.beans.RenderPromptRequest)
      */
     @Override
+    @AuditExempt(reason = "Renders a stored prompt template with the variables in the request body; changes nothing.")
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public RenderPromptResponse renderPromptTemplate(String groupId, String artifactId,
             String versionExpression, RenderPromptRequest data) {
@@ -3185,6 +3187,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     }
 
     @Override
+    @AuditExempt(reason = "Evaluates the contract rules against the record in the request body; changes nothing.")
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     @SuppressWarnings("unchecked")
     public Response executeContractRules(String groupId, String artifactId,

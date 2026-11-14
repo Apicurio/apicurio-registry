@@ -10,6 +10,7 @@ import io.apicurio.registry.ccompat.rest.v7.beans.RegisterSchemaRequest;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.logging.Logged;
+import io.apicurio.registry.logging.audit.AuditExempt;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.model.BranchId;
@@ -109,6 +110,7 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
     }
 
     @Override
+    @AuditExempt(reason = "Checks the schema in the request body against the compatibility rules; changes nothing.")
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
     public CompatibilityCheckResponse checkAllCompatibility(String subject, Boolean verbose, Boolean normalize, String groupId, RegisterSchemaRequest request) {
         final GA ga = getGA(groupId, subject);
@@ -149,6 +151,7 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
     }
 
     @Override
+    @AuditExempt(reason = "Checks the schema in the request body against the compatibility rules; changes nothing.")
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
     public CompatibilityCheckResponse checkCompatibility(String subject, String versionString, Boolean verbose, Boolean normalize, String groupId, RegisterSchemaRequest request) {
         final GA ga = getGA(groupId, subject);

@@ -20,6 +20,7 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.logging.Logged;
+import io.apicurio.registry.logging.audit.AuditExempt;
 import io.apicurio.registry.logging.audit.Audited;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
@@ -113,6 +114,7 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
     }
 
     @Override
+    @AuditExempt(reason = "Looks up existing content by the content in the request body; changes nothing.")
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
     public Schema lookupSchemaByContent(String subject, Boolean normalize, String format, String groupId, Boolean deleted,
                                         RegisterSchemaRequest request) {
@@ -438,6 +440,7 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
     }
 
     @Override
+    @AuditExempt(reason = "Looks up existing content by the content in the request body; changes nothing.")
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
     public Schema lookupSchemaByVersion(String subject, String versionString, Boolean normalize,
                                         String format, String groupId, Boolean deleted,

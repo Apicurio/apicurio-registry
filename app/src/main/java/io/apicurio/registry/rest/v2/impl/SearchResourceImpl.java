@@ -1,5 +1,6 @@
 package io.apicurio.registry.rest.v2.impl;
 
+import io.apicurio.registry.logging.audit.AuditExempt;
 import io.apicurio.registry.rest.v2.SearchResource;
 
 import io.apicurio.registry.auth.Authorized;
@@ -142,6 +143,7 @@ public class SearchResourceImpl implements SearchResource {
      *      BigInteger, SortOrder, SortBy, InputStream)
      */
     @Override
+    @AuditExempt(reason = "Searches by the content in the request body; changes nothing.")
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public ArtifactSearchResults searchArtifactsByContent(Boolean canonical, String artifactType,
             BigInteger offset, BigInteger limit, SortOrder order, SortBy orderby, InputStream data) {

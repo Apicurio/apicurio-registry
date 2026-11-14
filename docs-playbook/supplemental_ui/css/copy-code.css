@@ -1,0 +1,10 @@
+.doc .copy-code-button {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  background: var(--pre-background);
+  border: 1px solid var(--pre-border-color);
+  color: var(--pre-annotation-font-color);
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+}

@@ -95,6 +95,96 @@ public class CCompatV7EnhancementsTest extends AbstractResourceTestBase {
         given().when().get("/ccompat/v7/mode").then().statusCode(200).body("mode", equalTo("READWRITE"));
     }
 
+    @Test
+    public void testSubjectReadOnlyModeEnforcement() throws Exception {
+        var subject = TestUtils.generateSubject();
+        var schema = "{\"type\" : \"string\"}";
+        var schemaContent = new RegisterSchemaRequest();
+        schemaContent.setSchema(schema);
+
+        // Register initial version successfully while in default READWRITE mode
+        given().when().contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(objectMapper.writeValueAsString(schemaContent))
+                .post("/ccompat/v7/subjects/{subject}/versions", subject).then().statusCode(200);
+
+        // Set subject mode to READONLY
+        ModeUpdateRequest request = new ModeUpdateRequest();
+        request.setMode("READONLY");
+        given().when().contentType(ContentTypes.JSON).body(request)
+                .put("/ccompat/v7/mode/{subject}", subject).then().statusCode(200)
+                .body("mode", equalTo("READONLY"));
+
+        // Attempting to register another schema version on the read-only subject must fail with 422 and code 42205
+        var newSchemaContent = new RegisterSchemaRequest();
+        newSchemaContent.setSchema("{\"type\" : \"bytes\"}");
+        given().when().contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(objectMapper.writeValueAsString(newSchemaContent))
+                .post("/ccompat/v7/subjects/{subject}/versions", subject).then().statusCode(422)
+                .body("error_code", equalTo(42205))
+                .body("message", equalTo("Subject " + subject + " is in read-only mode"));
+
+        // Attempting to delete subject in READONLY mode must fail
+        given().when().delete("/ccompat/v7/subjects/{subject}", subject).then().statusCode(422)
+                .body("error_code", equalTo(42205))
+                .body("message", equalTo("Subject " + subject + " is in read-only mode"));
+
+        // Another subject should still be writable
+        var otherSubject = TestUtils.generateSubject();
+        given().when().contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(objectMapper.writeValueAsString(schemaContent))
+                .post("/ccompat/v7/subjects/{subject}/versions", otherSubject).then().statusCode(200);
+
+        // Reset subject mode back to READWRITE
+        request.setMode("READWRITE");
+        given().when().contentType(ContentTypes.JSON).body(request)
+                .put("/ccompat/v7/mode/{subject}", subject).then().statusCode(200)
+                .body("mode", equalTo("READWRITE"));
+
+        // Registration should now succeed
+        given().when().contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(objectMapper.writeValueAsString(newSchemaContent))
+                .post("/ccompat/v7/subjects/{subject}/versions", subject).then().statusCode(200);
+    }
+
+    @Test
+    public void testGlobalReadOnlyModeEnforcement() throws Exception {
+        var subject = TestUtils.generateSubject();
+        var schema = "{\"type\" : \"string\"}";
+        var schemaContent = new RegisterSchemaRequest();
+        schemaContent.setSchema(schema);
+
+        // Set global mode to READONLY
+        ModeUpdateRequest request = new ModeUpdateRequest();
+        request.setMode("READONLY");
+        given().when().contentType(ContentTypes.JSON).body(request).put("/ccompat/v7/mode").then()
+                .statusCode(200).body("mode", equalTo("READONLY"));
+
+        try {
+            // Attempting to register a new subject while global mode is READONLY must fail with 422 and code 42205
+            given().when().contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                    .body(objectMapper.writeValueAsString(schemaContent))
+                    .post("/ccompat/v7/subjects/{subject}/versions", subject).then().statusCode(422)
+                    .body("error_code", equalTo(42205))
+                    .body("message", equalTo("Subject " + subject + " is in read-only mode"));
+
+            // If a subject explicitly overrides to READWRITE, it should be writable
+            ModeUpdateRequest overrideRequest = new ModeUpdateRequest();
+            overrideRequest.setMode("READWRITE");
+            given().when().contentType(ContentTypes.JSON).body(overrideRequest)
+                    .put("/ccompat/v7/mode/{subject}", subject).then().statusCode(200)
+                    .body("mode", equalTo("READWRITE"));
+
+            given().when().contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                    .body(objectMapper.writeValueAsString(schemaContent))
+                    .post("/ccompat/v7/subjects/{subject}/versions", subject).then().statusCode(200);
+        } finally {
+            // Reset global mode back to READWRITE
+            request.setMode("READWRITE");
+            given().when().contentType(ContentTypes.JSON).body(request).put("/ccompat/v7/mode").then()
+                    .statusCode(200).body("mode", equalTo("READWRITE"));
+        }
+    }
+
     // ========== Exporter API Tests ==========
 
     @Test

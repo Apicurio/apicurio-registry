@@ -3,6 +3,7 @@ package io.apicurio.registry.services.http;
 import io.apicurio.registry.ccompat.rest.error.ConflictException;
 import io.apicurio.registry.ccompat.rest.error.ErrorCode;
 import io.apicurio.registry.ccompat.rest.error.InvalidCompatibilityLevelException;
+import io.apicurio.registry.ccompat.rest.error.ReadOnlyModeException;
 import io.apicurio.registry.ccompat.rest.error.ReferenceExistsException;
 import io.apicurio.registry.ccompat.rest.error.SchemaNotFoundException;
 import io.apicurio.registry.ccompat.rest.error.SchemaNotSoftDeletedException;
@@ -64,6 +65,7 @@ public class CCompatExceptionMapperService implements ExceptionMapperService {
         map.put(SchemaSoftDeletedException.class, ErrorCode.SCHEMA_VERSION_SOFT_DELETED.value());
         map.put(SubjectSoftDeletedException.class, ErrorCode.SUBJECT_SOFT_DELETED.value());
         map.put(ReferenceExistsException.class, ErrorCode.REFERENCE_EXISTS.value());
+        map.put(ReadOnlyModeException.class, ErrorCode.OPERATION_NOT_PERMITTED.value());
         map.put(RuleNotFoundException.class, ErrorCode.SUBJECT_COMPATIBILITY_NOT_CONFIGURED.value());
         map.put(SchemaNotFoundException.class, ErrorCode.SCHEMA_NOT_FOUND.value());
         CONFLUENT_CODE_MAP = Collections.unmodifiableMap(map);
@@ -152,6 +154,9 @@ public class CCompatExceptionMapperService implements ExceptionMapperService {
             return "Subject does not have subject-level compatibility configured.";
         }
         if (t instanceof UnprocessableEntityException) {
+            return t.getMessage();
+        }
+        if (t instanceof ReadOnlyModeException) {
             return t.getMessage();
         }
         if (t instanceof SchemaNotFoundException) {

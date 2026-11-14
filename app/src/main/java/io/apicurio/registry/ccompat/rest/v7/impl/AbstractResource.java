@@ -1,6 +1,8 @@
 package io.apicurio.registry.ccompat.rest.v7.impl;
 
+import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.registry.ccompat.rest.error.ConflictException;
+import io.apicurio.registry.ccompat.rest.error.ReadOnlyModeException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
 import io.apicurio.registry.ccompat.rest.v7.beans.SchemaReference;
 import io.apicurio.registry.content.ContentHandle;
@@ -89,6 +91,74 @@ public abstract class AbstractResource {
 
     @Inject
     RestConfig restConfig;
+
+    protected static final String MODE_PROPERTY_NAME = "apicurio.ccompat.mode";
+    protected static final String SUBJECT_MODE_PROPERTY_PREFIX = "apicurio.ccompat.mode.subject.";
+
+    protected String getSubjectModePropertyName(String groupId, String artifactId) {
+        String prefix = groupId != null ? groupId + "/" : "";
+        return SUBJECT_MODE_PROPERTY_PREFIX + prefix + artifactId;
+    }
+
+    /**
+     * Checks if the subject is currently read-only. Throws {@link ReadOnlyModeException} if writes are not permitted.
+     */
+    protected void checkMode(String subject, String groupId) {
+        if (isSubjectReadOnly(subject, groupId)) {
+            throw new ReadOnlyModeException("Subject " + subject + " is in read-only mode");
+        }
+    }
+
+    /**
+     * Checks whether write operations against the given subject are in read-only mode.
+     * <p>
+     * Precedence:
+     * 1. Immutable cluster storage ({@code storage.isReadOnly()}): immediately returns {@code true};
+     *    a subject-level {@code READONLY_OVERRIDE} cannot bypass an immutable backing storage engine.
+     * 2. Subject-level mode: {@code READONLY} blocks writes; {@code READWRITE} or {@code READONLY_OVERRIDE}
+     *    permits writes even if the global mode is {@code READONLY}.
+     * 3. Global mode fallback ({@code apicurio.ccompat.mode}): blocks writes if set to {@code READONLY}.
+     */
+    protected boolean isSubjectReadOnly(String subject, String groupId) {
+        if (storage.isReadOnly()) {
+            return true;
+        }
+
+        final GA ga = getGA(groupId, subject);
+        String subjectPropertyName = getSubjectModePropertyName(ga.getRawGroupIdWithNull(), ga.getRawArtifactId());
+
+        String subjectMode = null;
+        try {
+            DynamicConfigPropertyDto property = storage.getRawConfigProperty(subjectPropertyName);
+            if (property != null && property.getValue() != null && !property.getValue().isEmpty()) {
+                subjectMode = property.getValue();
+            }
+        } catch (Exception e) {
+            // Property not found or error
+        }
+
+        if (subjectMode != null) {
+            if ("READONLY".equalsIgnoreCase(subjectMode)) {
+                return true;
+            }
+            if ("READWRITE".equalsIgnoreCase(subjectMode) || "READONLY_OVERRIDE".equalsIgnoreCase(subjectMode)) {
+                return false;
+            }
+        }
+
+        // Fall back to global mode
+        try {
+            DynamicConfigPropertyDto property = storage.getRawConfigProperty(MODE_PROPERTY_NAME);
+            if (property != null && property.getValue() != null && !property.getValue().isEmpty()) {
+                String mode = property.getValue();
+                return "READONLY".equalsIgnoreCase(mode);
+            }
+        } catch (Exception e) {
+            // Property not found or error
+        }
+
+        return false;
+    }
 
     protected String toSubjectWithGroupConcat(String groupId, String artifactId) {
         return (groupId == null ? "" : groupId) + cconfig.groupConcatSeparator + artifactId;

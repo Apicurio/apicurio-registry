@@ -8,8 +8,10 @@ import org.slf4j.Logger;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doThrow;
@@ -28,9 +30,11 @@ class AbstractHandleFactoryTest {
         SQLException commitFailure = new SQLException("commit failed");
         when(dataSource.getConnection()).thenReturn(connection);
         doThrow(commitFailure).when(connection).commit();
+        AbstractHandleFactory factory = factory(dataSource);
+        HandleCallback<Void, RuntimeException> callback = handle -> null;
 
         RegistryStorageException thrown = assertThrows(RegistryStorageException.class,
-                () -> factory(dataSource).withHandle((HandleCallback<Void, RuntimeException>) handle -> null));
+                () -> factory.withHandle(callback));
 
         assertSame(commitFailure, thrown.getCause());
         verify(connection).commit();
@@ -45,11 +49,13 @@ class AbstractHandleFactoryTest {
         RuntimeException callbackFailure = new IllegalStateException("callback failed");
         when(dataSource.getConnection()).thenReturn(connection);
         doThrow(rollbackFailure).when(connection).rollback();
+        AbstractHandleFactory factory = factory(dataSource);
+        HandleCallback<Void, RuntimeException> callback = handle -> {
+            throw callbackFailure;
+        };
 
         IllegalStateException thrown = assertThrows(IllegalStateException.class,
-                () -> factory(dataSource).withHandle((HandleCallback<Void, RuntimeException>) handle -> {
-                    throw callbackFailure;
-                }));
+                () -> factory.withHandle(callback));
 
         assertSame(callbackFailure, thrown);
         assertEquals(1, thrown.getSuppressed().length);
@@ -114,12 +120,153 @@ class AbstractHandleFactoryTest {
         verify(secondConnection).close();
     }
 
+    @Test
+    void shouldRollbackWhenCallbackThrowsError() throws Exception {
+        AgroalDataSource dataSource = mock(AgroalDataSource.class);
+        Connection connection = mock(Connection.class);
+        StackOverflowError callbackFailure = new StackOverflowError("callback failed");
+        when(dataSource.getConnection()).thenReturn(connection);
+        AbstractHandleFactory factory = factory(dataSource);
+        HandleCallback<Void, RuntimeException> callback = handle -> {
+            throw callbackFailure;
+        };
+
+        StackOverflowError thrown = assertThrows(StackOverflowError.class,
+                () -> factory.withHandle(callback));
+
+        assertSame(callbackFailure, thrown);
+        assertEquals(0, thrown.getSuppressed().length);
+        verify(connection).rollback();
+        verify(connection, never()).commit();
+        verify(connection).close();
+    }
+
+    @Test
+    void shouldAttachRollbackFailureToCallbackError() throws Exception {
+        AgroalDataSource dataSource = mock(AgroalDataSource.class);
+        Connection connection = mock(Connection.class);
+        SQLException rollbackFailure = new SQLException("rollback failed");
+        StackOverflowError callbackFailure = new StackOverflowError("callback failed");
+        when(dataSource.getConnection()).thenReturn(connection);
+        doThrow(rollbackFailure).when(connection).rollback();
+        AbstractHandleFactory factory = factory(dataSource);
+        HandleCallback<Void, RuntimeException> callback = handle -> {
+            throw callbackFailure;
+        };
+
+        StackOverflowError thrown = assertThrows(StackOverflowError.class,
+                () -> factory.withHandle(callback));
+
+        assertSame(callbackFailure, thrown);
+        assertEquals(1, thrown.getSuppressed().length);
+        assertInstanceOf(RegistryStorageException.class, thrown.getSuppressed()[0]);
+        assertSame(rollbackFailure, thrown.getSuppressed()[0].getCause());
+        verify(connection, never()).commit();
+        verify(connection).close();
+    }
+
+    @Test
+    void shouldRollbackOuterTransactionWhenNestedCallbackThrowsError() throws Exception {
+        AgroalDataSource dataSource = mock(AgroalDataSource.class);
+        Connection connection = mock(Connection.class);
+        when(dataSource.getConnection()).thenReturn(connection);
+        AbstractHandleFactory factory = factory(dataSource);
+        HandleCallback<Void, RuntimeException> nested = handle -> {
+            throw new StackOverflowError("nested callback failed");
+        };
+        // The outer callback swallows the nested failure and returns normally, so only the nested
+        // call can have marked the shared handle for rollback.
+        HandleCallback<String, RuntimeException> outer = handle -> {
+            try {
+                factory.withHandle(nested);
+            } catch (StackOverflowError e) {
+                return "nested call failed";
+            }
+            return "nested call succeeded";
+        };
+
+        assertEquals("nested call failed", factory.withHandle(outer));
+
+        verify(dataSource, times(1)).getConnection();
+        verify(connection, times(1)).rollback();
+        verify(connection, never()).commit();
+        verify(connection, times(1)).close();
+    }
+
+    @Test
+    void shouldCloseConnectionWhenDisablingAutoCommitFails() throws Exception {
+        AgroalDataSource dataSource = mock(AgroalDataSource.class);
+        Connection failedConnection = mock(Connection.class);
+        Connection nextConnection = mock(Connection.class);
+        SQLException setupFailure = new SQLException("setAutoCommit failed");
+        when(dataSource.getConnection()).thenReturn(failedConnection, nextConnection);
+        doThrow(setupFailure).when(failedConnection).setAutoCommit(false);
+        AbstractHandleFactory factory = factory(dataSource);
+        HandleCallback<String, RuntimeException> callback = handle -> "done";
+
+        RegistryStorageException thrown = assertThrows(RegistryStorageException.class,
+                () -> factory.withHandle(callback));
+
+        assertSame(setupFailure, thrown.getCause());
+        verify(failedConnection).close();
+        verify(failedConnection, never()).rollback();
+        verify(failedConnection, never()).commit();
+        assertEquals("done", factory.withHandle(callback));
+        verify(nextConnection).commit();
+        verify(nextConnection).close();
+    }
+
+    @Test
+    void shouldKeepAutoCommitFailureWhenCloseAlsoFails() throws Exception {
+        AgroalDataSource dataSource = mock(AgroalDataSource.class);
+        Connection connection = mock(Connection.class);
+        SQLException setupFailure = new SQLException("setAutoCommit failed");
+        SQLException closeFailure = new SQLException("close failed");
+        when(dataSource.getConnection()).thenReturn(connection);
+        doThrow(setupFailure).when(connection).setAutoCommit(false);
+        doThrow(closeFailure).when(connection).close();
+        AbstractHandleFactory factory = factory(dataSource);
+        HandleCallback<String, RuntimeException> callback = handle -> "done";
+
+        RegistryStorageException thrown = assertThrows(RegistryStorageException.class,
+                () -> factory.withHandle(callback));
+
+        assertSame(setupFailure, thrown.getCause());
+        assertEquals(1, setupFailure.getSuppressed().length);
+        assertSame(closeFailure, setupFailure.getSuppressed()[0]);
+    }
+
+    @Test
+    void shouldCloseConnectionAndResetHandleWhenCommitThrowsError() throws Exception {
+        AgroalDataSource dataSource = mock(AgroalDataSource.class);
+        Connection firstConnection = mock(Connection.class);
+        Connection secondConnection = mock(Connection.class);
+        StackOverflowError commitFailure = new StackOverflowError("commit failed");
+        when(dataSource.getConnection()).thenReturn(firstConnection, secondConnection);
+        doThrow(commitFailure).when(firstConnection).commit();
+        AbstractHandleFactory factory = factory(dataSource);
+        HandleCallback<String, RuntimeException> callback = handle -> "done";
+
+        StackOverflowError thrown = assertThrows(StackOverflowError.class,
+                () -> factory.withHandle(callback));
+
+        assertSame(commitFailure, thrown);
+        verify(firstConnection).close();
+        assertEquals("done", factory.withHandle(callback));
+        verify(dataSource, times(2)).getConnection();
+        verify(secondConnection).commit();
+        verify(secondConnection).close();
+    }
+
     private AbstractHandleFactory factory(AgroalDataSource dataSource) {
         ConnectionRetryConfig config = new ConnectionRetryConfig();
         config.enabled = false;
+        // The handle state is a static ThreadLocal keyed by data source id. A unique id keeps a handle
+        // that one test leaves behind from leaking into the next test on the same thread.
+        String dataSourceId = UUID.randomUUID().toString();
         return new AbstractHandleFactory() {
             {
-                initialize(dataSource, "test", mock(Logger.class), config);
+                initialize(dataSource, dataSourceId, mock(Logger.class), config);
             }
         };
     }

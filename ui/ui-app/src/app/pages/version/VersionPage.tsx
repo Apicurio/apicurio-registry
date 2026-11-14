@@ -54,6 +54,8 @@ import {
 } from "@app/pages/drafts/components/modals";
 import { EditAgentModal } from "@app/pages/agents/components";
 import { AgentCard } from "@app/components/agentCard";
+import { McpToolCompatibilityPanel } from "@app/components/mcpTool";
+import { showCompatibleToolsTab } from "@app/components/mcpTool/McpToolCompatibility.utils.ts";
 import { isErrorStatus } from "@utils/rest.utils.ts";
 import { fileExtensionForContentType } from "@utils/content.utils.ts";
 
@@ -94,6 +96,9 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
     const contentMatch = useMatch("/explore/:groupId/:artifactId/versions/:version/content");
     const referencesMatch = useMatch("/explore/:groupId/:artifactId/versions/:version/references");
     const documentationMatch = useMatch("/explore/:groupId/:artifactId/versions/:version/documentation");
+    const compatibilityMatch = useMatch("/explore/:groupId/:artifactId/versions/:version/compatibility");
+    // Versions without the compatible tools tab show their overview on the compatibility route
+    const isCompatibleToolsTabShown: boolean = showCompatibleToolsTab(artifact?.artifactType, artifactVersion?.state);
 
     let activeTabKey: string = "overview";
     if (contentMatch) {
@@ -102,6 +107,8 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
         activeTabKey = "references";
     } else if (documentationMatch) {
         activeTabKey = "documentation";
+    } else if (compatibilityMatch && isCompatibleToolsTabShown) {
+        activeTabKey = "compatibility";
     }
 
     // Note: the SDK's generated client throws structured error objects (with a
@@ -440,7 +447,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
                 onChangeState={openChangeStateModal}
             />
         </Tab>,
-        <Tab data-testid="version-documentation-tab" eventKey="documentation" title="Documentation" key="documentation" className="documentation-tab" tabContentId="tab-documentation">
+        showDocumentationTab() && <Tab data-testid="version-documentation-tab" eventKey="documentation" title="Documentation" key="documentation" className="documentation-tab" tabContentId="tab-documentation">
             <DocumentationTabContent
                 versionContent={versionContent}
                 artifactType={artifact?.artifactType as string}
@@ -455,10 +462,10 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
         <Tab data-testid="version-references-tab" eventKey="references" title="References" key="references" tabContentId="tab-references">
             <ReferencesTabContent version={artifactVersion as VersionMetaData} />
         </Tab>,
-    ];
-    if (!showDocumentationTab()) {
-        tabs.splice(1, 1);
-    }
+        isCompatibleToolsTabShown && <Tab data-testid="version-compatibility-tab" eventKey="compatibility" title="Compatible tools" key="compatibility" tabContentId="tab-compatibility">
+            <McpToolCompatibilityPanel groupId={groupId as string} artifactId={artifactId as string} version={version as string} />
+        </Tab>,
+    ].filter(tab => tab);
 
     const gid: string = groupId || "default";
     const breadcrumbs = (

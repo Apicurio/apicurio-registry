@@ -12,13 +12,17 @@ import io.apicurio.registry.rest.client.models.McpToolCompatibilityResults;
 import io.apicurio.registry.rest.client.models.McpToolCompatibilitySide;
 import io.apicurio.registry.rest.client.models.McpToolCompatibilityVerdict;
 import io.apicurio.registry.rest.client.models.McpToolSearchResult;
+import io.apicurio.registry.rest.client.models.ProblemDetails;
 import io.apicurio.registry.rest.client.models.VersionContent;
+import io.apicurio.registry.rest.client.models.VersionState;
+import io.apicurio.registry.rest.client.models.WrappedVersionState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.restassured.RestAssured;
+import io.restassured.path.json.JsonPath;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 import org.eclipse.microprofile.config.ConfigProvider;
@@ -45,6 +49,9 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for the MCP tool well-known discovery endpoints.
@@ -654,7 +661,9 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
                 .pathParam("artifactId", "nonexistent-tool")
                 .get("/.well-known/mcp-tools/{groupId}/{artifactId}/compatible")
                 .then()
-                .statusCode(404);
+                .statusCode(404)
+                .body("status", equalTo(404))
+                .body("title", equalTo("MCP tool not found: nonexistent-group/nonexistent-tool"));
     }
 
     @Test
@@ -1072,6 +1081,279 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
                 .body("tools.artifactId", not(hasItem(sourceId)));
     }
 
+    private static final String REPORT_SOURCE = "report-source";
+    private static final String ACCEPTS_EVERY_OUTPUT = "accepts-every-output";
+
+    private static final String REPORT_SOURCE_TOOL = """
+            {
+                "name": "report_source",
+                "title": "Report Source",
+                "description": "Emits a closed object, so every verdict depends only on what it declares",
+                "inputSchema": { "type": "object" },
+                "outputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "id": { "type": "integer" },
+                        "note": { "type": ["string", "null"] },
+                        "tags": { "type": "array", "items": { "type": "string" } },
+                        "owner": {
+                            "type": "object",
+                            "properties": { "name": { "type": "string" } },
+                            "required": ["name"],
+                            "additionalProperties": false
+                        },
+                        "cursor": { "type": "string" }
+                    },
+                    "required": ["id", "note", "tags", "owner"],
+                    "additionalProperties": false
+                }
+            }
+            """;
+
+    private static final String ACCEPTS_EVERY_OUTPUT_TOOL = """
+            {
+                "name": "accepts_every_output",
+                "title": "Accepts Every Output",
+                "description": "Accepts every value the report source emits, its integer id as a nullable number",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "id": { "type": ["number", "null"] },
+                        "note": { "type": ["string", "null"] },
+                        "tags": { "type": "array", "items": { "type": "string" } },
+                        "owner": { "type": "object", "properties": { "name": { "type": "string" } } }
+                    },
+                    "required": ["id"]
+                }
+            }
+            """;
+
+    private static final String REQUIRES_CURSOR_TOOL = """
+            {
+                "name": "requires_cursor",
+                "title": "Requires Cursor",
+                "description": "Requires the cursor, which the report source may leave out",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": { "cursor": { "type": "string" } },
+                    "required": ["cursor"]
+                }
+            }
+            """;
+
+    private static final String REJECTS_CURSOR_TOOL = """
+            {
+                "name": "rejects_cursor",
+                "title": "Rejects Cursor",
+                "description": "Accepts every report field except the cursor",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "id": { "type": "integer" },
+                        "note": { "type": ["string", "null"] },
+                        "tags": { "type": "array" },
+                        "owner": { "type": "object" }
+                    },
+                    "additionalProperties": false
+                }
+            }
+            """;
+
+    private static final String REJECTS_NULL_NOTE_TOOL = """
+            {
+                "name": "rejects_null_note",
+                "title": "Rejects Null Note",
+                "description": "Rejects the null note that the report source may emit",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": { "note": { "type": "string" } }
+                }
+            }
+            """;
+
+    private static final String NESTED_MISMATCH_TOOL = """
+            {
+                "name": "nested_mismatch",
+                "title": "Nested Mismatch",
+                "description": "Expects integer tags and an integer owner name",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "tags": { "type": "array", "items": { "type": "integer" } },
+                        "owner": { "type": "object", "properties": { "name": { "type": "integer" } } }
+                    }
+                }
+            }
+            """;
+
+    private static final String ENUM_INPUT_TOOL = """
+            {
+                "name": "enum_input",
+                "title": "Enum Input",
+                "description": "Restricts the id with enum, which is not evaluated yet",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": { "id": { "type": "integer", "enum": [1, 2] } }
+                }
+            }
+            """;
+
+    private static final String CUSTOM_DIALECT_TOOL = """
+            {
+                "name": "custom_dialect",
+                "title": "Custom Dialect",
+                "description": "Declares a JSON Schema dialect that is not supported",
+                "inputSchema": { "$schema": "https://example.com/custom-dialect", "type": "object" }
+            }
+            """;
+
+    private static final String DEEP_INPUT_TOOL = """
+            {
+                "name": "deep_input",
+                "title": "Deep Input",
+                "description": "Nests an array deeper than the comparison evaluates",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "l1": { "type": "object", "properties": {
+                            "l2": { "type": "object", "properties": {
+                                "l3": { "type": "object", "properties": {
+                                    "l4": { "type": "object", "properties": {
+                                        "l5": { "type": "array", "items": { "type": "string" } }
+                                    } }
+                                } }
+                            } }
+                        } }
+                    }
+                }
+            }
+            """;
+
+    private static final String NO_INPUT_SCHEMA_TOOL = """
+            {
+                "name": "no_input_schema",
+                "title": "No Input Schema",
+                "description": "Declares no inputSchema"
+            }
+            """;
+
+    private static final String TRUNCATED_TOOL = "{\"name\": \"truncated_tool\", \"inputSchema\": ";
+
+    @ParameterizedTest
+    @ValueSource(strings = {ROOT_ROUTES, V3_ROUTES})
+    public void testToolCompatibilityExplainsEveryReason(String routes) throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        createMcpTool(groupId, REPORT_SOURCE, REPORT_SOURCE_TOOL);
+        createMcpTool(groupId, ACCEPTS_EVERY_OUTPUT, ACCEPTS_EVERY_OUTPUT_TOOL);
+        createMcpTool(groupId, "requires-cursor", REQUIRES_CURSOR_TOOL);
+        createMcpTool(groupId, "rejects-cursor", REJECTS_CURSOR_TOOL);
+        createMcpTool(groupId, "rejects-null-note", REJECTS_NULL_NOTE_TOOL);
+        createMcpTool(groupId, "nested-mismatch", NESTED_MISMATCH_TOOL);
+
+        Response response = givenSource(groupId, REPORT_SOURCE).queryParam("limit", 500)
+                .get(routes + COMPATIBILITY);
+
+        assertEquals(200, response.statusCode());
+        assertEquals(Map.of(
+                ACCEPTS_EVERY_OUTPUT, outcome("COMPATIBLE", List.of(), List.of()),
+                "requires-cursor", outcome("INCOMPATIBLE", List.of(reason("REQUIRED_NOT_GUARANTEED",
+                        "/outputSchema/required", "/inputSchema/required/0",
+                        "Required input 'cursor' is declared by the producer but not required")), List.of()),
+                "rejects-cursor", outcome("INCOMPATIBLE", List.of(reason("ADDITIONAL_PROPERTY_NOT_ACCEPTED",
+                        "/outputSchema/properties/cursor", "/inputSchema/additionalProperties",
+                        "The producer may emit 'cursor', which the consumer does not accept")), List.of()),
+                "rejects-null-note", outcome("INCOMPATIBLE", List.of(reason("TYPE_NOT_ACCEPTED",
+                        "/outputSchema/properties/note/type", "/inputSchema/properties/note/type",
+                        "The producer's value for 'note' is not accepted by the consumer")), List.of()),
+                "nested-mismatch", outcome("INCOMPATIBLE", List.of(
+                        reason("TYPE_NOT_ACCEPTED", "/outputSchema/properties/owner/properties/name/type",
+                                "/inputSchema/properties/owner/properties/name/type",
+                                "The producer's value for 'name' is not accepted by the consumer"),
+                        reason("TYPE_NOT_ACCEPTED", "/outputSchema/properties/tags/items/type",
+                                "/inputSchema/properties/tags/items/type",
+                                "The producer may emit array items that the consumer does not accept")), List.of())),
+                outcomesInGroup(response, groupId));
+
+        givenSource(groupId, REPORT_SOURCE)
+                .queryParam("limit", 500)
+                .get(routes + COMPATIBLE)
+                .then()
+                .statusCode(200)
+                .body(artifactIdsInGroup(groupId), contains(ACCEPTS_EVERY_OUTPUT));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {ROOT_ROUTES, V3_ROUTES})
+    public void testToolCompatibilityReportsWhatItCannotCompare(String routes) throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        createMcpTool(groupId, REPORT_SOURCE, REPORT_SOURCE_TOOL);
+        createMcpTool(groupId, ACCEPTS_EVERY_OUTPUT, ACCEPTS_EVERY_OUTPUT_TOOL);
+        createMcpTool(groupId, "enum-input", ENUM_INPUT_TOOL);
+        createMcpTool(groupId, "custom-dialect", CUSTOM_DIALECT_TOOL);
+        createMcpTool(groupId, "deep-input", DEEP_INPUT_TOOL);
+        createMcpTool(groupId, "no-input-schema", NO_INPUT_SCHEMA_TOOL);
+        createMcpTool(groupId, "truncated", TRUNCATED_TOOL);
+
+        Response response = givenSource(groupId, REPORT_SOURCE).queryParam("limit", 500)
+                .get(routes + COMPATIBILITY);
+
+        assertEquals(200, response.statusCode());
+        assertEquals(Map.of(
+                ACCEPTS_EVERY_OUTPUT, outcome("COMPATIBLE", List.of(), List.of()),
+                "enum-input", outcome("INDETERMINATE", List.of(), List.of(consumerLimitation("UNSUPPORTED_KEYWORD",
+                        "/inputSchema/properties/id/enum", "'enum' is not evaluated yet"))),
+                "custom-dialect", outcome("INDETERMINATE", List.of(), List.of(consumerLimitation(
+                        "UNSUPPORTED_DIALECT", "/inputSchema/$schema",
+                        "JSON Schema dialect 'https://example.com/custom-dialect' is not supported"))),
+                "deep-input", outcome("INDETERMINATE", List.of(), List.of(consumerLimitation("DEPTH_LIMIT_REACHED",
+                        "/inputSchema/properties/l1/properties/l2/properties/l3/properties/l4/properties/l5/items",
+                        "'items' nests deeper than the comparison evaluates"))),
+                "no-input-schema", outcome("INDETERMINATE", List.of(), List.of(consumerLimitation(
+                        "COMPARISON_FAILED", "/inputSchema", "The tool declares no inputSchema object"))),
+                "truncated", outcome("INDETERMINATE", List.of(), List.of(consumerLimitation("COMPARISON_FAILED",
+                        "", "The tool definition is not valid JSON")))),
+                outcomesInGroup(response, groupId));
+
+        givenSource(groupId, REPORT_SOURCE)
+                .queryParam("limit", 500)
+                .get(routes + COMPATIBLE)
+                .then()
+                .statusCode(200)
+                .body(artifactIdsInGroup(groupId), contains(ACCEPTS_EVERY_OUTPUT));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {ROOT_ROUTES, V3_ROUTES})
+    public void testCandidatesWithoutAnEnabledVersionAreSkipped(String routes) throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        createMcpTool(groupId, REPORT_SOURCE, REPORT_SOURCE_TOOL);
+        createMcpTool(groupId, ACCEPTS_EVERY_OUTPUT, ACCEPTS_EVERY_OUTPUT_TOOL);
+        createMcpTool(groupId, "disabled-only", ACCEPTS_EVERY_OUTPUT_TOOL);
+        disableVersion(groupId, "disabled-only", "1");
+        createArtifact(groupId, "draft-only", ArtifactType.MCP_TOOL, ACCEPTS_EVERY_OUTPUT_TOOL,
+                ContentTypes.APPLICATION_JSON, artifact -> artifact.getFirstVersion().setIsDraft(true));
+        createMcpTool(groupId, "disabled-latest", ACCEPTS_EVERY_OUTPUT_TOOL);
+        createArtifactVersion(groupId, "disabled-latest", REJECTS_NULL_NOTE_TOOL, ContentTypes.APPLICATION_JSON);
+        disableVersion(groupId, "disabled-latest", "2");
+
+        Response response = givenSource(groupId, REPORT_SOURCE).queryParam("limit", 500)
+                .get(routes + COMPATIBILITY);
+
+        // Every candidate is compatible through its first version, so only the version states
+        // explain which ones are compared: a disabled latest version falls back to the enabled one.
+        assertEquals(200, response.statusCode());
+        assertEquals(Map.of(ACCEPTS_EVERY_OUTPUT, outcome("COMPATIBLE", List.of(), List.of()),
+                "disabled-latest", outcome("COMPATIBLE", List.of(), List.of())),
+                outcomesInGroup(response, groupId));
+
+        givenSource(groupId, REPORT_SOURCE)
+                .queryParam("limit", 500)
+                .get(routes + COMPATIBLE)
+                .then()
+                .statusCode(200)
+                .body(artifactIdsInGroup(groupId), containsInAnyOrder(ACCEPTS_EVERY_OUTPUT, "disabled-latest"));
+    }
+
     @Test
     public void testCompatibilityOperationsThroughTheGeneratedClient() throws Exception {
         String groupId = TestUtils.generateGroupId();
@@ -1108,6 +1390,180 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
                 .toList());
     }
 
+    @Test
+    public void testGeneratedClientReadsEveryCompatibilityField() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        createCompatibilityCatalog(groupId);
+
+        // The same request on the wire, which every field the client returns is compared with.
+        JsonPath wire = givenSource(groupId, CATALOG_SOURCE)
+                .queryParam("limit", 500)
+                .get(V3_ROUTES + COMPATIBILITY)
+                .then()
+                .statusCode(200)
+                .extract()
+                .jsonPath();
+        McpToolCompatibilityResults compatibility = clientV3.wellKnown().mcpTools().byGroupId(groupId)
+                .byArtifactId(CATALOG_SOURCE).compatibility().get(config -> config.queryParameters.limit = 500);
+
+        assertEquals(wire.getInt("candidateTotal"), compatibility.getCandidateTotal());
+        assertEquals(wire.getInt("evaluated"), compatibility.getEvaluated());
+        assertEquals(wire.getInt("scanLimit"), compatibility.getScanLimit());
+        assertEquals(wire.getBoolean("complete"), compatibility.getComplete());
+        assertEquals(wire.getInt("totals.compatible"), compatibility.getTotals().getCompatible());
+        assertEquals(wire.getInt("totals.incompatible"), compatibility.getTotals().getIncompatible());
+        assertEquals(wire.getInt("totals.indeterminate"), compatibility.getTotals().getIndeterminate());
+        assertEquals(wire.getInt("count"), compatibility.getCount());
+        assertEquals(List.of(), wire.getList("limitations"));
+        assertEquals(List.of(), compatibility.getLimitations());
+        // Read once as maps: a path evaluated per field takes minutes over a registry-wide scan.
+        List<Map<String, Object>> wireResults = wire.getList("results");
+        assertEquals(wireResults.size(), compatibility.getResults().size());
+        for (int i = 0; i < wireResults.size(); i++) {
+            assertSameResult(wireResults.get(i), compatibility.getResults().get(i));
+        }
+
+        // Explicit values for this test's tools, so that a field lost on both sides cannot pass.
+        Map<String, McpToolCompatibilityResult> results = compatibility.getResults().stream()
+                .filter(result -> groupId.equals(result.getTool().getGroupId()))
+                .collect(Collectors.toMap(result -> result.getTool().getArtifactId(), result -> result));
+        assertEquals(Set.of(CATALOG_COMPATIBLE, CATALOG_INCOMPATIBLE, CATALOG_INDETERMINATE), results.keySet());
+        McpToolSearchResult compatibleTool = results.get(CATALOG_COMPATIBLE).getTool();
+        assertEquals("Records Consumer", compatibleTool.getTitle());
+        assertEquals(List.of("records", "total"), compatibleTool.getParameters());
+        assertFalse(results.get(CATALOG_INCOMPATIBLE).getReasons().get(0).getMessage().isBlank());
+        assertFalse(results.get(CATALOG_INDETERMINATE).getLimitations().get(0).getMessage().isBlank());
+    }
+
+    @Test
+    public void testGeneratedClientCompatibleReturnsTheCompatibleVerdicts() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        createCompatibilityCatalog(groupId);
+        var source = clientV3.wellKnown().mcpTools().byGroupId(groupId).byArtifactId(CATALOG_SOURCE);
+
+        McpCompatibleToolsResults compatible = source.compatible().get(config -> config.queryParameters.limit = 500);
+        McpToolCompatibilityResults compatibility = source.compatibility().get(config -> {
+            config.queryParameters.verdict = new String[] {"COMPATIBLE"};
+            config.queryParameters.limit = 500;
+        });
+
+        List<String> compatibleTools = compatible.getTools().stream().map(WellKnownMcpToolsTest::identity).toList();
+        assertEquals(compatibility.getResults().stream().map(result -> identity(result.getTool())).toList(),
+                compatibleTools);
+        assertEquals(compatibility.getTotals().getCompatible(), compatible.getCount());
+        assertEquals(compatibility.getCount(), compatible.getCount());
+        assertTrue(compatibleTools.contains(groupId + "/" + CATALOG_COMPATIBLE));
+        assertFalse(compatibleTools.contains(groupId + "/" + CATALOG_INCOMPATIBLE));
+        assertFalse(compatibleTools.contains(groupId + "/" + CATALOG_INDETERMINATE));
+    }
+
+    @Test
+    public void testGeneratedClientSendsVersionVerdictAndOffsetTogether() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        // Only version 1.0.0 can be compared, since the latest one has no outputSchema.
+        createArtifact(groupId, CATALOG_SOURCE, ArtifactType.MCP_TOOL, COMPAT_SOURCE_TOOL,
+                ContentTypes.APPLICATION_JSON, artifact -> artifact.getFirstVersion().setVersion("1.0.0"));
+        createArtifactVersion(groupId, CATALOG_SOURCE, COMPAT_NO_OUTPUT_TOOL, ContentTypes.APPLICATION_JSON);
+        createMcpTool(groupId, CATALOG_COMPATIBLE, COMPAT_RECORDS_CONSUMER_TOOL);
+        createMcpTool(groupId, CATALOG_INCOMPATIBLE, COMPAT_INCOMPATIBLE_TOOL);
+        createMcpTool(groupId, CATALOG_INDETERMINATE, COMPAT_OPTIONAL_INPUT_TOOL);
+        var source = clientV3.wellKnown().mcpTools().byGroupId(groupId).byArtifactId(CATALOG_SOURCE);
+        String[] verdicts = {"INCOMPATIBLE", "INDETERMINATE"};
+
+        McpToolCompatibilityResults unpaginated = source.compatibility().get(config -> {
+            config.queryParameters.version = "1.0.0";
+            config.queryParameters.verdict = verdicts;
+            config.queryParameters.limit = 500;
+        });
+        McpToolCompatibilityResults page = source.compatibility().get(config -> {
+            config.queryParameters.version = "1.0.0";
+            config.queryParameters.verdict = verdicts;
+            config.queryParameters.offset = 1;
+            config.queryParameters.limit = 500;
+        });
+
+        // This test's candidates are the newest tools, so the two it expects lead the results.
+        List<String> matching = unpaginated.getResults().stream().map(result -> identity(result.getTool())).toList();
+        assertEquals(Set.of(groupId + "/" + CATALOG_INCOMPATIBLE, groupId + "/" + CATALOG_INDETERMINATE),
+                Set.copyOf(matching.subList(0, 2)));
+        assertFalse(matching.contains(groupId + "/" + CATALOG_COMPATIBLE));
+        assertEquals(matching.size(), unpaginated.getCount());
+        // The offset skips the first of them, and count still covers every match.
+        assertEquals(matching.subList(1, matching.size()),
+                page.getResults().stream().map(result -> identity(result.getTool())).toList());
+        assertEquals(unpaginated.getCount(), page.getCount());
+
+        // Without the version the latest one is compared, which yields nothing.
+        McpToolCompatibilityResults latest = source.compatibility().get(config -> config.queryParameters.verdict = verdicts);
+        assertEquals(0, latest.getEvaluated());
+        assertEquals(List.of("SOURCE_HAS_NO_OUTPUT_SCHEMA"),
+                latest.getLimitations().stream().map(McpToolCompatibilityLimitation::getCode).toList());
+    }
+
+    @Test
+    public void testGeneratedClientReadsErrorsAsProblemDetails() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        var missing = clientV3.wellKnown().mcpTools().byGroupId(groupId).byArtifactId("nonexistent-tool");
+        String notFoundTitle = "MCP tool not found: " + groupId + "/nonexistent-tool";
+
+        ProblemDetails compatibleNotFound = assertThrows(ProblemDetails.class, () -> missing.compatible().get());
+        assertEquals(404, compatibleNotFound.getResponseStatusCode());
+        assertEquals(404, compatibleNotFound.getStatus());
+        assertEquals(notFoundTitle, compatibleNotFound.getTitle());
+
+        ProblemDetails compatibilityNotFound = assertThrows(ProblemDetails.class, () -> missing.compatibility().get());
+        assertEquals(404, compatibilityNotFound.getResponseStatusCode());
+        assertEquals(404, compatibilityNotFound.getStatus());
+        assertEquals(notFoundTitle, compatibilityNotFound.getTitle());
+
+        createMcpTool(groupId, CATALOG_SOURCE, COMPAT_SOURCE_TOOL);
+        ProblemDetails invalidVerdict = assertThrows(ProblemDetails.class, () -> clientV3.wellKnown().mcpTools()
+                .byGroupId(groupId).byArtifactId(CATALOG_SOURCE).compatibility()
+                .get(config -> config.queryParameters.verdict = new String[] {"compatible"}));
+        assertEquals(400, invalidVerdict.getResponseStatusCode());
+        assertEquals(400, invalidVerdict.getStatus());
+        assertEquals("InvalidParameterValueException", invalidVerdict.getName());
+        assertTrue(invalidVerdict.getTitle().contains("'verdict'"));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void assertSameResult(Map<String, Object> wire, McpToolCompatibilityResult result) {
+        Map<String, Object> wireTool = (Map<String, Object>) wire.get("tool");
+        McpToolSearchResult tool = result.getTool();
+        assertEquals(wireTool.get("groupId"), tool.getGroupId());
+        assertEquals(wireTool.get("artifactId"), tool.getArtifactId());
+        assertEquals(wireTool.get("name"), tool.getName());
+        assertEquals(wireTool.get("title"), tool.getTitle());
+        assertEquals(wireTool.get("description"), tool.getDescription());
+        assertEquals(wireTool.get("owner"), tool.getOwner());
+        assertEquals(((Number) wireTool.get("createdOn")).longValue(), tool.getCreatedOn());
+        assertEquals(wireTool.get("parameters"), tool.getParameters());
+        assertEquals(wire.get("verdict"), result.getVerdict().getValue());
+
+        List<Map<String, Object>> wireReasons = (List<Map<String, Object>>) wire.get("reasons");
+        assertEquals(wireReasons.size(), result.getReasons().size());
+        for (int i = 0; i < wireReasons.size(); i++) {
+            McpToolCompatibilityReason reason = result.getReasons().get(i);
+            assertEquals(wireReasons.get(i).get("code"), reason.getCode());
+            assertEquals(wireReasons.get(i).get("producerPointer"), reason.getProducerPointer());
+            assertEquals(wireReasons.get(i).get("consumerPointer"), reason.getConsumerPointer());
+            assertEquals(wireReasons.get(i).get("message"), reason.getMessage());
+        }
+        List<Map<String, Object>> wireLimitations = (List<Map<String, Object>>) wire.get("limitations");
+        assertEquals(wireLimitations.size(), result.getLimitations().size());
+        for (int i = 0; i < wireLimitations.size(); i++) {
+            McpToolCompatibilityLimitation limitation = result.getLimitations().get(i);
+            assertEquals(wireLimitations.get(i).get("code"), limitation.getCode());
+            assertEquals(wireLimitations.get(i).get("side"), limitation.getSide().getValue());
+            assertEquals(wireLimitations.get(i).get("pointer"), limitation.getPointer());
+            assertEquals(wireLimitations.get(i).get("message"), limitation.getMessage());
+        }
+    }
+
+    private static String identity(McpToolSearchResult tool) {
+        return tool.getGroupId() + "/" + tool.getArtifactId();
+    }
+
     private RequestSpecification givenSource(String groupId, String artifactId) {
         return givenAtRoot()
                 .pathParam("groupId", groupId)
@@ -1140,6 +1596,37 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
 
     private static String artifactIdsInGroup(String groupId) {
         return "tools.findAll { it.groupId == '" + groupId + "' }.artifactId";
+    }
+
+    /**
+     * The verdict, reasons and limitations of every candidate in the group, by artifact ID.
+     */
+    private static Map<String, Map<String, Object>> outcomesInGroup(Response response, String groupId) {
+        List<Map<String, Object>> results = response.path(resultsInGroup(groupId));
+        return results.stream().collect(Collectors.toMap(
+                result -> (String) ((Map<?, ?>) result.get("tool")).get("artifactId"),
+                result -> outcome(result.get("verdict"), result.get("reasons"), result.get("limitations"))));
+    }
+
+    private static Map<String, Object> outcome(Object verdict, Object reasons, Object limitations) {
+        return Map.of("verdict", verdict, "reasons", reasons, "limitations", limitations);
+    }
+
+    private static Map<String, String> reason(String code, String producerPointer, String consumerPointer,
+            String message) {
+        return Map.of("code", code, "producerPointer", producerPointer, "consumerPointer", consumerPointer,
+                "message", message);
+    }
+
+    private static Map<String, String> consumerLimitation(String code, String pointer, String message) {
+        return Map.of("code", code, "side", "CONSUMER", "pointer", pointer, "message", message);
+    }
+
+    private void disableVersion(String groupId, String artifactId, String version) throws Exception {
+        WrappedVersionState disabled = new WrappedVersionState();
+        disabled.setState(VersionState.DISABLED);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .byVersionExpression(version).state().put(disabled);
     }
 
     private void createMcpTool(String groupId, String artifactId, String content) throws Exception {

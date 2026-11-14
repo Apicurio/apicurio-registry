@@ -1,0 +1,221 @@
+include::{mod-loc}shared/all-attributes.adoc[]
+
+[id="upgrading-to-3-4_{context}"]
+= Upgrading to {registry} 3.4
+
+:_mod-docs-content-type: ASSEMBLY
+
+[role="_abstract"]
+{registry} 3.4 upgrades in place from 3.3.x and earlier 3.x versions. Most deployments need no changes, but some changes in this version can affect your data, configuration, clients, or extensions.
+Review this page before you upgrade, together with the release notes.
+
+For the general upgrade procedure, backups, and rollbacks, see the versioning and support policy in Additional resources.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:getting-started/assembly-versioning-support-policy.adoc[]
+
+
+// con-upgrading-to-3-4-database
+[id="upgrading-to-3-4-database_{context}"]
+== Database upgrades in {registry} 3.4
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+With SQL storage, {registry} 3.4 upgrades the database schema to version 113 when it starts. {registry} 3.3 uses version 109.
+The upgrade runs automatically, but two of its steps can need your attention.
+
+Duplicate version order values stop the upgrade (schema version 113)::
++
+--
+The upgrade adds a unique constraint on the order of versions within each artifact, `UQ_versions_3` on `(groupId, artifactId, versionOrder)`.
+A registry that received concurrent requests to create the first version of the same artifact can hold two versions with the same order.
+If any exist, the upgrade fails, and {registry} does not start.
+The error message lists each affected version:
+
+----
+Cannot add the UQ_versions_3 constraint: 2 versions share a versionOrder with another version of the same artifact. Give each of them a distinct versionOrder or delete the extra ones, then restart.
+  groupId=..., artifactId=..., version=..., versionOrder=...
+----
+
+{registry} does not change these rows itself, because renumbering a version changes the version numbers that Confluent-compatible clients see, and deleting one loses data.
+
+To find out before you upgrade, run this query against the database:
+
+[source,sql]
+----
+SELECT groupId, artifactId, versionOrder, COUNT(*)
+FROM versions
+GROUP BY groupId, artifactId, versionOrder
+HAVING COUNT(*) > 1;
+----
+
+If it returns rows, give each listed version a distinct `versionOrder`, or delete the versions that you don't need, before you upgrade.
+If the upgrade has already failed, restore the database from the backup that you took before the upgrade, fix the rows, and upgrade again.
+--
+
+Structured content index backfill (schema version 110)::
+The upgrade indexes the structure of the latest version of every agent card, MCP tool, OpenAPI, and AsyncAPI artifact, so that search filters on structure work with SQL storage.
+On a registry with many such artifacts, this makes the first startup of 3.4 take longer.
+{registry} logs its progress during the backfill.
+Other artifact types are not read.
+
+The other two steps add a table for peer registries (version 111), and remove versions that are no longer drafts from the `drafts` branch (version 112).
+
+
+// ref-upgrading-to-3-4-json-schema-compatibility
+[id="upgrading-to-3-4-json-schema-compatibility_{context}"]
+== Changes to JSON Schema compatibility checking in {registry} 3.4
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+Earlier versions of {registry} checked JSON Schema compatibility with a different checker, based on the everit library.
+If you used JSON Schema compatibility rules before version 3.4, note the following differences:
+
+* Artifacts in drafts 2019-09 and 2020-12 are now checked.
+The earlier checker could not load them, and the check failed with an error instead.
+
+* Rule violations are worded differently, and their `context` points at the keyword that changed.
+Update anything that matches the previous text or contexts, for example:
++
+[%header,cols="2,3,3"]
+|===
+|Change
+|Before 3.4
+|From 3.4
+
+|Change the `type` of property `a`
+|`Subschema type changed` at `/properties/a`
+|`The declared 'type' of the schema was changed.` at `/properties/a/type`
+
+|Add a property to `required`
+|`Object type property schemas narrowed` at `/propertySchemasAdded`
+|`A property was made 'required'.` at `/required/0`
+
+|Remove a value from `enum`
+|`Combined type subschema not compatible` at `/`
+|`A value was removed from the 'enum' allowed set.` at `/enum`
+|===
+
+* A new `oneOf` subschema that can match the same values as an existing one is now reported as incompatible.
+The earlier checker compared `oneOf` like `anyOf`, and accepted such a change.
+
+* Adding a `type` inside `then` or `else` that an enclosing schema already requires is reported as incompatible, where the earlier checker accepted it.
+See *Known over-strict verdicts* in xref:getting-started/assembly-registry-compatibility-modes.adoc#registry-compatibility-json-schema-reports_{context}[What the JSON Schema compatibility check reports].
+
+* The `apicurio.compat.json-schema.use-apitomy` configuration property, which selected the new checker in version 3.3, no longer has any effect, and is deprecated.
+If it is set, {registry} logs a warning at startup.
+
+
+// ref-upgrading-to-3-4-json-schema-validity
+[id="upgrading-to-3-4-json-schema-validity_{context}"]
+== Changes to JSON Schema validity checking in {registry} 3.4
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+At the `FULL` level, the `VALIDITY` rule now validates JSON Schema content with one validator for every draft (4, 6, 7, 2019-09, and 2020-12).
+The rule applies only to content that you add after the upgrade. {registry} does not validate stored artifacts again.
+
+* Valid schemas in draft 2019-09 now pass. Before 3.4, every 2019-09 schema was rejected.
+* Violations are worded differently, and their `context` is a JSON Pointer to the keyword, for example `boolean found, number expected` at `/items/properties/price/exclusiveMinimum` instead of `expected type: Number, found: Boolean` at `#/items/properties/price/exclusiveMinimum`.
+* Several problems can be reported at once, at most one for each location.
+* Some content that the specification does not allow, and that was accepted before, is now rejected.
+* A `$schema` of `\http://json-schema.org/schema`, the alias without a version, is read as draft 7 instead of draft 4, as the compatibility check reads it.
+
+
+// ref-upgrading-to-3-4-configuration
+[id="upgrading-to-3-4-configuration_{context}"]
+== Configuration changes in {registry} 3.4
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+The following configuration properties are deprecated in {registry} 3.4 and will be removed in 4.0.
+If one of them is set, {registry} logs a warning at startup.
+Remove them from your configuration.
+
+[%header,cols="2,3"]
+|===
+|Property
+|Why
+
+|`apicurio.compat.json-schema.use-apitomy`
+|It has no effect. JSON Schema compatibility is always checked with the new checker.
+
+|`apicurio.usage.dead-threshold-days`
+|It has no effect. A schema version whose last fetch is older than `apicurio.usage.stale-threshold-days` is classified as `DEAD`.
+|===
+
+The label limits `apicurio.limits.config.max-artifact-labels` and `apicurio.limits.config.max-label-size.bytes` are now enforced.
+In earlier versions, they could be set but had no effect.
+Both are off by default.
+If your configuration sets them, requests that create artifacts or versions, or update their metadata, with more labels or larger labels than these limits allow, now fail with HTTP 409.
+For a label, the size is the number of UTF-8 bytes of its key and value together.
+
+
+// ref-upgrading-to-3-4-clients
+[id="upgrading-to-3-4-clients_{context}"]
+== Changes for client applications in {registry} 3.4
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+The core REST API in {registry} 3.4 only adds endpoints and fields, with the following changes to existing behavior.
+
+Replacing the versions of a branch::
+`+PUT /groups/{groupId}/artifacts/{artifactId}/branches/{branchId}/versions+` returns HTTP 404 when a listed version does not exist, and HTTP 409 when the same version is listed more than once.
+Before 3.4, both requests failed with HTTP 500.
+
+Protobuf message indexes::
+The Protobuf serializer writes the message index of the first message type in a schema as the single byte `0x00`, as Confluent serializers do.
+Before 3.4, it wrote two bytes, `0x02 0x00`.
+Deserializers of {registry} 3.1 and later read both forms, so producers and consumers can be upgraded in any order.
+
+
+// ref-upgrading-to-3-4-artifact-types
+[id="upgrading-to-3-4-artifact-types_{context}"]
+== Changes for custom artifact types in {registry} 3.4
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+{registry} 3.4 can detect the type of an artifact from the extension of its content file, for example in GitOps storage.
+Custom artifact types configured in `artifact-types.json` can declare their own extensions with the new optional `fileExtensions` property.
+If two artifact types declare the same extension, {registry} does not start.
+
+If you build {registry} with your own Java implementation of the artifact type provider interfaces, from `schema-util/util-provider`, note the following changes:
+
+* `io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory` has a new method, `Map<String, String> getFileExtensionToTypeMap()`.
+It is abstract, so an implementation of the interface must add it.
+Alternatively, extend `DefaultArtifactTypeUtilProviderImpl`, which implements it.
+
+* `DefaultArtifactTypeUtilProviderImpl` builds the map in `validateFileExtensions()`, which also rejects an extension that two providers declare.
+The constructor `DefaultArtifactTypeUtilProviderImpl(true)` calls it after it loads the standard providers.
+A subclass that loads its providers itself, or uses the constructor without arguments, must call `validateFileExtensions()` after loading them, or the map stays empty.
+
+* `io.apicurio.registry.types.provider.ArtifactTypeUtilProvider` has a new method, `Set<String> getFileExtensions()`.
+It has a default implementation that returns no extensions, so existing providers keep working.
+
+Custom artifact types that use webhooks, or Java classes named in `artifact-types.json`, are not affected.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:getting-started/assembly-custom-artifact-types.adoc[]
+
+
+// ref-upgrading-to-3-4-experimental
+[id="upgrading-to-3-4-experimental_{context}"]
+== Changes to experimental features in {registry} 3.4
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+Experimental features can change between minor versions.
+The following change affects deployments that enabled one in an earlier version.
+
+ARD agents endpoint::
+With `apicurio.ard.enabled=true`, `GET /.well-known/ard/agents` returns a paginated response with `items`, `total`, and `pageToken`, as the ARD Registry API expects.
+In 3.3, it returned the AI Catalog format, with the next page in `nextPageToken`.

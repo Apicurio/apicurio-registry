@@ -98,4 +98,14 @@ public class ExperimentalFeatureGateTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(404);
     }
+
+    @Test
+    public void testAgentCardSchemaBlockedWhenExperimentalDisabled() {
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .get("/.well-known/schemas/agent-card/v1")
+                .then()
+                .statusCode(404);
+    }
 }

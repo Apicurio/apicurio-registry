@@ -9,6 +9,7 @@ import jakarta.ws.rs.core.Response;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 /**
  * Serves the JSON Schemas of the AI artifact types under {@code /.well-known/schemas}.
@@ -44,16 +45,20 @@ public class AgentSchemaProvider {
         }
     }
 
+    private record SchemaKey(String type, String version) {}
+
+    private static final Map<SchemaKey, String> ALLOWED_SCHEMAS = Map.of(
+            new SchemaKey("prompt-template", "v1"), "schemas/prompt-template-v1.json",
+            new SchemaKey("model-schema", "v1"), "schemas/model-schema-v1.json",
+            new SchemaKey("mcp-tool", "v1"), "schemas/mcp-tool-v1.json",
+            new SchemaKey("agent-card", "v1"), "schemas/agent-card-v1.json"
+    );
+
     private String getSchemaResourcePath(String type, String version) {
-        // Only allow known schema types and versions
-        if ("prompt-template".equals(type) && "v1".equals(version)) {
-            return "schemas/prompt-template-v1.json";
-        } else if ("model-schema".equals(type) && "v1".equals(version)) {
-            return "schemas/model-schema-v1.json";
-        } else if ("mcp-tool".equals(type) && "v1".equals(version)) {
-            return "schemas/mcp-tool-v1.json";
+        if (type == null || version == null) {
+            return null;
         }
-        return null;
+        return ALLOWED_SCHEMAS.get(new SchemaKey(type, version));
     }
 
     private String loadSchemaFromClasspath(String resourcePath) throws IOException {

@@ -18,13 +18,7 @@ import jakarta.interceptor.Interceptors;
 @Logged
 public class ModeResourceImpl extends AbstractResource implements ModeResource {
 
-    private static final String MODE_PROPERTY_NAME = "apicurio.ccompat.mode";
-    private static final String SUBJECT_MODE_PROPERTY_PREFIX = "apicurio.ccompat.mode.subject.";
 
-    private String getSubjectModePropertyName(String groupId, String artifactId) {
-        String prefix = groupId != null ? groupId + "/" : "";
-        return SUBJECT_MODE_PROPERTY_PREFIX + prefix + artifactId;
-    }
 
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)

@@ -2,6 +2,7 @@ package io.apicurio.registry.services.http;
 
 import io.apicurio.registry.ccompat.rest.error.ConflictException;
 import io.apicurio.registry.ccompat.rest.error.InvalidCompatibilityLevelException;
+import io.apicurio.registry.ccompat.rest.error.ReadOnlyModeException;
 import io.apicurio.registry.ccompat.rest.error.ReferenceExistsException;
 import io.apicurio.registry.ccompat.rest.error.SchemaNotFoundException;
 import io.apicurio.registry.ccompat.rest.error.SchemaNotSoftDeletedException;
@@ -129,6 +130,7 @@ public class HttpStatusCodeMap {
         map.put(PeerAlreadyExistsException.class, HTTP_CONFLICT);
         map.put(PeerNotFoundException.class, HTTP_NOT_FOUND);
         map.put(ReadOnlyStorageException.class, HTTP_CONFLICT);
+        map.put(ReadOnlyModeException.class, HTTP_UNPROCESSABLE_ENTITY);
         map.put(ReferenceExistsException.class, HTTP_UNPROCESSABLE_ENTITY);
         map.put(DereferencingNotSupportedException.class, HTTP_BAD_REQUEST);
         map.put(RoleMappingAlreadyExistsException.class, HTTP_CONFLICT);

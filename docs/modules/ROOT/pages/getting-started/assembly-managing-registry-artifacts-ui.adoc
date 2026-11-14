@@ -211,7 +211,7 @@ Use a version number that does not already exist for the artifact. You can leave
 The web console opens the draft in the editor. To edit an existing draft, select *Edit draft* from its Action menu (three vertical dots) on the *Drafts* tab.
 . Edit the content, and then click *Save*.
 +
-Studio provides dedicated editors for OpenAPI, AsyncAPI, and Protobuf, and a text editor for other types. Saving updates the same draft version. It does not publish the draft.
+Studio provides dedicated editors for OpenAPI, AsyncAPI, and Protobuf, a prompt template editor for `PROMPT_TEMPLATE` drafts, and a text editor for other types. The prompt template editor highlights `+{{variable}}+` placeholders and the `+{{#if}}+`, `+{{else}}+`, and `+{{#unless}}+` conditional blocks. It marks unsupported placeholder syntax, such as dotted names, but does not validate the content. Saving updates the same draft version. It does not publish the draft.
 
 .Verification
 * Return to the *Drafts* tab, select *Edit draft* for the same version, and verify that the editor displays your saved content.

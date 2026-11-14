@@ -150,6 +150,15 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .pathParam("artifactId", "testCreateArtifactRule/EmptyAPI/1").body(emptyConfig)
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules").then().statusCode(400);
 
+        // Test Rule config invalid
+        CreateRule invalidConfig = new CreateRule();
+        invalidConfig.setRuleType(RuleType.VALIDITY);
+        invalidConfig.setConfig("NOT_A_VALIDITY_LEVEL");
+        given().when().contentType(CT_JSON).pathParam("groupId", "testCreateArtifactRule")
+                .pathParam("artifactId", "testCreateArtifactRule/EmptyAPI/1").body(invalidConfig)
+                .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules").then().statusCode(400)
+                .body("name", equalTo("InvalidParameterValueException"));
+
     }
 
     @Test
@@ -1045,6 +1054,15 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules/COMPATIBILITY").then()
                 .statusCode(200).contentType(ContentType.JSON).body("ruleType", equalTo("COMPATIBILITY"))
                 .body("config", equalTo("FULL"));
+
+        // Try to update a rule with invalid config - should fail with 400
+        Rule invalidUpdateRule = new Rule();
+        invalidUpdateRule.setRuleType(RuleType.COMPATIBILITY);
+        invalidUpdateRule.setConfig("NOT_A_VALID_LEVEL");
+        given().when().contentType(CT_JSON).pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                .body(invalidUpdateRule)
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules/COMPATIBILITY").then()
+                .statusCode(400).body("name", equalTo("InvalidParameterValueException"));
 
         // Get a single (updated) rule by name
         given().when().pathParam("groupId", GROUP).pathParam("artifactId", artifactId)

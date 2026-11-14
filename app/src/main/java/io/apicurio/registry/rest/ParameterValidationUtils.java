@@ -1,6 +1,12 @@
 package io.apicurio.registry.rest;
 
+import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
+import io.apicurio.registry.rules.integrity.IntegrityLevel;
+import io.apicurio.registry.rules.validity.ValidityLevel;
+import io.apicurio.registry.types.RuleType;
+
 import java.math.BigInteger;
+import java.util.Arrays;
 
 /**
  * Utility class providing common parameter validation methods for REST API resources.
@@ -10,6 +16,7 @@ public final class ParameterValidationUtils {
 
     private static final BigInteger MAX_INT_VALUE = BigInteger.valueOf(Integer.MAX_VALUE);
     private static final BigInteger MAX_LIMIT = BigInteger.valueOf(1000);
+    private static final String CONFIG_PARAM = "config";
 
     private ParameterValidationUtils() {
         // Utility class - prevent instantiation
@@ -55,6 +62,50 @@ public final class ParameterValidationUtils {
     public static void requireParameterValue(String parameterName, String expectedValue, String actualValue) {
         if (actualValue != null && expectedValue != null && !actualValue.equals(expectedValue)) {
             throw new InvalidParameterValueException(parameterName, expectedValue, actualValue);
+        }
+    }
+
+    /**
+     * Validates that the configuration for a rule is valid for the specified rule type.
+     *
+     * @param ruleType the type of rule
+     * @param config the rule configuration to validate
+     * @throws MissingRequiredParameterException if config is null or empty, or ruleType is null
+     * @throws InvalidParameterValueException if the configuration is invalid for the rule type
+     * @throws IllegalArgumentException if the rule type is not supported
+     */
+    public static void validateRuleConfig(RuleType ruleType, String config) {
+        if (config == null || config.trim().isEmpty()) {
+            throw new MissingRequiredParameterException(CONFIG_PARAM);
+        }
+        if (ruleType == null) {
+            throw new MissingRequiredParameterException("ruleType");
+        }
+        switch (ruleType) {
+            case VALIDITY -> validateEnumValue(ValidityLevel.class, config, config);
+            case COMPATIBILITY -> validateEnumValue(CompatibilityLevel.class, config, config);
+            case INTEGRITY -> validateIntegrityConfig(config);
+            default -> throw new IllegalArgumentException("Unsupported rule type: " + ruleType);
+        }
+    }
+
+    private static <E extends Enum<E>> void validateEnumValue(Class<E> enumClass, String value, String fullConfig) {
+        try {
+            Enum.valueOf(enumClass, value);
+        } catch (IllegalArgumentException e) {
+            throw new InvalidParameterValueException(
+                    CONFIG_PARAM, Arrays.toString(enumClass.getEnumConstants()), fullConfig);
+        }
+    }
+
+    private static void validateIntegrityConfig(String config) {
+        for (String cvalue : config.split(",", -1)) {
+            String trimmed = cvalue.trim();
+            if (trimmed.isEmpty()) {
+                throw new InvalidParameterValueException(
+                        CONFIG_PARAM, Arrays.toString(IntegrityLevel.values()), config);
+            }
+            validateEnumValue(IntegrityLevel.class, trimmed, config);
         }
     }
 

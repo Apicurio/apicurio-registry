@@ -15,6 +15,8 @@
     <name>Registry :: MCP Server</name>
 
     <properties>
+        <!-- Quarkus 4 requires Java 21 -->
+        <maven.compiler.release>21</maven.compiler.release>
         <projectRoot>${project.basedir}/..</projectRoot>
         <docker.app.file>app-files/apicurio-registry-mcp-server-${project.version}-all.tar.gz</docker.app.file>
         <!-- Exclude integration tests by default. Use -DexcludedGroups= to run them -->

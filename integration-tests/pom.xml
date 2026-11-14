@@ -10,6 +10,8 @@
   <name>Registry :: Integration Tests</name>
 
   <properties>
+    <!-- Quarkus 4 requires Java 21 -->
+    <maven.compiler.release>21</maven.compiler.release>
     <projectRoot>${project.basedir}/..</projectRoot>
     <quarkus.http.test-scheme>http</quarkus.http.test-scheme>
     <quarkus.http.test-host>localhost</quarkus.http.test-host>

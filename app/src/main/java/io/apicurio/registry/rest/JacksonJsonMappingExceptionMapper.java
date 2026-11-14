@@ -1,8 +1,5 @@
 package io.apicurio.registry.rest;
 
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.exc.InvalidFormatException;
-import com.fasterxml.jackson.databind.exc.ValueInstantiationException;
 import io.apicurio.registry.rest.v3.beans.ContractStatusTransition;
 import io.apicurio.registry.services.http.CoreRegistryExceptionMapperService;
 import io.apicurio.registry.extensions.ApiExceptionMapper;
@@ -15,15 +12,20 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
 import jakarta.ws.rs.ext.Provider;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.exc.InvalidFormatException;
+import tools.jackson.databind.exc.ValueInstantiationException;
 
 /**
- * Intentionally handles JsonMappingException globally so malformed JSON
- * responses use the consistent ProblemDetails format across the API. The MCP Registry API is the
+ * Intentionally handles Jackson exceptions globally (both malformed JSON and JSON that cannot be bound
+ * to the target type) so that these errors use the consistent ProblemDetails format across the API.
+ * Being more specific than {@code Throwable}, it also takes precedence over the plain-text mapper of the
+ * RESTEasy Jackson provider. The MCP Registry API is the
  * exception: its specification defines its own error shape.
  */
 @Provider
 @ApplicationScoped
-public class JacksonJsonMappingExceptionMapper implements ExceptionMapper<JsonMappingException> {
+public class JacksonJsonMappingExceptionMapper implements ExceptionMapper<JacksonException> {
 
     @Inject
     CoreRegistryExceptionMapperService coreMapper;
@@ -35,7 +37,7 @@ public class JacksonJsonMappingExceptionMapper implements ExceptionMapper<JsonMa
     HttpServletRequest request;
 
     @Override
-    public Response toResponse(JsonMappingException exception) {
+    public Response toResponse(JacksonException exception) {
         String actualValue = extractInvalidStatusValue(exception);
 
         if (actualValue != null) {
@@ -73,7 +75,7 @@ public class JacksonJsonMappingExceptionMapper implements ExceptionMapper<JsonMa
      * unrelated to that enum, or the raw value could not be determined), in which case the
      * caller falls back to generic message-based handling.
      */
-    private String extractInvalidStatusValue(JsonMappingException exception) {
+    private String extractInvalidStatusValue(JacksonException exception) {
         if (exception instanceof ValueInstantiationException vie) {
             if (vie.getType() != null && ContractStatusTransition.Status.class.equals(vie.getType().getRawClass())) {
                 return extractValueFromCause(vie.getCause());

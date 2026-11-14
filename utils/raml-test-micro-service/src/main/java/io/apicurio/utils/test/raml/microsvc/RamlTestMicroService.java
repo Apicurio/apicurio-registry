@@ -88,7 +88,7 @@ public class RamlTestMicroService extends AbstractVerticle {
             });
         });
 
-        server.listen(port, result -> {
+        server.listen(port).onComplete(result -> {
             if (result.succeeded()) {
                 System.out.println("Server started on port " + port);
             } else {
@@ -100,7 +100,7 @@ public class RamlTestMicroService extends AbstractVerticle {
     public void stopServer() {
         CompletableFuture<Void> future = new CompletableFuture<>();
         if (server != null) {
-            server.close(ar -> {
+            server.close().onComplete(ar -> {
                 if (ar.succeeded()) {
                     future.complete(null);
                 } else {

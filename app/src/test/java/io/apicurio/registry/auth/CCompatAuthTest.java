@@ -83,14 +83,13 @@ public class CCompatAuthTest extends AbstractResourceTestBase {
      */
     public String acquireAuthToken(String clientId, String clientSecret) throws Exception {
         OAuth2Options oauth2Options = new OAuth2Options()
-                .setFlow(OAuth2FlowType.CLIENT)
                 .setClientId(clientId)
                 .setClientSecret(clientSecret)
                 .setTokenPath(authServerUrlConfigured);
 
         OAuth2Auth oauth2Auth = OAuth2Auth.create(vertx, oauth2Options);
 
-        Oauth2Credentials credentials = new Oauth2Credentials();
+        Oauth2Credentials credentials = new Oauth2Credentials().setFlow(OAuth2FlowType.CLIENT);
 
         CompletableFuture<String> tokenFuture = new CompletableFuture<>();
 

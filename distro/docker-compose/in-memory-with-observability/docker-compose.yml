@@ -20,7 +20,7 @@ services:
       QUARKUS_OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
       QUARKUS_OTEL_TRACES_SAMPLER: "parentbased_always_on"
       # Structured JSON logging with trace context
-      QUARKUS_LOG_CONSOLE_JSON: "true"
+      QUARKUS_LOG_CONSOLE_JSON_ENABLED: "true"
     ports:
       - "8080:8080"
       - "9000:9000"

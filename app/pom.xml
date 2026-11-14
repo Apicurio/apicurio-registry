@@ -287,7 +287,15 @@
     <dependency>
       <groupId>com.fasterxml.jackson.datatype</groupId>
       <artifactId>jackson-datatype-jsr310</artifactId>
-      <scope>test</scope>
+    </dependency>
+    <!-- Jackson 2 modules for LegacyJacksonObjectMapperProducer (Quarkus 4 ships Jackson 3) -->
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jdk8</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.module</groupId>
+      <artifactId>jackson-module-parameter-names</artifactId>
     </dependency>
     <dependency>
       <groupId>io.confluent</groupId>
@@ -431,6 +439,14 @@
       <groupId>com.github.dasniko</groupId>
       <artifactId>testcontainers-keycloak</artifactId>
       <scope>test</scope>
+      <exclusions>
+        <!-- Jackson 2 JAX-RS provider (via keycloak-admin-client) would replace the Quarkus 4 Jackson 3
+             provider on the test classpath, so tests would not exercise the production setup. -->
+        <exclusion>
+          <groupId>org.jboss.resteasy</groupId>
+          <artifactId>resteasy-jackson2-provider</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>io.zonky.test</groupId>
@@ -651,7 +667,7 @@
           <execution>
             <id>default-cli</id>
             <configuration>
-              <!-- Direct surefire:test must also exclude the separate QuarkusUnitTest JVM. -->
+              <!-- Direct surefire:test must also exclude the separate QuarkusExtensionTest JVM. -->
               <excludedGroups>experimental-startup</excludedGroups>
             </configuration>
           </execution>
@@ -659,7 +675,7 @@
             <id>experimental-startup-test</id>
             <goals><goal>test</goal></goals>
             <configuration>
-              <!-- QuarkusUnitTest and QuarkusTest must not share a JVM. -->
+              <!-- QuarkusExtensionTest and QuarkusTest must not share a JVM. -->
               <groups>experimental-startup</groups>
               <test>McpRegistryExperimentalStartupTest</test>
               <forkCount>1</forkCount>

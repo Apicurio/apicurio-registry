@@ -26,6 +26,8 @@ import io.apicurio.registry.utils.tests.TestUtils;
 import io.confluent.kafka.schemaregistry.client.rest.RestService;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.restassured.RestAssured;
+import io.restassured.config.ObjectMapperConfig;
+import io.restassured.mapper.ObjectMapperType;
 import io.restassured.parsing.Parser;
 import io.restassured.response.ValidatableResponse;
 import io.vertx.core.Vertx;
@@ -136,6 +138,10 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     protected void setupRestAssured() {
         RestAssured.baseURI = registryApiBaseUrl;
         RestAssured.registerParser(ArtifactMediaTypes.BINARY.toString(), Parser.JSON);
+        // Quarkus 4 puts Jackson 3 on the classpath and RestAssured prefers it, but test code
+        // builds request bodies with Jackson 2 types (e.g. ObjectNode).
+        RestAssured.config = RestAssured.config().objectMapperConfig(
+                ObjectMapperConfig.objectMapperConfig().defaultObjectMapperType(ObjectMapperType.JACKSON_2));
     }
 
     protected void deleteGlobalRules(int expectedDefaultRulesCount) throws Exception {

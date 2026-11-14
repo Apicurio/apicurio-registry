@@ -2,7 +2,8 @@ import { Drawer, DrawerContent, DrawerContentBody, DrawerPanelContent } from "@p
 import { FunctionComponent, ReactNode } from "react";
 import "./ResizableOverviewDrawer.css";
 
-const MINIMUM_PANE_WIDTH = "400px";
+const DEFAULT_PANE_WIDTH = "40%";
+const MINIMUM_PANE_WIDTH = "300px";
 
 export type ResizableOverviewDrawerProps = {
     head: ReactNode;
@@ -19,7 +20,7 @@ export const ResizableOverviewDrawer: FunctionComponent<ResizableOverviewDrawerP
                 <DrawerPanelContent
                     className="resizable-overview-drawer__panel"
                     isResizable={true}
-                    defaultSize="500px"
+                    defaultSize={DEFAULT_PANE_WIDTH}
                     minSize={MINIMUM_PANE_WIDTH}
                     maxSize={`calc(100% - ${MINIMUM_PANE_WIDTH})`}
                     resizeAriaLabel="Resize overview panes"

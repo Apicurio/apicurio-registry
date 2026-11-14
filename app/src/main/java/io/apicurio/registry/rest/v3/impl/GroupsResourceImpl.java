@@ -2035,9 +2035,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                     prepared.content().getReferences());
             VersionMetaData vmd = V3ApiUtil.dtoToVersionMetaData(vmdDto);
 
-            // Need to also return the artifact metadata
-            ArtifactMetaDataDto amdDto = this.storage.getArtifactMetaData(groupId, artifactId);
-            ArtifactMetaData amd = V3ApiUtil.dtoToArtifactMetaData(amdDto);
+            // Return the artifact metadata from the prepared plan
+            ArtifactMetaData amd = V3ApiUtil.dtoToArtifactMetaData(prepared.artifactMetaData());
 
             return CreateArtifactResponse.builder().artifact(amd).version(vmd).build();
         } catch (ArtifactNotFoundException nfe) {
@@ -2067,7 +2066,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         // Transform the given references into dtos and set the contentId, this will also detect if any of the
         // passed references does not exist.
         List<ArtifactReferenceDto> references = toReferenceDtos(theVersion.getContent().getReferences());
-        String artifactType = lookupArtifactType(groupId, artifactId);
+        ArtifactMetaDataDto artifactMetaData = storage.getArtifactMetaData(
+                new GroupId(groupId).getRawGroupIdWithNull(), artifactId);
+        String artifactType = artifactMetaData.getArtifactType();
         VersionWriteContext writeContext = new VersionWriteContext(VersionWriteContext.Operation.CREATE_VERSION,
                 storage, new GA(groupId, artifactId), artifactType, securityIdentity.getPrincipal().getName());
         HookPlan hookPlan = planContent(writeContext, content, contentType, references);
@@ -2082,23 +2083,20 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         references.addAll(autoMatched);
         ContentWrapperDto merged = ContentWrapperDto.builder().content(content).contentType(contentType)
                 .references(references).build();
-        return new UpdateContentPlan(merged, hookPlan, autoMatched);
+        return new UpdateContentPlan(merged, hookPlan, autoMatched, artifactMetaData);
     }
 
     /**
-     * @param content  the final content, content type and references (submitted plus hook-added) to store
-     * @param hookPlan the write hooks' plan for {@code content}; {@link HookPlan#commit()} must run before
-     *                 persisting a version built from it, and never if {@code content} is discarded instead
-     */
-    /**
      * Content prepared for a version update.
      *
-     * @param content the content, content type and all references to store
-     * @param hookPlan the write hooks' plan
-     * @param autoMatched the references added by {@code autoReferences} matching, also in {@code content}
+     * @param content          the content, content type and all references to store
+     * @param hookPlan         the write hooks' plan for {@code content}; {@link HookPlan#commit()} must run before
+     *                         persisting a version built from it, and never if {@code content} is discarded instead
+     * @param autoMatched      the references added by {@code autoReferences} matching, also in {@code content}
+     * @param artifactMetaData the existing artifact metadata snapshot loaded when preparing the content
      */
     private record UpdateContentPlan(ContentWrapperDto content, HookPlan hookPlan,
-            List<ArtifactReferenceDto> autoMatched) {
+            List<ArtifactReferenceDto> autoMatched, ArtifactMetaDataDto artifactMetaData) {
     }
 
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
@@ -2115,7 +2113,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         ContentHandle content = prepared.content().getContent();
         boolean isDraftVersion = theVersion.getIsDraft() != null && theVersion.getIsDraft();
 
-        String artifactType = lookupArtifactType(groupId, artifactId);
+        String artifactType = prepared.artifactMetaData().getArtifactType();
 
         final String owner = securityIdentity.getPrincipal().getName();
 
@@ -2154,9 +2152,10 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         VersionMetaData vmd = V3ApiUtil.dtoToVersionMetaData(vmdDto);
 
-        // Need to also return the artifact metadata
-        ArtifactMetaDataDto amdDto = this.storage.getArtifactMetaData(groupId, artifactId);
-        ArtifactMetaData amd = V3ApiUtil.dtoToArtifactMetaData(amdDto);
+        // Reuse the artifact metadata snapshot loaded in prepareUpdateContent; creating a version
+        // without artifact metadata does not modify artifact-level fields (name, labels, modifiedOn),
+        // though concurrent edits or write hooks updating the artifact in between will not be reflected.
+        ArtifactMetaData amd = V3ApiUtil.dtoToArtifactMetaData(prepared.artifactMetaData());
 
         return CreateArtifactResponse.builder().artifact(amd).version(vmd).build();
     }

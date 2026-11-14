@@ -158,6 +158,7 @@
     <!--
     WARNING: The following group of dependencies has to be aligned with the best corresponding Quarkus version.
     -->
+    <!-- integration-tests carries a copy of io.quarkus.test.common.TestClassIndexer (#10384). Delete it when moving to Quarkus 3.37 or later, or to a 3.33.x release with quarkusio/quarkus#58005. -->
     <quarkus.version>3.33.4.1</quarkus.version>
     <!--
     # QOSDK

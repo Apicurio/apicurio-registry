@@ -72,6 +72,8 @@ jobs:
       CI_VARIANT: ${{ matrix.example.variant }}
       COMPOSE_PROFILES: ${{ matrix.example.variant }}
       MCP_SERVER_IMAGE: apicurio/apicurio-registry-mcp-server:${{ inputs.image-tag }}
+      # The re-augmentable ("-mutable") registry image, for examples that add Java providers to it
+      REGISTRY_MUTABLE_IMAGE: apicurio/apicurio-registry:${{ inputs.image-tag }}-mutable
     steps:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -96,6 +98,14 @@ jobs:
           image-file: /tmp/apicurio-registry-mcp-server-${{ inputs.image-tag }}.tar
           image-name: apicurio/apicurio-registry-mcp-server
           tag: ${{ inputs.image-tag }}
+
+      - uses: apicurio/apicurio-github-actions/load-docker-image@bd19cbe33797325a571cd7ffd58f639b62e128a2 # v2
+        if: matrix.example.mutableImage
+        with:
+          artifact-name: apicurio-registry-${{ inputs.image-tag }}-mutable.tar
+          image-file: /tmp/apicurio-registry-${{ inputs.image-tag }}-mutable.tar
+          image-name: apicurio/apicurio-registry
+          tag: ${{ inputs.image-tag }}-mutable
 
       - name: Set up JDK ${{ inputs.java-version }}
         if: matrix.example.build
@@ -128,14 +138,17 @@ jobs:
           RELEASED: ${{ matrix.example.releasedImages }}
         run: |
           # An Apicurio Registry image with any other tag (latest-snapshot, a release) would test
-          # published code instead of this commit's, and pass while the change is broken. Released
+          # published code instead of this commit's, and pass while the change is broken (the
+          # "-mutable" variant of this commit's image is this commit's too). Released
           # images the example runs on purpose (CI_RELEASED_IMAGES) are exempt.
-          images=$(docker compose config --images)
+          # Base images of locally built services (build args) count too
+          images=$( (docker compose config --images; docker compose config --format json \
+            | jq -r '.services[].build.args // {} | .[]') | sort -u)
           echo "$images"
-          stale=$(echo "$images" | grep -E '(^|/)apicurio-registry[a-z-]*:' | grep -v ":$TAG\$" \
+          stale=$(echo "$images" | grep -E '(^|/)apicurio-registry[a-z-]*:' | grep -vE ":$TAG(-mutable)?\$" \
             | grep -vxF -f <(printf '%s\n' $RELEASED) || true)
           if [ -n "$stale" ]; then
-            echo "::error::these images are not built from this commit; select them with REGISTRY_IMAGE, REGISTRY_UI_IMAGE or MCP_SERVER_IMAGE (see examples/TEMPLATE.md):"
+            echo "::error::these images are not built from this commit; select them with REGISTRY_IMAGE, REGISTRY_UI_IMAGE, REGISTRY_MUTABLE_IMAGE or MCP_SERVER_IMAGE (see examples/TEMPLATE.md):"
             echo "$stale"
             exit 1
           fi

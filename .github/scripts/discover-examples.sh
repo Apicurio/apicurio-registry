@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Lists the examples that verify-examples.yaml runs, as a JSON matrix on stdout:
 #   [{"name": "per-resource-authorization", "timeout": 20, "build": false, "variant": "",
-#     "selfManaged": false, "releasedImages": ""}, ...]
+#     "selfManaged": false, "releasedImages": "", "mutableImage": false}, ...]
 #
 # An example is run when examples/<name>/ has an executable demo.sh and a Compose file. Optional
 # settings come from examples/<name>/ci.env (KEY=value lines, # comments):
@@ -13,6 +13,8 @@
 #                          example too long for one job); the job name gets the value appended
 #   CI_SELF_MANAGED=true   demo.sh starts and stops its own containers (for an example that must
 #                          prepare something first); the runner only checks the images and cleans up
+#   CI_NEEDS_MUTABLE_IMAGE=true  load this commit's re-augmentable registry image, as
+#                          REGISTRY_MUTABLE_IMAGE (for an example that adds Java providers to it)
 #   CI_RELEASED_IMAGES=i j released Apicurio Registry images the example runs on purpose, in addition to
 #                          this commit's (a migration from an older release); exempt from the image check
 # Every other line is exported to `docker compose` and demo.sh (see verify-examples.yaml).
@@ -47,6 +49,7 @@ for demo in "$dir"/*/demo.sh; do
   matrix=""
   managed=false
   released=""
+  mutable=false
   if [ -f "$example/ci.env" ]; then
     value() { sed -n "s/^$1=//p" "$example/ci.env" | tail -1; }
     enabled=$(value CI_ENABLED); enabled=${enabled:-true}
@@ -55,6 +58,7 @@ for demo in "$dir"/*/demo.sh; do
     matrix=$(value CI_MATRIX)
     managed=$(value CI_SELF_MANAGED); managed=${managed:-false}
     released=$(value CI_RELEASED_IMAGES)
+    mutable=$(value CI_NEEDS_MUTABLE_IMAGE); mutable=${mutable:-false}
   fi
   if [ "$managed" != true ] && [ "$managed" != false ]; then
     echo "::error::$name: CI_SELF_MANAGED must be true or false, got '$managed'" >&2
@@ -62,6 +66,10 @@ for demo in "$dir"/*/demo.sh; do
   fi
   if [ -n "$released" ] && ! [[ "$released" =~ ^([^ :]+:[^ ]+)( [^ :]+:[^ ]+)*$ ]]; then
     echo "::error::$name: CI_RELEASED_IMAGES must be space-separated image:tag values, got '$released'" >&2
+    exit 1
+  fi
+  if [ "$mutable" != true ] && [ "$mutable" != false ]; then
+    echo "::error::$name: CI_NEEDS_MUTABLE_IMAGE must be true or false, got '$mutable'" >&2
     exit 1
   fi
   if [ "$build" != true ] && [ "$build" != false ]; then
@@ -88,8 +96,8 @@ for demo in "$dir"/*/demo.sh; do
   for variant in ${matrix:-<none>}; do
     [ "$variant" = "<none>" ] && variant=""
     entries+=("$(jq -cn --arg n "$name" --argjson t "$timeout" --argjson b "$build" --arg v "$variant" \
-      --argjson m "$managed" --arg r "$released" \
-      '{name: $n, timeout: $t, build: $b, variant: $v, selfManaged: $m, releasedImages: $r}')")
+      --argjson m "$managed" --arg r "$released" --argjson mi "$mutable" \
+      '{name: $n, timeout: $t, build: $b, variant: $v, selfManaged: $m, releasedImages: $r, mutableImage: $mi}')")
   done
 done
 

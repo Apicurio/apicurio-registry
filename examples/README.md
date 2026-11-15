@@ -171,10 +171,9 @@ See [agent-registry-workflow](agent-registry-workflow/) for the external sample 
 run instructions. The sample is currently available as a contributor-branch preview
 in Quarkus LangChain4j.
 
-## Custom Artifact Types (Java providers)
-
-Adds a custom `MARKDOWN` artifact type to the registry with Java implementations of the artifact
-type interfaces (content accepter, validator, compatibility checker, canonicalizer), configured
-through `apicurio.artifact-types.config-file`. The providers are loaded into the
-`apicurio/apicurio-registry:VERSION-mutable` container image by re-augmenting it, so no custom
-build of the registry is needed. See the [custom-artifact-types](custom-artifact-types/) directory for details.
+## Custom Artifact Types Example
+This example adds two artifact types to the registry: `MARKDOWN`, implemented by Java classes loaded
+into the re-augmentable `-mutable` image, and `CSV`, implemented by a webhook service. It checks
+detection, `VALIDITY` and `COMPATIBILITY` rules and canonical lookups for both, what the registry
+sends to the webhook, and what happens when the webhook is down. See its
+[step-by-step guide](custom-artifact-types/GUIDE.md).

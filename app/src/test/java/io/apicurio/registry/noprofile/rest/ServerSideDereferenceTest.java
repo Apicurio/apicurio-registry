@@ -342,6 +342,46 @@ public class ServerSideDereferenceTest extends AbstractResourceTestBase {
     }
 
     /**
+     * Test that the other ccompat endpoints apply the same server-side default as
+     * {@code GET /schemas/ids/{id}}: with DEREFERENCE configured and no format parameter,
+     * Avro schemas are returned with their references inlined (see #10976).
+     */
+    @Test
+    public void testCCompatServerSideDereference_AvroContentAndSubjectEndpoints() throws Exception {
+        String referencedAvroContent = resourceToString("avro-referenced-type.json");
+        String avroWithRefContent = resourceToString("avro-with-reference.json");
+
+        // Use the default group so that the artifact is addressable as a ccompat subject
+        String subject = "testCCompatEndpoints-Person";
+        createArtifact("default", "testCCompatEndpoints-Address", ArtifactType.AVRO, referencedAvroContent,
+                ContentTypes.APPLICATION_JSON);
+        List<ArtifactReference> refs = Collections.singletonList(ArtifactReference.builder()
+                .name("com.example.common.Address").groupId("default")
+                .artifactId("testCCompatEndpoints-Address").version("1").build());
+        var metadata = createArtifactWithReferences("default", subject, ArtifactType.AVRO,
+                avroWithRefContent, ContentTypes.APPLICATION_JSON, refs);
+
+        // GET /schemas/ids/{id}/schema returns the raw schema
+        String byId = given().when().pathParam("id", metadata.getVersion().getContentId())
+                .get("/ccompat/v7/schemas/ids/{id}/schema").then().statusCode(200).extract().asString();
+        assertResolvedAddress(byId);
+
+        // GET /subjects/{subject}/versions/{version} returns the schema wrapped in a Schema object
+        String bySubjectVersion = given().when().pathParam("subject", subject)
+                .get("/ccompat/v7/subjects/{subject}/versions/1").then().statusCode(200).extract()
+                .path("schema");
+        assertResolvedAddress(bySubjectVersion);
+    }
+
+    private static void assertResolvedAddress(String schema) {
+        Assertions.assertNotNull(schema);
+        Assertions.assertFalse(schema.contains("com.example.common.Address"),
+                "Resolved schema should no longer contain the referenced type name");
+        Assertions.assertTrue(schema.contains("zipCode"),
+                "Resolved schema should now contain the referenced zipCode field");
+    }
+
+    /**
      * Test that artifacts without references work correctly with server-side defaults.
      * This ensures that the feature doesn't break normal (non-referenced) artifacts.
      */

@@ -60,6 +60,12 @@ describe("buildInitialValues", () => {
         })).toEqual({ city: "Paris", name: "" });
     });
 
+    it("keeps {{#if}} and {{#unless}} subjects available as inputs", () => {
+        expect(buildInitialValues("{{#if urgent}}Escalate.{{/if}}{{#unless premium}}Upgrade.{{/unless}} {{name}}", {
+            urgent: { type: "boolean", default: true }
+        })).toEqual({ urgent: true, premium: "", name: "" });
+    });
+
     it("supports array-shaped variable declarations", () => {
         expect(buildInitialValues(undefined, [
             { name: "city", type: "string", default: "Berlin" },

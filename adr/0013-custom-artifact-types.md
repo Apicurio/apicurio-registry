@@ -94,8 +94,8 @@ Providers can be mixed within a type.
 | Situation | Behaviour |
 |---|---|
 | Configuration file malformed | Logged; the registry starts with the built-in types only |
-| Java class not found or not instantiable | The registry fails to start |
-| Webhook unreachable or failing | Logged; validator, accepter, canonicalizer and finders fall back silently; the compatibility checker reports an incompatibility ([#11152](https://github.com/Apicurio/apicurio-registry/issues/11152)) |
+| Java class not found or not instantiable | Providers are created when an operation needs them, so the registry starts, and the first request that uses the provider fails |
+| Webhook unreachable or failing | Logged; the validator, accepter, canonicalizer and dereferencer fall back silently (no violations, not accepted, content unchanged); the compatibility checker reports an incompatibility; the reference finder fails the request ([#11152](https://github.com/Apicurio/apicurio-registry/issues/11152)) |
 
 ## Configuration
 

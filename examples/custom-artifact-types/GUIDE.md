@@ -143,6 +143,6 @@ the registry.
 | Symptom | What to do |
 |---|---|
 | MARKDOWN or CSV is missing from the types | Check the log for "Failed to load artifact type configuration file": a malformed file is ignored |
-| The registry does not start: class not found | The jar is not in `providers/`, or `build.sh` was not run after copying it |
+| A request fails with "class not found" | Java providers are loaded on first use: the jar is not in `providers/`, or `build.sh` was not run after copying it |
 | Content is not detected as CSV | Send `contentType: text/csv`; `/accept` must return a bare boolean (#11151) |
 | Requests take a minute | The webhook is unreachable (#11152) |

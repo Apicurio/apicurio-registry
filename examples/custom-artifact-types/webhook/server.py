@@ -44,14 +44,27 @@ def validate(request):
 
 
 def compatibility(request):
-    # BACKWARD and FULL: every existing column must still be there; NONE never calls this
-    proposed = set(columns(request["proposedArtifact"]["content"]))
+    # BACKWARD: no column removed; FORWARD: no column added; FULL: both. The registry sends every
+    # existing version, oldest first: *_TRANSITIVE compares with all of them, the others with the
+    # latest only (as the built-in checkers do).
+    level = request.get("level", "NONE")
+    if level == "NONE":
+        return {"incompatibleDifferences": []}
+    existing_versions = request.get("existingArtifacts") or []
+    if not level.endswith("_TRANSITIVE"):
+        existing_versions = existing_versions[-1:]
+    proposed = columns(request["proposedArtifact"]["content"])
     differences = []
-    for existing in request.get("existingArtifacts") or []:
-        for col in columns(existing["content"]):
-            if col not in proposed:
-                differences.append({"description": f"Column '{col}' was removed", "context": f"/{col}"})
-    return {"incompatibleDifferences": differences}
+    for existing in existing_versions:
+        old = columns(existing["content"])
+        if not level.startswith("FORWARD"):
+            differences += [{"description": f"Column '{c}' was removed", "context": f"/{c}"}
+                            for c in old if c not in proposed]
+        if not level.startswith("BACKWARD"):
+            differences += [{"description": f"Column '{c}' was added", "context": f"/{c}"}
+                            for c in proposed if c not in old]
+    unique = {d["description"]: d for d in differences}
+    return {"incompatibleDifferences": list(unique.values())}
 
 
 def canonicalize(request):

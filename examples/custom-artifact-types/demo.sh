@@ -21,7 +21,7 @@ check() { if [[ "$3" == "$2" ]]; then ok "$1"; else fail "$1: got '$3', expected
 call() {
   local out data=()
   [ -n "${3:-}" ] && data=(-d "$3")
-  out=$(curl -s --max-time "${4:-30}" -w '\n%{http_code}' -X "$1" "$API$2" -H 'Content-Type: application/json' "${data[@]}")
+  out=$(curl -s --max-time "${4:-30}" -w '\n%{http_code}' -X "$1" "$API$2" -H 'Content-Type: application/json' "${data[@]}" || true)
   echo "$(tail -1 <<< "$out") $(sed '$d' <<< "$out")"
 }
 status() { cut -d' ' -f1 <<< "$1"; }
@@ -89,6 +89,11 @@ check "COMPATIBILITY: dropping a column is rejected by the webhook" "400 Column 
   "$(status "$r") $(causes "$(body "$r")")"
 r=$(call POST /groups/data/artifacts/customers/versions "$(version_of "id,name,email,phone" text/csv)")
 check "  adding one is accepted: version 2" "200 2" "$(status "$r") $(body "$r" | jq -r .version)"
+call PUT /groups/data/artifacts/customers/rules/COMPATIBILITY '{"ruleType": "COMPATIBILITY", "config": "FORWARD"}' > /dev/null
+r=$(call POST /groups/data/artifacts/customers/versions "$(version_of "id,name,email,phone,fax" text/csv)")
+check "  the webhook receives the level: with FORWARD, adding a column is rejected instead" "400 Column 'fax' was added" \
+  "$(status "$r") $(causes "$(body "$r")")"
+call PUT /groups/data/artifacts/customers/rules/COMPATIBILITY '{"ruleType": "COMPATIBILITY", "config": "BACKWARD"}' > /dev/null
 r=$(call POST "/groups/data/artifacts?ifExists=FIND_OR_CREATE_VERSION&canonical=true" \
   "$(artifact_of customers "ID,Name,Email" text/csv)")
 check "different case is found as version 1, canonically (the webhook lower-cases the columns)" "200 1" \
@@ -101,14 +106,14 @@ check "the configured Authorization header is not sent today (should be, #11151)
   "$(webhook_requests | jq '[.[] | select(.authorization == "Bearer csv-webhook-token")] | length')"
 
 part "Step 4: when the webhook is down"
+call POST /groups/data/artifacts "$(artifact_of orders "id,total" text/csv)" > /dev/null
+call POST /groups/data/artifacts/orders/rules '{"ruleType": "VALIDITY", "config": "FULL"}' > /dev/null
 docker compose stop csv-webhook > /dev/null 2>&1
 # Each call below waits about a minute for the unreachable webhook (#11152)
-call POST /groups/data/artifacts "$(jq -nc '{artifactId: "orders", artifactType: "CSV", firstVersion: {content: {content: "id,total", contentType: "text/csv"}}}')" 120 > /dev/null
-call POST /groups/data/artifacts/orders/rules '{"ruleType": "VALIDITY", "config": "FULL"}' > /dev/null
-r=$(call POST /groups/data/artifacts/orders/versions "$(version_of "id,id" text/csv)" 120)
+r=$(call POST /groups/data/artifacts/orders/versions "$(version_of "id,id" text/csv)" 180)
 check "VALIDITY fails open: an invalid version is accepted (should be rejected, #11152)" "200 2" \
   "$(status "$r") $(body "$r" | jq -r .version)"
-r=$(call POST /groups/data/artifacts/customers/versions "$(version_of "id" text/csv)" 120)
+r=$(call POST /groups/data/artifacts/customers/versions "$(version_of "id" text/csv)" 180)
 check "COMPATIBILITY fails closed: the change is rejected" 400 "$(status "$r")"
 check "  but the message exposes the exception (#11152)" yes \
   "$(grep -q 'UnknownHostException' <<< "$(causes "$(body "$r")")" && echo yes || echo no)"

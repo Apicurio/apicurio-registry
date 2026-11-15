@@ -47,7 +47,18 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
     protected String explicitArtifactId;
     protected String explicitArtifactVersion;
 
+    /**
+     * @deprecated the resolver uses {@link #serializerDereference} and {@link #deserializerDereference}; this
+     *             holds the global {@code apicurio.registry.dereference-schema} value for subclasses.
+     */
+    @Deprecated
     protected boolean resolveDereferenced;
+
+    /** Whether serializer paths dereference (Avro registration, lookups from {@code resolveSchema}). */
+    protected boolean serializerDereference;
+
+    /** Whether deserializer paths fetch schemas dereferenced. */
+    protected boolean deserializerDereference;
 
     @Override
     public void configure(Map<String, ?> configs, SchemaParser<S, T> schemaParser) {
@@ -105,6 +116,8 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         }
 
         this.resolveDereferenced = config.resolveDereferenced();
+        this.serializerDereference = config.serializerDereference();
+        this.deserializerDereference = config.deserializerDereference();
     }
 
     @Override
@@ -201,9 +214,26 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
                 .version(defaults.getVersion()).build();
     }
 
+    /**
+     * Resolves a schema by global ID, using the deserializer dereference setting.
+     *
+     * @param globalId the global ID
+     * @return the schema
+     */
     protected SchemaLookupResult<S> resolveSchemaByGlobalId(long globalId) {
+        return resolveSchemaByGlobalId(globalId, deserializerDereference);
+    }
+
+    /**
+     * Resolves a schema by global ID.
+     *
+     * @param globalId the global ID
+     * @param dereference whether to fetch the schema dereferenced
+     * @return the schema
+     */
+    protected SchemaLookupResult<S> resolveSchemaByGlobalId(long globalId, boolean dereference) {
         return schemaCache.getByGlobalId(globalId, globalIdKey -> {
-            if (resolveDereferenced) {
+            if (dereference) {
                 return resolveSchemaDereferenced(globalIdKey);
             } else {
                 return resolveSchemaWithReferences(globalIdKey);

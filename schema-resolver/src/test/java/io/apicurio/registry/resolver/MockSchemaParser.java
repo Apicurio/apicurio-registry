@@ -3,13 +3,21 @@ package io.apicurio.registry.resolver;
 import io.apicurio.registry.resolver.data.Record;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class MockSchemaParser implements SchemaParser<String, String> {
     private ParsedSchema<String> dataSchema;
     private String parsedSchema;
     private final Map<String, String> namespaces = new HashMap<>();
+    private final List<Boolean> getSchemaFromDataDereference = new ArrayList<>();
+
+    /** Every dereference flag passed to getSchemaFromData, in order. */
+    public List<Boolean> getSchemaFromDataDereference() {
+        return getSchemaFromDataDereference;
+    }
 
     public MockSchemaParser(ParsedSchema<String> dataSchema) {
         this.dataSchema = dataSchema;
@@ -48,6 +56,7 @@ public class MockSchemaParser implements SchemaParser<String, String> {
 
     @Override
     public ParsedSchema<String> getSchemaFromData(Record<String> data, boolean dereference) {
+        getSchemaFromDataDereference.add(dereference);
         if (dataSchema != null) {
             return dataSchema;
         }

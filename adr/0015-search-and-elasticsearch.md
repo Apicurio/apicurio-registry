@@ -26,16 +26,21 @@ and whose lag must be explicit.
    filter goes to SQL, on every storage variant, with or without the index. Nothing routes there
    "for speed", so enabling the index never changes metadata results.
 2. **Content and structure search need the Elasticsearch index** (`apicurio.search.index.enabled`,
-   experimental). Queries with those filters go only to the index, with **no fallback**: without an
-   available index, or combined with a content hash filter the index cannot evaluate, they fail with
-   400 rather than return a different result set.
+   experimental). Queries with those filters go only to the index, with **no fallback**: when the
+   index is disabled or not ready, or the query is combined with a content hash filter the index
+   cannot evaluate, they fail with 400; when Elasticsearch fails during the query, with 500. Never
+   with a different result set.
 3. **The index is a secondary, eventually consistent copy.** A storage decorator
    (`SearchIndexEventDecorator`) fires an event for each version change (created, metadata or state
-   changed, deleted, artifact or group deleted, imported); a background worker applies it. Writes are
-   not slowed down and do not fail when the index does.
+   changed, deleted, artifact or group deleted); a background worker applies it, so ordinary writes
+   are not slowed down and do not fail when the index does. Imports and upgrades are the exception:
+   they rebuild the whole index synchronously before returning (rebuild failures are logged, not
+   returned).
 4. **Startup builds a missing index.** When the index is empty, or its mapping version is outdated
    (recreated), one replica (an Elasticsearch create-only lock document) streams every version from
-   storage in bulk. Readiness waits for the rebuild.
+   storage in bulk. A replica becomes ready when its own startup attempt has finished, been skipped
+   because another replica holds the lock, or failed: a ready replica can still serve results from an
+   incomplete index.
 5. **Authorization is applied inside the query, the same way as SQL.** Per-resource rules
    ([ADR-0005](0005-per-resource-authorization.md)) are decomposed into the same name and prefix
    clauses (`AuthorizationNames`) and added to the Elasticsearch query before paging. The index does
@@ -61,7 +66,7 @@ storage variant knowing about the index; the same decorator chain carries read-o
 | Query | Goes to | Without the index |
 |---|---|---|
 | Metadata filters only | Primary storage (SQL) | Same |
-| `content` and/or `structure` (+ metadata) | Elasticsearch | 400 |
+| `content` and/or `structure` (+ metadata) | Elasticsearch (500 if it fails) | 400 |
 | `content`/`structure` with `contentHash`/`canonicalHash` | (refused) | 400 |
 
 | Storage | Index kept up to date |
@@ -86,7 +91,7 @@ storage variant knowing about the index; the same decorator chain carries read-o
 | Routing | [`ElasticsearchSearchDecorator`](../app/src/main/java/io/apicurio/registry/storage/decorator/ElasticsearchSearchDecorator.java) | Content/structure queries to the index; ownership resolution |
 | Change events | [`SearchIndexEventDecorator`](../app/src/main/java/io/apicurio/registry/storage/decorator/SearchIndexEventDecorator.java) | One event per version change |
 | Indexing | [`storage/impl/search`](../app/src/main/java/io/apicurio/registry/storage/impl/search/) | Updater, startup indexer, index manager, document builder, query service |
-| Readiness | `ElasticsearchIndexReadinessCheck` | Ready once the startup rebuild is done |
+| Readiness | `ElasticsearchIndexReadinessCheck` | Ready once this replica's startup attempt is over (done, skipped or failed) |
 | Structure | each type's `StructuredContentExtractor` | Elements indexed for structure search |
 
 ## Limitations and open work
@@ -112,7 +117,8 @@ storage variant knowing about the index; the same decorator chain carries read-o
 ## Consequences
 
 - **Benefits:** content and structure search; metadata search unchanged and independent; the same
-  authorization in both engines; writes unaffected by the index.
+  authorization in both engines; ordinary writes unaffected by the index (imports wait for a
+  rebuild).
 - **Costs:** an Elasticsearch cluster; eventual consistency; a gap on polling storage.
 
 ## Example and verification

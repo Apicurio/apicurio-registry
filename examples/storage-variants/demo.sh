@@ -99,8 +99,17 @@ writable_checks() {
   check "read-only off again: writes work" 200 "$(code POST "$base/groups" '{"groupId": "allowed"}')"
 }
 
-# search <base> <query>: the versions a /search/versions query returns, as group/artifact@version
-search() { get "$1/search/versions?$2&limit=50" | jq -r '[.versions[]? | "\(.groupId)/\(.artifactId)@\(.version)"] | sort | join(",")' 2>/dev/null; }
+# search <base> <query>: the versions a /search/versions query returns, as group/artifact@version.
+# A failed request or an unexpected response prints a marker, never an empty result.
+search() {
+  local body
+  if ! body=$(curl -sf --max-time 30 "$1/search/versions?$2&limit=50"); then
+    echo "<search failed: $2>"
+    return 0
+  fi
+  jq -r 'if (.versions | type) == "array" then [.versions[] | "\(.groupId)/\(.artifactId)@\(.version)"] | sort | join(",")
+         else "<unexpected response>" end' <<< "$body" 2>/dev/null || echo "<unexpected response>"
+}
 
 # search_checks <write-base> <read-base>: the Elasticsearch index, kept up to date by the replica that
 # makes the change, and read by another one

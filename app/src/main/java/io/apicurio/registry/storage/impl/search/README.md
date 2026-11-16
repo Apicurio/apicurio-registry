@@ -325,8 +325,8 @@ Enable the Elasticsearch search index to use content search.
 
 Only queries with a `content` or `structure` filter use Elasticsearch. Queries that use only metadata
 filters (e.g. `groupId`, `name`, `labels`) always go to the primary storage. Content and structure
-queries do not fall back: if the index is not available, or the query also has a content hash
-filter, the request fails with HTTP 400.
+queries do not fall back: if the index is disabled or not ready, or the query also has a content hash
+filter, the request fails with HTTP 400; if Elasticsearch fails during the query, with HTTP 500.
 
 ### User Interface
 

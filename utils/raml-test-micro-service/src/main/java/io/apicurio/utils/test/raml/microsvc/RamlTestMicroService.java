@@ -152,7 +152,9 @@ public class RamlTestMicroService extends AbstractVerticle {
         ContentAccepterRequest request = objectMapper.readValue(body, ContentAccepterRequest.class);
         RamlContentAccepter accepter = new RamlContentAccepter();
         boolean accepted = accepter.acceptsContent(toServerBean(request.getTypedContent()), toServerBean(request.getResolvedReferences()));
-        req.response().putHeader("content-type", "application/json").end(String.valueOf(accepted));
+        // ContentAccepterResponse in the webhook contract: {"accepted": boolean}
+        req.response().putHeader("content-type", "application/json")
+                .end(objectMapper.writeValueAsString(Map.of("accepted", accepted)));
     }
 
     private void handleCompatibilityChecker(HttpServerRequest req, String body) throws Exception {

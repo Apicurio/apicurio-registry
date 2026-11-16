@@ -486,7 +486,7 @@ The service walks the versions between `fromVersion` and `toVersion` in artifact
 {"passed": true, "transformedRecord": {...}, "violations": [], "executedRules": 1, "failedRules": 0}
 ----
 
-Compatibility groups are stored as the artifact label `contract.\{contractId}.compatibility.group`. Compatibility checks do not use them yet.
+Compatibility groups are stored as the artifact label `contract.\{contractId}.compatibility.group`. Each new version records the artifact's group in the same label on the version, and a compatibility rule compares a new version only with the versions of the artifact's current group. Versions created before a group was set belong to no group, so setting a new group starts a new compatibility line. Without a group, all versions that are not disabled are compared.
 
 [source,bash]
 ----

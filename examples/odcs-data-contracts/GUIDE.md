@@ -655,8 +655,9 @@ rm -f orders-contract-1.1.yaml
   - *Can two contracts govern one schema?* Yes. Everything projected carries the contract ID.
   - *Are inline schema tags (Avro `tags`, JSON Schema `x-tags`) picked up?* Yes, when a version
     is created through the REST API (as `INLINE` field tags, step 5).
-  - *Does the compatibility group change compatibility checks?* Not yet: it is stored as a label
-    and can be searched, but compatibility rules ignore it.
+  - *Does the compatibility group change compatibility checks?* Yes. Each new version records the
+    artifact's group, and a compatibility rule compares a new version only with the versions of the
+    same group. Setting a new group starts a new compatibility line.
 - **To reset between runs:** `docker compose down -v`, then steps 1 to 3 again.
 
 ## Troubleshooting

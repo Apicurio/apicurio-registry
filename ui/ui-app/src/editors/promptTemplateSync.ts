@@ -2,9 +2,11 @@ import YAML, { type Document, type Pair, type YAMLError, type YAMLMap } from "ya
 import {
     extractTemplateVariableReferences,
     reconcileTemplateVariables,
-    ReconciledVariable
+    ReconciledVariable,
+    VariableSchema
 } from "@app/components/promptTemplate/promptTemplateVariables";
 import { toDeclaredMap } from "@app/components/promptTemplate/PromptTemplateTestPanel.utils";
+import { ContentTypes } from "@models/ContentTypes.ts";
 
 /** A reconciled variable plus how the template uses it. */
 export type DetectedVariable = ReconciledVariable & {
@@ -57,8 +59,19 @@ const FLOW_ROOT_ERROR = "The document root is a flow mapping. Add a 'variables' 
 
 const STUB_SCHEMA = { type: "string", description: "" };
 
-const isJsonContent = (content: string): boolean => {
-    const trimmed = content.trim();
+/**
+ * Whether the source is JSON. The artifact content type decides, so flow-style YAML that starts
+ * with `{` is read as YAML. Without a JSON or YAML content type, a leading `{` or `[` means JSON.
+ */
+const isJsonSource = (source: string, contentType: string | undefined): boolean => {
+    const mediaType = contentType?.split(";")[0].trim().toLowerCase();
+    if (mediaType === ContentTypes.APPLICATION_JSON) {
+        return true;
+    }
+    if (mediaType === ContentTypes.APPLICATION_YAML) {
+        return false;
+    }
+    const trimmed = source.trim();
     return trimmed.startsWith("{") || trimmed.startsWith("[");
 };
 
@@ -75,31 +88,79 @@ const describeYamlError = (error: YAMLError): string => {
     return error.message;
 };
 
-/** Reads the artifact source as plain data. */
-const parseArtifact = (source: string): { data: ArtifactData; json: boolean } | Refusal => {
-    if (isJsonContent(source)) {
-        let data: unknown;
+/** Describes the first alias that has no anchor before it, if there is one. */
+const describeUnresolvedAlias = (doc: Document): string | undefined => {
+    let error: string | undefined;
+    YAML.visit(doc, {
+        Alias(_key, node) {
+            if (!node.resolve(doc)) {
+                error = `The alias *${node.source} has no anchor &${node.source} before it. Define the anchor or remove the alias.`;
+                return YAML.visit.BREAK;
+            }
+            return undefined;
+        }
+    });
+    return error;
+};
+
+/** Reads the source as JSON or YAML data. */
+const readData = (source: string, json: boolean): { data: unknown } | Refusal => {
+    if (json) {
         try {
-            data = JSON.parse(source);
+            return { data: JSON.parse(source) };
         } catch (err: any) {
             return { error: err?.message || "Invalid JSON" };
         }
-        return isPlainObject(data) ? { data, json: true } : { error: "JSON root must be an object." };
     }
 
     const doc = YAML.parseDocument(source);
     if (doc.errors.length > 0) {
         return { error: describeYamlError(doc.errors[0]) };
     }
-    const data = doc.toJSON();
-    return isPlainObject(data) ? { data, json: false } : { error: "YAML root must be a mapping." };
+    try {
+        // Aliases are resolved here: one without an anchor before it, or too many to expand, throws.
+        return { data: doc.toJSON() };
+    } catch (err: any) {
+        return { error: describeUnresolvedAlias(doc) ?? err.message };
+    }
+};
+
+/** Reads the declarations in `variables`, or explains why a `variables` list has an entry that is not one. */
+const readDeclared = (variables: unknown): { declared: Record<string, VariableSchema> | undefined } | Refusal => {
+    if (Array.isArray(variables)) {
+        const index = variables.findIndex(entry => !isPlainObject(entry));
+        if (index !== -1) {
+            const problem = variables[index] === null ? "is empty" : "is not a mapping";
+            return { error: `'variables' entry ${index + 1} ${problem}. Each entry of a 'variables' list must be a mapping with a 'name'.` };
+        }
+    }
+    return { declared: toDeclaredMap(variables as Record<string, VariableSchema> | VariableSchema[] | undefined) };
+};
+
+/** Reads the artifact source as plain data, with its declared variables by name. */
+const parseArtifact = (
+    source: string,
+    json: boolean
+): { data: ArtifactData; declared: Record<string, VariableSchema> | undefined } | Refusal => {
+    const read = readData(source, json);
+    if ("error" in read) {
+        return read;
+    }
+    if (!isPlainObject(read.data)) {
+        return { error: json ? "JSON root must be an object." : "YAML root must be a mapping." };
+    }
+    const variables = readDeclared(read.data.variables);
+    if ("error" in variables) {
+        return variables;
+    }
+    return { data: read.data, declared: variables.declared };
 };
 
 /**
  * Live detection of variables from template text and reconciliation against
- * declared variables in the artifact source (YAML or JSON).
+ * declared variables in the artifact source (YAML or JSON, as `contentType` says).
  */
-export function detectPromptVariables(source: string): VariableDetectionResult {
+export function detectPromptVariables(source: string, contentType?: string): VariableDetectionResult {
     const emptyResult: VariableDetectionResult = {
         valid: true,
         templateFound: false,
@@ -114,7 +175,7 @@ export function detectPromptVariables(source: string): VariableDetectionResult {
         return emptyResult;
     }
 
-    const parsed = parseArtifact(source);
+    const parsed = parseArtifact(source, isJsonSource(source, contentType));
     if ("error" in parsed) {
         return { ...emptyResult, valid: false, error: parsed.error };
     }
@@ -128,7 +189,7 @@ export function detectPromptVariables(source: string): VariableDetectionResult {
     const usage = new Map(references.map(reference => [reference.name, reference]));
     const variables: DetectedVariable[] = reconcileTemplateVariables(
         references.map(reference => reference.name),
-        toDeclaredMap(parsed.data.variables)
+        parsed.declared
     ).map(variable => ({
         ...variable,
         placeholder: usage.get(variable.name)?.placeholder ?? false,
@@ -156,24 +217,25 @@ export function detectPromptVariables(source: string): VariableDetectionResult {
  * `{{#unless}}` subjects are never added. When the insertion would be ambiguous
  * or unsafe, nothing changes and the error explains why.
  */
-export function syncPromptTemplateVariables(source: string): VariableSyncResult {
+export function syncPromptTemplateVariables(source: string, contentType?: string): VariableSyncResult {
     const refuse = (error: string): VariableSyncResult => ({ success: false, updatedSource: source, addedCount: 0, error });
 
     if (!source || !source.trim()) {
         return refuse("Document is empty.");
     }
 
-    const parsed = parseArtifact(source);
+    const json = isJsonSource(source, contentType);
+    const parsed = parseArtifact(source, json);
     if ("error" in parsed) {
         return refuse(parsed.error);
     }
 
-    const { data, json } = parsed;
+    const { data } = parsed;
     if (typeof data.template !== "string") {
         return refuse("No 'template' field found in document.");
     }
 
-    const declared = new Set(Object.keys(toDeclaredMap(data.variables) ?? {}));
+    const declared = new Set(Object.keys(parsed.declared ?? {}));
     const missing = extractTemplateVariableReferences(data.template)
         .filter(reference => reference.placeholder && !declared.has(reference.name))
         .map(reference => reference.name);
@@ -187,7 +249,7 @@ export function syncPromptTemplateVariables(source: string): VariableSyncResult 
     }
 
     const updatedSource = source.slice(0, insertion.offset) + insertion.text + source.slice(insertion.offset);
-    if (!addsExactly(updatedSource, data, missing)) {
+    if (!addsExactly(updatedSource, json, data, missing)) {
         return refuse(UNSAFE_RESULT_ERROR);
     }
 
@@ -195,8 +257,8 @@ export function syncPromptTemplateVariables(source: string): VariableSyncResult 
 }
 
 /** True when the updated source reads as the original data plus exactly the new entries. */
-const addsExactly = (updatedSource: string, data: ArtifactData, names: string[]): boolean => {
-    const reread = parseArtifact(updatedSource);
+const addsExactly = (updatedSource: string, json: boolean, data: ArtifactData, names: string[]): boolean => {
+    const reread = parseArtifact(updatedSource, json);
     if ("error" in reread) {
         return false;
     }

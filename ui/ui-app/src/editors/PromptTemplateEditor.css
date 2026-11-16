@@ -30,6 +30,11 @@
     color: var(--pf-t--global--text--color--subtle, #6a6e73);
 }
 
+.prompt-template-editor-status .status-error {
+    font-size: 13px;
+    color: var(--pf-t--global--text--color--status--danger--default, #b1380b);
+}
+
 .prompt-template-editor-actions {
     display: flex;
     align-items: center;

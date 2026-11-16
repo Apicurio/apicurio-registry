@@ -16,10 +16,14 @@ type IStandaloneCodeEditor = editor.IStandaloneCodeEditor;
 
 export const PROMPT_TEMPLATE_EDITOR_ARIA_LABEL = "Prompt template source editor";
 
+/** The first line of an error, without the source excerpt the YAML parser appends after a colon. */
+const errorSummary = (error: string | undefined): string => (error ?? "").split("\n")[0].replace(/:$/, "");
+
 export const PromptTemplateEditor: DraftEditor = (props: EditorProps) => {
     const editorRef = useRef<IStandaloneCodeEditor | undefined>(undefined);
     const [currentText, setCurrentText] = useState<string>(() => draftContentToString(props.content));
     const [syncError, setSyncError] = useState<string | undefined>(undefined);
+    const contentType = props.content.contentType;
 
     useEffect(() => {
         const model = editorRef.current?.getModel();
@@ -36,8 +40,8 @@ export const PromptTemplateEditor: DraftEditor = (props: EditorProps) => {
     }, [props.content]);
 
     const detection: VariableDetectionResult = useMemo(() => {
-        return detectPromptVariables(currentText);
-    }, [currentText]);
+        return detectPromptVariables(currentText, contentType);
+    }, [currentText, contentType]);
 
     const handleEditorChange = (newValue: string | undefined): void => {
         const val = newValue ?? "";
@@ -49,7 +53,7 @@ export const PromptTemplateEditor: DraftEditor = (props: EditorProps) => {
     const handleSync = (): void => {
         const model = editorRef.current?.getModel();
         const activeText = model ? model.getValue() : currentText;
-        const result = syncPromptTemplateVariables(activeText);
+        const result = syncPromptTemplateVariables(activeText, contentType);
 
         if (!result.success) {
             setSyncError(result.error || "Failed to synchronize variables.");
@@ -90,9 +94,14 @@ export const PromptTemplateEditor: DraftEditor = (props: EditorProps) => {
                 <div className="prompt-template-editor-status">
                     <span className="status-title">Variables:</span>
                     {!detection.valid ? (
-                        <Label color="red" isCompact data-testid="badge-malformed">
-                            Syntax error
-                        </Label>
+                        <>
+                            <Label color="red" isCompact data-testid="badge-malformed">
+                                Invalid document
+                            </Label>
+                            <span className="status-error" data-testid="detection-error">
+                                {errorSummary(detection.error)}
+                            </span>
+                        </>
                     ) : !detection.templateFound ? (
                         <Label color="grey" isCompact data-testid="badge-no-template">
                             No template field

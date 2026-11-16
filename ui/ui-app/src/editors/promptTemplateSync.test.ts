@@ -660,3 +660,100 @@ variables:
         expect(result.updatedSource).toBe(source + `  fullName:\n${STUB_LINES}\n`);
     });
 });
+
+describe("promptTemplateSync — Unreadable Variables (#10196)", () => {
+    const UNRESOLVED_ALIAS_ERROR = "The alias *missing has no anchor &missing before it. Define the anchor or remove the alias.";
+    const EMPTY_ENTRY_ERROR = "'variables' entry 1 is empty. Each entry of a 'variables' list must be a mapping with a 'name'.";
+
+    it.each([
+        ["an alias without an anchor", "template: \"Hi {{name}}\"\nvariables: *missing\n", "application/x-yaml", UNRESOLVED_ALIAS_ERROR],
+        ["a YAML list containing null", "template: \"Hi {{name}}\"\nvariables: [null]\n", "application/x-yaml", EMPTY_ENTRY_ERROR],
+        ["a JSON list containing null", "{\"template\": \"Hi {{name}}\", \"variables\": [null]}", "application/json", EMPTY_ENTRY_ERROR],
+        [
+            "a list entry that is not a mapping",
+            "template: \"Hi {{name}}\"\nvariables:\n  - name: name\n  - role\n",
+            "application/x-yaml",
+            "'variables' entry 2 is not a mapping. Each entry of a 'variables' list must be a mapping with a 'name'."
+        ]
+    ])("reports %s as an error instead of throwing, and leaves the source untouched", (_case, source, contentType, error) => {
+        expect(detectPromptVariables(source, contentType)).toEqual({
+            valid: false,
+            error,
+            templateFound: false,
+            variables: [],
+            missingCount: 0,
+            unusedCount: 0,
+            synchronizedCount: 0,
+            conditionalCount: 0
+        });
+        expect(syncPromptTemplateVariables(source, contentType)).toEqual({
+            success: false,
+            updatedSource: source,
+            addedCount: 0,
+            error
+        });
+    });
+
+    it("detects variables again once the missing anchor is defined", () => {
+        const corrected = "defaults: &missing\n  name:\n    type: string\ntemplate: \"Hi {{name}} {{role}}\"\nvariables: *missing\n";
+        const detection = detectPromptVariables(corrected, "application/x-yaml");
+        expect(detection.valid).toBe(true);
+        expect(detection.variables.map(v => [v.name, v.source])).toEqual([["name", "both"], ["role", "detected"]]);
+        expect(detection.synchronizedCount).toBe(1);
+        expect(detection.missingCount).toBe(1);
+    });
+
+    it("detects and synchronizes again once the empty list entry is replaced by a mapping", () => {
+        const corrected = "template: \"Hi {{name}} {{role}}\"\nvariables:\n  name:\n    type: string\n";
+        const detection = detectPromptVariables(corrected, "application/x-yaml");
+        expect(detection.valid).toBe(true);
+        expect(detection.synchronizedCount).toBe(1);
+        expect(detection.missingCount).toBe(1);
+
+        const result = syncPromptTemplateVariables(corrected, "application/x-yaml");
+        expect(result.success).toBe(true);
+        expect(result.updatedSource).toBe(corrected + `  role:\n${STUB_LINES}\n`);
+    });
+});
+
+describe("promptTemplateSync — Content Type (#10196)", () => {
+    const FLOW_YAML = "{templateId: t, template: \"Hi {{name}} {{role}}\", variables: {name: {type: string}}}";
+
+    it("reads flow-style YAML as YAML when the content type is YAML, and as invalid JSON when it is JSON", () => {
+        const detection = detectPromptVariables(FLOW_YAML, "application/x-yaml");
+        expect(detection.valid).toBe(true);
+        expect(detection.variables.map(v => [v.name, v.source])).toEqual([["name", "both"], ["role", "detected"]]);
+        expect(detection.synchronizedCount).toBe(1);
+        expect(detection.missingCount).toBe(1);
+
+        expect(detectPromptVariables(FLOW_YAML, "application/json").valid).toBe(false);
+    });
+
+    it("synchronizes flow-style YAML in flow style", () => {
+        const result = syncPromptTemplateVariables(FLOW_YAML, "application/x-yaml");
+        expect(result.success).toBe(true);
+        expect(result.addedCount).toBe(1);
+        expect(result.updatedSource).toBe(
+            "{templateId: t, template: \"Hi {{name}} {{role}}\", variables: {name: {type: string}, role: {type: string, description: \"\"}}}"
+        );
+        expect(applyInsertion(FLOW_YAML, result.insertion)).toBe(result.updatedSource);
+    });
+
+    it("explains that a flow-style YAML root needs a variables mapping instead of reporting a JSON error", () => {
+        const source = "{templateId: t, template: \"Hi {{name}}\"}";
+        const result = syncPromptTemplateVariables(source, "application/x-yaml");
+        expect(result.success).toBe(false);
+        expect(result.error).toBe("The document root is a flow mapping. Add a 'variables' mapping before synchronizing.");
+        expect(result.updatedSource).toBe(source);
+    });
+
+    it("writes entries in the format the content type names, not the one the first character suggests", () => {
+        const source = "{\"template\": \"Hi {{name}}\", \"variables\": {}}";
+        expect(syncPromptTemplateVariables(source, "application/json; charset=utf-8").updatedSource).toBe(
+            "{\"template\": \"Hi {{name}}\", \"variables\": {\"name\": {\"type\": \"string\", \"description\": \"\"}}}"
+        );
+        expect(syncPromptTemplateVariables(source, "application/x-yaml").updatedSource).toBe(
+            "{\"template\": \"Hi {{name}}\", \"variables\": {name: {type: string, description: \"\"}}}"
+        );
+    });
+});

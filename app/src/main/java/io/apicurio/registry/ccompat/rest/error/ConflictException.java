@@ -10,6 +10,10 @@ public class ConflictException extends RegistryException {
     private static final long serialVersionUID = 5511072429790259605L;
 
     public ConflictException(Throwable cause) {
-        super(cause);
+        super(cause.getMessage(), cause);
+    }
+
+    public ConflictException(String message, Throwable cause) {
+        super(message, cause);
     }
 }

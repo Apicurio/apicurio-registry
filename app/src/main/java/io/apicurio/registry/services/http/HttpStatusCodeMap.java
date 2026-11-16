@@ -137,9 +137,9 @@ public class HttpStatusCodeMap {
         map.put(RuleNotFoundException.class, HTTP_NOT_FOUND);
         map.put(RuleViolationException.class, restConfig.isLegacyErrorCodesEnabled() ? HTTP_CONFLICT : HTTP_BAD_REQUEST);
         map.put(SchemaNotFoundException.class, HTTP_NOT_FOUND);
-        map.put(SchemaNotSoftDeletedException.class, HTTP_CONFLICT);
-        map.put(SchemaSoftDeletedException.class, HTTP_CONFLICT);
-        map.put(SubjectNotSoftDeletedException.class, HTTP_CONFLICT);
+        map.put(SchemaNotSoftDeletedException.class, HTTP_NOT_FOUND);
+        map.put(SchemaSoftDeletedException.class, HTTP_NOT_FOUND);
+        map.put(SubjectNotSoftDeletedException.class, HTTP_NOT_FOUND);
         map.put(SubjectSoftDeletedException.class, HTTP_NOT_FOUND);
         map.put(TimeoutException.class, HTTP_UNAVAILABLE);
         map.put(UnprocessableEntityException.class, HTTP_UNPROCESSABLE_ENTITY);

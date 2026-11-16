@@ -96,7 +96,7 @@ inventory() {
   echo "$versions" | while read -r line; do
     local gid sha refs
     gid=$(jq -r .gid <<< "$line")
-    # A DISABLED version's content is not served by globalId (but see #11116)
+    # A DISABLED version's content is not served by globalId
     if [ "$(jq -r .s <<< "$line")" = DISABLED ]; then
       sha=disabled
     else

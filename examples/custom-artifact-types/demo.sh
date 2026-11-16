@@ -111,12 +111,12 @@ call POST /groups/data/artifacts/orders/rules '{"ruleType": "VALIDITY", "config"
 docker compose stop csv-webhook > /dev/null 2>&1
 # Each call below waits about a minute for the unreachable webhook (#11152)
 r=$(call POST /groups/data/artifacts/orders/versions "$(version_of "id,id" text/csv)" 180)
-check "VALIDITY fails open: an invalid version is accepted (should be rejected, #11152)" "200 2" \
-  "$(status "$r") $(body "$r" | jq -r .version)"
+check "VALIDITY fails closed: the invalid version is rejected" "400 Error invoking Content Validator webhook for 'CSV'." \
+  "$(status "$r") $(causes "$(body "$r")")"
 r=$(call POST /groups/data/artifacts/customers/versions "$(version_of "id" text/csv)" 180)
 check "COMPATIBILITY fails closed: the change is rejected" 400 "$(status "$r")"
-check "  but the message exposes the exception (#11152)" yes \
-  "$(grep -q 'UnknownHostException' <<< "$(causes "$(body "$r")")" && echo yes || echo no)"
+check "  with a generic message: no exception or host name" no \
+  "$(grep -q 'UnknownHostException\|csv-webhook' <<< "$(causes "$(body "$r")")" && echo yes || echo no)"
 check "the registry logs each failure" yes \
   "$(logs=$(docker compose logs apicurio-registry 2>&1); grep -q 'Error invoking webhook' <<< "$logs" && echo yes || echo no)"
 docker compose start csv-webhook > /dev/null 2>&1

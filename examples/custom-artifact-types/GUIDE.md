@@ -112,12 +112,13 @@ Two differences from the contract today
 
 ## Step 4: When the webhook is down
 
-`demo.sh` stops `csv-webhook` and tries again
-([#11152](https://github.com/Apicurio/apicurio-registry/issues/11152)):
+`demo.sh` stops `csv-webhook` and tries again:
 
-- **`VALIDITY` fails open:** an invalid version is accepted; the error is only logged.
-- **`COMPATIBILITY` fails closed:** the change is rejected, but the message shows the Java exception.
-- Each request waits about a minute before it fails.
+- **`VALIDITY` fails closed:** the version is rejected with `Error invoking Content Validator webhook
+  for 'CSV'.`; the cause is only logged.
+- **`COMPATIBILITY` fails closed:** the change is rejected, with a generic message as well.
+- Each request waits about a minute before it fails
+  ([#11152](https://github.com/Apicurio/apicurio-registry/issues/11152)).
 
 A webhook is a runtime dependency of every rule that uses it: run it with the same availability as
 the registry.

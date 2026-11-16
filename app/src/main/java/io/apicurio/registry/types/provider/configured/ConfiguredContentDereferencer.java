@@ -68,7 +68,7 @@ public class ConfiguredContentDereferencer extends AbstractConfiguredArtifactTyp
                 return WebhookBeanUtil.typedContentFromWebhookBean(responseBody.getTypedContent());
             } catch (Throwable e) {
                 log.error("Error invoking webhook", e);
-                return content;
+                throw new ArtifactTypeWebhookException("Content Dereferencer", artifactType.getArtifactType());
             }
         }
 
@@ -81,7 +81,7 @@ public class ConfiguredContentDereferencer extends AbstractConfiguredArtifactTyp
                 return WebhookBeanUtil.typedContentFromWebhookBean(responseBody.getTypedContent());
             } catch (Throwable e) {
                 log.error("Error invoking webhook", e);
-                return content;
+                throw new ArtifactTypeWebhookException("Content Dereferencer", artifactType.getArtifactType());
             }
         }
     }

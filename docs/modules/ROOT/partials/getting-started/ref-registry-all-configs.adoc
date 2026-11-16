@@ -1693,6 +1693,16 @@ The following {registry} configuration options are available for each component 
 |`/tmp/apicurio-registry-artifact-types.json`
 |`3.1.0`
 |Path to a configuration file containing a list of supported artifact types.
+|`apicurio.artifact-types.webhooks.connect-timeout.seconds`
+|`int`
+|`5`
+|`3.4.0`
+|Timeout, in seconds, for connecting to an artifact type webhook.
+|`apicurio.artifact-types.webhooks.read-timeout.seconds`
+|`int`
+|`10`
+|`3.4.0`
+|Timeout, in seconds, for an artifact type webhook to send data on an open connection.
 |===
 
 == ui

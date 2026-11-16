@@ -54,6 +54,7 @@ import io.apicurio.registry.storage.error.RuleNotFoundException;
 import io.apicurio.registry.storage.error.VersionAlreadyExistsException;
 import io.apicurio.registry.storage.error.VersionAlreadyExistsOnBranchException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
+import io.apicurio.registry.types.provider.configured.ArtifactTypeWebhookException;
 import io.smallrye.mutiny.TimeoutException;
 import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
@@ -65,6 +66,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import static java.net.HttpURLConnection.HTTP_BAD_GATEWAY;
 import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
 import static java.net.HttpURLConnection.HTTP_CONFLICT;
 import static java.net.HttpURLConnection.HTTP_FORBIDDEN;
@@ -127,6 +129,7 @@ public class HttpStatusCodeMap {
         map.put(io.quarkus.security.UnauthorizedException.class, HTTP_UNAUTHORIZED);
         map.put(io.quarkus.security.ForbiddenException.class, HTTP_FORBIDDEN);
         map.put(ParametersConflictException.class, HTTP_CONFLICT);
+        map.put(ArtifactTypeWebhookException.class, HTTP_BAD_GATEWAY);
         map.put(ContractStateConflictException.class, HTTP_CONFLICT);
         map.put(PeerAlreadyExistsException.class, HTTP_CONFLICT);
         map.put(PeerNotFoundException.class, HTTP_NOT_FOUND);

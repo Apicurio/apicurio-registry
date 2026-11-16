@@ -109,11 +109,11 @@ part "Step 4: when the webhook is down"
 call POST /groups/data/artifacts "$(artifact_of orders "id,total" text/csv)" > /dev/null
 call POST /groups/data/artifacts/orders/rules '{"ruleType": "VALIDITY", "config": "FULL"}' > /dev/null
 docker compose stop csv-webhook > /dev/null 2>&1
-# Each call below waits about a minute for the unreachable webhook (#11152)
-r=$(call POST /groups/data/artifacts/orders/versions "$(version_of "id,id" text/csv)" 180)
+# Each call below fails after about 10 seconds of retries against the unreachable webhook
+r=$(call POST /groups/data/artifacts/orders/versions "$(version_of "id,id" text/csv)" 60)
 check "VALIDITY fails closed: the invalid version is rejected" "400 Error invoking Content Validator webhook for 'CSV'." \
   "$(status "$r") $(causes "$(body "$r")")"
-r=$(call POST /groups/data/artifacts/customers/versions "$(version_of "id" text/csv)" 180)
+r=$(call POST /groups/data/artifacts/customers/versions "$(version_of "id" text/csv)" 60)
 check "COMPATIBILITY fails closed: the change is rejected" 400 "$(status "$r")"
 check "  with a generic message: no exception or host name" no \
   "$(grep -q 'UnknownHostException\|csv-webhook' <<< "$(causes "$(body "$r")")" && echo yes || echo no)"

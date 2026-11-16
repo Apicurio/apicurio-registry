@@ -13,12 +13,14 @@ import io.apicurio.registry.rules.violation.RuleViolation;
 import io.apicurio.registry.rules.violation.RuleViolationException;
 import io.apicurio.registry.types.RuleType;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 
 import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -83,5 +85,48 @@ class UnreachableWebhookTest {
         CompatibilityDifference difference = result.getIncompatibleDifferences().iterator().next();
         assertEquals("Error invoking Compatibility Checker webhook for 'CSV'.",
                 difference.asRuleViolation().getDescription());
+    }
+
+    private static ArtifactTypeConfiguration csvType() {
+        ArtifactTypeConfiguration artifactType = new ArtifactTypeConfiguration();
+        artifactType.setArtifactType("CSV");
+        return artifactType;
+    }
+
+    private static void assertGenericFailure(String provider, Executable call) {
+        ArtifactTypeWebhookException e = assertThrows(ArtifactTypeWebhookException.class, call);
+        assertEquals("Error invoking " + provider + " webhook for 'CSV'.", e.getMessage());
+        assertNull(e.getCause());
+    }
+
+    @Test
+    void contentCanonicalizerFailsInsteadOfReturningTheContent() {
+        ArtifactTypeConfiguration artifactType = csvType();
+        artifactType.setContentCanonicalizer(webhook());
+        ConfiguredContentCanonicalizer canonicalizer = new ConfiguredContentCanonicalizer(unreachable(), artifactType);
+
+        assertGenericFailure("Content Canonicalizer",
+                () -> canonicalizer.canonicalize(content(), Collections.emptyMap()));
+    }
+
+    @Test
+    void contentDereferencerFailsInsteadOfReturningTheContent() {
+        ArtifactTypeConfiguration artifactType = csvType();
+        artifactType.setContentDereferencer(webhook());
+        ConfiguredContentDereferencer dereferencer = new ConfiguredContentDereferencer(unreachable(), artifactType);
+
+        assertGenericFailure("Content Dereferencer",
+                () -> dereferencer.dereference(content(), Collections.emptyMap()));
+        assertGenericFailure("Content Dereferencer",
+                () -> dereferencer.rewriteReferences(content(), Collections.emptyMap()));
+    }
+
+    @Test
+    void referenceFinderFailsWithAGenericMessage() {
+        ArtifactTypeConfiguration artifactType = csvType();
+        artifactType.setReferenceFinder(webhook());
+        ConfiguredReferenceFinder finder = new ConfiguredReferenceFinder(unreachable(), artifactType);
+
+        assertGenericFailure("Reference Finder", () -> finder.findExternalReferences(content()));
     }
 }

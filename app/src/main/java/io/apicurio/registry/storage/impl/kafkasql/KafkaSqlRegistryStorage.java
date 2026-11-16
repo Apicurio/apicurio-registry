@@ -18,6 +18,7 @@ import io.apicurio.registry.events.GroupCreated;
 import io.apicurio.registry.events.GroupDeleted;
 import io.apicurio.registry.events.GroupMetadataUpdated;
 import io.apicurio.registry.events.GroupRuleConfigured;
+import io.apicurio.registry.events.ImportEvents;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.storage.impl.sql.SqlStatements;
 import io.apicurio.registry.metrics.StorageMetricsApply;
@@ -613,9 +614,12 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
      */
     @Override
     public void deleteArtifacts(String groupId) throws RegistryStorageException {
+        List<String> artifactIds = sqlStore.getArtifactIdsInGroup(groupId);
         var message = new DeleteArtifacts1Message(groupId);
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+        artifactIds.forEach(artifactId -> outboxEvent
+                .fire(KafkaSqlOutboxEvent.of(ArtifactDeleted.of(groupId, artifactId))));
     }
 
     @Override
@@ -1346,6 +1350,7 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         var message = new ImportGroup1Message(entity);
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+        outboxEvent.fire(KafkaSqlOutboxEvent.of(ImportEvents.of(entity)));
     }
 
     /**
@@ -1356,6 +1361,7 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         var message = new ImportGlobalRule1Message(entity);
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+        outboxEvent.fire(KafkaSqlOutboxEvent.of(ImportEvents.of(entity)));
     }
 
     /**
@@ -1377,6 +1383,7 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         var message = new ImportArtifactVersion1Message(entity);
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+        outboxEvent.fire(KafkaSqlOutboxEvent.of(ImportEvents.of(entity)));
     }
 
     @Override
@@ -1384,6 +1391,7 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         var message = new ImportArtifact1Message(entity);
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+        outboxEvent.fire(KafkaSqlOutboxEvent.of(ImportEvents.of(entity)));
     }
 
     /**
@@ -1394,6 +1402,7 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         var message = new ImportArtifactRule1Message(entity);
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+        outboxEvent.fire(KafkaSqlOutboxEvent.of(ImportEvents.of(entity)));
     }
 
     @Override
@@ -1401,6 +1410,9 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         var message = new ImportContractRule1Message(entity);
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+        String version = entity.globalId == null ? null
+                : sqlStore.getArtifactVersionMetaData(entity.globalId).getVersion();
+        outboxEvent.fire(KafkaSqlOutboxEvent.of(ImportEvents.of(entity, version)));
     }
 
     @Override
@@ -1408,6 +1420,7 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         var message = new ImportGroupRule1Message(entity);
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+        outboxEvent.fire(KafkaSqlOutboxEvent.of(ImportEvents.of(entity)));
     }
 
     /**

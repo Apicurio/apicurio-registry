@@ -14,6 +14,7 @@ import io.apicurio.registry.contracts.ContractLabels;
 import io.apicurio.registry.events.ContractMetadataUpdated;
 import io.apicurio.registry.events.ContractRulesetConfigured;
 import io.apicurio.registry.events.ContractStatusChanged;
+import io.apicurio.registry.events.ImportEvents;
 import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
@@ -806,6 +807,13 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         artifactRepository.deleteArtifacts(groupId);
     }
 
+    /**
+     * @return the ids of the artifacts in the given group (null for the default group)
+     */
+    public List<String> getArtifactIdsInGroup(String groupId) {
+        return artifactRepository.getArtifactIdsInGroup(groupId);
+    }
+
     @Override
     public ArtifactVersionMetaDataDto createArtifactVersion(String groupId, String artifactId, String version,
             String artifactType, ContentWrapperDto content, EditableVersionMetaDataDto metaData,
@@ -1080,17 +1088,25 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Override
     public void setArtifactContractRuleset(String groupId, String artifactId,
             ContractRuleSetDto ruleset) throws RegistryStorageException {
-        contractRuleRepository.setArtifactContractRuleset(groupId, artifactId, ruleset);
-        outboxEvent.fire(SqlOutboxEvent.of(ContractRulesetConfigured.of(
-                groupId, artifactId, null, ContractRulesetConfigured.Action.SET)));
+        // Fired in the same transaction, so the outbox row commits or rolls back with the ruleset.
+        handles.withHandleNoException(handle -> {
+            contractRuleRepository.setArtifactContractRuleset(groupId, artifactId, ruleset);
+            outboxEvent.fire(SqlOutboxEvent.of(ContractRulesetConfigured.of(
+                    groupId, artifactId, null, ContractRulesetConfigured.Action.SET)));
+            return null;
+        });
     }
 
     @Override
     public void deleteArtifactContractRuleset(String groupId, String artifactId)
             throws RegistryStorageException {
-        contractRuleRepository.deleteArtifactContractRuleset(groupId, artifactId);
-        outboxEvent.fire(SqlOutboxEvent.of(ContractRulesetConfigured.of(
-                groupId, artifactId, null, ContractRulesetConfigured.Action.DELETE)));
+        // Fired in the same transaction, so the outbox row commits or rolls back with the ruleset.
+        handles.withHandleNoException(handle -> {
+            contractRuleRepository.deleteArtifactContractRuleset(groupId, artifactId);
+            outboxEvent.fire(SqlOutboxEvent.of(ContractRulesetConfigured.of(
+                    groupId, artifactId, null, ContractRulesetConfigured.Action.DELETE)));
+            return null;
+        });
     }
 
     @Override
@@ -1102,17 +1118,25 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Override
     public void setVersionContractRuleset(String groupId, String artifactId, String version,
             ContractRuleSetDto ruleset) throws VersionNotFoundException, RegistryStorageException {
-        contractRuleRepository.setVersionContractRuleset(groupId, artifactId, version, ruleset);
-        outboxEvent.fire(SqlOutboxEvent.of(ContractRulesetConfigured.of(
-                groupId, artifactId, version, ContractRulesetConfigured.Action.SET)));
+        // Fired in the same transaction, so the outbox row commits or rolls back with the ruleset.
+        handles.withHandleNoException(handle -> {
+            contractRuleRepository.setVersionContractRuleset(groupId, artifactId, version, ruleset);
+            outboxEvent.fire(SqlOutboxEvent.of(ContractRulesetConfigured.of(
+                    groupId, artifactId, version, ContractRulesetConfigured.Action.SET)));
+            return null;
+        });
     }
 
     @Override
     public void deleteVersionContractRuleset(String groupId, String artifactId, String version)
             throws VersionNotFoundException, RegistryStorageException {
-        contractRuleRepository.deleteVersionContractRuleset(groupId, artifactId, version);
-        outboxEvent.fire(SqlOutboxEvent.of(ContractRulesetConfigured.of(
-                groupId, artifactId, version, ContractRulesetConfigured.Action.DELETE)));
+        // Fired in the same transaction, so the outbox row commits or rolls back with the ruleset.
+        handles.withHandleNoException(handle -> {
+            contractRuleRepository.deleteVersionContractRuleset(groupId, artifactId, version);
+            outboxEvent.fire(SqlOutboxEvent.of(ContractRulesetConfigured.of(
+                    groupId, artifactId, version, ContractRulesetConfigured.Action.DELETE)));
+            return null;
+        });
     }
 
     @Override
@@ -1122,16 +1146,24 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     public void setGlobalContractRuleset(ContractRuleSetDto ruleset) throws RegistryStorageException {
-        contractRuleRepository.setGlobalContractRuleset(ruleset);
-        outboxEvent.fire(SqlOutboxEvent
-                .of(ContractRulesetConfigured.ofGlobal(ContractRulesetConfigured.Action.SET)));
+        // Fired in the same transaction, so the outbox row commits or rolls back with the ruleset.
+        handles.withHandleNoException(handle -> {
+            contractRuleRepository.setGlobalContractRuleset(ruleset);
+            outboxEvent.fire(SqlOutboxEvent
+                    .of(ContractRulesetConfigured.ofGlobal(ContractRulesetConfigured.Action.SET)));
+            return null;
+        });
     }
 
     @Override
     public void deleteGlobalContractRuleset() throws RegistryStorageException {
-        contractRuleRepository.deleteGlobalContractRuleset();
-        outboxEvent.fire(SqlOutboxEvent
-                .of(ContractRulesetConfigured.ofGlobal(ContractRulesetConfigured.Action.DELETE)));
+        // Fired in the same transaction, so the outbox row commits or rolls back with the ruleset.
+        handles.withHandleNoException(handle -> {
+            contractRuleRepository.deleteGlobalContractRuleset();
+            outboxEvent.fire(SqlOutboxEvent
+                    .of(ContractRulesetConfigured.ofGlobal(ContractRulesetConfigured.Action.DELETE)));
+            return null;
+        });
     }
 
     @Override
@@ -1865,25 +1897,40 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     public void importGroupRule(GroupRuleEntity entity) {
-
-        ruleRepository.importGroupRule(entity);
+        handles.withHandleNoException(handle -> {
+            ruleRepository.importGroupRule(entity);
+            outboxEvent.fire(SqlOutboxEvent.of(ImportEvents.of(entity)));
+            return null;
+        });
     }
 
     @Override
     public void importArtifactRule(ArtifactRuleEntity entity) {
-
-        ruleRepository.importArtifactRule(entity);
+        handles.withHandleNoException(handle -> {
+            ruleRepository.importArtifactRule(entity);
+            outboxEvent.fire(SqlOutboxEvent.of(ImportEvents.of(entity)));
+            return null;
+        });
     }
 
     @Override
     public void importContractRule(ContractRuleEntity entity) {
-
-        contractRuleRepository.importContractRule(entity);
+        handles.withHandleNoException(handle -> {
+            contractRuleRepository.importContractRule(entity);
+            String version = entity.globalId == null ? null
+                    : versionRepository.getArtifactVersionMetaData(entity.globalId).getVersion();
+            outboxEvent.fire(SqlOutboxEvent.of(ImportEvents.of(entity, version)));
+            return null;
+        });
     }
 
     @Override
     public void importArtifact(ArtifactEntity entity) {
-        artifactRepository.importArtifact(entity);
+        handles.withHandleNoException(handle -> {
+            artifactRepository.importArtifact(entity);
+            outboxEvent.fire(SqlOutboxEvent.of(ImportEvents.of(entity)));
+            return null;
+        });
     }
 
     @Override
@@ -1892,6 +1939,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             lockArtifactForVersionWrite(handle, entity.groupId, entity.artifactId);
             versionRepository.importArtifactVersion(entity);
             refreshStructuredContentRaw(handle, entity.groupId, entity.artifactId);
+            outboxEvent.fire(SqlOutboxEvent.of(ImportEvents.of(entity)));
             return null;
         });
     }
@@ -1904,14 +1952,20 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     public void importGlobalRule(GlobalRuleEntity entity) {
-
-        ruleRepository.importGlobalRule(entity);
+        handles.withHandleNoException(handle -> {
+            ruleRepository.importGlobalRule(entity);
+            outboxEvent.fire(SqlOutboxEvent.of(ImportEvents.of(entity)));
+            return null;
+        });
     }
 
     @Override
     public void importGroup(GroupEntity entity) {
-
-        groupRepository.importGroup(entity);
+        handles.withHandleNoException(handle -> {
+            groupRepository.importGroup(entity);
+            outboxEvent.fire(SqlOutboxEvent.of(ImportEvents.of(entity)));
+            return null;
+        });
     }
 
     @Override

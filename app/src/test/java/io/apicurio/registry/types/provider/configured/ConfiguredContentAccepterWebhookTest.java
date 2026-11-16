@@ -120,19 +120,19 @@ class ConfiguredContentAccepterWebhookTest {
     @Test
     void testConfiguredHeadersAreSent() {
         assertTrue(accepts("/requiresToken", Map.of("Authorization", TOKEN)));
-        assertEquals(List.of(TOKEN), receivedAuthorization);
+        assertEquals(List.of(TOKEN), received());
     }
 
     @Test
     void testWebhookRequiringTokenRejectsRequestWithoutHeaders() {
         assertFalse(accepts("/requiresToken", null));
-        assertEquals(List.of("<none>"), receivedAuthorization);
+        assertEquals(List.of("<none>"), received());
     }
 
     @Test
     void testNoHeadersConfiguredSendsNoAuthorization() {
         assertTrue(accepts("/acceptedTrue", null));
-        assertEquals(List.of("<none>"), receivedAuthorization);
+        assertEquals(List.of("<none>"), received());
     }
 
     @Test
@@ -164,6 +164,10 @@ class ConfiguredContentAccepterWebhookTest {
         assertFalse(ConfiguredContentAccepter.isAccepted(Collections.emptyMap()));
         assertFalse(ConfiguredContentAccepter.isAccepted("true"));
         assertFalse(ConfiguredContentAccepter.isAccepted(null));
+    }
+
+    private static List<String> received() {
+        return List.copyOf(receivedAuthorization);
     }
 
     private static boolean accepts(String path, Map<String, String> headers) {

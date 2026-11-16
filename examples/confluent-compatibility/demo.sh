@@ -30,16 +30,19 @@ cc() {
     ${3:+-d "$3"} "${@:4}")
   echo "$(tail -1 <<< "$out") $(sed '$d' <<< "$out")"
 }
-# get <url>: a GET's body; retried when it is empty or fails, so one dropped response does not fail a
-# comparison (#10992)
+# get <url>: a successful GET's body, retried when the request fails or the body is empty, so one
+# dropped response does not fail a comparison (#10992). After five attempts it prints a marker that
+# names the URL, so a comparison of two failed requests fails too.
 get() {
-  local body="" attempt
+  local body attempt
   for attempt in 1 2 3 4 5; do
-    body=$(curl -sf --max-time 30 "$1" || true)
-    [ -n "$body" ] && break
+    if body=$(curl -sf --max-time 30 "$1") && [ -n "$body" ]; then
+      echo "$body"
+      return 0
+    fi
     sleep 1
   done
-  echo "$body"
+  echo "<no response from $1>"
 }
 schema() { jq -nc --arg s "$1" --arg t "${2:-AVRO}" '{schema: $s, schemaType: $t}'; }
 # err <cc output>: "<status> <error_code>"

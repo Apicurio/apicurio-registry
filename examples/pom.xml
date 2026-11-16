@@ -31,7 +31,6 @@
   </licenses>
 
   <modules>
-    <module>confluent-serdes</module>
     <module>rest-client</module>
     <module>docker-compose</module>
     <module>openshift-template</module>
@@ -50,6 +49,7 @@
     <module>kafka-serdes/connect-plugin</module>
     <module>schema-references/registration</module>
     <module>schema-references/serdes</module>
+    <module>authentication/clients</module>
   </modules>
 
   <scm>

@@ -12,6 +12,7 @@ import io.apicurio.registry.rest.client.models.McpToolCompatibilityResults;
 import io.apicurio.registry.rest.client.models.McpToolCompatibilitySide;
 import io.apicurio.registry.rest.client.models.McpToolCompatibilityVerdict;
 import io.apicurio.registry.rest.client.models.McpToolSearchResult;
+import io.apicurio.registry.rest.client.models.ProblemDetails;
 import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
@@ -19,6 +20,7 @@ import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.restassured.RestAssured;
+import io.restassured.path.json.JsonPath;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 import org.eclipse.microprofile.config.ConfigProvider;
@@ -45,6 +47,9 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for the MCP tool well-known discovery endpoints.
@@ -1106,6 +1111,180 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
                 .filter(tool -> groupId.equals(tool.getGroupId()))
                 .map(McpToolSearchResult::getArtifactId)
                 .toList());
+    }
+
+    @Test
+    public void testGeneratedClientReadsEveryCompatibilityField() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        createCompatibilityCatalog(groupId);
+
+        // The same request on the wire, which every field the client returns is compared with.
+        JsonPath wire = givenSource(groupId, CATALOG_SOURCE)
+                .queryParam("limit", 500)
+                .get(V3_ROUTES + COMPATIBILITY)
+                .then()
+                .statusCode(200)
+                .extract()
+                .jsonPath();
+        McpToolCompatibilityResults compatibility = clientV3.wellKnown().mcpTools().byGroupId(groupId)
+                .byArtifactId(CATALOG_SOURCE).compatibility().get(config -> config.queryParameters.limit = 500);
+
+        assertEquals(wire.getInt("candidateTotal"), compatibility.getCandidateTotal());
+        assertEquals(wire.getInt("evaluated"), compatibility.getEvaluated());
+        assertEquals(wire.getInt("scanLimit"), compatibility.getScanLimit());
+        assertEquals(wire.getBoolean("complete"), compatibility.getComplete());
+        assertEquals(wire.getInt("totals.compatible"), compatibility.getTotals().getCompatible());
+        assertEquals(wire.getInt("totals.incompatible"), compatibility.getTotals().getIncompatible());
+        assertEquals(wire.getInt("totals.indeterminate"), compatibility.getTotals().getIndeterminate());
+        assertEquals(wire.getInt("count"), compatibility.getCount());
+        assertEquals(List.of(), wire.getList("limitations"));
+        assertEquals(List.of(), compatibility.getLimitations());
+        // Read once as maps: a path evaluated per field takes minutes over a registry-wide scan.
+        List<Map<String, Object>> wireResults = wire.getList("results");
+        assertEquals(wireResults.size(), compatibility.getResults().size());
+        for (int i = 0; i < wireResults.size(); i++) {
+            assertSameResult(wireResults.get(i), compatibility.getResults().get(i));
+        }
+
+        // Explicit values for this test's tools, so that a field lost on both sides cannot pass.
+        Map<String, McpToolCompatibilityResult> results = compatibility.getResults().stream()
+                .filter(result -> groupId.equals(result.getTool().getGroupId()))
+                .collect(Collectors.toMap(result -> result.getTool().getArtifactId(), result -> result));
+        assertEquals(Set.of(CATALOG_COMPATIBLE, CATALOG_INCOMPATIBLE, CATALOG_INDETERMINATE), results.keySet());
+        McpToolSearchResult compatibleTool = results.get(CATALOG_COMPATIBLE).getTool();
+        assertEquals("Records Consumer", compatibleTool.getTitle());
+        assertEquals(List.of("records", "total"), compatibleTool.getParameters());
+        assertFalse(results.get(CATALOG_INCOMPATIBLE).getReasons().get(0).getMessage().isBlank());
+        assertFalse(results.get(CATALOG_INDETERMINATE).getLimitations().get(0).getMessage().isBlank());
+    }
+
+    @Test
+    public void testGeneratedClientCompatibleReturnsTheCompatibleVerdicts() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        createCompatibilityCatalog(groupId);
+        var source = clientV3.wellKnown().mcpTools().byGroupId(groupId).byArtifactId(CATALOG_SOURCE);
+
+        McpCompatibleToolsResults compatible = source.compatible().get(config -> config.queryParameters.limit = 500);
+        McpToolCompatibilityResults compatibility = source.compatibility().get(config -> {
+            config.queryParameters.verdict = new String[] {"COMPATIBLE"};
+            config.queryParameters.limit = 500;
+        });
+
+        List<String> compatibleTools = compatible.getTools().stream().map(WellKnownMcpToolsTest::identity).toList();
+        assertEquals(compatibility.getResults().stream().map(result -> identity(result.getTool())).toList(),
+                compatibleTools);
+        assertEquals(compatibility.getTotals().getCompatible(), compatible.getCount());
+        assertEquals(compatibility.getCount(), compatible.getCount());
+        assertTrue(compatibleTools.contains(groupId + "/" + CATALOG_COMPATIBLE));
+        assertFalse(compatibleTools.contains(groupId + "/" + CATALOG_INCOMPATIBLE));
+        assertFalse(compatibleTools.contains(groupId + "/" + CATALOG_INDETERMINATE));
+    }
+
+    @Test
+    public void testGeneratedClientSendsVersionVerdictAndOffsetTogether() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        // Only version 1.0.0 can be compared, since the latest one has no outputSchema.
+        createArtifact(groupId, CATALOG_SOURCE, ArtifactType.MCP_TOOL, COMPAT_SOURCE_TOOL,
+                ContentTypes.APPLICATION_JSON, artifact -> artifact.getFirstVersion().setVersion("1.0.0"));
+        createArtifactVersion(groupId, CATALOG_SOURCE, COMPAT_NO_OUTPUT_TOOL, ContentTypes.APPLICATION_JSON);
+        createMcpTool(groupId, CATALOG_COMPATIBLE, COMPAT_RECORDS_CONSUMER_TOOL);
+        createMcpTool(groupId, CATALOG_INCOMPATIBLE, COMPAT_INCOMPATIBLE_TOOL);
+        createMcpTool(groupId, CATALOG_INDETERMINATE, COMPAT_OPTIONAL_INPUT_TOOL);
+        var source = clientV3.wellKnown().mcpTools().byGroupId(groupId).byArtifactId(CATALOG_SOURCE);
+        String[] verdicts = {"INCOMPATIBLE", "INDETERMINATE"};
+
+        McpToolCompatibilityResults unpaginated = source.compatibility().get(config -> {
+            config.queryParameters.version = "1.0.0";
+            config.queryParameters.verdict = verdicts;
+            config.queryParameters.limit = 500;
+        });
+        McpToolCompatibilityResults page = source.compatibility().get(config -> {
+            config.queryParameters.version = "1.0.0";
+            config.queryParameters.verdict = verdicts;
+            config.queryParameters.offset = 1;
+            config.queryParameters.limit = 500;
+        });
+
+        // This test's candidates are the newest tools, so the two it expects lead the results.
+        List<String> matching = unpaginated.getResults().stream().map(result -> identity(result.getTool())).toList();
+        assertEquals(Set.of(groupId + "/" + CATALOG_INCOMPATIBLE, groupId + "/" + CATALOG_INDETERMINATE),
+                Set.copyOf(matching.subList(0, 2)));
+        assertFalse(matching.contains(groupId + "/" + CATALOG_COMPATIBLE));
+        assertEquals(matching.size(), unpaginated.getCount());
+        // The offset skips the first of them, and count still covers every match.
+        assertEquals(matching.subList(1, matching.size()),
+                page.getResults().stream().map(result -> identity(result.getTool())).toList());
+        assertEquals(unpaginated.getCount(), page.getCount());
+
+        // Without the version the latest one is compared, which yields nothing.
+        McpToolCompatibilityResults latest = source.compatibility().get(config -> config.queryParameters.verdict = verdicts);
+        assertEquals(0, latest.getEvaluated());
+        assertEquals(List.of("SOURCE_HAS_NO_OUTPUT_SCHEMA"),
+                latest.getLimitations().stream().map(McpToolCompatibilityLimitation::getCode).toList());
+    }
+
+    @Test
+    public void testGeneratedClientReadsErrorsAsProblemDetails() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        var missing = clientV3.wellKnown().mcpTools().byGroupId(groupId).byArtifactId("nonexistent-tool");
+        String notFoundTitle = "MCP tool not found: " + groupId + "/nonexistent-tool";
+
+        ProblemDetails compatibleNotFound = assertThrows(ProblemDetails.class, () -> missing.compatible().get());
+        assertEquals(404, compatibleNotFound.getResponseStatusCode());
+        assertEquals(404, compatibleNotFound.getStatus());
+        assertEquals(notFoundTitle, compatibleNotFound.getTitle());
+
+        ProblemDetails compatibilityNotFound = assertThrows(ProblemDetails.class, () -> missing.compatibility().get());
+        assertEquals(404, compatibilityNotFound.getResponseStatusCode());
+        assertEquals(404, compatibilityNotFound.getStatus());
+        assertEquals(notFoundTitle, compatibilityNotFound.getTitle());
+
+        createMcpTool(groupId, CATALOG_SOURCE, COMPAT_SOURCE_TOOL);
+        ProblemDetails invalidVerdict = assertThrows(ProblemDetails.class, () -> clientV3.wellKnown().mcpTools()
+                .byGroupId(groupId).byArtifactId(CATALOG_SOURCE).compatibility()
+                .get(config -> config.queryParameters.verdict = new String[] {"compatible"}));
+        assertEquals(400, invalidVerdict.getResponseStatusCode());
+        assertEquals(400, invalidVerdict.getStatus());
+        assertEquals("InvalidParameterValueException", invalidVerdict.getName());
+        assertTrue(invalidVerdict.getTitle().contains("'verdict'"));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void assertSameResult(Map<String, Object> wire, McpToolCompatibilityResult result) {
+        Map<String, Object> wireTool = (Map<String, Object>) wire.get("tool");
+        McpToolSearchResult tool = result.getTool();
+        assertEquals(wireTool.get("groupId"), tool.getGroupId());
+        assertEquals(wireTool.get("artifactId"), tool.getArtifactId());
+        assertEquals(wireTool.get("name"), tool.getName());
+        assertEquals(wireTool.get("title"), tool.getTitle());
+        assertEquals(wireTool.get("description"), tool.getDescription());
+        assertEquals(wireTool.get("owner"), tool.getOwner());
+        assertEquals(((Number) wireTool.get("createdOn")).longValue(), tool.getCreatedOn());
+        assertEquals(wireTool.get("parameters"), tool.getParameters());
+        assertEquals(wire.get("verdict"), result.getVerdict().getValue());
+
+        List<Map<String, Object>> wireReasons = (List<Map<String, Object>>) wire.get("reasons");
+        assertEquals(wireReasons.size(), result.getReasons().size());
+        for (int i = 0; i < wireReasons.size(); i++) {
+            McpToolCompatibilityReason reason = result.getReasons().get(i);
+            assertEquals(wireReasons.get(i).get("code"), reason.getCode());
+            assertEquals(wireReasons.get(i).get("producerPointer"), reason.getProducerPointer());
+            assertEquals(wireReasons.get(i).get("consumerPointer"), reason.getConsumerPointer());
+            assertEquals(wireReasons.get(i).get("message"), reason.getMessage());
+        }
+        List<Map<String, Object>> wireLimitations = (List<Map<String, Object>>) wire.get("limitations");
+        assertEquals(wireLimitations.size(), result.getLimitations().size());
+        for (int i = 0; i < wireLimitations.size(); i++) {
+            McpToolCompatibilityLimitation limitation = result.getLimitations().get(i);
+            assertEquals(wireLimitations.get(i).get("code"), limitation.getCode());
+            assertEquals(wireLimitations.get(i).get("side"), limitation.getSide().getValue());
+            assertEquals(wireLimitations.get(i).get("pointer"), limitation.getPointer());
+            assertEquals(wireLimitations.get(i).get("message"), limitation.getMessage());
+        }
+    }
+
+    private static String identity(McpToolSearchResult tool) {
+        return tool.getGroupId() + "/" + tool.getArtifactId();
     }
 
     private RequestSpecification givenSource(String groupId, String artifactId) {

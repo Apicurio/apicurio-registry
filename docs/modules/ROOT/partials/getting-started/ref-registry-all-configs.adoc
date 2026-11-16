@@ -969,6 +969,16 @@ The following {registry} configuration options are available for each component 
 |`500`
 |`3.4.0`
 |Maximum number of tools an MCP server may list for an import. An import from a server listing more is refused
+|`apicurio.mcp-import.tools.max-total-size`
+|`long`
+|`10485760`
+|`3.4.0`
+|Maximum total size, in bytes, of the tool definitions an MCP server may list for an import, across all pages
+|`apicurio.mcp-import.total-timeout.seconds`
+|`int`
+|`60`
+|`3.4.0`
+|Maximum time, in seconds, for listing the tools of an MCP server during an import, across all requests. It is checked between requests, so a listing can exceed it by at most one request timeout
 |`apicurio.mcp-registry.enabled`
 |`boolean`
 |`false`

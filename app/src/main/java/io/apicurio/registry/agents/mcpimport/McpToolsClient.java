@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpTimeoutException;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -27,8 +28,9 @@ import java.util.concurrent.TimeoutException;
  * Lists the tools of a live MCP server, over the Streamable HTTP transport of the official MCP
  * Java SDK.
  * <p>
- * Redirects are never followed, every request has a timeout, every message has a size bound,
- * and the number of tools and pages is bounded. Headers from the request are added to every call
+ * Redirects are never followed, every request has a timeout and the whole listing a deadline,
+ * every message and the listed tools as a whole have a size bound, and the number of tools and
+ * pages is bounded. Headers from the request are added to every call
  * to the server and nowhere else.
  */
 @ApplicationScoped
@@ -65,11 +67,26 @@ public class McpToolsClient {
      * @throws McpImportException if the server cannot be reached or its answer cannot be used
      */
     public ServerTools listTools(URI uri, Map<String, String> headers) {
-        return listTools(uri, headers, Duration.ofSeconds(config.getTimeoutSeconds()), config.getResponseMaxSize(),
-                config.getToolsMaxSize());
+        return listTools(uri, headers, new Limits(Duration.ofSeconds(config.getTimeoutSeconds()),
+                Duration.ofSeconds(config.getTotalTimeoutSeconds()), config.getResponseMaxSize(),
+                config.getToolsMaxSize(), config.getToolsMaxTotalSize()));
     }
 
-    ServerTools listTools(URI uri, Map<String, String> headers, Duration timeout, int maxMessageSize, int maxTools) {
+    /**
+     * @param timeout for connecting and for each request
+     * @param totalTimeout for the whole listing, checked between requests
+     * @param maxMessageSize of each message from the server
+     * @param maxTools listed in total
+     * @param maxTotalSize of the listed tool definitions, serialized as JSON
+     */
+    record Limits(Duration timeout, Duration totalTimeout, int maxMessageSize, int maxTools, long maxTotalSize) {
+    }
+
+    ServerTools listTools(URI uri, Map<String, String> headers, Limits limits) {
+        Duration timeout = limits.timeout();
+        int maxMessageSize = limits.maxMessageSize();
+        int maxTools = limits.maxTools();
+        long deadline = System.nanoTime() + limits.totalTimeout().toNanos();
         Map<String, String> outbound = headers == null ? Map.of() : Map.copyOf(headers);
         HttpClientStreamableHttpTransport transport = HttpClientStreamableHttpTransport
                 .builder(baseUri(uri))
@@ -94,9 +111,16 @@ public class McpToolsClient {
             List<McpSchema.Tool> tools = new ArrayList<>();
             Set<String> seenCursors = new HashSet<>();
             String cursor = null;
+            long totalSize = 0;
             do {
+                requireTimeLeft(deadline);
                 McpSchema.ListToolsResult page = client.listTools(cursor);
                 if (page.tools() != null) {
+                    totalSize += serializedSize(page.tools());
+                    if (totalSize > limits.maxTotalSize()) {
+                        throw new McpImportException(Reason.OVERSIZE,
+                                "The tools listed by the MCP server are larger in total than this registry accepts.");
+                    }
                     tools.addAll(page.tools());
                 }
                 if (tools.size() > maxTools) {
@@ -117,6 +141,20 @@ public class McpToolsClient {
             throw translate(e);
         } finally {
             closeQuietly(client);
+        }
+    }
+
+    private static void requireTimeLeft(long deadline) {
+        if (System.nanoTime() - deadline > 0) {
+            throw new McpImportException(Reason.TIMEOUT, "The MCP server did not list its tools in time.");
+        }
+    }
+
+    private long serializedSize(List<McpSchema.Tool> tools) {
+        try {
+            return jsonMapper.writeValueAsString(tools).getBytes(StandardCharsets.UTF_8).length;
+        } catch (Exception e) {
+            throw new McpImportException(Reason.PROTOCOL, "A tool listed by the MCP server could not be read.");
         }
     }
 

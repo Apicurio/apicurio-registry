@@ -1052,7 +1052,7 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
         createMcpTool("default", sourceId, COMPAT_SOURCE_TOOL);
         createMcpTool("default", candidateId, COMPAT_RECORDS_CONSUMER_TOOL);
 
-        // Tools in the default group have no groupId in the response, and the IDs are unique.
+        // Tools in the default group are reported with the groupId "default".
         givenSource("default", sourceId)
                 .queryParam("limit", 500)
                 .get(ROOT_ROUTES + COMPATIBILITY)
@@ -1060,15 +1060,14 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body("results.tool.artifactId", hasItem(candidateId))
                 .body("results.tool.artifactId", not(hasItem(sourceId)))
-                .body("results.find { it.tool.artifactId == '" + candidateId + "' }.verdict",
-                        equalTo("COMPATIBLE"));
+                .body(result("default", candidateId) + ".verdict", equalTo("COMPATIBLE"));
 
         givenSource("default", sourceId)
                 .queryParam("limit", 500)
                 .get(ROOT_ROUTES + COMPATIBLE)
                 .then()
                 .statusCode(200)
-                .body("tools.artifactId", hasItem(candidateId))
+                .body(artifactIdsInGroup("default"), hasItem(candidateId))
                 .body("tools.artifactId", not(hasItem(sourceId)));
     }
 

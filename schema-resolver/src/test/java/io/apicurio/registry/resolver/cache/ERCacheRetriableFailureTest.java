@@ -1,6 +1,10 @@
 package io.apicurio.registry.resolver.cache;
 
 import com.microsoft.kiota.ApiException;
+import io.apicurio.registry.rest.client.models.ProblemDetails;
+import io.apicurio.registry.rest.client.models.RuleType;
+import io.apicurio.registry.rest.client.models.RuleViolationDetails;
+import io.apicurio.registry.rest.client.models.RuleViolationProblemDetails;
 import io.vertx.core.VertxException;
 import io.vertx.core.http.HttpClosedException;
 import org.junit.jupiter.api.Test;
@@ -20,6 +24,41 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ERCacheRetriableFailureTest {
+
+    @Test
+    void ruleViolationFailureMessageIncludesTitleAndRuleType() {
+        RuleViolationProblemDetails rv = new RuleViolationProblemDetails();
+        rv.setStatus(409);
+        rv.setTitle("Incompatible artifact: orders-value [AVRO]");
+        RuleViolationDetails details = new RuleViolationDetails();
+        details.setRuleType(RuleType.COMPATIBILITY);
+        rv.setRuleViolation(details);
+
+        RuntimeException error = ERCache.retry(Duration.ZERO, 0, false, () -> {
+            throw rv;
+        }).error;
+
+        assertEquals("Registry request failed (HTTP 409) due to COMPATIBILITY rule violation: "
+                + "Incompatible artifact: orders-value [AVRO]", error.getMessage());
+        assertEquals(rv, error.getCause());
+    }
+
+    @Test
+    void problemDetailsFailureMessageIncludesTitleAndDetail() {
+        ProblemDetails pd = new ProblemDetails();
+        pd.setStatus(404);
+        pd.setTitle("Not found");
+        pd.setDetail("No artifact with ID 'x'");
+
+        assertEquals("Registry request failed (HTTP 404): Not found - No artifact with ID 'x'",
+                ERCache.describeFailure(new RuntimeException(pd)));
+    }
+
+    @Test
+    void genericFailureMessageUsesRootCause() {
+        assertEquals("IllegalStateException: boom",
+                ERCache.describeFailure(new RuntimeException(new IllegalStateException("boom"))));
+    }
 
     @Test
     void retriesDirectAndWrapped429EvenWithoutTransientOptIn() {

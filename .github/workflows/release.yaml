@@ -78,6 +78,7 @@ jobs:
           mvn -s ${{ github.workspace }}/registry/.github/ci-settings.xml versions:set -DnewVersion=${{ github.event.inputs.release-version}} -DgenerateBackupPoms=false -DprocessAllModules=true
 
           sed -i  "s/version\:\s.*/version: \'${{ env.RELEASE_DOCS_VERSION }}\'/g" docs/antora.yml
+          sed -i  "/^prerelease:/d" docs/antora.yml
           sed -i  "5s/\"version\"\:\s\".*\"/\"version\": \"${{ env.RELEASE_DOCS_VERSION }}\"/g" common/src/main/resources/META-INF/openapi.json
 
           # TODO: Operator docs

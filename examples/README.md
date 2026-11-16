@@ -161,15 +161,6 @@ summarization, and translation agents - all using real HTTP communication.
 
 See the [a2a-real-world-integration](a2a-real-world-integration/) directory for details.
 
-## Agent Registry Workflow with Quarkus LangChain4j
-
-An end-to-end sample combining Registry-backed A2A agent publication, discovery and
-summarize-to-translate delegation with MCP tool discovery and invocation. It also
-demonstrates compatibility rejection and accepted version changes.
-
-See [agent-registry-workflow](agent-registry-workflow/) for the external sample and
-run instructions. The sample is currently available as a contributor-branch preview
-in Quarkus LangChain4j.
 
 ## Custom Artifact Types Example
 This example adds two artifact types to the registry: `MARKDOWN`, implemented by Java classes loaded

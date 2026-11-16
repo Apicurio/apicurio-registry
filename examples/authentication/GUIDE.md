@@ -201,7 +201,7 @@ The [clients](clients/src/main/java/io/apicurio/registry/examples/authentication
 | Client | Configuration |
 |---|---|
 | Java SDK, client credentials | `RegistryClientOptions.create(url).oauth2(tokenEndpoint, clientId, secret)` |
-| Java SDK, a token you already have | `.httpAdapter(HttpAdapterType.JDK).bearerToken(token)`: the JDK adapter is required for now ([#11046](https://github.com/Apicurio/apicurio-registry/issues/11046)) |
+| Java SDK, a token you already have | `.bearerToken(token)` |
 | Java SDK, basic (`registry-basic`) | `.basicAuth(user, password)` |
 | Kafka serializer and deserializer | `apicurio.registry.auth.service.token.endpoint`, `apicurio.registry.auth.client.id`, `apicurio.registry.auth.client.secret` (or `apicurio.registry.auth.username`/`.password`) |
 

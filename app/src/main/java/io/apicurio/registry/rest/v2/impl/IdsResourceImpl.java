@@ -103,6 +103,8 @@ public class IdsResourceImpl implements IdsResource {
                 .getArtifactTypeProvider(metaData.getArtifactType());
 
         if (dereference && !artifact.getReferences().isEmpty()) {
+
+            ReferenceResolution.requireDereferenceable(artifact.getReferences(), accessGuard.referenceLoader());
             if (artifactTypeProvider.supportsReferencesWithContext()) {
                 RegistryContentUtils.RewrittenContentHolder rewrittenContent = RegistryContentUtils
                         .recursivelyResolveReferencesWithContext(factory, contentToReturn, metaData.getArtifactType(),

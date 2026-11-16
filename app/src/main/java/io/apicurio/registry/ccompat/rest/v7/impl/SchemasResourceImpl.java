@@ -1,5 +1,6 @@
 package io.apicurio.registry.ccompat.rest.v7.impl;
 
+import io.apicurio.registry.references.ReferenceResolution;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
@@ -77,6 +78,7 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
 
         // Apply format transformation if requested
         if (format != null && !format.isBlank()) {
+            ReferenceResolution.requireDereferenceable(references, accessGuard.referenceLoader());
             Map<String, TypedContent> resolvedReferences = resolveReferenceDtos(references);
             contentHandle = formatService.applyFormat(contentHandle, artifactType, format,
                     resolvedReferences);
@@ -118,6 +120,7 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
 
         // Apply format transformation if requested
         if (format != null && !format.trim().isEmpty()) {
+            ReferenceResolution.requireDereferenceable(references, accessGuard.referenceLoader());
             Map<String, TypedContent> resolvedReferences = resolveReferenceDtos(references);
             contentHandle = formatService.applyFormat(contentHandle, artifactType, format,
                     resolvedReferences);

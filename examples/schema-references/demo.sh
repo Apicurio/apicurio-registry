@@ -164,7 +164,9 @@ check "a DISABLED target still resolves" "enum" \
   "$(get "$order?references=DEREFERENCE" | jq -r '.fields[2].type.fields[2].type.type')"
 check "deleting a referenced artifact is allowed (#11029)" 204 "$(status DELETE /groups/common-manual/artifacts/Money)"
 check "the referrer still lists the reference" "common-manual/Address@1,common-manual/Money@1" "$(refs orders-manual Order)"
-check "but it can no longer be dereferenced (#11029)" 500 "$(status GET "$order?references=DEREFERENCE")"
+deref=$(curl -s --max-time 30 -w '\n%{http_code}' "$V3$order?references=DEREFERENCE")
+check "but it can no longer be dereferenced: 422" 422 "$(tail -n1 <<< "$deref")"
+check "the error names the missing reference" "Money@1" "$(sed '$d' <<< "$deref" | jq -r .detail | grep -o 'Money@1' | head -1)"
 
 # ------------------------------------------------------------------------------ step 11
 part "Step 11: serdes register nested types as references"

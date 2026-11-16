@@ -177,7 +177,7 @@ first step, so use `FULL`.
 - A `DISABLED` version still resolves as a reference: disabling hides a version from normal reads,
   not from the schemas that already use it.
 - Deleting a referenced artifact is **allowed** today. The referrer still lists the reference, but
-  dereferencing it now fails (for Avro, with a 500), and so do consumers that resolve it
+  dereferencing it now fails with `422`, naming the missing reference, and so do consumers that resolve it
   ([#11029](https://github.com/Apicurio/apicurio-registry/issues/11029)). Check `refType=INBOUND`
   before deleting. The Confluent-compatible API does refuse such deletes.
 
@@ -223,7 +223,7 @@ docker compose down -v
 |---|---|
 | `build.sh failed` | It needs JDK 21 or later; run `./build.sh` to see the errors. |
 | A Maven plugin execution fails | Run it by hand: `../../mvnw -f registration io.apicurio:apicurio-registry-maven-plugin:3.4.0-SNAPSHOT:register@avro-manual -Dregistry.url=http://localhost:8081/apis/registry/v3`. |
-| `DEREFERENCE` returns 500 | A referenced artifact was deleted (#11029) or the references form a cycle (#11030). |
+| `DEREFERENCE` returns 422 | The detail names the problem: a referenced version that no longer exists (#11029), or a cycle. |
 | The serdes step times out | Kafka is not reachable on `localhost:9092`; see [Using other ports](#using-other-ports). |
 
 ## Using other ports

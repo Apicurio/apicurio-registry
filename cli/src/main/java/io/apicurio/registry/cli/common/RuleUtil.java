@@ -37,7 +37,9 @@ public final class RuleUtil {
             RuleType.COMPATIBILITY.getValue(), Stream.of(CompatibilityLevel.values())
                     .map(Enum::name).toList(),
             RuleType.INTEGRITY.getValue(), Stream.of(IntegrityLevel.values())
-                    .map(Enum::name).toList()
+                    .map(Enum::name).toList(),
+            // The governance levels are defined by the server (GovernanceLevel), which the CLI does not depend on.
+            RuleType.GOVERNANCE.getValue(), List.of("NONE", "BASIC", "FULL")
     );
 
     private RuleUtil() {

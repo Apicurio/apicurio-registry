@@ -320,9 +320,10 @@ All validation checks passed.
 ```
 
 For Protobuf, the message classes are generated from the same `.proto` files at build time, so a
-message is checked against the registered schema by type and fields. Choosing the schema per record
-needs `apicurio.registry.find-latest=true` for Protobuf for now
-([#11005](https://github.com/Apicurio/apicurio-registry/issues/11005)).
+message is checked against the registered schema by type and fields. To choose the schema per record, the
+validator builds the schema from the message class and looks it up by content; set
+`apicurio.registry.canonicalize=true`, because that schema is formatted differently from the
+registered `.proto`.
 
 ## Step 14: Clean up
 

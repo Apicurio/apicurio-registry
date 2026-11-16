@@ -156,6 +156,14 @@ json_artifact unchecked b '{"$id": "b.json", "type": "object", "properties": {"a
   '[{"name": "a.json", "groupId": "unchecked", "artifactId": "a", "version": "1"}]' > /dev/null
 check "without a rule, a -> b -> a is stored; the graph reports the cycle" true \
   "$(get /groups/unchecked/artifacts/a/versions/1/references/graph | jq -r .metadata.hasCycles)"
+check "dereferencing the cycle: 422" 422 "$(status GET "/groups/unchecked/artifacts/a/versions/1/content?references=DEREFERENCE")"
+# With NO_CIRCULAR_REFERENCES, the version that closes the cycle is rejected
+status POST /groups '{"groupId": "cycles"}' > /dev/null
+status POST /groups/cycles/rules '{"ruleType": "INTEGRITY", "config": "NO_CIRCULAR_REFERENCES"}' > /dev/null
+json_artifact cycles a "$a_schema" "$(dangling cycles)" > /dev/null
+check "NO_CIRCULAR_REFERENCES: b closing a -> b -> a is rejected" "400 INTEGRITY" \
+  "$(json_artifact cycles b '{"$id": "b.json", "type": "object", "properties": {"a": {"$ref": "a.json"}}}' \
+     '[{"name": "a.json", "groupId": "cycles", "artifactId": "a", "version": "1"}]' | jq -r '"\(.status) \(.ruleViolation.ruleType)"')"
 
 # ------------------------------------------------------------------------------ step 10
 part "Step 10: disabling and deleting a referenced artifact"

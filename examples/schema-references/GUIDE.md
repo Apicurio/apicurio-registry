@@ -167,10 +167,9 @@ On a group with `INTEGRITY=FULL`:
 - duplicate names and cycles are rejected too (`NO_DUPLICATES`, `NO_CIRCULAR_REFERENCES`).
 
 Without a rule, `demo.sh` creates `a`, referencing `b` before `b` exists, then `b`, referencing `a`:
-the graph of `unchecked/a` reports `hasCycles: true`. Two issues there: the cycle rule does not
-catch a cycle that the new artifact closes, and dereferencing a cycle fails with 500
-([#11030](https://github.com/Apicurio/apicurio-registry/issues/11030)). `REFS_EXIST` prevents the
-first step, so use `FULL`.
+the graph of `unchecked/a` reports `hasCycles: true`, and dereferencing it fails with `422`, naming
+the cycle. With `NO_CIRCULAR_REFERENCES` (group `cycles`), creating `b` is rejected, because it closes
+the cycle. `REFS_EXIST` prevents the first step altogether, so use `FULL`.
 
 ## Step 10: Disabling and deleting a referenced artifact
 

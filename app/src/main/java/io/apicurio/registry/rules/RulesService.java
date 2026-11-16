@@ -85,4 +85,13 @@ public interface RulesService {
             TypedContent content, List<TypedContent> existingContent,
             List<ArtifactReference> references, Map<String, TypedContent> resolvedReferences)
             throws RuleViolationException;
+
+    /**
+     * Applies all configured rules to a version being created, whose id is {@code version} if known
+     * before it is stored (null if the storage generates it), so rules can tell references to that
+     * version apart from references to other versions.
+     */
+    public void applyRulesForNewVersion(String groupId, String artifactId, String version, String artifactType,
+            TypedContent content, RuleApplicationType ruleApplicationType, List<ArtifactReference> references,
+            Map<String, TypedContent> resolvedReferences) throws RuleViolationException;
 }

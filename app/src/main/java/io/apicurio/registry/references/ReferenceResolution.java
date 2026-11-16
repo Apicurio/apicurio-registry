@@ -82,11 +82,11 @@ public final class ReferenceResolution {
     }
 
     /**
-     * Checks that {@code references} can be dereferenced: every version in the reference graph exists.
-     * Dereferencing a graph with a missing target would return incomplete content (or fail deep inside a
-     * content type's dereferencer).
+     * Checks that {@code references} can be dereferenced: every version in the reference graph exists and
+     * the graph has no cycle. Dereferencing a graph with a missing target would return incomplete content
+     * (or fail deep inside a content type's dereferencer), and a cyclic graph cannot be inlined at all.
      *
-     * @throws UnprocessableEntityException naming the missing references
+     * @throws UnprocessableEntityException naming the missing references, or the cycle
      */
     public static void requireDereferenceable(List<ArtifactReferenceDto> references,
             Function<ArtifactReferenceDto, ContentWrapperDto> loader) {
@@ -121,6 +121,10 @@ public final class ReferenceResolution {
                     "Cannot dereference the content: these references point to versions that do not exist: "
                             + missing);
         }
+        resolved.findCycle().ifPresent(cycle -> {
+            throw new UnprocessableEntityException("Cannot dereference the content: circular reference "
+                    + cycle.stream().map(ReferenceResolution::format).collect(Collectors.joining(" -> ")));
+        });
     }
 
     private static String format(GAV gav) {

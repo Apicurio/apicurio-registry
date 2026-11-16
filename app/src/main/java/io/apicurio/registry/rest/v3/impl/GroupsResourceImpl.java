@@ -1586,9 +1586,10 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 // Apply any configured rules unless it is a DRAFT version (unless draft production mode is enabled)
                 TypedContent effectiveTypedContent = TypedContent.create(effectiveContent, effectiveContentType);
                 if (!firstVersionIsDraft || restConfig.isDraftProductionModeEnabled()) {
-                    rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId,
-                            artifactType, effectiveTypedContent, RuleApplicationType.CREATE,
-                            withAutoMatched(references, autoMatched), resolvedReferences);
+                    // A first version without an explicit id is stored as "1".
+                    rulesService.applyRulesForNewVersion(new GroupId(groupId).getRawGroupIdWithNull(), artifactId,
+                            firstVersion != null ? firstVersion : "1", artifactType, effectiveTypedContent,
+                            RuleApplicationType.CREATE, withAutoMatched(references, autoMatched), resolvedReferences);
                 }
                 // Let write hooks inspect the content BEFORE the artifact is persisted, so a hook
                 // rejection (e.g. a malformed 'x-agent-card' extension) fails this write exactly like
@@ -1781,7 +1782,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         // Apply rules unless the version is DRAFT (unless draft production mode is enabled)
         if (!isDraft || restConfig.isDraftProductionModeEnabled()) {
-            applyUpdateRules(groupId, artifactId, artifactType, TypedContent.create(effectiveContent, effectiveContentType),
+            applyUpdateRules(groupId, artifactId, data.getVersion(), artifactType,
+                    TypedContent.create(effectiveContent, effectiveContentType),
                     withAutoMatched(data.getContent().getReferences(), autoMatched), referencesAsDtos, hookPlan);
         }
 
@@ -2128,7 +2130,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         // Apply rules only if not a draft version (unless draft production mode is enabled)
         if (!isDraftVersion || restConfig.isDraftProductionModeEnabled()) {
-            applyUpdateRules(groupId, artifactId, artifactType, TypedContent.create(content, contentType),
+            applyUpdateRules(groupId, artifactId, version, artifactType, TypedContent.create(content, contentType),
                     references, referencesAsDtos, prepared.hookPlan());
         }
 
@@ -2184,12 +2186,13 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      * Resolves references (seeing a hook's planned, not-yet-persisted content through {@code hookPlan})
      * and applies the configured rules for a version update.
      */
-    private void applyUpdateRules(String groupId, String artifactId, String artifactType, TypedContent typedContent,
-            List<ArtifactReference> references, List<ArtifactReferenceDto> referencesAsDtos, HookPlan hookPlan) {
+    private void applyUpdateRules(String groupId, String artifactId, String version, String artifactType,
+            TypedContent typedContent, List<ArtifactReference> references, List<ArtifactReferenceDto> referencesAsDtos,
+            HookPlan hookPlan) {
         final Map<String, TypedContent> resolvedReferences = ReferenceResolution.recursivelyResolveReferences(
                 referencesAsDtos, hookPlan.loader(accessGuard.referenceLoader()));
-        rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType,
-                typedContent, RuleApplicationType.UPDATE, references, resolvedReferences);
+        rulesService.applyRulesForNewVersion(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, version,
+                artifactType, typedContent, RuleApplicationType.UPDATE, references, resolvedReferences);
     }
 
     /**

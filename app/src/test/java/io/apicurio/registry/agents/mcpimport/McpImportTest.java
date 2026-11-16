@@ -22,6 +22,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.junit.jupiter.api.parallel.ResourceLock;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
@@ -346,6 +348,32 @@ public class McpImportTest extends AbstractResourceTestBase {
                 .body("tools[0].causes[0].context", equalTo("/artifactType"));
 
         assertEquals(1, versionCount("srv.search"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"caf\u00e9", "a%2Fb", "../../etc", "two words", ""})
+    void toolWithAnInvalidNameIsRejectedAndTheOthersImported(String name) {
+        mcp.tools(McpTestServer.tool("search", "string"), McpTestServer.tool(name, "string"));
+
+        importTools().statusCode(200)
+                .body("status", equalTo("NEW_VERSION"))
+                .body("tools[0].status", equalTo("CREATED"))
+                .body("tools[1].status", equalTo("REJECTED"))
+                .body("tools[1].causes[0].context", equalTo("/name"));
+
+        assertEquals(List.of("search=srv.search@1"), references("2"));
+        given().get(registryV3ApiUrl + "/search/artifacts?groupId=" + group).then().statusCode(200)
+                .body("count", equalTo(2));
+    }
+
+    @Test
+    void toolNameOverTheMaximumLengthIsRejected() {
+        String longest = "t".repeat(McpToolImportService.TOOL_NAME_MAX_LENGTH);
+        mcp.tools(McpTestServer.tool(longest, "string"), McpTestServer.tool(longest + "x", "string"));
+
+        importTools().statusCode(200)
+                .body("tools[0].status", equalTo("CREATED"))
+                .body("tools[1].status", equalTo("REJECTED"));
     }
 
     @Test

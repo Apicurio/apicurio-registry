@@ -6,6 +6,7 @@ import io.apicurio.registry.auth.AuthorizedResource;
 import io.apicurio.registry.auth.ResourceAccessGuard;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.extensions.McpToolImportHandler;
+import io.apicurio.registry.model.ArtifactId;
 import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
@@ -50,6 +51,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -69,6 +71,11 @@ public class McpToolImportService implements McpToolImportHandler {
 
     static final String METRIC_TOOLS = "apicurio.mcp.import.tools";
     static final String METRIC_FAILURES = "apicurio.mcp.import.failures";
+
+    // The tool name becomes part of an artifact ID, so it is held to the MCP specification's
+    // recommended form: 1 to 128 ASCII letters, digits, '_', '-' or '.'.
+    static final int TOOL_NAME_MAX_LENGTH = 128;
+    private static final Pattern TOOL_NAME = Pattern.compile("[A-Za-z0-9_.-]{1," + TOOL_NAME_MAX_LENGTH + "}");
 
     // Headers the transport sets itself, or that the HTTP client refuses to let callers set.
     private static final Set<String> RESERVED_HEADERS = Set.of("host", "content-length", "connection",
@@ -243,6 +250,14 @@ public class McpToolImportService implements McpToolImportHandler {
         result.setGroupId(groupId);
         result.setArtifactId(artifactId);
 
+        if (!isValidToolName(tool.name()) || !ArtifactId.isValid(artifactId)) {
+            result.setStatus(McpToolImportStatus.REJECTED);
+            result.setCauses(List.of(cause("The tool name must be 1 to " + TOOL_NAME_MAX_LENGTH
+                    + " ASCII letters, digits, '_', '-' or '.', as the MCP specification recommends, and the"
+                    + " artifact ID it forms must not exceed 512 characters.", "/name")));
+            return result;
+        }
+
         boolean exists = storage.isArtifactExists(raw(groupId), artifactId);
         List<String> previousVersions = List.of();
         if (exists) {
@@ -381,6 +396,10 @@ public class McpToolImportService implements McpToolImportHandler {
     }
 
     /** A character allowed in an HTTP field name: RFC 9110 {@code tchar}. */
+    private static boolean isValidToolName(String name) {
+        return name != null && TOOL_NAME.matcher(name).matches();
+    }
+
     private static boolean isTokenChar(int c) {
         return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9'
                 || "!#$%&'*+-.^_`|~".indexOf(c) >= 0;

@@ -78,4 +78,17 @@ public class MockSchemaParser implements SchemaParser<String, String> {
     public String referenceNamespace(ParsedSchema<String> schema) {
         return namespaces.get(schema.referenceName());
     }
+
+    private boolean supportsDereferencedContentLookups = true;
+
+    /** Sets whether this parser reports support for dereferenced content lookups. */
+    public MockSchemaParser withSupportsDereferencedContentLookups(boolean supports) {
+        this.supportsDereferencedContentLookups = supports;
+        return this;
+    }
+
+    @Override
+    public boolean supportsDereferencedContentLookups() {
+        return supportsDereferencedContentLookups;
+    }
 }

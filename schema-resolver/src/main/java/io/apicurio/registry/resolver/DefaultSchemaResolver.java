@@ -257,7 +257,8 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
      * @return the schema
      */
     protected SchemaLookupResult<S> resolveSchemaByContentId(long contentId, boolean dereference) {
-        boolean dereferenced = dereference && clientFacade.supportsDereferencedContentLookups();
+        boolean dereferenced = dereference && clientFacade.supportsDereferencedContentLookups()
+                && schemaParser.supportsDereferencedContentLookups();
         return schemaCache.getByContentId(contentId, contentIdKey -> {
             // it's impossible to retrieve more info about the artifact with only the contentId, and that's ok
             String rawSchema = this.clientFacade.getSchemaByContentId(contentIdKey, dereferenced);
@@ -288,7 +289,8 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
      * @return the schema
      */
     protected SchemaLookupResult<S> resolveSchemaByContentHash(String contentHash, boolean dereference) {
-        boolean dereferenced = dereference && clientFacade.supportsDereferencedContentLookups();
+        boolean dereferenced = dereference && clientFacade.supportsDereferencedContentLookups()
+                && schemaParser.supportsDereferencedContentLookups();
         return schemaCache.getByContentHash(contentHash, contentHashKey -> {
             // it's impossible to retrieve more info about the artifact with only the contentHash, and that's ok
             String rawSchema = this.clientFacade.getSchemaByContentHash(contentHashKey, dereferenced);

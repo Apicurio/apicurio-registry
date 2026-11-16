@@ -110,6 +110,15 @@ class SplitDereferenceResolverTest {
     }
 
     @Test
+    void contentLookupsKeepReferencesWhenTheParserCannotDereference() {
+        DefaultSchemaResolver<String, String> resolver = resolver(sides(false, true));
+        parser.withSupportsDereferencedContentLookups(false);
+        resolver.resolveSchemaByArtifactReference(ArtifactReference.builder().contentId(7L).build());
+        assertEquals(List.of("contentId:false"), facade.getDereferenceRequests());
+        assertEquals(1, facade.getGetReferencesCallCount());
+    }
+
+    @Test
     void globalKeyAloneDrivesBothSides() {
         DefaultSchemaResolver<String, String> resolver = resolver(
                 autoRegister(new HashMap<>(Map.of(SchemaResolverConfig.DEREFERENCE_SCHEMA, "true"))));

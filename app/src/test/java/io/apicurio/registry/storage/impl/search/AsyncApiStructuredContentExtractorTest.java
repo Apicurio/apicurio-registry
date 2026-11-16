@@ -137,4 +137,41 @@ class AsyncApiStructuredContentExtractorTest {
 
         assertTrue(elements.isEmpty());
     }
+
+    @Test
+    void testExtractFromYaml() {
+        String asyncApiYaml = """
+                asyncapi: '2.6.0'
+                info:
+                  title: Events API
+                  version: '1.0'
+                channels:
+                  user/signedup:
+                    subscribe:
+                      operationId: onUserSignup
+                components:
+                  messages:
+                    UserSignedUp:
+                      payload:
+                        type: object
+                  schemas:
+                    User:
+                      type: object
+                  servers:
+                    production:
+                      url: mqtt://broker.example.com
+                      protocol: mqtt
+                tags:
+                  - name: user
+                """;
+
+        List<StructuredElement> elements = extractor.extract(ContentHandle.create(asyncApiYaml));
+
+        assertTrue(elements.stream().anyMatch(e -> e.kind().equals("channel") && e.name().equals("user/signedup")));
+        assertTrue(elements.stream().anyMatch(e -> e.kind().equals("operation") && e.name().equals("onUserSignup")));
+        assertTrue(elements.stream().anyMatch(e -> e.kind().equals("message") && e.name().equals("UserSignedUp")));
+        assertTrue(elements.stream().anyMatch(e -> e.kind().equals("schema") && e.name().equals("User")));
+        assertTrue(elements.stream().anyMatch(e -> e.kind().equals("server") && e.name().equals("production")));
+        assertTrue(elements.stream().anyMatch(e -> e.kind().equals("tag") && e.name().equals("user")));
+    }
 }

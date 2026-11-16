@@ -1,12 +1,16 @@
 package io.apicurio.registry.openapi.content.extract;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.apitomy.datamodels.Library;
 import io.apitomy.datamodels.TraverserDirection;
 import io.apitomy.datamodels.models.Document;
 import io.apitomy.datamodels.models.openapi.OpenApiDocument;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.extract.StructuredContentExtractor;
 import io.apicurio.registry.content.extract.StructuredElement;
+import io.apicurio.registry.content.util.ContentTypeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,7 +20,7 @@ import java.util.List;
 /**
  * Extracts structured elements from OpenAPI content for search indexing. Parses the OpenAPI document using
  * the apicurio-data-models library and extracts schemas, paths, operationIds, tags, parameters, security
- * schemes, and servers via a shared {@link StructuredContentVisitor}.
+ * schemes, and servers via a shared {@link StructuredContentVisitor}. Supports both JSON and YAML formats.
  */
 public class OpenApiStructuredContentExtractor implements StructuredContentExtractor {
 
@@ -25,7 +29,11 @@ public class OpenApiStructuredContentExtractor implements StructuredContentExtra
     @Override
     public List<StructuredElement> extract(ContentHandle content) {
         try {
-            Document doc = Library.readDocumentFromJSONString(content.content());
+            JsonNode node = ContentTypeUtil.parseJsonOrYaml(TypedContent.create(content, null));
+            if (!(node instanceof ObjectNode objectNode)) {
+                return Collections.emptyList();
+            }
+            Document doc = Library.readDocument(objectNode);
             if (!(doc instanceof OpenApiDocument)) {
                 return Collections.emptyList();
             }

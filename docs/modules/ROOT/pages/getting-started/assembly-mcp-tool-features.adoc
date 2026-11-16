@@ -528,7 +528,7 @@ Each tool, and the `MCP_SERVER` artifact, has one of the following statuses:
 |A stored version already matches the tool's definition. For the server, the latest version already has the same references, so no version was added.
 
 |`REJECTED`
-|A rule, such as `COMPATIBILITY`, rejected the new definition, and the causes list the violations. Nothing was written for the tool, and the new server version does not reference it, because no stored version matches what the server offers. A tool is also rejected when an artifact with its ID exists and is not an `MCP_TOOL`.
+|A rule, such as `COMPATIBILITY`, rejected the new definition, and the causes list the violations. Nothing was written for the tool, and the new server version does not reference it, because no stored version matches what the server offers. A tool is also rejected when an artifact with its ID exists and is not an `MCP_TOOL`. A tool is also rejected when its name is not 1 to 128 ASCII letters, digits, `_`, `-` or `.`, the form the MCP specification recommends, because the name becomes part of the tool's artifact ID.
 
 |`REMOVED`
 |The previous server version referenced the tool, but the server no longer lists it. The tool's artifact is not changed or deleted, and the new server version does not reference it.

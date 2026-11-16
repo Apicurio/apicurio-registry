@@ -423,7 +423,8 @@ open_api POST /groups/weather-tools/artifacts/weather/mcp-import '{"url":"https:
 
 `localhost` and `169.254.169.254` (the cloud metadata address) are listed, yet refused too: whatever
 the allow-list says, every address a host resolves to must also pass the registry's outbound address
-policy, which never allows loopback, link-local, multicast or cloud metadata addresses. All refusals
+policy, which refuses link-local, multicast and cloud metadata addresses, and loopback unless
+`apicurio.mcp-import.loopback.enabled=true` (a development override, off in this demo). All refusals
 have the same message, so the endpoint cannot be used to probe the network.
 
 Headers for the MCP server, such as credentials, go in the request's `headers` field. They are sent

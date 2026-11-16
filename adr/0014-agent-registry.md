@@ -61,8 +61,9 @@ has to be optional, removable, and unable to destabilise core code paths.
 6. **Outbound connections are policy-checked.** MCP import connects to a URL supplied in the
    request, so it is an SSRF vector: `McpImportTargetPolicy` requires HTTPS (unless allowed),
    no user information, a host on `apicurio.mcp-import.allowed-hosts` (empty refuses all), and then
-   every resolved address must pass `OutboundAddressPolicy`: loopback, link-local, multicast,
-   reserved and cloud metadata addresses are refused even when listed. Every refusal has the same
+   every resolved address must pass `OutboundAddressPolicy`: link-local, multicast, reserved and
+   cloud metadata addresses are refused even when listed, and so is loopback unless the
+   development override `apicurio.mcp-import.loopback.enabled` is on. Every refusal has the same
    message, so the endpoint cannot probe the network. Response size, tool count and time are bounded.
 
 ### Why one registry, not a separate agent registry
@@ -131,7 +132,8 @@ Feature flags are in Decision 3. Other properties:
 
 1. Every feature is experimental; endpoints may change incompatibly between minor releases.
 2. MCP import checks the resolved addresses, but the HTTP client resolves the host again when it
-   connects, so DNS rebinding is not caught; allow-list hostnames you control, or CIDR ranges.
+   connects, so DNS rebinding is not caught. A CIDR entry constrains only the first resolution, so
+   it does not help either: allow-list hostnames whose DNS you control, or IP literals.
 3. The MCP Registry API keeps a legacy unprefixed label (`mcp-server-version-id`) for data written
    before the namespace rule.
 4. ARD search has no relevance ranking, and Trust Manifests and catalog import are deferred

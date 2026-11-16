@@ -323,9 +323,19 @@ The `DefaultSchemaResolver` uses the following properties to configure how to lo
 |`false`
 |`DEREFERENCE_SCHEMA`
 |`apicurio.registry.dereference-schema`
-|Used by serializers and deserializers. Configures the SerDes to dereference the schema. After the schema is registered, this property instructs the SerDes to request the dereferenced schema from the server. It also instructs the serializer to dereference the schema before registering it in {registry}, but this is only supported for Avro.
+|Used by serializers and deserializers, unless overridden by `apicurio.registry.serializer.dereference-schema` or `apicurio.registry.deserializer.dereference-schema`. Configures the serializer to dereference the schema before registering it in {registry} (Avro only), and the deserializer to request dereferenced schemas from {registry}.
 |`boolean`
 |`false`
+|`SERIALIZER_DEREFERENCE_SCHEMA`
+|`apicurio.registry.serializer.dereference-schema`
+|Used by serializers only. Overrides `apicurio.registry.dereference-schema`: whether the serializer registers the schema dereferenced, without references. Only supported for Avro.
+|`boolean`
+|The value of `apicurio.registry.dereference-schema`
+|`DESERIALIZER_DEREFERENCE_SCHEMA`
+|`apicurio.registry.deserializer.dereference-schema`
+|Used by deserializers only. Overrides `apicurio.registry.dereference-schema`: whether the deserializer requests dereferenced schemas, by global ID, content ID, or content hash, instead of fetching each reference separately. Requires {registry} 3.4.0 or later for content IDs and content hashes.
+|`boolean`
+|The value of `apicurio.registry.dereference-schema`
 |`AUTO_REGISTER_ARTIFACT_IF_EXISTS`
 |`apicurio.registry.auto-register.if-exists`
 |Used by serializers only. Configures the behavior of the client when a conflict occurs while creating an artifact because the artifact already exists. Available values are `FAIL`, `CREATE_VERSION`, or `FIND_OR_CREATE_VERSION`.
@@ -387,6 +397,12 @@ The `DefaultSchemaResolver` uses the following properties to configure how to lo
 |`boolean`
 |`false`
 |===
+
+NOTE: Since {registry} 3.4.0, `apicurio.registry.dereference-schema` and
+`apicurio.registry.deserializer.dereference-schema` also apply when deserializers look up schemas by content ID or
+content hash, which is the default (`apicurio.registry.use-id` is `contentId`). Previously, dereferencing only
+applied to lookups by global ID. The deserialized data is the same. When Kafka Connect shares one resolver between
+its serializer and deserializer, a cached schema can be in either form, dereferenced or with references.
 
 **Configuration to read and write registry artifacts in Kafka**
 

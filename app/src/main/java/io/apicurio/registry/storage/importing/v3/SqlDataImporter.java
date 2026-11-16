@@ -80,7 +80,14 @@ public class SqlDataImporter extends AbstractDataImporter {
     @Override
     public void importArtifactVersion(ArtifactVersionEntity entity) {
         try {
-            entity.contentId = contentIdMapping.get(entity.contentId);
+            Long newContentId = contentIdMapping.get(entity.contentId);
+            if (newContentId == null) {
+                log.warn("Dropped artifact version {}/{} version {} (globalId {}) from the import: its content "
+                        + "(contentId {}) was not imported", entity.groupId, entity.artifactId, entity.version,
+                        entity.globalId, entity.contentId);
+                return;
+            }
+            entity.contentId = newContentId;
 
             var oldGlobalId = entity.globalId;
             if (!preserveGlobalId) {
@@ -178,7 +185,13 @@ public class SqlDataImporter extends AbstractDataImporter {
     @Override
     public void importComment(CommentEntity entity) {
         try {
-            entity.globalId = globalIdMapping.get(entity.globalId);
+            Long newGlobalId = globalIdMapping.get(entity.globalId);
+            if (newGlobalId == null) {
+                log.warn("Dropped comment {} from the import: its version (globalId {}) was not imported",
+                        entity.commentId, entity.globalId);
+                return;
+            }
+            entity.globalId = newGlobalId;
 
             storage.importComment(entity);
             log.debug("Comment imported successfully: {}", entity);

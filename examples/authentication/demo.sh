@@ -152,6 +152,7 @@ check "a malformed basic header: 401" 401 "$(code "$BASIC" GET /groups -H 'Autho
 
 # ------------------------------------------------------------------------------ step 9
 part "Step 9: identity from a trusted proxy (proxy -> registry-proxy)"
+failures_before=$failures
 check "alice (proxy group sr-developer): write" 200 "$(write_group "$PROXY" proxy-alice -u alice:alice)"
 check "bob (proxy group sr-readonly): read, write" "200 403" "$(code "$PROXY" GET /groups -u bob:bob) $(write_group "$PROXY" proxy-bob -u bob:bob)"
 check "the proxy rejects a wrong password, and no credentials" "401 401" "$(code "$PROXY" GET /groups -u alice:wrong) $(code "$PROXY" GET /groups)"
@@ -159,6 +160,10 @@ check "bob cannot promote himself by sending the header: the proxy overwrites it
   "$(write_group "$PROXY" proxy-spoof -u bob:bob -H 'X-Forwarded-Groups: sr-admin')"
 check "the owner is the user the proxy authenticated" alice \
   "$(curl -s -u alice:alice "$PROXY$V3/groups/proxy-alice" | jq -r .owner)"
+# If a step 9 check failed, show what nginx logged about the registry connection (#10992)
+if [ "$failures" -gt "$failures_before" ]; then
+  docker compose logs proxy 2>&1 | grep '\[error\]' | tail -5 | sed 's/^/  info  /' || true
+fi
 
 # ------------------------------------------------------------------------------ step 10
 part "Step 10: Kubernetes service account tokens (registry-k8s, TokenReview with k3s)"

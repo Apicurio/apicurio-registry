@@ -258,6 +258,33 @@ class AbstractHandleFactoryTest {
         verify(secondConnection).close();
     }
 
+    @Test
+    void shouldCloseConnectionAndResetHandleWhenRollbackThrowsError() throws Exception {
+        AgroalDataSource dataSource = mock(AgroalDataSource.class);
+        Connection firstConnection = mock(Connection.class);
+        Connection secondConnection = mock(Connection.class);
+        StackOverflowError rollbackFailure = new StackOverflowError("rollback failed");
+        when(dataSource.getConnection()).thenReturn(firstConnection, secondConnection);
+        doThrow(rollbackFailure).when(firstConnection).rollback();
+        AbstractHandleFactory factory = factory(dataSource);
+        HandleCallback<String, RuntimeException> failingCallback = handle -> {
+            throw new IllegalStateException("callback failed");
+        };
+        HandleCallback<String, RuntimeException> callback = handle -> "done";
+
+        StackOverflowError thrown = assertThrows(StackOverflowError.class,
+                () -> factory.withHandle(failingCallback));
+
+        assertSame(rollbackFailure, thrown);
+        verify(firstConnection).rollback();
+        verify(firstConnection, never()).commit();
+        verify(firstConnection).close();
+        assertEquals("done", factory.withHandle(callback));
+        verify(dataSource, times(2)).getConnection();
+        verify(secondConnection).commit();
+        verify(secondConnection).close();
+    }
+
     private AbstractHandleFactory factory(AgroalDataSource dataSource) {
         ConnectionRetryConfig config = new ConnectionRetryConfig();
         config.enabled = false;

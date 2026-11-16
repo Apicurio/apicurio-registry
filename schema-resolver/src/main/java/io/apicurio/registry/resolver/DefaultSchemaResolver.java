@@ -418,7 +418,9 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         RegistryVersionCoordinates versionCoordinates = this.clientFacade.getVersionCoordinatesByGAV(groupId, artifactId, version);
 
         // Get the schema string (either dereferenced or not based on config)
-        String schemaString = this.clientFacade.getSchemaByGlobalId(versionCoordinates.getGlobalId(), dereference);
+        // Read as bytes: a dereferenced Protobuf schema is a binary descriptor
+        byte[] schema = this.clientFacade.getSchemaBytesByGlobalId(versionCoordinates.getGlobalId(),
+                dereference);
         Map<String, ParsedSchema<S>> resolvedReferences = new HashMap<>();
         // If resolving dereference, we need to also fetch and resolve the references
         if (!dereference) {
@@ -427,7 +429,6 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
             resolvedReferences = resolveReferences(artifactReferences);
         }
 
-        byte[] schema = schemaString.getBytes(StandardCharsets.UTF_8);
         S parsed = schemaParser.parseSchema(schema, resolvedReferences);
 
         ParsedSchemaImpl<S> parsedSchema = new ParsedSchemaImpl<S>().setParsedSchema(parsed).setRawSchema(schema);

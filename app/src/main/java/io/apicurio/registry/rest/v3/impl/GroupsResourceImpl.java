@@ -1297,9 +1297,14 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                     .referenceDtosToReferences(artifact.getReferences());
 
             TypedContent typedContent = TypedContent.create(artifact.getContent(), artifact.getContentType());
-            rulesService.applyRules(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(),
-                    vmd.getArtifactType(), typedContent, RuleApplicationType.UPDATE, references,
-                    resolvedReferences);
+            // The draft is not DISABLED, so it is among the enabled versions: exclude it, so it is not
+            // compared with itself.
+            List<Long> existingContentIds = new ArrayList<>(storage.getEnabledArtifactContentIds(
+                    gav.getRawGroupIdWithNull(), gav.getRawArtifactId()));
+            existingContentIds.removeIf(id -> id.equals(artifact.getContentId()));
+            rulesService.applyRules(storage, gav.getRawGroupIdWithNull(), gav.getRawArtifactId(),
+                    vmd.getArtifactType(), typedContent, new LazyContentList(storage, existingContentIds),
+                    references, resolvedReferences);
             if (data.getState() != VersionState.DISABLED) {
                 afterPublish = beforePublish(new VersionWriteContext(VersionWriteContext.Operation.PUBLISH_DRAFT,
                         storage, gav, vmd.getArtifactType(), securityIdentity.getPrincipal().getName()),

@@ -150,10 +150,8 @@ check "a DISABLED version does not count" 200 "$status"
 
 # ------------------------------------------------------------------------------ step 10
 part "Step 10: drafts skip the rules until they are published"
-# BACKWARD_TRANSITIVE, not BACKWARD: with a non-transitive rule, publishing compares the draft with
-# itself and passes (https://github.com/Apicurio/apicurio-registry/issues/11001).
 call POST /groups/orders/artifacts "$(artifact_body order-returned AVRO order-placed-v1.avsc)"
-rule /groups/orders/artifacts/order-returned COMPATIBILITY BACKWARD_TRANSITIVE
+rule /groups/orders/artifacts/order-returned COMPATIBILITY BACKWARD
 call POST /groups/orders/artifacts/order-returned/versions \
   "$(jq -n --rawfile c schemas/order-placed-id-as-number.avsc '{version: "draft-1", isDraft: true, content: {content: $c, contentType: "application/json"}}')"
 check "an incompatible draft is saved" 200 "$status"

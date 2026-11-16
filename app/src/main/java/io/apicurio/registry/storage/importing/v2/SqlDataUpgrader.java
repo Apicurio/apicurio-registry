@@ -37,6 +37,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import static io.apicurio.registry.types.ArtifactType.ASYNCAPI;
@@ -181,9 +182,6 @@ public class SqlDataUpgrader extends AbstractDataImporter {
         try {
             // Based on the configuration, a new id is requested or the old one is used.
             var oldContentId = entity.contentId;
-            if (!preserveContentId) {
-                entity.contentId = storage.nextContentId();
-            }
 
             List<ArtifactReferenceDto> references = RegistryContentUtils
                     .deserializeReferences(entity.serializedReferences);
@@ -191,6 +189,18 @@ public class SqlDataUpgrader extends AbstractDataImporter {
             // Recalculate the hash using the current algorithm
             TypedContent typedContent = TypedContent.create(ContentHandle.create(entity.contentBytes), null);
             entity.contentHash = utils.getContentHash(typedContent, references);
+
+            if (!preserveContentId) {
+                // Content is deduplicated by hash: reuse the existing content instead of failing the insert
+                Optional<Long> existingContentId = storage.contentIdFromHash(entity.contentHash);
+                if (existingContentId.isPresent()) {
+                    contentIdMapping.put(oldContentId, existingContentId.get());
+                    log.debug("Content already exists with id {}, reusing it: {}", existingContentId.get(),
+                            entity);
+                    return;
+                }
+                entity.contentId = storage.nextContentId();
+            }
 
             // Try to recalculate the canonical hash - this may fail if the content has references
             try {

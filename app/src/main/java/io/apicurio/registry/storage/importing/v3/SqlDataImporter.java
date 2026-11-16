@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Class used when importing the contents of a v3 formatted .zip file into Apicurio Registry.
@@ -124,6 +125,14 @@ public class SqlDataImporter extends AbstractDataImporter {
 
             var oldContentId = entity.contentId;
             if (!preserveContentId) {
+                // Content is deduplicated by hash: reuse the existing content instead of failing the insert
+                Optional<Long> existingContentId = storage.contentIdFromHash(entity.contentHash);
+                if (existingContentId.isPresent()) {
+                    contentIdMapping.put(oldContentId, existingContentId.get());
+                    log.debug("Content already exists with id {}, reusing it: {}", existingContentId.get(),
+                            entity);
+                    return;
+                }
                 entity.contentId = storage.nextContentId();
             }
 

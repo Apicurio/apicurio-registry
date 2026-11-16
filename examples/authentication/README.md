@@ -62,8 +62,6 @@ secret `test1`.
 
 ## Notes
 
-- **Known issue** (the guide shows it): a malformed basic header returns 500
-  ([#11043](https://github.com/Apicurio/apicurio-registry/issues/11043)).
 - **Local only:** Keycloak in development mode over HTTP, the token issuer check relaxed, secrets in
   plain text, k3s privileged and TLS verification skipped. Do not use this configuration in
   production.

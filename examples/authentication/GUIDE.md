@@ -141,8 +141,7 @@ curl -u developer-client:test1 localhost:8081/apis/registry/v3/groups
 - Tokens are **cached** per credentials until shortly before they expire: `demo.sh` counts Keycloak's
   `CLIENT_LOGIN` events, and five more calls make no new token request. Failures are cached for a
   minute.
-- A malformed header returns 500 today instead of 401
-  ([#11043](https://github.com/Apicurio/apicurio-registry/issues/11043)).
+- A malformed header (not Base64) is 401.
 
 ## Step 8: Basic against users in the registry
 

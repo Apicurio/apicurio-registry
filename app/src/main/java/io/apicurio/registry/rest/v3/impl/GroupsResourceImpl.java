@@ -1589,7 +1589,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                     // A first version without an explicit id is stored as "1".
                     rulesService.applyRulesForNewVersion(new GroupId(groupId).getRawGroupIdWithNull(), artifactId,
                             firstVersion != null ? firstVersion : "1", artifactType, effectiveTypedContent,
-                            RuleApplicationType.CREATE, withAutoMatched(references, autoMatched), resolvedReferences);
+                            RuleApplicationType.CREATE,
+                            V3ApiUtil.referenceDtosToReferences(referencesAsDtos), resolvedReferences);
                 }
                 // Let write hooks inspect the content BEFORE the artifact is persisted, so a hook
                 // rejection (e.g. a malformed 'x-agent-card' extension) fails this write exactly like
@@ -1783,8 +1784,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         // Apply rules unless the version is DRAFT (unless draft production mode is enabled)
         if (!isDraft || restConfig.isDraftProductionModeEnabled()) {
             applyUpdateRules(groupId, artifactId, data.getVersion(), artifactType,
-                    TypedContent.create(effectiveContent, effectiveContentType),
-                    withAutoMatched(data.getContent().getReferences(), autoMatched), referencesAsDtos, hookPlan);
+                    TypedContent.create(effectiveContent, effectiveContentType), referencesAsDtos, hookPlan);
         }
 
         // Let write hooks inspect the content BEFORE the version is persisted, so a hook rejection
@@ -2089,7 +2089,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         references.addAll(autoMatched);
         ContentWrapperDto merged = ContentWrapperDto.builder().content(content).contentType(contentType)
                 .references(references).build();
-        return new UpdateContentPlan(merged, hookPlan, autoMatched);
+        return new UpdateContentPlan(merged, hookPlan);
     }
 
     /**
@@ -2102,10 +2102,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      *
      * @param content the content, content type and all references to store
      * @param hookPlan the write hooks' plan
-     * @param autoMatched the references added by {@code autoReferences} matching, also in {@code content}
      */
-    private record UpdateContentPlan(ContentWrapperDto content, HookPlan hookPlan,
-            List<ArtifactReferenceDto> autoMatched) {
+    private record UpdateContentPlan(ContentWrapperDto content, HookPlan hookPlan) {
     }
 
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
@@ -2116,8 +2114,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         String description = theVersion.getDescription();
         List<String> branches = theVersion.getBranches();
         Map<String, String> labels = theVersion.getLabels();
-        List<ArtifactReference> references = withAutoMatched(theVersion.getContent().getReferences(),
-                prepared.autoMatched());
         String contentType = prepared.content().getContentType();
         ContentHandle content = prepared.content().getContent();
         boolean isDraftVersion = theVersion.getIsDraft() != null && theVersion.getIsDraft();
@@ -2131,7 +2127,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         // Apply rules only if not a draft version (unless draft production mode is enabled)
         if (!isDraftVersion || restConfig.isDraftProductionModeEnabled()) {
             applyUpdateRules(groupId, artifactId, version, artifactType, TypedContent.create(content, contentType),
-                    references, referencesAsDtos, prepared.hookPlan());
+                    referencesAsDtos, prepared.hookPlan());
         }
 
         // Let write hooks inspect the content BEFORE the version is persisted, so a hook rejection
@@ -2187,12 +2183,12 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      * and applies the configured rules for a version update.
      */
     private void applyUpdateRules(String groupId, String artifactId, String version, String artifactType,
-            TypedContent typedContent, List<ArtifactReference> references, List<ArtifactReferenceDto> referencesAsDtos,
-            HookPlan hookPlan) {
+            TypedContent typedContent, List<ArtifactReferenceDto> referencesAsDtos, HookPlan hookPlan) {
         final Map<String, TypedContent> resolvedReferences = ReferenceResolution.recursivelyResolveReferences(
                 referencesAsDtos, hookPlan.loader(accessGuard.referenceLoader()));
         rulesService.applyRulesForNewVersion(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, version,
-                artifactType, typedContent, RuleApplicationType.UPDATE, references, resolvedReferences);
+                artifactType, typedContent, RuleApplicationType.UPDATE,
+                V3ApiUtil.referenceDtosToReferences(referencesAsDtos), resolvedReferences);
     }
 
     /**
@@ -2228,25 +2224,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         // Store the raw group ID, exactly as explicit references are stored (see toReferenceDtos)
         match.matched().forEach(ref -> ref.setGroupId(new GroupId(ref.getGroupId()).getRawGroupIdWithNull()));
         return match.matched();
-    }
-
-    /**
-     * The references to give to the rules: the caller's explicit references plus the ones matched by
-     * {@code autoReferences}, so that integrity rules (e.g. {@code ALL_REFS_MAPPED}) see the same mappings
-     * that are stored.
-     *
-     * @param explicit the references supplied in the request, may be null
-     * @param autoMatched the auto-matched references
-     * @return the combined references, or {@code explicit} unchanged if nothing was auto-matched
-     */
-    private static List<ArtifactReference> withAutoMatched(List<ArtifactReference> explicit,
-            List<ArtifactReferenceDto> autoMatched) {
-        if (autoMatched.isEmpty()) {
-            return explicit;
-        }
-        List<ArtifactReference> combined = explicit == null ? new ArrayList<>() : new ArrayList<>(explicit);
-        combined.addAll(V3ApiUtil.referenceDtosToReferences(autoMatched));
-        return combined;
     }
 
     private List<ArtifactReferenceDto> toReferenceDtos(List<ArtifactReference> references) {

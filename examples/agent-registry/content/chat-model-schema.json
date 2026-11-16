@@ -1,0 +1,13 @@
+{
+  "modelId": "demo-chat-model",
+  "input": {
+    "type": "object",
+    "properties": { "prompt": { "type": "string" } },
+    "required": ["prompt"]
+  },
+  "output": {
+    "type": "object",
+    "properties": { "text": { "type": "string" } }
+  },
+  "metadata": { "provider": "ollama", "contextWindow": 32768 }
+}

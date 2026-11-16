@@ -1,5 +1,8 @@
 package io.apicurio.registry.contracts.odcs;
 
+import io.apicurio.registry.model.ArtifactId;
+import io.apicurio.registry.model.GroupId;
+
 /**
  * Parses ODCS {@code schemas[].location} values.
  * <p>
@@ -48,7 +51,12 @@ public final class OdcsSchemaLocations {
         return new String[] { schemaGroupId, schemaArtifactId };
     }
 
+    /**
+     * @return whether {@code parsed} names a valid group and artifact ID, so that it can address a
+     *         registry artifact
+     */
     public static boolean isValid(String[] parsed) {
-        return parsed != null && parsed.length == 2;
+        return parsed != null && parsed.length == 2 && GroupId.isValid(parsed[0])
+                && ArtifactId.isValid(parsed[1]);
     }
 }

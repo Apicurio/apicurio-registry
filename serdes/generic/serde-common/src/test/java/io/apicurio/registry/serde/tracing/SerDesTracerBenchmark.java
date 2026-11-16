@@ -23,6 +23,8 @@ import io.opentelemetry.sdk.trace.SdkTracerProvider;
 import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+
 class SerDesTracerBenchmark {
 
     private static final int WARMUP = 50_000;
@@ -40,6 +42,7 @@ class SerDesTracerBenchmark {
         for (int i = 0; i < WARMUP; i++) {
             simulateWork();
         }
+        assertArrayEquals(PAYLOAD, simulateWork());
 
         long start = System.nanoTime();
         for (int i = 0; i < ITERATIONS; i++) {

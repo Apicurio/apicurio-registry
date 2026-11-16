@@ -47,6 +47,7 @@ public class CloudEventDto {
     private Instant time;
 
     public CloudEventDto() {
+        // Default constructor required for JSON deserialization.
     }
 
     public CloudEventDto withId(String id) {

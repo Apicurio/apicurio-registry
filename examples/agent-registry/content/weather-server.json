@@ -1,0 +1,7 @@
+{
+  "name": "io.apicur.demo/weather",
+  "title": "Weather",
+  "description": "The demo's live weather MCP server (fictional data)",
+  "version": "1.0.0",
+  "remotes": [{ "type": "streamable-http", "url": "http://weather-server:11040/mcp" }]
+}

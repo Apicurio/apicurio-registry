@@ -30,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class RegisterAsyncApiAvroAutoRefsTest {
 
     private RegisterRegistryMojo mojo;
-    private final File examplesRoot = Paths.get("../../examples/").toAbsolutePath().toFile();
+    private final File fixturesRoot = Paths.get("src/test/resources/fixtures/").toAbsolutePath().toFile();
     private WireMockServer wireMockServer;
     private Set<String> registeredArtifacts = new HashSet<>();
     private Map<String, String> artifactContentTypes = new HashMap<>();
@@ -61,8 +61,7 @@ public class RegisterAsyncApiAvroAutoRefsTest {
     }
 
     @Test public void testAsyncApiWithAvroAutoRefs() throws Exception {
-        File exampleDir = new File(examplesRoot, "asyncapi-avro-maven-with-references-auto");
-        File asyncApiFile = new File(exampleDir, "src/main/resources/schemas/asyncapi-avro-refs.yml");
+        File asyncApiFile = new File(fixturesRoot, "asyncapi-avro/asyncapi-avro-refs.yml");
 
         // Create the artifact configuration
         RegisterArtifact artifact = new RegisterArtifact();
@@ -107,8 +106,7 @@ public class RegisterAsyncApiAvroAutoRefsTest {
     }
 
     @Test public void testAvroAutoRefs() throws Exception {
-        File exampleDir = new File(examplesRoot, "avro-maven-with-references-auto");
-        File avroFile = new File(exampleDir, "src/main/resources/schemas/TradeRaw.avsc");
+        File avroFile = new File(fixturesRoot, "avro-trade/TradeRaw.avsc");
 
         // Create the artifact configuration
         RegisterArtifact artifact = new RegisterArtifact();

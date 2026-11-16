@@ -306,6 +306,7 @@ class RuleExecutionEngineTest {
 
         @Override
         public void destroy(T instance) {
+            // No-op: test instances need no cleanup.
         }
 
         @Override

@@ -22,6 +22,8 @@ import java.util.Map;
  */
 public class OdcsContractDereferencer implements ContentDereferencer {
 
+    private static final String LOCATION = "location";
+
     /**
      * Field name used to hold inlined schema content on DEREFERENCE. Namespaced with an
      * {@code x-apicurio-} prefix (the conventional vendor-extension prefix) to avoid colliding with
@@ -55,24 +57,9 @@ public class OdcsContractDereferencer implements ContentDereferencer {
             }
             boolean changed = false;
             for (JsonNode schema : schemas) {
-                if (!schema.isObject()) {
-                    continue;
+                if (inlineSchemaDefinition(schema, resolvedReferences)) {
+                    changed = true;
                 }
-                if (schema.has(SCHEMA_DEFINITION_FIELD)) {
-                    // Do not clobber an existing (likely user-supplied) value.
-                    continue;
-                }
-                JsonNode location = schema.get("location");
-                if (location == null || !location.isTextual()) {
-                    continue;
-                }
-                TypedContent resolved = resolvedReferences.get(location.asText());
-                if (resolved == null) {
-                    continue;
-                }
-                JsonNode inlined = parseResolvedContent(resolved);
-                ((ObjectNode) schema).set(SCHEMA_DEFINITION_FIELD, inlined);
-                changed = true;
             }
             if (!changed) {
                 return content;
@@ -82,6 +69,32 @@ public class OdcsContractDereferencer implements ContentDereferencer {
         } catch (Exception e) {
             return content;
         }
+    }
+
+    /**
+     * Inlines the resolved content of a single {@code schemas[]} entry.
+     *
+     * @return {@code true} if the entry was modified
+     */
+    private boolean inlineSchemaDefinition(JsonNode schema, Map<String, TypedContent> resolvedReferences) {
+        if (!schema.isObject()) {
+            return false;
+        }
+        if (schema.has(SCHEMA_DEFINITION_FIELD)) {
+            // Do not clobber an existing (likely user-supplied) value.
+            return false;
+        }
+        JsonNode location = schema.get(LOCATION);
+        if (location == null || !location.isTextual()) {
+            return false;
+        }
+        TypedContent resolved = resolvedReferences.get(location.asText());
+        if (resolved == null) {
+            return false;
+        }
+        JsonNode inlined = parseResolvedContent(resolved);
+        ((ObjectNode) schema).set(SCHEMA_DEFINITION_FIELD, inlined);
+        return true;
     }
 
     /**
@@ -106,7 +119,7 @@ public class OdcsContractDereferencer implements ContentDereferencer {
                 if (!schema.isObject()) {
                     continue;
                 }
-                JsonNode location = schema.get("location");
+                JsonNode location = schema.get(LOCATION);
                 if (location == null || !location.isTextual()) {
                     continue;
                 }
@@ -114,7 +127,7 @@ public class OdcsContractDereferencer implements ContentDereferencer {
                 if (url == null) {
                     continue;
                 }
-                ((ObjectNode) schema).set("location", new TextNode(url));
+                ((ObjectNode) schema).set(LOCATION, new TextNode(url));
                 changed = true;
             }
             if (!changed) {

@@ -47,7 +47,7 @@ jobs:
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
-          node-version: 24.22.2
+          node-version: 24.22.3
 
       - name: Set up Python
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
@@ -82,6 +82,7 @@ jobs:
       - name: Run shell script tests
         run: |
           bash .github/scripts/scalpel-summary.test.sh
+          bash .github/scripts/discover-examples.test.sh
           bash .github/actions/newer-than-published/newer-than-published.test.sh
 
       # test_classify.py (no _unit suffix) is deliberately not run here — it is

@@ -16,6 +16,8 @@ export type DiffViewProps = {
     modifiedLabel: string;
     originalAriaLabel?: string;
     modifiedAriaLabel?: string;
+    /** A fixed editor height, for containers that don't give the editor one. */
+    height?: string;
 };
 
 /**
@@ -27,7 +29,8 @@ export const DiffView: FunctionComponent<DiffViewProps> = ({
     modified,
     modifiedLabel,
     originalAriaLabel = "Original",
-    modifiedAriaLabel = "Modified"
+    modifiedAriaLabel = "Modified",
+    height
 }: DiffViewProps) => {
     const [diffEditorContentOptions, setDiffEditorContentOptions] = useState({
         renderSideBySide: true,
@@ -86,6 +89,7 @@ export const DiffView: FunctionComponent<DiffViewProps> = ({
             <div className="diff-editor">
                 <RegistryDiffEditor
                     className="text-editor"
+                    height={height}
                     original={original}
                     modified={modified}
                     options={diffEditorContentOptions}

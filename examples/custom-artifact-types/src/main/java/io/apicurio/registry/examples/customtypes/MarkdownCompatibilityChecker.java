@@ -49,21 +49,22 @@ public class MarkdownCompatibilityChecker implements CompatibilityChecker {
             }
             Set<String> existingSections = Markdown.sections(existing);
             if (backward) {
-                for (String section : existingSections) {
-                    if (!proposedSections.contains(section)) {
-                        problems.add("Section \"" + section + "\" was removed.");
-                    }
-                }
+                addMissingSections(existingSections, proposedSections, "removed", problems);
             }
             if (forward) {
-                for (String section : proposedSections) {
-                    if (!existingSections.contains(section)) {
-                        problems.add("Section \"" + section + "\" was added.");
-                    }
-                }
+                addMissingSections(proposedSections, existingSections, "added", problems);
             }
         }
         return problems.isEmpty() ? CompatibilityExecutionResult.compatible()
             : CompatibilityExecutionResult.incompatible(String.join(" ", problems));
+    }
+
+    private static void addMissingSections(Set<String> sections, Set<String> others, String change,
+            List<String> problems) {
+        for (String section : sections) {
+            if (!others.contains(section)) {
+                problems.add("Section \"" + section + "\" was " + change + ".");
+            }
+        }
     }
 }

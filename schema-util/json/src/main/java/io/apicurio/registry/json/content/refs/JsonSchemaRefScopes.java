@@ -104,6 +104,10 @@ public final class JsonSchemaRefScopes {
                 String ref = refNode.asText();
                 sites.add(new RefSite((ObjectNode) node, ref, resolve(scope, ref)));
             }
+            walkFields(node, scope, isSchema);
+        }
+
+        private void walkFields(JsonNode node, URI scope, boolean isSchema) {
             Iterator<Entry<String, JsonNode>> fields = node.fields();
             while (fields.hasNext()) {
                 Entry<String, JsonNode> field = fields.next();

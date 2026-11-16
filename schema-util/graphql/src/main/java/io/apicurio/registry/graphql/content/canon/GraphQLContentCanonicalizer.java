@@ -59,7 +59,7 @@ public class GraphQLContentCanonicalizer implements ContentCanonicalizer {
         GraphQLImportLines.BlockStringTracker blockStringTracker = new GraphQLImportLines.BlockStringTracker();
         for (String line : GraphQLImportLines.splitLines(rawContent)) {
             boolean insideBlockString = blockStringTracker.consume(line);
-            if (!insideBlockString && GraphQLImportLines.IMPORT_LINE.matcher(line).matches()) {
+            if (!insideBlockString && GraphQLImportLines.parse(line) != null) {
                 return true;
             }
         }

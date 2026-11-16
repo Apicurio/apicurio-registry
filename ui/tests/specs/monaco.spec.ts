@@ -55,31 +55,51 @@ async function mockContentTabBackend(page: Page): Promise<void> {
 }
 
 /**
- * Installs a network observer that records every request whose *host* is not a local address.
- * This is what actually matters for proving Monaco never falls back to an external CDN: in this
- * dev-mode test setup the UI and (mocked) API run on different localhost ports, and every
- * request handled by "page.route()" still fires a "request" event even though it never reaches
- * a real network, so per-origin comparison against the UI's own origin would misclassify those
- * intercepted local API calls as "external". In a production deployment the UI and API share a
- * single origin (see "ui/.docker-scripts/nginx.conf"), so this only relaxes the local dev split;
- * it does not weaken the check that matters, which is that no *non-local* host is ever contacted.
+ * Installs a network observer that records the URL of every HTTP(S) request the page makes.
+ * Use "findExternalRequests()" after the page has loaded to filter the recorded URLs down to
+ * those that went to a host the Registry deployment does not own.
  */
-function observeExternalRequests(page: Page): string[] {
-    const externalRequests: string[] = [];
+function observeRequests(page: Page): string[] {
+    const requests: string[] = [];
 
     page.on("request", request => {
         const url: URL = new URL(request.url());
-        const isLocal: boolean = url.hostname === "localhost" || url.hostname === "127.0.0.1";
-        if ((url.protocol === "http:" || url.protocol === "https:") && !isLocal) {
-            externalRequests.push(request.url());
+        if (url.protocol === "http:" || url.protocol === "https:") {
+            requests.push(request.url());
         }
     });
 
-    return externalRequests;
+    return requests;
+}
+
+/**
+ * Returns the subset of the given request URLs whose host is not part of the Registry deployment
+ * under test. This is what actually matters for proving Monaco never falls back to an external CDN.
+ *
+ * The allowed hosts are: localhost (dev mode, where the UI and the mocked API run on different
+ * local ports), the host of "REGISTRY_UI_URL" (the UI itself, which may be a remote deployment
+ * such as an OpenShift route), and the host of the Registry API as configured in the UI's runtime
+ * "config.js" (which may differ from the UI host when the UI and API are exposed separately).
+ * Requests handled by "page.route()" still fire "request" events, so mocked API calls are covered
+ * by the same host check.
+ */
+async function findExternalRequests(page: Page, requests: string[]): Promise<string[]> {
+    const allowedHosts: Set<string> = new Set<string>(["localhost", "127.0.0.1", new URL(REGISTRY_UI_URL).hostname]);
+
+    // "config.js" declares "ApicurioRegistryConfig" with a top-level "const", which creates a global
+    // lexical binding rather than a "window" property, so it must be referenced by name.
+    const apiUrl: string | undefined = await page.evaluate<string | undefined>(
+        "typeof ApicurioRegistryConfig !== 'undefined' ? ApicurioRegistryConfig?.artifacts?.url : undefined"
+    );
+    if (apiUrl) {
+        allowedHosts.add(new URL(apiUrl, page.url()).hostname);
+    }
+
+    return requests.filter(request => !allowedHosts.has(new URL(request).hostname));
 }
 
 test("Monaco - cold non-editor route does not request the Monaco runtime", async ({ page }) => {
-    const externalRequests: string[] = observeExternalRequests(page);
+    const requests: string[] = observeRequests(page);
     const localMonacoRequests: string[] = [];
     page.on("request", request => {
         if (/monacoRuntime|PatternFlyEditorAdapter|\.worker[-.]/.test(request.url())) {
@@ -102,16 +122,19 @@ test("Monaco - cold non-editor route does not request the Monaco runtime", async
     await page.route("**/apis/registry/v3/search/artifacts*", async route => {
         await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ artifacts: [], count: 0 }) });
     });
+    await page.route("**/apis/registry/v3/search/groups*", async route => {
+        await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ groups: [], count: 0 }) });
+    });
 
     await page.goto(`${REGISTRY_UI_URL}/explore`);
     await expect(page).toHaveTitle(/Apicurio Registry/);
 
     expect(localMonacoRequests).toEqual([]);
-    expect(externalRequests).toEqual([]);
+    expect(await findExternalRequests(page, requests)).toEqual([]);
 });
 
 test("Monaco - Content tab renders real content with no external requests", async ({ page }) => {
-    const externalRequests: string[] = observeExternalRequests(page);
+    const requests: string[] = observeRequests(page);
     await mockContentTabBackend(page);
 
     await page.goto(`${REGISTRY_UI_URL}/explore/${GROUP_ID}/${ARTIFACT_ID}/versions/${VERSION}/content`);
@@ -124,5 +147,5 @@ test("Monaco - Content tab renders real content with no external requests", asyn
     await expect(page.locator(".monaco-editor")).toContainText("\"answer\"");
     await expect(page.locator(".monaco-editor")).toContainText("42");
 
-    expect(externalRequests).toEqual([]);
+    expect(await findExternalRequests(page, requests)).toEqual([]);
 });

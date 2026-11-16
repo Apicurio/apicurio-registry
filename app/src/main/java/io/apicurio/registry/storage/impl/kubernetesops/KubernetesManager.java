@@ -84,31 +84,8 @@ public class KubernetesManager extends AbstractPollingDataSourceManager<Kubernet
         // Track the most recent ConfigMap modification time for stable timestamps
         long maxTimestamp = 0;
         for (ConfigMap configMap : configMapList.getItems()) {
-            var creationTimestamp = configMap.getMetadata().getCreationTimestamp();
-            if (creationTimestamp != null) {
-                try {
-                    long ts = Instant.parse(creationTimestamp).toEpochMilli();
-                    if (ts > maxTimestamp) {
-                        maxTimestamp = ts;
-                    }
-                } catch (Exception e) {
-                    log.debug("Could not parse ConfigMap timestamp: {}", creationTimestamp);
-                }
-            }
-
-            Map<String, String> data = configMap.getData();
-            String configMapName = configMap.getMetadata().getName();
-
-            if (data != null) {
-                for (Map.Entry<String, String> entry : data.entrySet()) {
-                    // Prefix data key with ConfigMap name to ensure uniqueness across ConfigMaps
-                    String dataKey = configMapName + "/" + entry.getKey();
-                    String content = entry.getValue();
-
-                    ConfigMapDataFile file = ConfigMapDataFile.create(tempState, dataKey, content);
-                    files.add(file);
-                }
-            }
+            maxTimestamp = maxCreationTimestamp(configMap, maxTimestamp);
+            addDataFiles(configMap, tempState, files);
         }
 
         // Use the most recent ConfigMap timestamp for stable createdOn/modifiedOn values
@@ -127,6 +104,37 @@ public class KubernetesManager extends AbstractPollingDataSourceManager<Kubernet
         var marker = new KubernetesOpsMarker(sourceId, currentResourceVersion, commitTime);
         return PollingResult.withChanges(marker, files,
                 () -> previousResourceVersion = currentResourceVersion);
+    }
+
+    private long maxCreationTimestamp(ConfigMap configMap, long maxTimestamp) {
+        var creationTimestamp = configMap.getMetadata().getCreationTimestamp();
+        if (creationTimestamp != null) {
+            try {
+                long ts = Instant.parse(creationTimestamp).toEpochMilli();
+                if (ts > maxTimestamp) {
+                    return ts;
+                }
+            } catch (Exception e) {
+                log.debug("Could not parse ConfigMap timestamp: {}", creationTimestamp);
+            }
+        }
+        return maxTimestamp;
+    }
+
+    private static void addDataFiles(ConfigMap configMap, ProcessingState tempState, List<PollingDataFile> files) {
+        Map<String, String> data = configMap.getData();
+        String configMapName = configMap.getMetadata().getName();
+
+        if (data != null) {
+            for (Map.Entry<String, String> entry : data.entrySet()) {
+                // Prefix data key with ConfigMap name to ensure uniqueness across ConfigMaps
+                String dataKey = configMapName + "/" + entry.getKey();
+                String content = entry.getValue();
+
+                ConfigMapDataFile file = ConfigMapDataFile.create(tempState, dataKey, content);
+                files.add(file);
+            }
+        }
     }
 
     /**

@@ -25,6 +25,9 @@ public class AgentCardStructuredContentExtractor implements StructuredContentExt
 
     private static final Logger log = LoggerFactory.getLogger(AgentCardStructuredContentExtractor.class);
 
+    private static final String PROTOCOL_BINDING = "protocolBinding";
+    private static final String PROTOCOL_VERSION = "protocolVersion";
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
@@ -97,19 +100,17 @@ public class AgentCardStructuredContentExtractor implements StructuredContentExt
         JsonNode interfaces = root.path("supportedInterfaces");
         if (!interfaces.isMissingNode() && interfaces.isArray()) {
             for (JsonNode iface : interfaces) {
-                if (iface.has("protocolBinding") && iface.get("protocolBinding").isTextual()) {
-                    elements.add(new StructuredElement("protocolbinding",
-                            iface.get("protocolBinding").asText()));
-                }
-                if (iface.has("protocolVersion") && iface.get("protocolVersion").isTextual()) {
-                    elements.add(new StructuredElement("protocolversion",
-                            iface.get("protocolVersion").asText()));
-                }
-                if (iface.has("url") && iface.get("url").isTextual()) {
-                    elements.add(new StructuredElement("url",
-                            iface.get("url").asText()));
-                }
+                addTextualField(iface, PROTOCOL_BINDING, "protocolbinding", elements);
+                addTextualField(iface, PROTOCOL_VERSION, "protocolversion", elements);
+                addTextualField(iface, "url", "url", elements);
             }
+        }
+    }
+
+    private void addTextualField(JsonNode node, String field, String elementKind,
+            List<StructuredElement> elements) {
+        if (node.has(field) && node.get(field).isTextual()) {
+            elements.add(new StructuredElement(elementKind, node.get(field).asText()));
         }
     }
 
@@ -122,7 +123,7 @@ public class AgentCardStructuredContentExtractor implements StructuredContentExt
     }
 
     private void extractProtocolVersion(JsonNode root, List<StructuredElement> elements) {
-        JsonNode version = root.path("protocolVersion");
+        JsonNode version = root.path(PROTOCOL_VERSION);
         if (!version.isMissingNode() && version.isTextual()) {
             elements.add(new StructuredElement("protocolversion", version.asText()));
         }
@@ -133,13 +134,17 @@ public class AgentCardStructuredContentExtractor implements StructuredContentExt
         if (!skills.isMissingNode() && skills.isArray()) {
             Set<String> seen = new HashSet<>();
             for (JsonNode skill : skills) {
-                JsonNode tags = skill.path("tags");
-                if (!tags.isMissingNode() && tags.isArray()) {
-                    for (JsonNode tag : tags) {
-                        if (tag.isTextual() && seen.add(tag.asText())) {
-                            elements.add(new StructuredElement("tag", tag.asText()));
-                        }
-                    }
+                extractSkillTags(skill, seen, elements);
+            }
+        }
+    }
+
+    private void extractSkillTags(JsonNode skill, Set<String> seen, List<StructuredElement> elements) {
+        JsonNode tags = skill.path("tags");
+        if (!tags.isMissingNode() && tags.isArray()) {
+            for (JsonNode tag : tags) {
+                if (tag.isTextual() && seen.add(tag.asText())) {
+                    elements.add(new StructuredElement("tag", tag.asText()));
                 }
             }
         }

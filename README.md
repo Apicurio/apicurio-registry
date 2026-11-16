@@ -60,6 +60,16 @@ For the full set of runtime configuration options (storage, deployment, and more
 support policy, see [Versioning & Support Policy](#versioning--support-policy) below; for
 authentication, see [Security](#security).
 
+### AI Agent Registry quick start
+
+To try the experimental AI agent features (A2A agent cards, MCP servers and tools, discovery, and
+compatibility rules on agent content), start a stack that comes with a demo catalog:
+
+    docker compose -f distro/docker-compose/ai-agent-registry/docker-compose.yml up -d
+
+See [its README](distro/docker-compose/ai-agent-registry/README.md) for what it contains and what to try.
+The stack is for local evaluation only: it has no authentication.
+
 ## Versioning & Support Policy
 
 Apicurio Registry follows [Semantic Versioning](https://semver.org/):

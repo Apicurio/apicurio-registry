@@ -125,6 +125,10 @@ export const MainPageWithAuth: FunctionComponent<MainPageWithAuthProps> = () => 
                                 path="/explore/:groupId/:artifactId/versions/:version/references"
                                 element={ <VersionPage /> }
                             />
+                            <Route
+                                path="/explore/:groupId/:artifactId/versions/:version/compatibility"
+                                element={ <VersionPage /> }
+                            />
 
                             <Route
                                 path="/explore/:groupId/:artifactId/branches/:branchId"

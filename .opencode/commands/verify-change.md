@@ -1,0 +1,1 @@
+../../.claude/commands/verify-change.md

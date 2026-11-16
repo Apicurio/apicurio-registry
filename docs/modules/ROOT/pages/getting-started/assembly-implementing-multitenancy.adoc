@@ -47,7 +47,7 @@ for each CR:
 |===
 
 Each CR instance is completely independent. Resources are named using the pattern
-`{cr-name}-{component}-{resource-type}` and labeled with instance-specific selectors to prevent any
+`\{cr-name}-\{component}-\{resource-type}` and labeled with instance-specific selectors to prevent any
 cross-tenant interference.
 
 The multi-instance approach provides the following isolation boundaries:

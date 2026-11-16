@@ -51,11 +51,11 @@ public class RegistryLimitsConfigurationProducer {
 
     @Inject
     @ConfigProperty(defaultValue = "-1", name = "apicurio.limits.config.max-artifact-labels")
-    @Info(category = CATEGORY_LIMITS, description = "Max artifact labels", availableSince = "2.2.3.Final")
+    @Info(category = CATEGORY_LIMITS, description = "Max number of labels on a group, artifact or version", availableSince = "2.2.3.Final")
     Long defaultMaxArtifactLabels;
     @Inject
     @ConfigProperty(defaultValue = "-1", name = "apicurio.limits.config.max-label-size.bytes")
-    @Info(category = CATEGORY_LIMITS, description = "Max artifact label size", availableSince = "2.1.0.Final")
+    @Info(category = CATEGORY_LIMITS, description = "Max size of one label, in UTF-8 bytes of its key plus its value", availableSince = "2.1.0.Final")
     Long defaultMaxLabelBytesSize;
 
     @Inject

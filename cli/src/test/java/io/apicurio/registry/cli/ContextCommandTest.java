@@ -3,6 +3,7 @@ package io.apicurio.registry.cli;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
 
+import static io.apicurio.registry.cli.common.CliException.VALIDATION_ERROR_RETURN_CODE;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @QuarkusTest
@@ -116,6 +117,8 @@ public class ContextCommandTest extends AbstractCLITest {
 
     @Test
     public void testContextUseNonExistent() {
-        executeAndAssertFailure("context", "use", "non-existent");
+        assertThat(cmd.execute("context", "use", "non-existent"))
+                .as(withCliOutput("Command should fail with the expected exit code"))
+                .isEqualTo(VALIDATION_ERROR_RETURN_CODE);
     }
 }

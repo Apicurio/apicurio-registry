@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>io.apicurio</groupId>
+    <artifactId>apicurio-registry-examples</artifactId>
+    <version>3.4.0-SNAPSHOT</version>
+    <relativePath>../../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>apicurio-registry-examples-rules-validation-client</artifactId>
+  <packaging>jar</packaging>
+  <name>Registry :: Examples :: Rules and Compatibility :: Validation Client</name>
+
+  <properties>
+    <projectRoot>${project.basedir}/../../..</projectRoot>
+    <!-- Override on the command line: -Dregistry.url=http://localhost:8081/apis/registry/v3 -->
+    <registry.url>http://localhost:8081/apis/registry/v3</registry.url>
+    <!-- The validation library's protobuf dependencies (proto-google-common-protos) need the
+         registry's protobuf runtime, not the older one examples/pom.xml pins for other examples -->
+    <protobuf.version>4.36.2</protobuf.version>
+  </properties>
+
+  <dependencies>
+    <!-- The client-side validation library, built from this repository -->
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-schema-validation-jsonschema</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-schema-validation-avro</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-schema-validation-protobuf</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <!-- The .proto files are also packaged, so the client registers exactly the schema it compiled -->
+    <resources>
+      <resource>
+        <directory>src/main/proto</directory>
+      </resource>
+    </resources>
+    <plugins>
+      <!-- Generates the Java classes for src/main/proto -->
+      <plugin>
+        <groupId>io.github.ascopes</groupId>
+        <artifactId>protobuf-maven-plugin</artifactId>
+        <version>${proto-plugin.version}</version>
+        <executions>
+          <execution>
+            <id>gencode</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <phase>generate-sources</phase>
+            <configuration>
+              <protoc>${protobuf.version}</protoc>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>3.1.0</version>
+        <configuration>
+          <mainClass>io.apicurio.registry.examples.rules.ValidationClient</mainClass>
+          <arguments>
+            <argument>${registry.url}</argument>
+          </arguments>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

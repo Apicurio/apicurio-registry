@@ -27,6 +27,38 @@ public interface RegistryClientFacade {
     String getSchemaByGAV(String groupId, String artifactId, String version);
     String getSchemaByContentHash(String contentHash);
 
+    /**
+     * Gets a schema by content ID, optionally dereferenced (all references inlined).
+     *
+     * @param contentId the content ID
+     * @param dereferenced whether to ask the registry to dereference the schema
+     * @return the schema content
+     * @throws UnsupportedOperationException if {@code dereferenced} is true and this facade does not support it
+     */
+    default String getSchemaByContentId(Long contentId, boolean dereferenced) {
+        if (dereferenced) {
+            throw new UnsupportedOperationException(
+                    "Dereferencing by content ID is not supported by " + getClass().getName());
+        }
+        return getSchemaByContentId(contentId);
+    }
+
+    /**
+     * Gets a schema by content hash, optionally dereferenced (all references inlined).
+     *
+     * @param contentHash the content hash
+     * @param dereferenced whether to ask the registry to dereference the schema
+     * @return the schema content
+     * @throws UnsupportedOperationException if {@code dereferenced} is true and this facade does not support it
+     */
+    default String getSchemaByContentHash(String contentHash, boolean dereferenced) {
+        if (dereferenced) {
+            throw new UnsupportedOperationException(
+                    "Dereferencing by content hash is not supported by " + getClass().getName());
+        }
+        return getSchemaByContentHash(contentHash);
+    }
+
     /*
      * Methods to get the references of a Schema by various identifiers.
      */
@@ -63,8 +95,18 @@ public interface RegistryClientFacade {
     Object getClient();
 
     /**
-     * Gets the merged contract ruleset (global + artifact scope) for the given artifact.
-     * Returns null if contract rules are not supported by this facade implementation.
+     * Gets the global contract ruleset, which applies to every artifact.
+     * Returns null if there is none, or if contract rules are not supported by this facade implementation.
+     * Throws if the registry cannot be reached or refuses the request: a failed fetch is not "no rules".
+     */
+    default io.apicurio.registry.rest.client.models.ContractRuleSet getGlobalContractRuleset() {
+        return null;
+    }
+
+    /**
+     * Gets the contract ruleset of the given artifact (artifact-level rules only).
+     * Returns null if there is none, or if contract rules are not supported by this facade implementation.
+     * Throws if the registry cannot be reached or refuses the request: a failed fetch is not "no rules".
      */
     default io.apicurio.registry.rest.client.models.ContractRuleSet getContractRuleset(
             String groupId, String artifactId) {
@@ -73,7 +115,8 @@ public interface RegistryClientFacade {
 
     /**
      * Gets the contract ruleset for a specific artifact version (version-level rules only).
-     * Returns null if contract rules are not supported by this facade implementation.
+     * Returns null if there is none, or if contract rules are not supported by this facade implementation.
+     * Throws if the registry cannot be reached or refuses the request: a failed fetch is not "no rules".
      */
     default io.apicurio.registry.rest.client.models.ContractRuleSet getVersionContractRuleset(
             String groupId, String artifactId, String version) {

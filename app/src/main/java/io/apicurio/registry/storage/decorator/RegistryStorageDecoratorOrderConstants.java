@@ -7,6 +7,7 @@ public interface RegistryStorageDecoratorOrderConstants {
     int CONTENT_CACHE_DECORATOR = 5;
     int READ_ONLY_DECORATOR = 10;
     int KAFKA_SQL_DECORATOR = 20;
+    int FEATURE_LABEL_PRESERVING_DECORATOR = 25;
     int LIMITS_ENFORCER_DECORATOR = 30;
     int CONFIG_CACHE_DECORATOR = 40;
     int EVENT_SOURCED_DECORATOR = 50;

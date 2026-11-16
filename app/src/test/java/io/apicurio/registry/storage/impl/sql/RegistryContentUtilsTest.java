@@ -16,10 +16,21 @@
 
 package io.apicurio.registry.storage.impl.sql;
 
+import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.references.RecordingAuthorizingLoader;
+import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
+import io.quarkus.security.ForbiddenException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.*;
+
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.mock;
 
 /**
  * @author eric.wittmann@gmail.com
@@ -47,5 +58,47 @@ public class RegistryContentUtilsTest {
         expected.put("two", "2");
         expected.put("three", "3");
         Assertions.assertEquals(expected, actual);
+    }
+
+    // ==================== Authorizing references while resolving them ====================
+
+    private static RegistryContentUtils.RewrittenContentHolder resolve(RecordingAuthorizingLoader loader,
+            List<ArtifactReferenceDto> references) {
+        ArtifactTypeUtilProviderFactory factory = mock(ArtifactTypeUtilProviderFactory.class, RETURNS_DEEP_STUBS);
+        return RegistryContentUtils.recursivelyResolveReferencesWithContext(factory,
+                TypedContent.create(ContentHandle.create("{}"), ContentTypes.APPLICATION_JSON), ArtifactType.JSON,
+                references, loader);
+    }
+
+    private static final List<ArtifactReferenceDto> ROOTS = List.of(RecordingAuthorizingLoader.ref("a"),
+            RecordingAuthorizingLoader.ref("b"), RecordingAuthorizingLoader.ref("c"));
+
+    @Test
+    void theReferencesOfEachDocumentAreAuthorizedInOneCallBeforeAnyIsLoaded() {
+        RecordingAuthorizingLoader loader = new RecordingAuthorizingLoader(Set.of()).with("a", "d", "e");
+
+        resolve(loader, ROOTS);
+
+        // Depth-first: the roots, then a's references when a is loaded
+        Assertions.assertEquals(List.of(List.of("a", "b", "c"), List.of("d", "e")), loader.authorizedBatches);
+        Assertions.assertEquals(List.of("a", "d", "e", "b", "c"), loader.loaded);
+    }
+
+    @Test
+    void aDeniedSiblingFailsBeforeAnyOfItsSiblingsIsLoaded() {
+        RecordingAuthorizingLoader loader = new RecordingAuthorizingLoader(Set.of("c"));
+
+        Assertions.assertThrows(ForbiddenException.class, () -> resolve(loader, ROOTS));
+        Assertions.assertEquals(List.of(), loader.loaded);
+    }
+
+    @Test
+    void anInvalidReferenceIsStillReportedAsInvalidRatherThanAuthorizedInBulk() {
+        RecordingAuthorizingLoader loader = new RecordingAuthorizingLoader(Set.of("b"));
+        ArtifactReferenceDto invalid = ArtifactReferenceDto.builder().groupId("g").artifactId("x").name("x").build();
+
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> resolve(loader, List.of(invalid, RecordingAuthorizingLoader.ref("b"))));
+        Assertions.assertEquals(List.of(), loader.authorizedBatches);
     }
 }

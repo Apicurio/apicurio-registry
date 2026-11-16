@@ -9,6 +9,7 @@ public class ContractRuleResult {
     private String suggestedAction;
 
     public ContractRuleResult() {
+        // Default constructor required for JSON deserialization.
     }
 
     public static ContractRuleResult pass() {

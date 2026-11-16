@@ -52,26 +52,30 @@ public final class SourceIndex {
             JsonNode root = parse(source);
             IndexedSource indexed = new IndexedSource(source, type.get(), avroFullName(root),
                     jsonSchemaId(root));
-            index.bySource.put(source, indexed);
-            for (String alias : source.aliases()) {
-                index.byLocation.putIfAbsent(SchemaSourceSet.normalize(alias), indexed);
-            }
-            if (indexed.avroFullName() != null && ArtifactType.AVRO.equals(indexed.artifactType())) {
-                IndexedSource first = index.byAvroName.putIfAbsent(indexed.avroFullName(), indexed);
-                if (first != null) {
-                    index.warnings.add("Duplicate Avro name '" + indexed.avroFullName() + "' in "
-                            + source.location() + "; using " + first.source().location());
-                }
-            }
-            if (indexed.jsonSchemaId() != null && isAbsoluteUri(indexed.jsonSchemaId())) {
-                IndexedSource first = index.byJsonId.putIfAbsent(indexed.jsonSchemaId(), indexed);
-                if (first != null) {
-                    index.warnings.add("Duplicate JSON Schema $id '" + indexed.jsonSchemaId() + "' in "
-                            + source.location() + "; using " + first.source().location());
-                }
-            }
+            index.add(source, indexed);
         }
         return index;
+    }
+
+    private void add(SchemaSource source, IndexedSource indexed) {
+        bySource.put(source, indexed);
+        for (String alias : source.aliases()) {
+            byLocation.putIfAbsent(SchemaSourceSet.normalize(alias), indexed);
+        }
+        if (indexed.avroFullName() != null && ArtifactType.AVRO.equals(indexed.artifactType())) {
+            IndexedSource first = byAvroName.putIfAbsent(indexed.avroFullName(), indexed);
+            if (first != null) {
+                warnings.add("Duplicate Avro name '" + indexed.avroFullName() + "' in "
+                        + source.location() + "; using " + first.source().location());
+            }
+        }
+        if (indexed.jsonSchemaId() != null && isAbsoluteUri(indexed.jsonSchemaId())) {
+            IndexedSource first = byJsonId.putIfAbsent(indexed.jsonSchemaId(), indexed);
+            if (first != null) {
+                warnings.add("Duplicate JSON Schema $id '" + indexed.jsonSchemaId() + "' in "
+                        + source.location() + "; using " + first.source().location());
+            }
+        }
     }
 
     /**

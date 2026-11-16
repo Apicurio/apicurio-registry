@@ -60,27 +60,16 @@ public final class XmlLocationRewriter {
                 }
                 out.append(xml, pos, lt);
                 pos = lt;
-                int end;
-                if (xml.startsWith("<!--", lt)) {
-                    end = endAfter("-->", lt + 4);
-                } else if (xml.startsWith("<![CDATA[", lt)) {
-                    end = endAfter("]]>", lt + 9);
-                } else if (xml.startsWith("<?", lt)) {
-                    end = endAfter("?>", lt + 2);
-                } else if (xml.startsWith("<!", lt)) {
-                    end = declarationEnd(lt + 2);
-                } else if (xml.startsWith("</", lt)) {
-                    end = endAfter(">", lt + 2);
-                    if (end > 0 && scopes.size() > 1) {
-                        scopes.pop();
+                if (isStartTag(lt)) {
+                    // startTag writes the tag itself; it returns -1 or an index after lt
+                    int end = startTag(lt);
+                    if (end < 0) {
+                        break;
                     }
-                } else {
-                    end = startTag(lt);
-                    if (end > 0) {
-                        pos = end;
-                        continue;
-                    }
+                    pos = end;
+                    continue;
                 }
+                int end = otherMarkupEnd(lt);
                 if (end < 0) {
                     break;
                 }
@@ -89,6 +78,30 @@ public final class XmlLocationRewriter {
             }
             out.append(xml, pos, n);
             return out.toString();
+        }
+
+        private boolean isStartTag(int lt) {
+            return !xml.startsWith("<!", lt) && !xml.startsWith("<?", lt) && !xml.startsWith("</", lt);
+        }
+
+        /** Returns the end of the non-start-tag markup at {@code lt}, or -1 if unterminated. */
+        private int otherMarkupEnd(int lt) {
+            int end;
+            if (xml.startsWith("<!--", lt)) {
+                end = endAfter("-->", lt + 4);
+            } else if (xml.startsWith("<![CDATA[", lt)) {
+                end = endAfter("]]>", lt + 9);
+            } else if (xml.startsWith("<?", lt)) {
+                end = endAfter("?>", lt + 2);
+            } else if (xml.startsWith("<!", lt)) {
+                end = declarationEnd(lt + 2);
+            } else {
+                end = endAfter(">", lt + 2);
+                if (end > 0 && scopes.size() > 1) {
+                    scopes.pop();
+                }
+            }
+            return end;
         }
 
         private int endAfter(String terminator, int from) {
@@ -102,20 +115,12 @@ public final class XmlLocationRewriter {
             int i = from;
             while (i < xml.length()) {
                 char c = xml.charAt(i);
-                if (c == '"' || c == '\'') {
-                    int close = xml.indexOf(c, i + 1);
-                    if (close < 0) {
+                int skipped = skipQuotedOrComment(i, c, depth);
+                if (skipped != i) {
+                    if (skipped < 0) {
                         return -1;
                     }
-                    i = close + 1;
-                    continue;
-                }
-                if (depth > 0 && xml.startsWith("<!--", i)) {
-                    int close = endAfter("-->", i + 4);
-                    if (close < 0) {
-                        return -1;
-                    }
-                    i = close;
+                    i = skipped;
                     continue;
                 }
                 if (c == '[') {
@@ -128,6 +133,23 @@ public final class XmlLocationRewriter {
                 i++;
             }
             return -1;
+        }
+
+        /**
+         * Skips a quoted literal, or a comment inside an internal subset, starting at {@code i}.
+         *
+         * @return the index after the skipped construct, -1 if it is unterminated, or {@code i} if there
+         *         is nothing to skip
+         */
+        private int skipQuotedOrComment(int i, char c, int depth) {
+            if (c == '"' || c == '\'') {
+                int close = xml.indexOf(c, i + 1);
+                return close < 0 ? -1 : close + 1;
+            }
+            if (depth > 0 && xml.startsWith("<!--", i)) {
+                return endAfter("-->", i + 4);
+            }
+            return i;
         }
 
         /**

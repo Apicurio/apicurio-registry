@@ -176,6 +176,18 @@ public class CrossToolCompatibilityService {
             limitations.add(comparisonFailed(SchemaSide.CONSUMER, INPUT_SCHEMA_POINTER,
                     "The schemas could not be compared"));
         }
+        attributeDifferences(asWritten, closed, attributor, reasons, limitations);
+
+        List<CompatibilityReason> standing = reasons.stream()
+                .filter(reason -> !isInvalidated(reason, limitations))
+                .sorted(REASON_ORDER)
+                .toList();
+        return new PairCompatibility(verdictOf(standing, limitations), standing, limitations);
+    }
+
+    private static void attributeDifferences(Map<DifferenceKey, Difference> asWritten,
+            Map<DifferenceKey, Difference> closed, DifferenceAttributor attributor,
+            Set<CompatibilityReason> reasons, List<CompatibilityLimitation> limitations) {
         boolean unattributed = false;
         for (Map.Entry<DifferenceKey, Difference> difference : asWritten.entrySet()) {
             if (closed.containsKey(difference.getKey())) {
@@ -188,11 +200,10 @@ public class CrossToolCompatibilityService {
             limitations.add(comparisonFailed(SchemaSide.CONSUMER, INPUT_SCHEMA_POINTER,
                     "A mismatch reported by the comparison engine could not be attributed to a property"));
         }
+    }
 
-        List<CompatibilityReason> standing = reasons.stream()
-                .filter(reason -> !isInvalidated(reason, limitations))
-                .sorted(REASON_ORDER)
-                .toList();
+    private static CompatibilityVerdict verdictOf(List<CompatibilityReason> standing,
+            List<CompatibilityLimitation> limitations) {
         CompatibilityVerdict verdict;
         if (!standing.isEmpty()) {
             verdict = CompatibilityVerdict.INCOMPATIBLE;
@@ -201,7 +212,7 @@ public class CrossToolCompatibilityService {
         } else {
             verdict = CompatibilityVerdict.INDETERMINATE;
         }
-        return new PairCompatibility(verdict, standing, limitations);
+        return verdict;
     }
 
     /**

@@ -131,6 +131,34 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
                             + "Both use Bearer tokens and would conflict.");
         }
 
+        Map<String, Supplier<AuthenticationStrategy>> strategyFactories = strategyFactories();
+
+        List<AuthenticationStrategy> chain = new ArrayList<>();
+        List<String> priorityList = authConfig.getMechanismPriorityList();
+        Set<String> prioritySet = new HashSet<>(priorityList);
+
+        warnEnabledMechanismsMissingFromPriority(prioritySet);
+
+        log.debug("Mechanism priority list: {}", priorityList);
+        for (String name : priorityList) {
+            Supplier<AuthenticationStrategy> factory = strategyFactories.get(name);
+            if (factory == null) {
+                log.warn("Unknown authentication mechanism name in priority list: '{}'. "
+                        + "Valid values are: basic, form, proxy-header, oidc, kubernetes", name);
+                continue;
+            }
+            AuthenticationStrategy strategy = factory.get();
+            if (strategy != null) {
+                chain.add(strategy);
+            } else {
+                log.debug("Mechanism '{}' is in priority list but not enabled, skipping.",
+                        name);
+            }
+        }
+        return Collections.unmodifiableList(chain);
+    }
+
+    private Map<String, Supplier<AuthenticationStrategy>> strategyFactories() {
         Map<String, Supplier<AuthenticationStrategy>> strategyFactories = new LinkedHashMap<>();
         strategyFactories.put(MECH_BASIC, () -> authConfig.isBasicAuthEnabled() && basicAuthenticationMechanism.isResolvable()
                 ? new DelegatingAuthenticationStrategy(MECH_BASIC, basicAuthenticationMechanism.get())
@@ -170,11 +198,10 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
             }
             return new KubernetesAuthenticationStrategy(tokenReviewClient, authConfig, log);
         });
+        return strategyFactories;
+    }
 
-        List<AuthenticationStrategy> chain = new ArrayList<>();
-        List<String> priorityList = authConfig.getMechanismPriorityList();
-        Set<String> prioritySet = new HashSet<>(priorityList);
-
+    private void warnEnabledMechanismsMissingFromPriority(Set<String> prioritySet) {
         if (authConfig.isBasicAuthEnabled() && !prioritySet.contains(MECH_BASIC)) {
             log.warn("Basic auth is enabled but '{}' is missing from apicurio.authn.mechanism.priority.", MECH_BASIC);
         }
@@ -190,24 +217,6 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
         if (authConfig.isKubernetesAuthEnabled() && !prioritySet.contains(MECH_KUBERNETES)) {
             log.warn("Kubernetes auth is enabled but '{}' is missing from apicurio.authn.mechanism.priority.", MECH_KUBERNETES);
         }
-
-        log.debug("Mechanism priority list: {}", priorityList);
-        for (String name : priorityList) {
-            Supplier<AuthenticationStrategy> factory = strategyFactories.get(name);
-            if (factory == null) {
-                log.warn("Unknown authentication mechanism name in priority list: '{}'. "
-                        + "Valid values are: basic, form, proxy-header, oidc, kubernetes", name);
-                continue;
-            }
-            AuthenticationStrategy strategy = factory.get();
-            if (strategy != null) {
-                chain.add(strategy);
-            } else {
-                log.debug("Mechanism '{}' is in priority list but not enabled, skipping.",
-                        name);
-            }
-        }
-        return Collections.unmodifiableList(chain);
     }
 
     @Override

@@ -560,15 +560,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             ? EditableArtifactMetaDataDto.builder().build() : artifactMetaData;
 
         // Create the group if it doesn't exist yet.
-        if (groupId != null && !isGroupExists(groupId)) {
-            if (enableAutomaticGroupCreation) {
-                // Only create group metadata for non-default groups.
-                ensureGroup(GroupMetaDataDto.builder().groupId(groupId).createdOn(createdOn.getTime())
-                        .modifiedOn(createdOn.getTime()).owner(owner).modifiedBy(owner).build());
-            } else {
-                throw new GroupNotFoundException(groupId);
-            }
-        }
+        ensureGroupForNewArtifact(groupId, createdOn, owner);
 
         // Ensure the content exists. If this is a dryRun, or if the create fails, this
         // could result in orphaned content. That's OK because we have an async process
@@ -599,14 +591,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .bind(8, limitStr(amd.getDescription(), 1024, true)).bind(9, labelsStr).execute();
 
                 // Insert labels into the "artifact_labels" table
-                if (labels != null && !labels.isEmpty()) {
-                    labels.forEach((k, v) -> {
-                        handle.createUpdate(sqlStatements.insertArtifactLabel())
-                                .bind(0, normalizeGroupId(groupId)).bind(1, artifactId)
-                                .bind(2, limitStr(asLowerCase(k), 256))
-                                .bind(3, limitStr(asLowerCase(v), 512)).execute();
-                    });
-                }
+                insertNewArtifactLabelsRaw(handle, groupId, artifactId, labels);
 
                 // Return an artifact metadata dto
                 ArtifactMetaDataDto amdDto = ArtifactMetaDataDto.builder().groupId(groupId)
@@ -644,6 +629,30 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 throw new ArtifactAlreadyExistsException(groupId, artifactId);
             }
             throw ex;
+        }
+    }
+
+    private void ensureGroupForNewArtifact(String groupId, Date createdOn, String owner) {
+        if (groupId != null && !isGroupExists(groupId)) {
+            if (enableAutomaticGroupCreation) {
+                // Only create group metadata for non-default groups.
+                ensureGroup(GroupMetaDataDto.builder().groupId(groupId).createdOn(createdOn.getTime())
+                        .modifiedOn(createdOn.getTime()).owner(owner).modifiedBy(owner).build());
+            } else {
+                throw new GroupNotFoundException(groupId);
+            }
+        }
+    }
+
+    private void insertNewArtifactLabelsRaw(Handle handle, String groupId, String artifactId,
+            Map<String, String> labels) {
+        if (labels != null && !labels.isEmpty()) {
+            labels.forEach((k, v) -> {
+                handle.createUpdate(sqlStatements.insertArtifactLabel())
+                        .bind(0, normalizeGroupId(groupId)).bind(1, artifactId)
+                        .bind(2, limitStr(asLowerCase(k), 256))
+                        .bind(3, limitStr(asLowerCase(v), 512)).execute();
+            });
         }
     }
 
@@ -1197,42 +1206,30 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Override
     public void mergeVersionLabels(String groupId, String artifactId, String version,
             String prefix, Map<String, String> labels) throws RegistryStorageException {
+        for (String key : labels.keySet()) {
+            if (key.length() > SqlVersionRepository.MAX_LABEL_KEY_LENGTH) {
+                throw new RegistryStorageException("Label key exceeds maximum length ("
+                        + SqlVersionRepository.MAX_LABEL_KEY_LENGTH + "): " + key);
+            }
+        }
         String normalizedGroup = normalizeGroupId(groupId);
-        var versionMeta = versionRepository.getArtifactVersionMetaData(
-                normalizedGroup, artifactId, version);
-        long globalId = versionMeta.getGlobalId();
-        handles.withHandleNoException(
-                (io.apicurio.registry.storage.impl.sql.jdb.HandleAction<RegistryStorageException>) handle -> {
-                    handle.createUpdate(sqlStatements.deleteVersionLabelsByPrefix())
-                            .bind(0, globalId).bind(1, prefix + "%").execute();
-                    for (Map.Entry<String, String> entry : labels.entrySet()) {
-                        String key = entry.getKey().toLowerCase(java.util.Locale.ROOT);
-                        if (key.length() > 256) {
-                            throw new RegistryStorageException(
-                                    "Label key exceeds maximum length (256): " + key);
-                        }
-                        handle.createUpdate(sqlStatements.insertVersionLabel())
-                                .bind(0, globalId)
-                                .bind(1, key)
-                                .bind(2, limitStr(entry.getValue(), 512)).execute();
-                    }
-                    handle.createUpdate(sqlStatements.updateVersionLabels())
-                            .bind(0, RegistryContentUtils.serializeLabels(
-                                    rebuildVersionLabels(handle, globalId)))
-                            .bind(1, globalId).execute();
-                });
-    }
-
-    private Map<String, String> rebuildVersionLabels(
-            io.apicurio.registry.storage.impl.sql.jdb.Handle handle, long globalId) {
-        Map<String, String> result = new java.util.LinkedHashMap<>();
-        handle.createQuery(sqlStatements.selectVersionLabels())
-                .bind(0, globalId)
-                .map(rs -> {
-                    result.put(rs.getString("labelKey"), rs.getString("labelValue"));
-                    return null;
-                }).list();
-        return result;
+        long globalId = versionRepository.getArtifactVersionMetaData(normalizedGroup, artifactId, version)
+                .getGlobalId();
+        handles.withHandleNoException(handle -> {
+            // Lock the version row first, as mergeArtifactLabels does for the artifact row, so that
+            // concurrent label writers cannot clobber unrelated keys. Then merge into the stored
+            // labels, which keep the case of their keys (only the search index is lower-cased).
+            handle.createUpdate("UPDATE versions SET modifiedOn = modifiedOn WHERE globalId = ?")
+                    .bind(0, globalId).execute();
+            var existing = versionRepository.getArtifactVersionMetaData(normalizedGroup, artifactId, version)
+                    .getLabels();
+            Map<String, String> merged = existing == null ? new HashMap<>() : new HashMap<>(existing);
+            merged.keySet().removeIf(key -> key.startsWith(prefix));
+            merged.putAll(labels);
+            versionRepository.updateArtifactVersionMetaData(groupId, artifactId, version,
+                    EditableVersionMetaDataDto.builder().labels(merged).build());
+            return null;
+        });
     }
 
     @Override

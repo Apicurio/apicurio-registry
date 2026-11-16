@@ -475,7 +475,7 @@ The following `TradeKey` schema contains a nested reference to the `Exchange` sc
 [role="_additional-resources"]
 .Additional resources
 * link:https://maven.apache.org/index.html[Apache Maven documentation]
-* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/avro-maven-with-references[avro-maven-with-references demonstration example]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/schema-references[schema-references demonstration example (manual references)]
 * {registry-client-serdes-config}
 
 
@@ -629,7 +629,7 @@ Artifacts that reference other artifacts of the same build are not sent, because
 [role="_additional-resources"]
 .Additional resources
 * link:https://maven.apache.org/index.html[Apache Maven documentation]
-* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/avro-maven-with-references-auto[avro-maven-with-references-auto demonstration example]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/schema-references[schema-references demonstration example (automatic references)]
 * {registry-client-serdes-config}
 
 [id="registering-artifact-references-using-java_{context}"]

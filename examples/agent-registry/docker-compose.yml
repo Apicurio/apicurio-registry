@@ -6,8 +6,8 @@
 # Keycloak, and the "open" Registry has no authentication at all.
 #
 # Two Registries, on purpose:
-#   - registry (port 8180) has no authentication. The Quarkus LangChain4j extensions cannot
-#     authenticate to a Registry yet (quarkiverse/quarkus-langchain4j#3142, #3143), so the
+#   - registry (port 8180) has no authentication. No released Quarkus LangChain4j extension can
+#     authenticate to a Registry yet (fix in review: quarkiverse/quarkus-langchain4j#3145), so the
 #     agents publish to and discover from this one. Most features are shown here.
 #   - registry-secured (port 8081) uses Keycloak. It shows what depends on who is asking:
 #     agent visibility, per-resource access rules, and the Registry MCP server over HTTP.
@@ -61,9 +61,10 @@ services:
       APICURIO_MCP_REGISTRY_ENABLED: "true"
       APICURIO_UI_FEATURES_AGENTS_ENABLED: "true"
       # Importing tools from a live MCP server: only the demo's weather server may be reached,
-      # over plain HTTP inside the compose network
+      # over plain HTTP inside the compose network. localhost and the cloud metadata address are
+      # listed only to show that they are refused anyway (loopback, link-local, metadata)
       APICURIO_MCP_IMPORT_ENABLED: "true"
-      APICURIO_MCP_IMPORT_ALLOWED_HOSTS: "weather-server"
+      APICURIO_MCP_IMPORT_ALLOWED_HOSTS: "weather-server,localhost,169.254.169.254"
       APICURIO_MCP_IMPORT_INSECURE_HTTP_ENABLED: "true"
       APICURIO_REST_DELETION_GROUP_ENABLED: "true"
       APICURIO_REST_DELETION_ARTIFACT_ENABLED: "true"
@@ -168,7 +169,7 @@ services:
         condition: service_healthy
 
   # ---------------------------------------------------------------- Quarkus LangChain4j apps
-  # Built from a pinned quarkus-langchain4j commit (see apps/Dockerfile). They use the open
+  # Built from the Quarkus LangChain4j 1.15.0 sample (see apps/Dockerfile). They use the open
   # Registry, and Ollama on the host.
   weather-server:
     image: agent-registry-demo-apps:dev

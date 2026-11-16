@@ -429,10 +429,12 @@ public class ReferenceGraphWalkerTest {
 
             @Override
             public void flush() {
+                // No-op: nothing is buffered by this test handler.
             }
 
             @Override
             public void close() {
+                // No-op: this test handler holds no resources.
             }
         };
         julLogger.addHandler(handler);

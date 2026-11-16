@@ -20,6 +20,8 @@
 #   AUTH_CLIENT_ID            - OAuth2 client ID
 #   AUTH_CLIENT_SECRET        - OAuth2 client secret
 #   IMPORT_FILE               - Import file path (default: registry-export.zip)
+#   REQUIRE_EMPTY_REGISTRY    - Set to "false" to import into a registry that already has data
+#                               (default: true; the registry then refuses the import with HTTP 409)
 #   SKIP_TLS_VERIFY           - Set to "true" to skip TLS certificate verification
 #
 ################################################################################
@@ -174,6 +176,9 @@ info "Checking current registry state..."
 CURRENT_ARTIFACTS=$(curl $CURL_OPTS -s -H "$AUTH_HEADER" "${REGISTRY_URL}/apis/registry/${REGISTRY_API_VERSION}/search/artifacts?limit=1" | jq -r '.count' 2>/dev/null || echo "0")
 info "Current artifacts in registry: $CURRENT_ARTIFACTS"
 
+if [ "$CURRENT_ARTIFACTS" -gt 0 ] && [ "${REQUIRE_EMPTY_REGISTRY:-true}" != "false" ]; then
+    error "Registry already contains $CURRENT_ARTIFACTS artifacts. It refuses an import unless it is empty; set REQUIRE_EMPTY_REGISTRY=false to add to the existing data"
+fi
 if [ "$CURRENT_ARTIFACTS" -gt 0 ]; then
     warn "Registry already contains $CURRENT_ARTIFACTS artifacts"
     warn "Import will add to existing data, not replace it"
@@ -193,7 +198,7 @@ echo ""
 START_TIME=$(date +%s)
 
 HTTP_CODE=$(curl $CURL_OPTS -w "%{http_code}" -o /tmp/import-response.txt -s \
-    -X POST "$IMPORT_ENDPOINT" \
+    -X POST "$IMPORT_ENDPOINT?requireEmptyRegistry=${REQUIRE_EMPTY_REGISTRY:-true}" \
     -H "$AUTH_HEADER" \
     -H "Content-Type: application/zip" \
     --data-binary "@$IMPORT_FILE")

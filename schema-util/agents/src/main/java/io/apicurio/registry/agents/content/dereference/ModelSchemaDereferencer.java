@@ -23,6 +23,7 @@ import java.util.Map;
  */
 public class ModelSchemaDereferencer implements ContentDereferencer {
 
+    private static final String REF = "$ref";
     private static final ObjectMapper jsonMapper = new ObjectMapper();
     private static final ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
 
@@ -67,54 +68,56 @@ public class ModelSchemaDereferencer implements ContentDereferencer {
             Map<String, TypedContent> resolvedReferences) throws Exception {
         if (node.isObject()) {
             ObjectNode obj = (ObjectNode) node;
-            if (obj.has("$ref") && obj.get("$ref").isTextual()) {
-                String ref = obj.get("$ref").asText();
-                if (!ref.startsWith("#")) {
-                    TypedContent resolved = resolvedReferences.get(ref);
-                    if (resolved != null) {
-                        return jsonMapper.readTree(resolved.getContent().content());
-                    }
-                }
+            TypedContent resolved = findExternalReference(obj, resolvedReferences);
+            if (resolved != null) {
+                return jsonMapper.readTree(resolved.getContent().content());
             }
-            Iterator<String> fieldNames = obj.fieldNames();
-            while (fieldNames.hasNext()) {
-                String fieldName = fieldNames.next();
-                JsonNode child = obj.get(fieldName);
-                JsonNode resolvedChild = resolveRefsRecursive(child, resolvedReferences);
-                if (resolvedChild != child) {
-                    obj.set(fieldName, resolvedChild);
-                }
-            }
+            resolveObjectFields(obj, resolvedReferences);
         } else if (node.isArray()) {
-            ArrayNode arr = (ArrayNode) node;
-            for (int i = 0; i < arr.size(); i++) {
-                JsonNode resolvedChild = resolveRefsRecursive(arr.get(i), resolvedReferences);
-                if (resolvedChild != arr.get(i)) {
-                    arr.set(i, resolvedChild);
-                }
-            }
+            resolveArrayElements((ArrayNode) node, resolvedReferences);
         }
         return node;
+    }
+
+    private TypedContent findExternalReference(ObjectNode obj,
+            Map<String, TypedContent> resolvedReferences) {
+        if (obj.has(REF) && obj.get(REF).isTextual()) {
+            String ref = obj.get(REF).asText();
+            if (!ref.startsWith("#")) {
+                return resolvedReferences.get(ref);
+            }
+        }
+        return null;
+    }
+
+    private void resolveObjectFields(ObjectNode obj,
+            Map<String, TypedContent> resolvedReferences) throws Exception {
+        Iterator<String> fieldNames = obj.fieldNames();
+        while (fieldNames.hasNext()) {
+            String fieldName = fieldNames.next();
+            JsonNode child = obj.get(fieldName);
+            JsonNode resolvedChild = resolveRefsRecursive(child, resolvedReferences);
+            if (resolvedChild != child) {
+                obj.set(fieldName, resolvedChild);
+            }
+        }
+    }
+
+    private void resolveArrayElements(ArrayNode arr,
+            Map<String, TypedContent> resolvedReferences) throws Exception {
+        for (int i = 0; i < arr.size(); i++) {
+            JsonNode resolvedChild = resolveRefsRecursive(arr.get(i), resolvedReferences);
+            if (resolvedChild != arr.get(i)) {
+                arr.set(i, resolvedChild);
+            }
+        }
     }
 
     private void rewriteRefsRecursive(JsonNode node, Map<String, String> resolvedReferenceUrls) {
         if (node.isObject()) {
             ObjectNode obj = (ObjectNode) node;
-            if (obj.has("$ref") && obj.get("$ref").isTextual()) {
-                String ref = obj.get("$ref").asText();
-                if (!ref.startsWith("#")) {
-                    if (resolvedReferenceUrls.containsKey(ref)) {
-                        obj.put("$ref", resolvedReferenceUrls.get(ref));
-                    } else {
-                        JsonPointerExternalReference extRef = new JsonPointerExternalReference(ref);
-                        if (resolvedReferenceUrls.containsKey(extRef.getResource())) {
-                            JsonPointerExternalReference rewritten = new JsonPointerExternalReference(
-                                    resolvedReferenceUrls.get(extRef.getResource()),
-                                    extRef.getComponent());
-                            obj.put("$ref", rewritten.getFullReference());
-                        }
-                    }
-                }
+            if (obj.has(REF) && obj.get(REF).isTextual()) {
+                rewriteRef(obj, obj.get(REF).asText(), resolvedReferenceUrls);
             }
             Iterator<String> fieldNames = obj.fieldNames();
             while (fieldNames.hasNext()) {
@@ -123,6 +126,23 @@ public class ModelSchemaDereferencer implements ContentDereferencer {
         } else if (node.isArray()) {
             for (JsonNode element : node) {
                 rewriteRefsRecursive(element, resolvedReferenceUrls);
+            }
+        }
+    }
+
+    private void rewriteRef(ObjectNode obj, String ref, Map<String, String> resolvedReferenceUrls) {
+        if (ref.startsWith("#")) {
+            return;
+        }
+        if (resolvedReferenceUrls.containsKey(ref)) {
+            obj.put(REF, resolvedReferenceUrls.get(ref));
+        } else {
+            JsonPointerExternalReference extRef = new JsonPointerExternalReference(ref);
+            if (resolvedReferenceUrls.containsKey(extRef.getResource())) {
+                JsonPointerExternalReference rewritten = new JsonPointerExternalReference(
+                        resolvedReferenceUrls.get(extRef.getResource()),
+                        extRef.getComponent());
+                obj.put(REF, rewritten.getFullReference());
             }
         }
     }

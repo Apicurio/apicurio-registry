@@ -46,6 +46,7 @@ public class AgentCardDiscovery {
     private static final Logger log = LoggerFactory.getLogger(AgentCardDiscovery.class);
 
     static final ObjectMapper mapper = new ObjectMapper();
+    private static final String FALSE_VALUE = "false";
 
     @Inject
     A2AConfig a2aConfig;
@@ -123,18 +124,7 @@ public class AgentCardDiscovery {
         addStructureFilters(structureFilters, "skill", skills);
         addStructureFilters(structureFilters, "inputmode", inputModes);
         addStructureFilters(structureFilters, "outputmode", outputModes);
-        if (capabilities != null) {
-            for (String capability : capabilities) {
-                requireNonBlankStructuredFilter("capability", capability);
-                String[] parts = capability.split(":", 2);
-                requireNonBlankStructuredFilter("capability", parts[0]);
-                if (parts.length == 2 && !"true".equals(parts[1]) && !"false".equals(parts[1])) {
-                    throw new BadRequestException("Capability filter must use true or false");
-                }
-                SearchFilter filter = SearchFilter.ofStructure("agent_card:capability:" + parts[0]);
-                structureFilters.add(parts.length == 2 && "false".equals(parts[1]) ? filter.negated() : filter);
-            }
-        }
+        addCapabilityFilters(structureFilters, capabilities);
         // Delegate candidate collection (including the single, shared visibility-filtering
         // implementation) to the same core that backs the AI Catalog / ARD endpoints.
         // Structured skill/capability/input-mode/output-mode filters have no equivalent in
@@ -167,6 +157,21 @@ public class AgentCardDiscovery {
                 .build();
     }
 
+    private void addCapabilityFilters(Set<SearchFilter> structureFilters, List<String> capabilities) {
+    if (capabilities != null) {
+        for (String capability : capabilities) {
+            requireNonBlankStructuredFilter("capability", capability);
+            String[] parts = capability.split(":", 2);
+            requireNonBlankStructuredFilter("capability", parts[0]);
+            if (parts.length == 2 && !"true".equals(parts[1]) && !FALSE_VALUE.equals(parts[1])) {
+                throw new BadRequestException("Capability filter must use true or false");
+            }
+            SearchFilter filter = SearchFilter.ofStructure("agent_card:capability:" + parts[0]);
+            structureFilters.add(parts.length == 2 && FALSE_VALUE.equals(parts[1]) ? filter.negated() : filter);
+        }
+    }
+    }
+
     /**
      * Evaluates the {@code skill}/{@code capability}/{@code inputMode}/{@code outputMode}
      * structured filters accepted by {@link #searchAgents} against an artifact's Agent Card
@@ -186,26 +191,12 @@ public class AgentCardDiscovery {
 
         JsonNode root = aiCatalogDiscovery.readLatestContent(artifact);
 
-        if (hasSkills) {
-            List<String> skillIds = extractAgentCardSkillIds(root);
-            for (String skill : skills) {
-                if (!skillIds.contains(skill)) {
-                    return false;
-                }
-            }
+        if (hasSkills && !extractAgentCardSkillIds(root).containsAll(skills)) {
+            return false;
         }
 
-        if (hasCapabilities) {
-            JsonNode capabilitiesNode = root.path("capabilities");
-            for (String capability : capabilities) {
-                String[] parts = capability.split(":", 2);
-                String capKey = parts[0];
-                String capValue = parts.length > 1 ? parts[1] : "true";
-                boolean expected = !"false".equals(capValue);
-                if (capabilitiesNode.path(capKey).asBoolean(false) != expected) {
-                    return false;
-                }
-            }
+        if (hasCapabilities && !matchesCapabilities(root.path("capabilities"), capabilities)) {
+            return false;
         }
 
         if (hasInputModes && !containsAllTextValues(root.path("defaultInputModes"), inputModes)) {
@@ -216,6 +207,19 @@ public class AgentCardDiscovery {
             return false;
         }
 
+        return true;
+    }
+
+    private static boolean matchesCapabilities(JsonNode capabilitiesNode, List<String> capabilities) {
+        for (String capability : capabilities) {
+            String[] parts = capability.split(":", 2);
+            String capKey = parts[0];
+            String capValue = parts.length > 1 ? parts[1] : "true";
+            boolean expected = !FALSE_VALUE.equals(capValue);
+            if (capabilitiesNode.path(capKey).asBoolean(false) != expected) {
+                return false;
+            }
+        }
         return true;
     }
 

@@ -125,6 +125,7 @@ public class McpRegistryApiResourceImpl implements ApisResource {
     private static final int DEFAULT_PAGE_SIZE = 30;
     private static final int STATUS_MESSAGE_MAX_LENGTH = 500;
     static final String STATUS_PREFIX = "apicurio.mcp-registry.status.";
+    private static final String MESSAGE_LABEL = "message";
 
     /** Internal envelope data must not overwrite publisher-owned server._meta keys. */
     @RegisterForReflection
@@ -199,19 +200,30 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         Set<SearchFilter> filters = new HashSet<>();
         filters.add(SearchFilter.ofArtifactType(ArtifactType.MCP_SERVER));
         if ((search == null || search.isBlank()) && updatedSince == null && !includeDeleted) {
-            ArtifactSearchResultsDto results = searchAuthorizer.searchArtifacts(filters, OrderBy.name,
-                    OrderDirection.asc, offset, pageSize, false);
-            List<Server> servers = new ArrayList<>();
-            for (SearchedArtifactDto artifact : results.getArtifacts()) {
-                Server server = tryLoadServer(new McpServerName(artifact.getGroupId(), artifact.getArtifactId()),
-                        version);
-                if (server != null && !isDeleted(server)) {
-                    servers.add(server);
-                }
-            }
-            boolean hasMore = (long) offset + pageSize < results.getCount();
-            return buildServerList(servers, hasMore ? offset + pageSize : -1, fingerprint);
+            return listServersAtVersion(filters, offset, pageSize, fingerprint, version);
         }
+        return scanServersAtVersion(filters, offset, pageSize, fingerprint, search, updatedSince, version,
+                includeDeleted);
+    }
+
+    private ServerList listServersAtVersion(Set<SearchFilter> filters, int offset, int pageSize,
+            String fingerprint, String version) {
+        ArtifactSearchResultsDto results = searchAuthorizer.searchArtifacts(filters, OrderBy.name,
+                OrderDirection.asc, offset, pageSize, false);
+        List<Server> servers = new ArrayList<>();
+        for (SearchedArtifactDto artifact : results.getArtifacts()) {
+            Server server = tryLoadServer(new McpServerName(artifact.getGroupId(), artifact.getArtifactId()),
+                    version);
+            if (server != null && !isDeleted(server)) {
+                servers.add(server);
+            }
+        }
+        boolean hasMore = (long) offset + pageSize < results.getCount();
+        return buildServerList(servers, hasMore ? offset + pageSize : -1, fingerprint);
+    }
+
+    private ServerList scanServersAtVersion(Set<SearchFilter> filters, int offset, int pageSize,
+            String fingerprint, String search, Date updatedSince, String version, boolean includeDeleted) {
         // Artifact metadata is not the version exposed by this API: status changes update only the
         // version timestamp, and descriptions can differ across versions. Filter the resolved server
         // documents before slicing the response, rather than dropping rows from an artifact page.
@@ -226,8 +238,7 @@ public class McpRegistryApiResourceImpl implements ApisResource {
             for (SearchedArtifactDto artifact : results.getArtifacts()) {
                 McpServerName name = new McpServerName(artifact.getGroupId(), artifact.getArtifactId());
                 Server server = tryLoadServer(name, version, latestVersionOrNull(name, includeDeleted));
-                if (server != null && (includeDeleted || !isDeleted(server)) && matchesSearch(server, query)
-                        && (updatedSince == null || !updatedAt(server).isBefore(updatedSince.toInstant()))) {
+                if (isVisibleAtVersion(server, includeDeleted, query, updatedSince)) {
                     servers.add(server);
                 }
             }
@@ -246,6 +257,11 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         int end = start + Math.min(pageSize, servers.size() - start);
         return buildServerList(new ArrayList<>(servers.subList(start, end)),
                 end < servers.size() ? end : -1, fingerprint);
+    }
+
+    private boolean isVisibleAtVersion(Server server, boolean includeDeleted, String query, Date updatedSince) {
+        return server != null && (includeDeleted || !isDeleted(server)) && matchesSearch(server, query)
+                && (updatedSince == null || !updatedAt(server).isBefore(updatedSince.toInstant()));
     }
 
     private ServerList listAllServerVersions(int offset, int pageSize, String fingerprint, String search,
@@ -417,7 +433,7 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         loadServer(name, resolved);
         ServerStatus requested = requireStatus(data);
         ArtifactVersionMetaDataDto current = storage.getArtifactVersionMetaData(name.namespace(), name.serverId(), resolved);
-        String currentMessage = current.getLabels() == null ? null : current.getLabels().get(STATUS_PREFIX + "message");
+        String currentMessage = current.getLabels() == null ? null : current.getLabels().get(STATUS_PREFIX + MESSAGE_LABEL);
         if (current.getState() == toVersionState(requested) && Objects.equals(currentMessage, data.getStatusMessage())) {
             throw new BadRequestException("No changes to apply: status and message are unchanged");
         }
@@ -460,7 +476,7 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         Map<String, String> labels = new HashMap<>();
         labels.put(STATUS_PREFIX + "changed-at", Instant.now().toString());
         if (data.getStatusMessage() != null) {
-            labels.put(STATUS_PREFIX + "message", data.getStatusMessage());
+            labels.put(STATUS_PREFIX + MESSAGE_LABEL, data.getStatusMessage());
         }
         return labels;
     }
@@ -694,7 +710,7 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         registryMeta.put(META_IS_LATEST, isLatest);
         registryMeta.put(META_STATUS, toStatus(meta.getState()).value());
         if (meta.getLabels() != null) {
-            String message = meta.getLabels().get(STATUS_PREFIX + "message");
+            String message = meta.getLabels().get(STATUS_PREFIX + MESSAGE_LABEL);
             String changedAt = meta.getLabels().get(STATUS_PREFIX + "changed-at");
             if (message != null) {
                 registryMeta.put("statusMessage", message);

@@ -2,7 +2,7 @@ package io.apicurio.registry.perftest.kafka;
 
 import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
 import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
-import io.apicurio.registry.serde.config.SerdeConfig;
+import io.apicurio.registry.resolver.config.SchemaResolverConfig;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
@@ -41,8 +41,7 @@ import java.util.concurrent.atomic.AtomicLong;
  *   <li>{@code REGISTRY_URL} - base URL of the registry REST API
  *   <li>{@code KAFKA_BOOTSTRAP_SERVERS} - Kafka bootstrap servers
  *   <li>{@code AUTH_TOKEN_ENDPOINT} / {@code AUTH_CLIENT_ID} / {@code AUTH_CLIENT_SECRET} - OAuth2
- *       client-credentials used by the serde to authenticate to the registry (same mechanism as
- *       {@code examples/simple-json})
+ *       client-credentials used by the serde to authenticate to the registry
  *   <li>{@code PERF_DURATION_SECONDS} - how long to run before shutting down (default 120)
  *   <li>{@code PERF_PRODUCE_RATE_PER_SEC} - target produce rate (default 20)
  * </ul>
@@ -154,8 +153,8 @@ public class KafkaLoadGenerator {
         props.putIfAbsent(ProducerConfig.CLIENT_ID_CONFIG, "perf-test-producer");
         props.putIfAbsent(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         props.putIfAbsent(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, AvroKafkaSerializer.class.getName());
-        props.putIfAbsent(SerdeConfig.REGISTRY_URL, REGISTRY_URL);
-        props.putIfAbsent(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
+        props.putIfAbsent(SchemaResolverConfig.REGISTRY_URL, REGISTRY_URL);
+        props.putIfAbsent(SchemaResolverConfig.AUTO_REGISTER_ARTIFACT, "true");
         applyOAuthIfConfigured(props);
         return new KafkaProducer<>(props);
     }
@@ -168,7 +167,7 @@ public class KafkaLoadGenerator {
         props.putIfAbsent(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         props.putIfAbsent(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
                 AvroKafkaDeserializer.class.getName());
-        props.putIfAbsent(SerdeConfig.REGISTRY_URL, REGISTRY_URL);
+        props.putIfAbsent(SchemaResolverConfig.REGISTRY_URL, REGISTRY_URL);
         applyOAuthIfConfigured(props);
         return new KafkaConsumer<>(props);
     }
@@ -179,7 +178,7 @@ public class KafkaLoadGenerator {
      * in the perf-main topology the Kafka broker itself is unauthenticated (PLAINTEXT) - only the
      * registry is behind Keycloak - so no SASL/broker-auth properties are set here.
      *
-     * <p>Note: {@code SerdeConfig.AUTH_TOKEN_ENDPOINT} etc. are dotted serde *config property*
+     * <p>Note: {@code SchemaResolverConfig.AUTH_TOKEN_ENDPOINT} etc. are dotted serde *config property*
      * keys (e.g. {@code "apicurio.registry.auth.service.token.endpoint"}), not environment
      * variable names - they must not be passed to {@link System#getenv(String)} directly. The
      * plain env vars below (matching what {@code k8s/perf-job.yaml} sets, and what
@@ -192,8 +191,8 @@ public class KafkaLoadGenerator {
         }
         String clientId = System.getenv("AUTH_CLIENT_ID");
         String clientSecret = System.getenv("AUTH_CLIENT_SECRET");
-        props.putIfAbsent(SerdeConfig.AUTH_CLIENT_SECRET, clientSecret);
-        props.putIfAbsent(SerdeConfig.AUTH_CLIENT_ID, clientId);
-        props.putIfAbsent(SerdeConfig.AUTH_TOKEN_ENDPOINT, tokenEndpoint);
+        props.putIfAbsent(SchemaResolverConfig.AUTH_CLIENT_SECRET, clientSecret);
+        props.putIfAbsent(SchemaResolverConfig.AUTH_CLIENT_ID, clientId);
+        props.putIfAbsent(SchemaResolverConfig.AUTH_TOKEN_ENDPOINT, tokenEndpoint);
     }
 }

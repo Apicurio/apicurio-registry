@@ -324,7 +324,7 @@ export const ArtifactContractTabContent: FunctionComponent<ArtifactContractTabCo
                                             <HelperTextItem variant={qualityScore.completeness >= 1.0 ? "success" : "warning"}>
                                                 {qualityScore.completeness >= 1.0
                                                     ? "All metadata fields are set."
-                                                    : "To improve: ensure the ODCS contract YAML includes all of: info.description, team.name, team.domain, team.contact, info.dataClassification, and serviceLevel.availability. These are projected onto the artifact as contract labels when the contract is submitted."}
+                                                    : "To improve: give the artifact a description, and ensure the ODCS contract YAML includes team.name, team.domain, team.contact, info.dataClassification and serviceLevel.availability, which are projected onto the artifact as contract labels when the contract is submitted."}
                                             </HelperTextItem>
                                         </HelperText>
                                     </div>

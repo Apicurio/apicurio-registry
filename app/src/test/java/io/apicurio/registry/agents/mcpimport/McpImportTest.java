@@ -29,6 +29,7 @@ import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.IntStream;
 
 import static io.restassured.RestAssured.given;
@@ -430,6 +431,34 @@ public class McpImportTest extends AbstractResourceTestBase {
         assertTrue(audit.stream().anyMatch(a -> "importMcpTools".equals(a.get("action"))
                 && group.equals(a.get("group_id"))), () -> "audit: " + audit);
         assertTrue(audit.stream().noneMatch(a -> a.toString().contains("s3cr3t-token")));
+    }
+
+    @Test
+    void theServerContactedIsAuditedWithoutPathQueryOrHeaders() {
+        mcp.tools(McpTestServer.tool("search", "string"));
+        int auditBefore = auditLogService.getAuditLogs().size();
+        String target = mcp.url().replace("http://", "").replace("/mcp", "");
+
+        importTools(Map.of("url", mcp.url() + "?key=s3cr3t-query",
+                "headers", Map.of("Authorization", "Bearer s3cr3t-token"))).statusCode(200);
+        importTools(Map.of("url", "https://not-allowed.example.com/mcp")).statusCode(400);
+
+        List<Map<String, String>> audit = auditLogService.getAuditLogs().subList(auditBefore,
+                auditLogService.getAuditLogs().size()).stream()
+                .filter(a -> McpToolImportService.AUDIT_ACTION.equals(a.get("action"))).toList();
+        assertEquals(2, audit.size(), () -> "audit: " + audit);
+        assertEquals(Map.of("action", "mcpImportTarget", "result", "success", "group_id", group,
+                "artifact_id", SERVER, "target", target), withoutPrincipal(audit.get(0)));
+        assertEquals(Map.of("action", "mcpImportTarget", "result", "failure", "group_id", group,
+                "artifact_id", SERVER, "target", "not-allowed.example.com", "reason", "host-denied"),
+                withoutPrincipal(audit.get(1)));
+    }
+
+    private static Map<String, String> withoutPrincipal(Map<String, String> entry) {
+        Map<String, String> copy = new HashMap<>(entry);
+        copy.keySet().removeIf(k -> !Set.of("action", "result", "group_id", "artifact_id", "target", "reason")
+                .contains(k));
+        return copy;
     }
 
     @Test

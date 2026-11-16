@@ -214,13 +214,14 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         }
 
         if (reference.getContentId() != null) {
-            return resolveSchemaByContentId(reference.getContentId(), deserializerDereference);
+            // The one-argument hooks apply the deserializer setting and stay overridable by subclasses.
+            return resolveSchemaByContentId(reference.getContentId());
         }
         if (reference.getContentHash() != null) {
-            return resolveSchemaByContentHash(reference.getContentHash(), deserializerDereference);
+            return resolveSchemaByContentHash(reference.getContentHash());
         }
         if (reference.getGlobalId() != null) {
-            return resolveSchemaByGlobalId(reference.getGlobalId(), deserializerDereference);
+            return resolveSchemaByGlobalId(reference.getGlobalId());
         }
 
         return resolveSchemaByCoordinates(reference.getGroupId(), reference.getArtifactId(),
@@ -250,15 +251,15 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
     }
 
     /**
-     * Resolves a schema by content ID, dereferenced if requested and the client facade supports it.
+     * Resolves a schema by content ID, dereferenced if requested and supported
+     * (see {@link #dereferenceContentLookup(boolean)}).
      *
      * @param contentId the content ID
      * @param dereference whether to fetch the schema dereferenced
      * @return the schema
      */
     protected SchemaLookupResult<S> resolveSchemaByContentId(long contentId, boolean dereference) {
-        boolean dereferenced = dereference && clientFacade.supportsDereferencedContentLookups()
-                && schemaParser.supportsDereferencedContentLookups();
+        boolean dereferenced = dereferenceContentLookup(dereference);
         return schemaCache.getByContentId(contentId, contentIdKey -> {
             // it's impossible to retrieve more info about the artifact with only the contentId, and that's ok
             String rawSchema = this.clientFacade.getSchemaByContentId(contentIdKey, dereferenced);
@@ -272,6 +273,19 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
     }
 
     /**
+     * Whether a content-ID or content-hash lookup fetches the schema dereferenced. Requires the explicit
+     * {@code apicurio.registry.deserializer.dereference-schema} opt-in (servers older than 3.4.0 ignore the
+     * dereference parameter on these endpoints), a client facade that supports it, and a text-based format.
+     *
+     * @param dereference the dereference setting of the calling side
+     * @return true if the lookup fetches the schema dereferenced
+     */
+    private boolean dereferenceContentLookup(boolean dereference) {
+        return dereference && contentLookupDereferenceOptIn && clientFacade.supportsDereferencedContentLookups()
+                && schemaParser.supportsDereferencedContentLookups();
+    }
+
+    /**
      * Resolves a schema by content hash, using the deserializer dereference setting.
      *
      * @param contentHash the content hash
@@ -282,15 +296,15 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
     }
 
     /**
-     * Resolves a schema by content hash, dereferenced if requested and the client facade supports it.
+     * Resolves a schema by content hash, dereferenced if requested and supported
+     * (see {@link #dereferenceContentLookup(boolean)}).
      *
      * @param contentHash the content hash
      * @param dereference whether to fetch the schema dereferenced
      * @return the schema
      */
     protected SchemaLookupResult<S> resolveSchemaByContentHash(String contentHash, boolean dereference) {
-        boolean dereferenced = dereference && clientFacade.supportsDereferencedContentLookups()
-                && schemaParser.supportsDereferencedContentLookups();
+        boolean dereferenced = dereferenceContentLookup(dereference);
         return schemaCache.getByContentHash(contentHash, contentHashKey -> {
             // it's impossible to retrieve more info about the artifact with only the contentHash, and that's ok
             String rawSchema = this.clientFacade.getSchemaByContentHash(contentHashKey, dereferenced);

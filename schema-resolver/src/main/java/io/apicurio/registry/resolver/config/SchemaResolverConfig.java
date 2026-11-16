@@ -664,29 +664,34 @@ public class SchemaResolverConfig extends AbstractConfig {
     /**
      * Whether serializers dereference schemas.
      *
-     * <p>
-     * A key present with a {@code null} value counts as set (resolves to {@code false}); it does not fall
-     * back to {@link #DEREFERENCE_SCHEMA}.
-     *
-     * @return {@link #SERIALIZER_DEREFERENCE_SCHEMA} if set, otherwise {@link #resolveDereferenced()}
+     * @return {@link #SERIALIZER_DEREFERENCE_SCHEMA} if set to a non-null value, otherwise
+     *         {@link #resolveDereferenced()}
      */
     public boolean serializerDereference() {
-        return originals.containsKey(SERIALIZER_DEREFERENCE_SCHEMA) ? getBooleanOrFalse(SERIALIZER_DEREFERENCE_SCHEMA)
-                : resolveDereferenced();
+        return originals.get(SERIALIZER_DEREFERENCE_SCHEMA) != null
+                ? getBooleanOrFalse(SERIALIZER_DEREFERENCE_SCHEMA) : resolveDereferenced();
     }
 
     /**
      * Whether deserializers fetch schemas dereferenced.
      *
-     * <p>
-     * A key present with a {@code null} value counts as set (resolves to {@code false}); it does not fall
-     * back to {@link #DEREFERENCE_SCHEMA}.
-     *
-     * @return {@link #DESERIALIZER_DEREFERENCE_SCHEMA} if set, otherwise {@link #resolveDereferenced()}
+     * @return {@link #DESERIALIZER_DEREFERENCE_SCHEMA} if set to a non-null value, otherwise
+     *         {@link #resolveDereferenced()}
      */
     public boolean deserializerDereference() {
-        return originals.containsKey(DESERIALIZER_DEREFERENCE_SCHEMA)
+        return isDeserializerDereferenceSet()
                 ? getBooleanOrFalse(DESERIALIZER_DEREFERENCE_SCHEMA) : resolveDereferenced();
+    }
+
+    /**
+     * Whether {@link #DESERIALIZER_DEREFERENCE_SCHEMA} is set explicitly. Content-ID and content-hash lookups
+     * only dereference when it is, so the global {@link #DEREFERENCE_SCHEMA} keeps its previous behaviour for
+     * them (and keeps working against servers older than 3.4.0).
+     *
+     * @return true if the key is present with a non-null value
+     */
+    public boolean isDeserializerDereferenceSet() {
+        return originals.get(DESERIALIZER_DEREFERENCE_SCHEMA) != null;
     }
 
     public boolean isCanonicalize() {

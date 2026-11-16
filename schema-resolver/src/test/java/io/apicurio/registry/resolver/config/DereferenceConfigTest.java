@@ -57,10 +57,22 @@ class DereferenceConfigTest {
     }
 
     @Test
-    void keyNames() {
-        assertEquals("apicurio.registry.serializer.dereference-schema",
-                SchemaResolverConfig.SERIALIZER_DEREFERENCE_SCHEMA);
-        assertEquals("apicurio.registry.deserializer.dereference-schema",
-                SchemaResolverConfig.DESERIALIZER_DEREFERENCE_SCHEMA);
+    void nullSideValueFallsBackToTheGlobalKey() {
+        Map<String, Object> map = new HashMap<>();
+        map.put(SchemaResolverConfig.DEREFERENCE_SCHEMA, "true");
+        map.put(SchemaResolverConfig.SERIALIZER_DEREFERENCE_SCHEMA, null);
+        map.put(SchemaResolverConfig.DESERIALIZER_DEREFERENCE_SCHEMA, null);
+        SchemaResolverConfig config = new SchemaResolverConfig(map);
+        assertEquals(true, config.serializerDereference());
+        assertEquals(true, config.deserializerDereference());
+        assertEquals(false, config.isDeserializerDereferenceSet());
+    }
+
+    @Test
+    void deserializerKeyIsSetOnlyWhenPresent() {
+        assertEquals(false, new SchemaResolverConfig(
+                Map.of(SchemaResolverConfig.DEREFERENCE_SCHEMA, "true")).isDeserializerDereferenceSet());
+        assertEquals(true, new SchemaResolverConfig(
+                Map.of(SchemaResolverConfig.DESERIALIZER_DEREFERENCE_SCHEMA, "false")).isDeserializerDereferenceSet());
     }
 }

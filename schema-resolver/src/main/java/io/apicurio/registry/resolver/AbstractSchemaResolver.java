@@ -48,8 +48,9 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
     protected String explicitArtifactVersion;
 
     /**
-     * @deprecated the resolver uses {@link #serializerDereference} and {@link #deserializerDereference}; this
-     *             holds the global {@code apicurio.registry.dereference-schema} value for subclasses.
+     * @deprecated the resolver no longer reads this field; it uses {@link #serializerDereference} and
+     *             {@link #deserializerDereference}. It only exposes the global
+     *             {@code apicurio.registry.dereference-schema} value to subclasses, and changing it has no effect.
      */
     @Deprecated
     protected boolean resolveDereferenced;
@@ -59,6 +60,12 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
 
     /** Whether deserializer paths fetch schemas dereferenced. */
     protected boolean deserializerDereference;
+
+    /**
+     * Whether content-ID and content-hash lookups may fetch schemas dereferenced: only when
+     * {@code apicurio.registry.deserializer.dereference-schema} is set explicitly.
+     */
+    protected boolean contentLookupDereferenceOptIn;
 
     @Override
     public void configure(Map<String, ?> configs, SchemaParser<S, T> schemaParser) {
@@ -89,7 +96,9 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         schemaCache.configureGlobalIdKeyExtractor(SchemaLookupResult::getGlobalId);
         schemaCache.configureContentKeyExtractor(schema -> {
             var rawSchema = schema.getParsedSchema().getRawSchema();
-            if (rawSchema != null) {
+            // Results read by content hash alone carry no global ID or content ID; a serializer reusing them
+            // through the content index would write an ID of 0, so they are not indexed by content.
+            if (rawSchema != null && (schema.getGlobalId() != 0 || schema.getContentId() != 0)) {
                 return ContentWithReferences.builder()
                         .content(IoUtil.toString(rawSchema))
                         .references(schema.getReferences())
@@ -118,6 +127,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         this.resolveDereferenced = config.resolveDereferenced();
         this.serializerDereference = config.serializerDereference();
         this.deserializerDereference = config.deserializerDereference();
+        this.contentLookupDereferenceOptIn = config.isDeserializerDereferenceSet();
     }
 
     @Override

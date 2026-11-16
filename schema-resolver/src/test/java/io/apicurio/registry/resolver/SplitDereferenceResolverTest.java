@@ -1,5 +1,6 @@
 package io.apicurio.registry.resolver;
 
+import io.apicurio.registry.resolver.cache.ContentWithReferences;
 import io.apicurio.registry.resolver.config.SchemaResolverConfig;
 import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
@@ -10,8 +11,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Serializer and deserializer paths use their own dereference flag (#10060).
@@ -24,12 +27,16 @@ class SplitDereferenceResolverTest {
     private MockSchemaParser parser;
 
     private DefaultSchemaResolver<String, String> resolver(Map<String, Object> extra) {
+        return resolver(extra, new DefaultSchemaResolver<>());
+    }
+
+    private DefaultSchemaResolver<String, String> resolver(Map<String, Object> extra,
+            DefaultSchemaResolver<String, String> resolver) {
         facade = new MockRegistryClientFacade(SCHEMA);
         ParsedSchemaImpl<String> parsed = new ParsedSchemaImpl<>();
         parsed.setParsedSchema(SCHEMA);
         parsed.setRawSchema(SCHEMA.getBytes(StandardCharsets.UTF_8));
         parser = new MockSchemaParser(parsed);
-        DefaultSchemaResolver<String, String> resolver = new DefaultSchemaResolver<>();
         resolver.setClientFacade(facade);
         Map<String, Object> configs = new HashMap<>(extra);
         resolver.configure(configs, parser);
@@ -158,5 +165,66 @@ class SplitDereferenceResolverTest {
         resolver.resolveSchemaByGlobalId(9L);
         assertEquals(List.of(true), parser.getSchemaFromDataDereference());
         assertEquals(List.of("globalId:false"), facade.getDereferenceRequests());
+    }
+
+    @Test
+    void globalKeyAloneDoesNotDereferenceContentLookups() {
+        DefaultSchemaResolver<String, String> resolver = resolver(
+                new HashMap<>(Map.of(SchemaResolverConfig.DEREFERENCE_SCHEMA, "true")));
+        resolver.resolveSchemaByArtifactReference(ArtifactReference.builder().contentId(7L).build());
+        resolver.resolveSchemaByArtifactReference(ArtifactReference.builder().contentHash("h").build());
+        assertEquals(List.of("contentId:false", "contentHash:false"), facade.getDereferenceRequests());
+        assertEquals(2, facade.getGetReferencesCallCount());
+    }
+
+    @Test
+    void artifactReferenceLookupsGoThroughOverridableHooks() {
+        AtomicInteger contentIdCalls = new AtomicInteger();
+        AtomicInteger contentHashCalls = new AtomicInteger();
+        AtomicInteger globalIdCalls = new AtomicInteger();
+        DefaultSchemaResolver<String, String> resolver = resolver(sides(false, true),
+                new DefaultSchemaResolver<>() {
+                    @Override
+                    protected SchemaLookupResult<String> resolveSchemaByContentId(long contentId) {
+                        contentIdCalls.incrementAndGet();
+                        return super.resolveSchemaByContentId(contentId);
+                    }
+
+                    @Override
+                    protected SchemaLookupResult<String> resolveSchemaByContentHash(String contentHash) {
+                        contentHashCalls.incrementAndGet();
+                        return super.resolveSchemaByContentHash(contentHash);
+                    }
+
+                    @Override
+                    protected SchemaLookupResult<String> resolveSchemaByGlobalId(long globalId) {
+                        globalIdCalls.incrementAndGet();
+                        return super.resolveSchemaByGlobalId(globalId);
+                    }
+                });
+        resolver.resolveSchemaByArtifactReference(ArtifactReference.builder().contentId(7L).build());
+        resolver.resolveSchemaByArtifactReference(ArtifactReference.builder().contentHash("h").build());
+        resolver.resolveSchemaByArtifactReference(ArtifactReference.builder().globalId(5L).build());
+        assertEquals(1, contentIdCalls.get());
+        assertEquals(1, contentHashCalls.get());
+        assertEquals(1, globalIdCalls.get());
+        assertEquals(List.of("contentId:true", "contentHash:true", "globalId:true"),
+                facade.getDereferenceRequests());
+    }
+
+    @Test
+    void contentHashReadsAreNotReusableBySerializerContentLookups() {
+        DefaultSchemaResolver<String, String> resolver = resolver(sides(true, true));
+        resolver.resolveSchemaByArtifactReference(ArtifactReference.builder().contentHash("h").build());
+        assertTrue(resolver.schemaCache.containsByContentHash("h"));
+
+        AtomicInteger loads = new AtomicInteger();
+        resolver.schemaCache.getByContent(ContentWithReferences.builder().content(SCHEMA).build(), key -> {
+            loads.incrementAndGet();
+            ParsedSchemaImpl<String> ps = new ParsedSchemaImpl<String>().setParsedSchema(SCHEMA)
+                    .setRawSchema(SCHEMA.getBytes(StandardCharsets.UTF_8));
+            return SchemaLookupResult.<String>builder().globalId(1L).contentId(2L).parsedSchema(ps).build();
+        });
+        assertEquals(1, loads.get());
     }
 }

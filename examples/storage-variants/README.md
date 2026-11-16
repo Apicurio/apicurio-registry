@@ -54,10 +54,9 @@ Each Compose profile is one variant; the registry is on http://localhost:8081.
 
 ## Notes
 
-- **Known issues:** KafkaSQL replicas starting together can fail to create the topics
-  ([#11079](https://github.com/Apicurio/apicurio-registry/issues/11079)); KubernetesOps applies
-  changes only after the debounce maximum ([#11080](https://github.com/Apicurio/apicurio-registry/issues/11080)).
-  The example works around both. On GitOps and KubernetesOps the search index is never populated
+- **Known issues:** KubernetesOps applies changes only after the debounce maximum
+  ([#11080](https://github.com/Apicurio/apicurio-registry/issues/11080)); the example works around it.
+  On GitOps and KubernetesOps the search index is never populated
   ([#11170](https://github.com/Apicurio/apicurio-registry/issues/11170)); the demo shows it.
 - **GitOps sync:** the registry never fetches. For a sidecar that pulls a remote repository or
   accepts `git push`, see [`distro/gitops/compose`](../../distro/gitops/compose/).

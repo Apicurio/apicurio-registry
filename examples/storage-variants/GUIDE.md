@@ -112,8 +112,8 @@ reads the whole topic at startup into its own in-memory database, and keeps read
 - a restarted replica rebuilds everything from the topic. On a long journal, snapshots
   (`apicurio.kafkasql.snapshot.*`) make that faster.
 
-The second replica waits for the first one here: replicas creating the topics at the same time can
-fail ([#11079](https://github.com/Apicurio/apicurio-registry/issues/11079)).
+Both replicas start at the same time: when both try to create the topics, the one that loses the
+race finds them already created and starts normally.
 
 ## Step 6: GitOps
 
@@ -260,4 +260,3 @@ find work/repo -mindepth 1 -not -name .gitkeep -delete
 | `mssql` is skipped | The SQL Server image is amd64 only. Set `VARIANTS=mssql` on an amd64 machine. |
 | `kubernetesops` does not start | `docker logs storage-k8s-setup`; k3s needs a privileged container (on Podman, a rootful machine). |
 | GitOps never loads | `curl localhost:8081/apis/registry/v3/admin/gitops/status`: `errors` says which file is wrong; `registryId` must match `APICURIO_POLLING_STORAGE_ID`. |
-| A KafkaSQL replica exits with `TopicExistsException` | Start replicas one after another ([#11079](https://github.com/Apicurio/apicurio-registry/issues/11079)). |

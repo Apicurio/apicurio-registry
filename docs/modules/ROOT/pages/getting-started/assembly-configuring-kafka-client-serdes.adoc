@@ -399,11 +399,13 @@ The `DefaultSchemaResolver` uses the following properties to configure how to lo
 |===
 
 NOTE: Since {registry} 3.4.0, `apicurio.registry.dereference-schema` and
-`apicurio.registry.deserializer.dereference-schema` also apply when deserializers look up schemas by content ID or
-content hash, which is the default (`apicurio.registry.use-id` is `contentId`). Previously, dereferencing only
-applied to lookups by global ID. Content-ID and content-hash dereferencing does not apply to Protobuf, which
-keeps fetching references. The deserialized data is the same. When Kafka Connect shares one resolver between
-its serializer and deserializer, a cached schema can be in either form, dereferenced or with references.
+`apicurio.registry.deserializer.dereference-schema` also apply when deserializers look up schemas by content
+ID or content hash, which is the default (`apicurio.registry.use-id` is `contentId`). Previously,
+dereferencing only applied to lookups by global ID. Content-ID and content-hash dereferencing does not apply
+to Protobuf, which keeps fetching references. The deserialized data is the same. When one resolver is shared
+between a serializer and a deserializer, as in Kafka Connect, and the two sides use different dereference
+values, a cached schema can be in either form, dereferenced or with references. This applies to all lookups:
+by global ID, content ID, and content hash. Both forms decode to the same data.
 
 **Configuration to read and write registry artifacts in Kafka**
 

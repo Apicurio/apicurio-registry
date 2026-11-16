@@ -664,6 +664,10 @@ public class SchemaResolverConfig extends AbstractConfig {
     /**
      * Whether serializers dereference schemas.
      *
+     * <p>
+     * A key present with a {@code null} value counts as set (resolves to {@code false}); it does not fall
+     * back to {@link #DEREFERENCE_SCHEMA}.
+     *
      * @return {@link #SERIALIZER_DEREFERENCE_SCHEMA} if set, otherwise {@link #resolveDereferenced()}
      */
     public boolean serializerDereference() {
@@ -673,6 +677,10 @@ public class SchemaResolverConfig extends AbstractConfig {
 
     /**
      * Whether deserializers fetch schemas dereferenced.
+     *
+     * <p>
+     * A key present with a {@code null} value counts as set (resolves to {@code false}); it does not fall
+     * back to {@link #DEREFERENCE_SCHEMA}.
      *
      * @return {@link #DESERIALIZER_DEREFERENCE_SCHEMA} if set, otherwise {@link #resolveDereferenced()}
      */

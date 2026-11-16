@@ -101,6 +101,27 @@ class SplitDereferenceResolverTest {
     }
 
     @Test
+    void deserializerFlagReachesArtifactReferenceGlobalIdLookup() {
+        resolver(sides(false, true)).resolveSchemaByArtifactReference(
+                ArtifactReference.builder().globalId(5L).build());
+        assertEquals(List.of("globalId:true"), facade.getDereferenceRequests());
+
+        resolver(sides(true, false)).resolveSchemaByArtifactReference(
+                ArtifactReference.builder().globalId(5L).build());
+        assertEquals(List.of("globalId:false"), facade.getDereferenceRequests());
+    }
+
+    @Test
+    void deserializerFlagReachesArtifactReferenceCoordinatesLookup() {
+        ArtifactReference gav = ArtifactReference.builder().groupId("g").artifactId("a").version("1").build();
+        resolver(sides(false, true)).resolveSchemaByArtifactReference(gav);
+        assertEquals(List.of("globalId:true"), facade.getDereferenceRequests());
+
+        resolver(sides(true, false)).resolveSchemaByArtifactReference(gav);
+        assertEquals(List.of("globalId:false"), facade.getDereferenceRequests());
+    }
+
+    @Test
     void contentLookupsKeepReferencesWhenTheFacadeCannotDereference() {
         DefaultSchemaResolver<String, String> resolver = resolver(sides(false, true));
         facade.setSupportsDereferencedContentLookups(false);

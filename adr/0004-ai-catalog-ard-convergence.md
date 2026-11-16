@@ -1,6 +1,7 @@
 # ADR-0004: AI Catalog & ARD Convergence
 
-- **Status:** Proposed.
+- **Status:** Accepted. Steps 1, 2 and 4 are implemented; Step 3 stays deferred. Part of the agent
+  registry ([ADR-0014](0014-agent-registry.md)).
 - **Decision date:** 2026-08-22; amended 2026-09-02 for ARD v0.91 (see [History](#history)).
 - **Author:** Apicurio Registry maintainers.
 - **Tracking:** [#6991 — AI Agent Registry (MCP & A2A Support)](https://github.com/Apicurio/apicurio-registry/issues/6991).
@@ -223,9 +224,10 @@ All properties follow `.claude/rules/config-properties.md` (`apicurio.*` prefix,
 
 ## Example and verification
 
-- **Example:** none yet that exercises the catalog or ARD API;
-  [`examples/a2a-real-world-integration`](../examples/a2a-real-world-integration/) covers the
-  underlying A2A agent cards. A runnable agent registry example is planned.
+- **Example:** [`examples/agent-registry`](../examples/agent-registry/), Part 6: the catalog at
+  both well-known paths (the same entries), the self-describing `application/ai-registry+json`
+  entry, `representativeQueries` from skill examples, ARD search and explore, and visibility per user
+  (Part 10). CI runs it.
 - **User documentation:**
   [`assembly-ai-catalog-ard.adoc`](../docs/modules/ROOT/pages/getting-started/assembly-ai-catalog-ard.adoc).
 
@@ -257,3 +259,4 @@ All properties follow `.claude/rules/config-properties.md` (`apicurio.*` prefix,
 | 2026-08-22 | First version: Steps 1–3 |
 | 2026-09-02 amendment | ARD v0.91: serve both well-known paths; JSON-LD framing noted; self-describing entry fixed; MCP search tool moved into Step 2; Step 4 added |
 | This ADR reformatted to [the ADR template](TEMPLATE.md) | Structure only; no change to the decisions |
+| 2026-11-16 | Accepted: Steps 1, 2 (including the MCP ARD search tool) and 4 implemented, verified by `examples/agent-registry`; Step 3 deferred; umbrella record in [ADR-0014](0014-agent-registry.md) |

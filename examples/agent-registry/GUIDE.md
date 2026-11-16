@@ -340,6 +340,15 @@ open_api POST /.well-known/ard/explore '{"query":{"text":"*"},"resultType":{"fac
 { "identifier": "urn:air:localhost:8180:demo:trip-planner", "displayName": "Trip planner", "type": "application/a2a-agent-card+json" }
 ```
 
+`demo.sh` also checks that:
+
+- `/.well-known/ard.json` serves the same catalog, for ARD crawlers;
+- the catalog has an `application/ai-registry+json` entry pointing at `/.well-known/ard/search`, so a
+  crawler that reads only the static file finds the live search API;
+- the trip planner's entry has `representativeQueries`, taken from its skills' `examples`.
+
+The design is [ADR-0004](../../adr/0004-ai-catalog-ard-convergence.md).
+
 ## Part 7: the MCP Registry API
 
 The Registry also speaks the official [MCP Registry API](https://github.com/modelcontextprotocol/registry),
@@ -402,7 +411,7 @@ tools** on the server's page. Here it previews an import after `demo.sh` already
 ![Previewing an MCP import in the web console](images/08-mcp-import-preview.png)
 
 The Registry only connects where it is allowed to. Here `apicurio.mcp-import.allowed-hosts` is
-`weather-server`, so any other host is refused:
+`weather-server,localhost,169.254.169.254`, so any other host is refused:
 
 ```bash
 open_api POST /groups/weather-tools/artifacts/weather/mcp-import '{"url":"https://evil.example.com/mcp"}' | jq .title
@@ -411,6 +420,11 @@ open_api POST /groups/weather-tools/artifacts/weather/mcp-import '{"url":"https:
 ```text
 "The MCP server URL is not allowed by this registry."
 ```
+
+`localhost` and `169.254.169.254` (the cloud metadata address) are listed, yet refused too: whatever
+the allow-list says, every address a host resolves to must also pass the registry's outbound address
+policy, which never allows loopback, link-local, multicast or cloud metadata addresses. All refusals
+have the same message, so the endpoint cannot be used to probe the network.
 
 Headers for the MCP server, such as credentials, go in the request's `headers` field. They are sent
 to the MCP server only, never stored or logged.

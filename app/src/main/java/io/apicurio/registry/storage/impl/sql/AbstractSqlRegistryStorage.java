@@ -599,6 +599,10 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .createdOn(createdOn.getTime()).owner(owner).modifiedOn(createdOn.getTime())
                         .modifiedBy(owner).artifactType(artifactType).labels(labels).build();
 
+                // Fired before the first version is created, so ARTIFACT_CREATED precedes
+                // ARTIFACT_VERSION_CREATED in the outbox, as on the other storage variants.
+                outboxEvent.fire(SqlOutboxEvent.of(ArtifactCreated.of(amdDto)));
+
                 // The artifact was successfully created! Create the version as well, if one was included.
                 ImmutablePair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> pair;
                 if (versionContent != null) {
@@ -619,8 +623,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 } else {
                     pair = ImmutablePair.of(amdDto, null);
                 }
-
-                outboxEvent.fire(SqlOutboxEvent.of(ArtifactCreated.of(amdDto)));
 
                 return pair;
             });

@@ -96,8 +96,8 @@ What this gives you:
   the log. A consumer should use the event `id` to ignore duplicates.
 - **Commit order.**
 
-One difference: when an artifact is created with its first version, `ARTIFACT_VERSION_CREATED` comes
-before `ARTIFACT_CREATED` on SQL storage ([#11097](https://github.com/Apicurio/apicurio-registry/issues/11097)).
+When an artifact is created with its first version, `ARTIFACT_CREATED` comes before
+`ARTIFACT_VERSION_CREATED` on every storage.
 
 H2 and MySQL produce no events.
 

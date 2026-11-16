@@ -184,9 +184,8 @@ Each ConfigMap key is a file name; `content:` refers to another key of the same 
 docker compose --profile kubernetesops exec -T k3s kubectl apply -n registry -f - < configmaps/v2.yaml
 ```
 
-Writes return 409, as with GitOps. Changes currently take the full debounce maximum to apply
-([#11080](https://github.com/Apicurio/apicurio-registry/issues/11080)); the example sets it to 10
-seconds.
+Writes return 409, as with GitOps. A change is applied once the ConfigMaps have been quiet for the
+debounce quiet period (1 second here).
 
 ## Step 8: Content and structure search
 

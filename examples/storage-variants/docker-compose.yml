@@ -266,9 +266,6 @@ services:
       APICURIO_KUBERNETESOPS_NAMESPACE: registry
       APICURIO_POLLING_STORAGE_POLL_PERIOD: PT2S
       APICURIO_POLLING_STORAGE_DEBOUNCE_QUIET_PERIOD: PT1S
-      # Every poll sees a change on a live cluster, so updates wait for the maximum
-      # (https://github.com/Apicurio/apicurio-registry/issues/11080); keep it short for the demo
-      APICURIO_POLLING_STORAGE_DEBOUNCE_MAX_WAIT_PERIOD: PT10S
       # The API server, and a service account allowed to read ConfigMaps (written by k8s-setup)
       KUBECONFIG: /shared/kubeconfig
     volumes:

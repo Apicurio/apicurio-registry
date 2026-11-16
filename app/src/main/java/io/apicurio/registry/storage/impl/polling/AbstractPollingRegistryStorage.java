@@ -237,7 +237,7 @@ public abstract class AbstractPollingRegistryStorage<MARKER extends SourceMarker
                 }
             }
             if (pollResult.isHasChanges()) {
-                debouncer.onChange(pollResult);
+                debouncer.onChange(pollResult, pollResult.getMarker().toSources());
             }
             if (debouncer.isReady()) {
                 loadInactive(debouncer.pending());

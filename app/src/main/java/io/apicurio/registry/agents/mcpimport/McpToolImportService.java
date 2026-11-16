@@ -6,6 +6,8 @@ import io.apicurio.registry.auth.AuthorizedResource;
 import io.apicurio.registry.auth.ResourceAccessGuard;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.extensions.McpToolImportHandler;
+import io.apicurio.registry.logging.audit.AuditHttpRequestContext;
+import io.apicurio.registry.logging.audit.AuditLogService;
 import io.apicurio.registry.model.ArtifactId;
 import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
@@ -43,7 +45,9 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.BadRequestException;
 
+import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -53,6 +57,9 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import static io.apicurio.registry.rest.MethodParameterKeys.MPK_ARTIFACT_ID;
+import static io.apicurio.registry.rest.MethodParameterKeys.MPK_GROUP_ID;
 
 /**
  * Imports the tools of a live MCP server as {@code MCP_TOOL} artifacts, and links them from a new
@@ -71,6 +78,9 @@ public class McpToolImportService implements McpToolImportHandler {
 
     static final String METRIC_TOOLS = "apicurio.mcp.import.tools";
     static final String METRIC_FAILURES = "apicurio.mcp.import.failures";
+    static final String AUDIT_INVOKER = "apicurio.audit";
+    static final String AUDIT_ACTION = "mcpImportTarget";
+    static final String AUDIT_TARGET = "target";
 
     // The tool name becomes part of an artifact ID, so it is held to the MCP specification's
     // recommended form: 1 to 128 ASCII letters, digits, '_', '-' or '.'.
@@ -104,6 +114,9 @@ public class McpToolImportService implements McpToolImportHandler {
     @Inject
     MeterRegistry meterRegistry;
 
+    @Inject
+    AuditLogService auditLog;
+
     private final JacksonMcpJsonMapper jsonMapper = new JacksonMcpJsonMapper();
 
     /**
@@ -119,7 +132,7 @@ public class McpToolImportService implements McpToolImportHandler {
         Map<String, String> headers = validHeaders(request.getHeaders());
         boolean dryRun = Boolean.TRUE.equals(request.getDryRun());
 
-        ServerTools listed = listTools(request.getUrl(), headers);
+        ServerTools listed = listTools(groupId, serverArtifactId, request.getUrl(), headers);
         Set<String> listedNames = checkBeforeWriting(listed.tools(), toolGroupId, serverArtifactId);
 
         List<McpToolImportToolResult> results = new ArrayList<>();
@@ -172,12 +185,38 @@ public class McpToolImportService implements McpToolImportHandler {
         }
     }
 
-    private ServerTools listTools(String url, Map<String, String> headers) {
+    /**
+     * Audits the host the registry was asked to connect to, and whether listing its tools
+     * succeeded. Only the host and port are recorded: the path, query and headers can carry
+     * credentials.
+     */
+    private ServerTools listTools(String groupId, String serverArtifactId, String url, Map<String, String> headers) {
+        Map<String, String> audit = new HashMap<>();
+        audit.put(MPK_GROUP_ID, groupId);
+        audit.put(MPK_ARTIFACT_ID, serverArtifactId);
+        audit.put(AUDIT_TARGET, target(url));
         try {
-            return toolsClient.listTools(targetPolicy.check(url), headers);
+            ServerTools tools = toolsClient.listTools(targetPolicy.check(url), headers);
+            auditLog.log(AUDIT_INVOKER, AUDIT_ACTION, AuditHttpRequestContext.SUCCESS, audit, null);
+            return tools;
         } catch (McpImportException e) {
             failure(e.getReason());
+            audit.put("reason", e.getReason().tag());
+            auditLog.log(AUDIT_INVOKER, AUDIT_ACTION, AuditHttpRequestContext.FAILURE, audit, null);
             throw e;
+        }
+    }
+
+    /** The host and port of the URL, or an empty string when it has none. */
+    static String target(String url) {
+        try {
+            URI uri = new URI(url);
+            if (uri.getHost() == null) {
+                return "";
+            }
+            return uri.getPort() < 0 ? uri.getHost() : uri.getHost() + ":" + uri.getPort();
+        } catch (Exception e) {
+            return "";
         }
     }
 

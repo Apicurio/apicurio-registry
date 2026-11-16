@@ -2458,8 +2458,12 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             }
         }
 
-        // Persist the metadata and fire the metadata updated event
-        storage.updateContractMetadata(rawGroupId, artifactId, prefix, contractLabels);
+        // Persist the metadata and fire the metadata updated event. The status and stage changes were
+        // validated against their current values, so they only apply if neither changed since.
+        Map<String, String> expected = new HashMap<>();
+        expected.put(prefix + ContractLabels.SUFFIX_STATUS, existingLabels.get(prefix + ContractLabels.SUFFIX_STATUS));
+        expected.put(prefix + ContractLabels.SUFFIX_STAGE, existingLabels.get(prefix + ContractLabels.SUFFIX_STAGE));
+        storage.updateContractMetadata(rawGroupId, artifactId, prefix, contractLabels, expected);
 
         // Audit log
         contractAuditService.recordAction(rawGroupId, artifactId, null,

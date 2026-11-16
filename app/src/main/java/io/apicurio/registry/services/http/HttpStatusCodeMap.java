@@ -15,6 +15,7 @@ import io.apicurio.registry.references.ReferenceDepthExceededException;
 import io.apicurio.registry.rest.InvalidParameterValueException;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.ParametersConflictException;
+import io.apicurio.registry.storage.error.ContractStateConflictException;
 import io.apicurio.registry.rest.RestConfig;
 import io.apicurio.registry.rules.DefaultRuleDeletionException;
 import io.apicurio.registry.rules.violation.RuleViolationException;
@@ -126,6 +127,7 @@ public class HttpStatusCodeMap {
         map.put(io.quarkus.security.UnauthorizedException.class, HTTP_UNAUTHORIZED);
         map.put(io.quarkus.security.ForbiddenException.class, HTTP_FORBIDDEN);
         map.put(ParametersConflictException.class, HTTP_CONFLICT);
+        map.put(ContractStateConflictException.class, HTTP_CONFLICT);
         map.put(PeerAlreadyExistsException.class, HTTP_CONFLICT);
         map.put(PeerNotFoundException.class, HTTP_NOT_FOUND);
         map.put(ReadOnlyStorageException.class, HTTP_CONFLICT);

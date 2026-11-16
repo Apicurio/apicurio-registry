@@ -3,6 +3,7 @@ package io.apicurio.registry.serde.protobuf;
 import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
+import com.google.protobuf.Message;
 import com.squareup.wire.schema.SchemaException;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.ParsedSchemaImpl;
@@ -20,6 +21,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -400,5 +402,25 @@ public class ProtobufSchemaParserTest {
         assertTrue(items.isMapField());
         assertEquals("test.common.Item",
                 items.getMessageType().findFieldByName("value").getMessageType().getFullName());
+    }
+
+    @Test
+    public void testReferenceNamespaceIsThePackage() throws Exception {
+        ProtobufSchemaParser<Message> parser = new ProtobufSchemaParser<>();
+        Descriptors.FileDescriptor withPackage = FileDescriptorUtils.protoFileToFileDescriptor(
+                "syntax = \"proto3\";\npackage acme.common;\nmessage Address { string street = 1; }\n",
+                "acme/address.proto", Optional.of("acme.common"));
+        Descriptors.FileDescriptor withoutPackage = FileDescriptorUtils.protoFileToFileDescriptor(
+                "syntax = \"proto3\";\nmessage Point { int32 x = 1; }\n", "point.proto", Optional.empty());
+
+        assertEquals("acme.common", parser.referenceNamespace(parsed(parser, withPackage)));
+        assertNull(parser.referenceNamespace(parsed(parser, withoutPackage)));
+    }
+
+    private static ParsedSchema<ProtobufSchema> parsed(ProtobufSchemaParser<Message> parser,
+            Descriptors.FileDescriptor fd) {
+        return new ParsedSchemaImpl<ProtobufSchema>()
+                .setParsedSchema(new ProtobufSchema(fd, parser.toProtoFileElement(fd)))
+                .setReferenceName(fd.getName());
     }
 }

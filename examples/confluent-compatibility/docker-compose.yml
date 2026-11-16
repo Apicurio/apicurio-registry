@@ -1,0 +1,61 @@
+# Confluent compatibility example: stock Confluent clients and tools against Apicurio Registry's
+# Confluent Schema Registry-compatible API (/apis/ccompat/v7 and /apis/ccompat/v8).
+#
+#   registry         the registry, ccompat defaults: a subject is an artifact in the default group
+#   registry-groups  a second registry with apicurio.ccompat.group-concat.enabled: "group:artifact"
+#   kafka            single-node Kafka
+#   confluent        Confluent's Schema Registry image, used only for its CLI tools
+#                    (kafka-avro-console-producer, ...); it runs no Schema Registry
+#
+# For local demonstration only: no authentication, no TLS.
+# Host ports: 8081 (registry), 8082 (registry-groups); override with REGISTRY_PORT, REGISTRY_GROUPS_PORT.
+x-registry: &registry
+  image: ${REGISTRY_IMAGE:-apicurio/apicurio-registry:latest-snapshot}
+  healthcheck:
+    test: ["CMD-SHELL", "curl -sf http://localhost:9000/health/ready > /dev/null"]
+    interval: 5s
+    timeout: 5s
+    retries: 60
+
+services:
+  kafka:
+    image: apache/kafka:3.8.1
+    container_name: ccompat-kafka
+    hostname: kafka
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --list > /dev/null"]
+      interval: 5s
+      timeout: 10s
+      retries: 30
+
+  registry:
+    <<: *registry
+    container_name: ccompat-registry
+    ports: ["${REGISTRY_PORT:-8081}:8080"]
+
+  registry-groups:
+    <<: *registry
+    container_name: ccompat-registry-groups
+    environment:
+      # A subject "orders:order-placed" is the artifact order-placed in the group orders
+      APICURIO_CCOMPAT_GROUP_CONCAT_ENABLED: "true"
+    ports: ["${REGISTRY_GROUPS_PORT:-8082}:8080"]
+
+  confluent:
+    image: confluentinc/cp-schema-registry:8.0.0
+    container_name: ccompat-confluent-tools
+    entrypoint: ["sleep", "infinity"]
+    depends_on:
+      kafka: {condition: service_healthy}
+      registry: {condition: service_healthy}

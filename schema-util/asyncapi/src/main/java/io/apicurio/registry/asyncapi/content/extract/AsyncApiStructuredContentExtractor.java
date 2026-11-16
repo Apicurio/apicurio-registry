@@ -1,12 +1,16 @@
 package io.apicurio.registry.asyncapi.content.extract;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.apitomy.datamodels.Library;
 import io.apitomy.datamodels.models.Document;
 import io.apitomy.datamodels.models.asyncapi.AsyncApiDocument;
 import io.apitomy.datamodels.TraverserDirection;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.extract.StructuredContentExtractor;
 import io.apicurio.registry.content.extract.StructuredElement;
+import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.openapi.content.extract.StructuredContentVisitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,7 +21,7 @@ import java.util.List;
 /**
  * Extracts structured elements from AsyncAPI content for search indexing. Parses the AsyncAPI document using
  * the apicurio-data-models library and extracts channels, messages, schemas, servers, operationIds, and tags
- * via a shared {@link StructuredContentVisitor}.
+ * via a shared {@link StructuredContentVisitor}. Supports both JSON and YAML formats.
  */
 public class AsyncApiStructuredContentExtractor implements StructuredContentExtractor {
 
@@ -26,7 +30,11 @@ public class AsyncApiStructuredContentExtractor implements StructuredContentExtr
     @Override
     public List<StructuredElement> extract(ContentHandle content) {
         try {
-            Document doc = Library.readDocumentFromJSONString(content.content());
+            JsonNode node = ContentTypeUtil.parseJsonOrYaml(TypedContent.create(content, null));
+            if (!(node instanceof ObjectNode objectNode)) {
+                return Collections.emptyList();
+            }
+            Document doc = Library.readDocument(objectNode);
             if (!(doc instanceof AsyncApiDocument)) {
                 return Collections.emptyList();
             }

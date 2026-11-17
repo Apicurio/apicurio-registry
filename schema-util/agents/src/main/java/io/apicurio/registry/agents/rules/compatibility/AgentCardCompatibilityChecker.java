@@ -335,7 +335,7 @@ public class AgentCardCompatibilityChecker
             return;
         }
 
-        if (path.endsWith("/" + SCOPES_FIELD) && existing.isObject() && proposed.isObject()) {
+        if (isFlowScopesPath(path) && existing.isObject() && proposed.isObject()) {
             checkRetainedScopeNames(schemeName, path, existing, proposed, differences);
             return;
         }
@@ -360,6 +360,17 @@ public class AgentCardCompatibilityChecker
                     describeSchemeFieldChange(schemeName, path, existing, proposed),
                     CONTEXT_SECURITY_SCHEMES));
         }
+    }
+
+    /**
+     * Only a grant's own scopes map (flows/&lt;grant&gt;/scopes) holds scope names. A key that
+     * happens to be called scopes deeper in the tree, such as inside a vendor extension, is
+     * compared by value like everything else under flows.
+     */
+    private boolean isFlowScopesPath(String path) {
+        String[] segments = path.split("/");
+        return segments.length == 3 && FLOWS_FIELD.equals(segments[0])
+                && SCOPES_FIELD.equals(segments[2]);
     }
 
     /**

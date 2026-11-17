@@ -1271,4 +1271,24 @@ class AgentCardCompatibilityCheckerTest {
                 + " 'https://example.com/.well-known/openid-configuration' to"
                 + " 'https://id.example.com/.well-known/openid-configuration'"));
     }
+
+    @Test
+    void testBackwardIncompatibleNestedNonScopeMapNamedScopes() {
+        String existing = cardWithScheme("oauth", "{ \"type\": \"oauth2\", \"flows\": {"
+                + " \"clientCredentials\": { \"x-policy\": { \"scopes\": { \"mode\": \"strict\" } } } } }");
+        String proposed = cardWithScheme("oauth", "{ \"type\": \"oauth2\", \"flows\": {"
+                + " \"clientCredentials\": { \"x-policy\": { \"scopes\": { \"mode\": \"lenient\" } } } } }");
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD,
+                List.of(createAgentCard(existing)),
+                createAgentCard(proposed),
+                Map.of());
+
+        assertFalse(result.isCompatible(),
+                "Only flows/<grant>/scopes is a scope map; a deeper key named scopes is compared by value");
+        assertEquals(1, result.getIncompatibleDifferences().size());
+        assertTrue(reports(result, "Security scheme 'oauth' field"
+                + " 'flows/clientCredentials/x-policy/scopes/mode' changed from 'strict' to 'lenient'"));
+    }
 }

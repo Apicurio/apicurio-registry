@@ -36,6 +36,9 @@ public abstract class AbstractHandleFactory implements HandleFactory {
     @Override
     public <R, X extends Exception> R withHandle(HandleCallback<R, X> callback) throws X {
         LocalState state = state();
+        R result = null;
+        Exception callbackFailure = null;
+        RuntimeException transactionFailure;
         try {
             // Create a new handle if necessary. Increment the "level" if a handle already exists.
             if (state.handle == null) {
@@ -51,7 +54,7 @@ public abstract class AbstractHandleFactory implements HandleFactory {
 
             // Invoke the callback with the handle. This will either return a value (success)
             // or throw some sort of exception.
-            return callback.withHandle(state.handle);
+            result = callback.withHandle(state.handle);
         } catch (SQLException e) {
             // If a SQL exception is thrown, set the handle to rollback.
             if (state.handle != null) {
@@ -59,50 +62,73 @@ public abstract class AbstractHandleFactory implements HandleFactory {
                 state.handle.setRollback(true);
             }
             // Wrap the SQL exception.
-            throw new RegistryStorageException(e);
+            RegistryStorageException wrapped = new RegistryStorageException(e);
+            callbackFailure = wrapped;
         } catch (Exception e) {
             // If any other exception is thrown, also set the handle to rollback.
             if (state.handle != null) {
                 log.debug("Transaction will rollback.", e);
                 state.handle.setRollback(true);
             }
-            throw e;
+            callbackFailure = e;
         } finally {
-            if (state.level > 0) {
-                log.trace("Exiting nested call (level {}): {} #{}", state().level,
-                        state().handle.getConnection(), state().handle.getConnection().hashCode());
-                state.level--;
-            } else {
-                // Commit or rollback the transaction
-                try {
-                    if (state.handle != null) {
-                        if (state.handle.isRollback()) {
-                            log.trace("Rollback: {} #{}", state.handle.getConnection(),
-                                    state.handle.getConnection().hashCode());
-                            state.handle.getConnection().rollback();
-                        } else {
-                            log.trace("Commit: {} #{}", state.handle.getConnection(),
-                                    state.handle.getConnection().hashCode());
-                            state().handle.getConnection().commit();
-                        }
-                    }
-                } catch (Exception e) {
-                    log.error("Could not release database connection/transaction", e);
-                }
+            transactionFailure = releaseHandle(state);
+        }
 
-                // Close the connection
-                try {
-                    if (state.handle != null) {
-                        state.handle.close();
-                        state.handle = null;
-                        state.level = 0;
-                    }
-                } catch (Exception ex) {
-                    // Nothing we can do
-                    log.error("Could not close a database connection.", ex);
-                }
+        if (transactionFailure != null) {
+            if (callbackFailure != null) {
+                callbackFailure.addSuppressed(transactionFailure);
+            } else {
+                throw transactionFailure;
             }
         }
+        if (callbackFailure != null) {
+            @SuppressWarnings("unchecked")
+            X failure = (X) callbackFailure;
+            throw failure;
+        }
+        return result;
+    }
+
+    private RuntimeException releaseHandle(LocalState state) {
+        if (state.level > 0) {
+            log.trace("Exiting nested call (level {}): {} #{}", state.level,
+                    state.handle.getConnection(), state.handle.getConnection().hashCode());
+            state.level--;
+            return null;
+        }
+
+        RuntimeException transactionFailure = null;
+        try {
+            if (state.handle != null) {
+                if (state.handle.isRollback()) {
+                    log.trace("Rollback: {} #{}", state.handle.getConnection(),
+                            state.handle.getConnection().hashCode());
+                    state.handle.getConnection().rollback();
+                } else {
+                    log.trace("Commit: {} #{}", state.handle.getConnection(),
+                            state.handle.getConnection().hashCode());
+                    state.handle.getConnection().commit();
+                }
+            }
+        } catch (Exception e) {
+            log.error("Could not release database connection/transaction", e);
+            transactionFailure = new RegistryStorageException(
+                    "Could not release database connection/transaction.", e);
+        }
+
+        try {
+            if (state.handle != null) {
+                state.handle.close();
+            }
+        } catch (Exception ex) {
+            // Nothing we can do
+            log.error("Could not close a database connection.", ex);
+        } finally {
+            state.handle = null;
+            state.level = 0;
+        }
+        return transactionFailure;
     }
 
     @Override

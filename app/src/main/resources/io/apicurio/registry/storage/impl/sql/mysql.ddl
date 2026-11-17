@@ -7,7 +7,7 @@ CREATE TABLE apicurio (
     propValue VARCHAR(255),
     PRIMARY KEY (propName)
 ) DEFAULT CHARACTER SET ascii COLLATE ascii_general_ci;
-INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 110);
+INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 114);
 
 CREATE TABLE sequences (
     seqName  VARCHAR(32) NOT NULL,
@@ -24,11 +24,22 @@ CREATE TABLE config (
 CREATE INDEX IDX_config_1 ON config (modifiedOn);
 
 CREATE TABLE acls (
-    principalId   VARCHAR(256) NOT NULL,
+    principalId   VARCHAR(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_ci NOT NULL,
     role          VARCHAR(32)  NOT NULL,
     principalName VARCHAR(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
     PRIMARY KEY (principalId)
 ) DEFAULT CHARACTER SET ascii COLLATE ascii_general_ci;
+
+CREATE TABLE peers (
+    peerId              VARCHAR(256)  NOT NULL,
+    url                 VARCHAR(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+    name                VARCHAR(512)  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+    description         VARCHAR(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+    enabled             BOOLEAN       NOT NULL DEFAULT TRUE,
+    credentialSecretRef VARCHAR(256),
+    PRIMARY KEY (peerId)
+) DEFAULT CHARACTER SET ascii COLLATE ascii_general_ci;
+CREATE INDEX IDX_peers_1 ON peers (enabled);
 
 CREATE TABLE downloads (
     downloadId VARCHAR(128) NOT NULL,
@@ -71,9 +82,9 @@ CREATE TABLE `groups` (
     groupId       VARCHAR(512) NOT NULL,
     description   VARCHAR(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
     artifactsType VARCHAR(32),
-    owner         VARCHAR(256),
+    owner         VARCHAR(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_ci,
     createdOn     TIMESTAMP    NOT NULL,
-    modifiedBy    VARCHAR(256),
+    modifiedBy    VARCHAR(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_ci,
     modifiedOn    TIMESTAMP,
     labels        TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
     PRIMARY KEY (groupId)
@@ -101,13 +112,13 @@ CREATE TABLE artifacts (
     groupId     VARCHAR(512) NOT NULL,
     artifactId  VARCHAR(512) NOT NULL,
     type        VARCHAR(32)  NOT NULL,
-    owner       VARCHAR(256),
+    owner       VARCHAR(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_ci,
     createdOn   TIMESTAMP    NOT NULL,
-    modifiedBy  VARCHAR(256),
+    modifiedBy  VARCHAR(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_ci,
     modifiedOn  TIMESTAMP,
-    name        VARCHAR(512),
+    name        VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
     description VARCHAR(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
-    labels      TEXT,
+    labels      TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
     PRIMARY KEY (groupId, artifactId)
 ) DEFAULT CHARACTER SET ascii COLLATE ascii_general_ci;
 CREATE INDEX IDX_artifacts_0 ON artifacts (type);
@@ -153,18 +164,19 @@ CREATE TABLE versions (
     versionSortKey VARCHAR(512),
     versionOrder INT          NOT NULL,
     state        VARCHAR(64)  NOT NULL,
-    name         VARCHAR(512),
+    name         VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
     description  VARCHAR(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
-    owner        VARCHAR(256),
+    owner        VARCHAR(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_ci,
     createdOn    TIMESTAMP    NOT NULL,
-    modifiedBy   VARCHAR(256),
+    modifiedBy   VARCHAR(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_ci,
     modifiedOn   TIMESTAMP    NOT NULL,
-    labels       TEXT,
+    labels       TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
     contentId    BIGINT       NOT NULL,
     PRIMARY KEY (globalId)
 ) DEFAULT CHARACTER SET ascii COLLATE ascii_general_ci;
 ALTER TABLE versions ADD CONSTRAINT UQ_versions_1 UNIQUE (groupId, artifactId, version);
 ALTER TABLE versions ADD CONSTRAINT UQ_versions_2 UNIQUE (globalId, versionOrder);
+ALTER TABLE versions ADD CONSTRAINT UQ_versions_3 UNIQUE (groupId, artifactId, versionOrder);
 ALTER TABLE versions ADD CONSTRAINT FK_versions_1 FOREIGN KEY (groupId, artifactId) REFERENCES artifacts (groupId, artifactId) ON DELETE CASCADE;
 ALTER TABLE versions ADD CONSTRAINT FK_versions_2 FOREIGN KEY (contentId) REFERENCES content (contentId);
 CREATE INDEX IDX_versions_1 ON versions (version);
@@ -189,7 +201,7 @@ CREATE INDEX IDX_vlabels_2 ON version_labels (labelValue);
 CREATE TABLE version_comments (
     commentId VARCHAR(128)  NOT NULL,
     globalId  BIGINT        NOT NULL,
-    owner     VARCHAR(256),
+    owner     VARCHAR(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_ci,
     createdOn TIMESTAMP     NOT NULL,
     cvalue    VARCHAR(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
     PRIMARY KEY (commentId)
@@ -203,9 +215,9 @@ CREATE TABLE branches (
     branchId      VARCHAR(256) NOT NULL,
     description   VARCHAR(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
     systemDefined BOOLEAN      NOT NULL,
-    owner         VARCHAR(256),
+    owner         VARCHAR(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_ci,
     createdOn     TIMESTAMP    NOT NULL,
-    modifiedBy    VARCHAR(256),
+    modifiedBy    VARCHAR(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_ci,
     modifiedOn    TIMESTAMP    NOT NULL,
     PRIMARY KEY (groupId, artifactId, branchId)
 ) DEFAULT CHARACTER SET ascii COLLATE ascii_general_ci;

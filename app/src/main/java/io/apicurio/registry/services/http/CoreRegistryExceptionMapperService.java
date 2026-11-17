@@ -5,6 +5,7 @@ import io.apicurio.registry.metrics.health.liveness.LivenessUtil;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.rest.v3.beans.ProblemDetails;
 import io.apicurio.registry.rest.v3.beans.RuleViolationCause;
+import io.apicurio.registry.rest.v3.beans.RuleViolationDetails;
 import io.apicurio.registry.rest.v3.beans.RuleViolationProblemDetails;
 import io.apicurio.registry.rules.violation.RuleViolation;
 import io.apicurio.registry.rules.violation.RuleViolationException;
@@ -27,7 +28,7 @@ import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_API
 import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
 
 @ApplicationScoped
-public class CoreRegistryExceptionMapperService {
+public class CoreRegistryExceptionMapperService implements ExceptionMapperService {
 
     @Inject
     Logger log;
@@ -81,10 +82,21 @@ public class CoreRegistryExceptionMapperService {
 
         if (t instanceof RuleViolationException) {
             RuleViolationException rve = (RuleViolationException) t;
-            details = new RuleViolationProblemDetails();
-            ((RuleViolationProblemDetails) details).setTitle(rve.getMessage());
-            ((RuleViolationProblemDetails) details).setDetail(rve.getDetailMessage());
-            ((RuleViolationProblemDetails) details).setCauses(toRestCauses(rve.getCauses()));
+            RuleViolationProblemDetails rvpd = new RuleViolationProblemDetails();
+            rvpd.setTitle(rve.getMessage());
+            rvpd.setDetail(rve.getDetailMessage());
+            List<RuleViolationCause> restCauses = toRestCauses(rve.getCauses());
+            rvpd.setCauses(restCauses);
+            RuleViolationDetails rvd = new RuleViolationDetails();
+            rvd.setCauses(restCauses);
+            rvd.setRuleType(rve.getRuleType());
+            rvpd.setRuleViolation(rvd);
+            // Note: type is intentionally left unset here.
+            // Choosing stable type URI values (e.g. urn:apicurio:error:rule-violation) is a
+            // separate sub-task tracked in #10488. Setting a value now would give clients
+            // something to depend on before that is decided. The presence of the ruleViolation
+            // extension field is sufficient for clients to identify a rule violation.
+            details = rvpd;
         } else {
             details = new ProblemDetails();
             details.setTitle(t.getLocalizedMessage());
@@ -113,6 +125,10 @@ public class CoreRegistryExceptionMapperService {
             RuleViolationCause cause = new RuleViolationCause();
             cause.setContext(violation.getContext());
             cause.setDescription(violation.getDescription());
+            cause.setCode(violation.getCode());
+            cause.setDirection(violation.getDirection());
+            cause.setProposed(violation.getProposed());
+            cause.setExisting(violation.getExisting());
             return cause;
         }).collect(Collectors.toList());
     }

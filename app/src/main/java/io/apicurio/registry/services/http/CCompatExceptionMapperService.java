@@ -42,7 +42,7 @@ import static java.net.HttpURLConnection.HTTP_CONFLICT;
 import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
 
 @ApplicationScoped
-public class CCompatExceptionMapperService {
+public class CCompatExceptionMapperService implements ExceptionMapperService {
 
     private static final Map<Class<? extends Exception>, Integer> CONFLUENT_CODE_MAP;
 
@@ -102,7 +102,13 @@ public class CCompatExceptionMapperService {
         }
 
         Response.ResponseBuilder builder;
-        if (response != null) {
+        if (response != null && !response.hasEntity()) {
+            // Confluent clients expect every error to carry an {"error_code", "message"} body.
+            Error error = new Error();
+            error.setErrorCode(code);
+            error.setMessage(t.getMessage());
+            builder = Response.fromResponse(response).entity(error);
+        } else if (response != null) {
             builder = Response.fromResponse(response);
         } else {
             Error error = toError(t);

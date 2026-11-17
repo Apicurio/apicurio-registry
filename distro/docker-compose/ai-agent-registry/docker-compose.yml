@@ -1,0 +1,76 @@
+# AI Agent Registry quickstart: Registry with the agent features enabled, the web console, and a
+# small demo catalog. Start it with:
+#
+#   docker compose -f distro/docker-compose/ai-agent-registry/docker-compose.yml up
+#
+# LOCAL USE ONLY. Nothing here is authenticated, and the database password is a fixed demo value.
+# The agent features are experimental. See the "Getting started with the AI Agent Registry" docs.
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: registry
+      POSTGRES_PASSWORD: registry-demo-only
+      POSTGRES_DB: registry
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U registry -d registry"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  apicurio-registry:
+    image: ${REGISTRY_IMAGE:-quay.io/apicurio/apicurio-registry:latest-snapshot}
+    environment:
+      APICURIO_STORAGE_KIND: sql
+      APICURIO_STORAGE_SQL_KIND: postgresql
+      APICURIO_DATASOURCE_URL: jdbc:postgresql://postgres:5432/registry
+      APICURIO_DATASOURCE_USERNAME: registry
+      APICURIO_DATASOURCE_PASSWORD: registry-demo-only
+      # The agent features are experimental and need this gate.
+      APICURIO_FEATURES_EXPERIMENTAL_ENABLED: "true"
+      APICURIO_A2A_ENABLED: "true"
+      APICURIO_AI_CATALOG_ENABLED: "true"
+      APICURIO_ARD_ENABLED: "true"
+      APICURIO_MCP_TOOLS_ENABLED: "true"
+      APICURIO_MCP_REGISTRY_ENABLED: "true"
+      APICURIO_UI_FEATURES_AGENTS_ENABLED: "true"
+      QUARKUS_HTTP_CORS_ORIGINS: http://localhost:8888
+    ports:
+      # Bound to localhost only: nothing in this stack is authenticated.
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:9000/health/ready"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+
+  apicurio-registry-ui:
+    image: ${REGISTRY_UI_IMAGE:-quay.io/apicurio/apicurio-registry-ui:latest-snapshot}
+    environment:
+      REGISTRY_API_URL: http://localhost:8080/apis/registry/v3
+    ports:
+      - "127.0.0.1:8888:8080"
+    depends_on:
+      apicurio-registry:
+        condition: service_healthy
+
+  # Loads the demo catalog once the Registry is ready, then exits. Running it again changes nothing.
+  seed:
+    image: python:3.12-alpine
+    command: ["python", "/seed/seed.py"]
+    environment:
+      REGISTRY_URL: http://apicurio-registry:8080
+    volumes:
+      - ./seed:/seed:ro
+    depends_on:
+      apicurio-registry:
+        condition: service_healthy
+    restart: "no"
+
+volumes:
+  postgres_data:

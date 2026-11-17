@@ -27,6 +27,13 @@ export const ChangeOwnerModal: FunctionComponent<ChangeOwnerModalProps> = (
     const [isValid, setValid] = useState(false);
     const [newOwner, setNewOwner] = useState<string>();
 
+    // Clear any value left over from a previous, cancelled open.
+    useEffect(() => {
+        if (isOpen) {
+            setNewOwner("");
+        }
+    }, [isOpen]);
+
     // Validate the inputs.
     useEffect(() => {
         if (newOwner && newOwner.trim().length > 0 && newOwner !== currentOwner) {

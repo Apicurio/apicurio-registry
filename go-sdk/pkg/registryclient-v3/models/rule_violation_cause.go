@@ -10,10 +10,18 @@ import (
 type RuleViolationCause struct {
 	// Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
 	additionalData map[string]any
+	// The checker's identifier for the kind of difference, for example a JSON Schema difference type or an Avro schema incompatibility type. Meaningful together with the artifact type. Informational: it identifies the explanation to look up, and may change between minor versions. Clients must not build logic on specific values.
+	code *string
 	// The context property
 	context *string
 	// The description property
 	description *string
+	// Which compatibility a difference breaks.
+	direction *CompatibilityDifferenceDirection
+	// A location within one of the two documents compared by a rule. Locations are labelled by document - proposed or existing - rather than by the checker's original and updated schemas, so that the direction of the check does not change their meaning. Clients must tolerate a pointer that does not resolve in the content as written, falling back to the deepest part that does.
+	existing DifferenceLocationable
+	// A location within one of the two documents compared by a rule. Locations are labelled by document - proposed or existing - rather than by the checker's original and updated schemas, so that the direction of the check does not change their meaning. Clients must tolerate a pointer that does not resolve in the content as written, falling back to the deepest part that does.
+	proposed DifferenceLocationable
 }
 
 // NewRuleViolationCause instantiates a new RuleViolationCause and sets the default values.
@@ -35,6 +43,12 @@ func (m *RuleViolationCause) GetAdditionalData() map[string]any {
 	return m.additionalData
 }
 
+// GetCode gets the code property value. The checker's identifier for the kind of difference, for example a JSON Schema difference type or an Avro schema incompatibility type. Meaningful together with the artifact type. Informational: it identifies the explanation to look up, and may change between minor versions. Clients must not build logic on specific values.
+// returns a *string when successful
+func (m *RuleViolationCause) GetCode() *string {
+	return m.code
+}
+
 // GetContext gets the context property value. The context property
 // returns a *string when successful
 func (m *RuleViolationCause) GetContext() *string {
@@ -47,10 +61,32 @@ func (m *RuleViolationCause) GetDescription() *string {
 	return m.description
 }
 
+// GetDirection gets the direction property value. Which compatibility a difference breaks.
+// returns a *CompatibilityDifferenceDirection when successful
+func (m *RuleViolationCause) GetDirection() *CompatibilityDifferenceDirection {
+	return m.direction
+}
+
+// GetExisting gets the existing property value. A location within one of the two documents compared by a rule. Locations are labelled by document - proposed or existing - rather than by the checker's original and updated schemas, so that the direction of the check does not change their meaning. Clients must tolerate a pointer that does not resolve in the content as written, falling back to the deepest part that does.
+// returns a DifferenceLocationable when successful
+func (m *RuleViolationCause) GetExisting() DifferenceLocationable {
+	return m.existing
+}
+
 // GetFieldDeserializers the deserialization information for the current model
 // returns a map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error when successful
 func (m *RuleViolationCause) GetFieldDeserializers() map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 	res := make(map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error)
+	res["code"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetStringValue()
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetCode(val)
+		}
+		return nil
+	}
 	res["context"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 		val, err := n.GetStringValue()
 		if err != nil {
@@ -71,11 +107,53 @@ func (m *RuleViolationCause) GetFieldDeserializers() map[string]func(i878a80d233
 		}
 		return nil
 	}
+	res["direction"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetEnumValue(ParseCompatibilityDifferenceDirection)
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetDirection(val.(*CompatibilityDifferenceDirection))
+		}
+		return nil
+	}
+	res["existing"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetObjectValue(CreateDifferenceLocationFromDiscriminatorValue)
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetExisting(val.(DifferenceLocationable))
+		}
+		return nil
+	}
+	res["proposed"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetObjectValue(CreateDifferenceLocationFromDiscriminatorValue)
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetProposed(val.(DifferenceLocationable))
+		}
+		return nil
+	}
 	return res
+}
+
+// GetProposed gets the proposed property value. A location within one of the two documents compared by a rule. Locations are labelled by document - proposed or existing - rather than by the checker's original and updated schemas, so that the direction of the check does not change their meaning. Clients must tolerate a pointer that does not resolve in the content as written, falling back to the deepest part that does.
+// returns a DifferenceLocationable when successful
+func (m *RuleViolationCause) GetProposed() DifferenceLocationable {
+	return m.proposed
 }
 
 // Serialize serializes information the current object
 func (m *RuleViolationCause) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.SerializationWriter) error {
+	{
+		err := writer.WriteStringValue("code", m.GetCode())
+		if err != nil {
+			return err
+		}
+	}
 	{
 		err := writer.WriteStringValue("context", m.GetContext())
 		if err != nil {
@@ -84,6 +162,25 @@ func (m *RuleViolationCause) Serialize(writer i878a80d2330e89d26896388a3f487eef2
 	}
 	{
 		err := writer.WriteStringValue("description", m.GetDescription())
+		if err != nil {
+			return err
+		}
+	}
+	if m.GetDirection() != nil {
+		cast := (*m.GetDirection()).String()
+		err := writer.WriteStringValue("direction", &cast)
+		if err != nil {
+			return err
+		}
+	}
+	{
+		err := writer.WriteObjectValue("existing", m.GetExisting())
+		if err != nil {
+			return err
+		}
+	}
+	{
+		err := writer.WriteObjectValue("proposed", m.GetProposed())
 		if err != nil {
 			return err
 		}
@@ -102,6 +199,11 @@ func (m *RuleViolationCause) SetAdditionalData(value map[string]any) {
 	m.additionalData = value
 }
 
+// SetCode sets the code property value. The checker's identifier for the kind of difference, for example a JSON Schema difference type or an Avro schema incompatibility type. Meaningful together with the artifact type. Informational: it identifies the explanation to look up, and may change between minor versions. Clients must not build logic on specific values.
+func (m *RuleViolationCause) SetCode(value *string) {
+	m.code = value
+}
+
 // SetContext sets the context property value. The context property
 func (m *RuleViolationCause) SetContext(value *string) {
 	m.context = value
@@ -112,11 +214,34 @@ func (m *RuleViolationCause) SetDescription(value *string) {
 	m.description = value
 }
 
+// SetDirection sets the direction property value. Which compatibility a difference breaks.
+func (m *RuleViolationCause) SetDirection(value *CompatibilityDifferenceDirection) {
+	m.direction = value
+}
+
+// SetExisting sets the existing property value. A location within one of the two documents compared by a rule. Locations are labelled by document - proposed or existing - rather than by the checker's original and updated schemas, so that the direction of the check does not change their meaning. Clients must tolerate a pointer that does not resolve in the content as written, falling back to the deepest part that does.
+func (m *RuleViolationCause) SetExisting(value DifferenceLocationable) {
+	m.existing = value
+}
+
+// SetProposed sets the proposed property value. A location within one of the two documents compared by a rule. Locations are labelled by document - proposed or existing - rather than by the checker's original and updated schemas, so that the direction of the check does not change their meaning. Clients must tolerate a pointer that does not resolve in the content as written, falling back to the deepest part that does.
+func (m *RuleViolationCause) SetProposed(value DifferenceLocationable) {
+	m.proposed = value
+}
+
 type RuleViolationCauseable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable
+	GetCode() *string
 	GetContext() *string
 	GetDescription() *string
+	GetDirection() *CompatibilityDifferenceDirection
+	GetExisting() DifferenceLocationable
+	GetProposed() DifferenceLocationable
+	SetCode(value *string)
 	SetContext(value *string)
 	SetDescription(value *string)
+	SetDirection(value *CompatibilityDifferenceDirection)
+	SetExisting(value DifferenceLocationable)
+	SetProposed(value DifferenceLocationable)
 }

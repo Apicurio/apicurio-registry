@@ -1,0 +1,11 @@
+openapi: "3.0.2"
+info:
+  title: Simple API
+  version: "1.0"
+paths:
+  /hello:
+    get:
+      summary: Say hello
+      responses:
+        "200":
+          description: OK

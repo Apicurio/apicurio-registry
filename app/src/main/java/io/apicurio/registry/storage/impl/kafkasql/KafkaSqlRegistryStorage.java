@@ -29,6 +29,7 @@ import io.apicurio.registry.model.VersionId;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.rules.integrity.IntegrityLevel;
 import io.apicurio.registry.rules.validity.ValidityLevel;
+import io.apicurio.registry.storage.PeerValidator;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.StorageEvent;
 import io.apicurio.registry.storage.StorageEventType;
@@ -92,7 +93,10 @@ import java.util.Objects;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static io.apicurio.registry.storage.impl.kafkasql.KafkaSqlSubmitter.BOOTSTRAP_MESSAGE_TYPE;
 import static io.apicurio.registry.utils.ConcurrentUtil.blockOnResult;
@@ -109,6 +113,15 @@ import static io.apicurio.registry.utils.ConcurrentUtil.blockOnResult;
 @Logged
 @LookupIfProperty(name = "apicurio.storage.kind", stringValue = "kafkasql")
 public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implements RegistryStorage {
+
+    private static final long USAGE_SEND_WARNING_INTERVAL_NANOS = TimeUnit.MINUTES.toNanos(1);
+
+    /**
+     * A {@link System#nanoTime()} reading that is only ever compared by subtraction. It starts one interval in
+     * the past, so the first failure warns.
+     */
+    private final AtomicLong lastUsageSendWarning = new AtomicLong(
+            System.nanoTime() - USAGE_SEND_WARNING_INTERVAL_NANOS);
 
     @Inject
     Logger log;
@@ -277,6 +290,10 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
             snapshotsConsumer.poll(configuration.getPollTimeout());
             assigned = snapshotsConsumer.assignment();
         }
+        // The polls above may already have returned, and moved past, the snapshot records, so
+        // rewind before collecting them. The seek is lazy: it takes effect on the next poll and
+        // does not affect the end offsets read below.
+        snapshotsConsumer.seekToBeginning(assigned);
 
         // Record the current end offsets so we stop there, even if other pods produce new snapshots
         var endOffsets = snapshotsConsumer.endOffsets(assigned);
@@ -297,46 +314,58 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
                         .anyMatch(e -> snapshotsConsumer.position(e.getKey()) < e.getValue()));
 
         if (!snapshots.isEmpty()) {
-            log.info("Found {} total snapshots in the snapshots topic.", snapshots.size());
+            snapshotRecordKey = restoreMostRecentSnapshot(snapshots);
+        }
 
-            // sort snapshots by timestamp
-            snapshots.sort(Comparator.comparingLong(ConsumerRecord::timestamp));
+        return snapshotRecordKey;
+    }
 
-            Path mostRecentSnapshotPath = null;
-            for (ConsumerRecord<String, String> snapshotFound : snapshots) {
-                // Restore database from snapshot
-                try {
-                    String path = snapshotFound.value();
-                    if (null == path || path.isBlank()) {
-                        continue;
-                    }
-                    // Defense-in-depth: the path is read off the internal snapshots topic and drives
-                    // an H2 RUNSCRIPT at startup, so a value pointing outside the configured snapshot
-                    // store (absolute, or via "..") must not be used to load/execute an arbitrary
-                    // local SQL script.
-                    if (!isWithinSnapshotStore(configuration.getSnapshotStoreLocation(), path)) {
-                        log.warn("Snapshot with path {} ignored: it is outside the configured snapshot "
-                                + "store location {}.", path, configuration.getSnapshotStoreLocation());
-                        continue;
-                    }
-                    if (Files.exists(Path.of(path))) {
-                        log.debug("Snapshot with path {} found.", path);
-                        snapshotRecordKey = snapshotFound.key();
-                        mostRecentSnapshotPath = Path.of(path);
-                    }
-                } catch (IllegalArgumentException ex) {
-                    log.warn(
-                            "Snapshot with path {} ignored, the snapshot is likely invalid or cannot be found",
-                            snapshotFound.value());
+    /**
+     * Restores the internal database from the most recent usable snapshot.
+     *
+     * @return the key of the restored snapshot record, or {@code null} if none was usable
+     */
+    private String restoreMostRecentSnapshot(List<ConsumerRecord<String, String>> snapshots) {
+        String snapshotRecordKey = null;
+        log.info("Found {} total snapshots in the snapshots topic.", snapshots.size());
+
+        // sort snapshots by timestamp
+        snapshots.sort(Comparator.comparingLong(ConsumerRecord::timestamp));
+
+        Path mostRecentSnapshotPath = null;
+        for (ConsumerRecord<String, String> snapshotFound : snapshots) {
+            // Restore database from snapshot
+            try {
+                String path = snapshotFound.value();
+                if (null == path || path.isBlank()) {
+                    continue;
                 }
+                // Defense-in-depth: the path is read off the internal snapshots topic and drives
+                // an H2 RUNSCRIPT at startup, so a value pointing outside the configured snapshot
+                // store (absolute, or via "..") must not be used to load/execute an arbitrary
+                // local SQL script.
+                if (!isWithinSnapshotStore(configuration.getSnapshotStoreLocation(), path)) {
+                    log.warn("Snapshot with path {} ignored: it is outside the configured snapshot "
+                            + "store location {}.", path, configuration.getSnapshotStoreLocation());
+                    continue;
+                }
+                if (Files.exists(Path.of(path))) {
+                    log.debug("Snapshot with path {} found.", path);
+                    snapshotRecordKey = snapshotFound.key();
+                    mostRecentSnapshotPath = Path.of(path);
+                }
+            } catch (IllegalArgumentException ex) {
+                log.warn(
+                        "Snapshot with path {} ignored, the snapshot is likely invalid or cannot be found",
+                        snapshotFound.value());
             }
+        }
 
-            // Here we have the most recent snapshot that we can find, try to restore the internal database
-            // from it.
-            if (null != mostRecentSnapshotPath) {
-                log.info("Restoring snapshot {} to the internal database...", mostRecentSnapshotPath);
-                sqlStore.restoreFromSnapshot(mostRecentSnapshotPath.toString());
-            }
+        // Here we have the most recent snapshot that we can find, try to restore the internal database
+        // from it.
+        if (null != mostRecentSnapshotPath) {
+            log.info("Restoring snapshot {} to the internal database...", mostRecentSnapshotPath);
+            sqlStore.restoreFromSnapshot(mostRecentSnapshotPath.toString());
         }
 
         return snapshotRecordKey;
@@ -386,43 +415,7 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
                     final ConsumerRecords<KafkaSqlMessageKey, KafkaSqlMessage> records = consumer.poll(configuration.getPollTimeout());
                     if (records != null && !records.isEmpty()) {
                         log.debug("Consuming {} journal records.", records.count());
-
-                        if (null != snapshotId && !snapshotProcessed) {
-                            // If there is a snapshot key present, we process (and discard) all the messages
-                            // until we find the snapshot marker that corresponds to the snapshot key.
-                            Iterator<ConsumerRecord<KafkaSqlMessageKey, KafkaSqlMessage>> it = records
-                                    .iterator();
-                            while (it.hasNext() && !snapshotProcessed) {
-                                ConsumerRecord<KafkaSqlMessageKey, KafkaSqlMessage> record = it.next();
-                                if (processSnapshot(snapshotId, record)) {
-                                    log.debug(
-                                            "Snapshot marker found {} the new messages will be applied on top of the snapshot data.",
-                                            record.key());
-                                    snapshotProcessed = true;
-                                    break;
-                                } else {
-                                    log.debug(
-                                            "Discarding message with key {} as it was sent before a newer snapshot was created.",
-                                            record.key());
-                                }
-                            }
-
-                            // If the snapshot marker has not been found, continue with message skipping until
-                            // we find it.
-                            if (snapshotProcessed) {
-                                // Once the snapshot marker message has been found, we can process the rest of
-                                // the messages as usual, applying the new changes on top of the existing ones
-                                // in the snapshot.
-                                while (it.hasNext()) {
-                                    ConsumerRecord<KafkaSqlMessageKey, KafkaSqlMessage> record = it.next();
-                                    processRecord(record, bootstrapId, bootstrapStart);
-                                }
-                            }
-                        } else {
-                            // If there is no snapshot, simply process the existing messages in the kafka
-                            // topic as usual.
-                            records.forEach(record -> processRecord(record, bootstrapId, bootstrapStart));
-                        }
+                        processRecords(records, snapshotId, bootstrapId, bootstrapStart);
                     }
                 }
             } catch (WakeupException e) {
@@ -446,6 +439,51 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         thread.setName("KSQL Kafka Consumer Thread");
         consumerThread = thread;
         thread.start();
+    }
+
+    private void processRecords(ConsumerRecords<KafkaSqlMessageKey, KafkaSqlMessage> records, String snapshotId,
+            String bootstrapId, long bootstrapStart) {
+        if (null != snapshotId && !snapshotProcessed) {
+            processRecordsUntilSnapshot(records, snapshotId, bootstrapId, bootstrapStart);
+        } else {
+            // If there is no snapshot, simply process the existing messages in the kafka
+            // topic as usual.
+            records.forEach(record -> processRecord(record, bootstrapId, bootstrapStart));
+        }
+    }
+
+    private void processRecordsUntilSnapshot(ConsumerRecords<KafkaSqlMessageKey, KafkaSqlMessage> records,
+            String snapshotId, String bootstrapId, long bootstrapStart) {
+        // If there is a snapshot key present, we process (and discard) all the messages
+        // until we find the snapshot marker that corresponds to the snapshot key.
+        Iterator<ConsumerRecord<KafkaSqlMessageKey, KafkaSqlMessage>> it = records
+                .iterator();
+        while (it.hasNext() && !snapshotProcessed) {
+            ConsumerRecord<KafkaSqlMessageKey, KafkaSqlMessage> record = it.next();
+            if (processSnapshot(snapshotId, record)) {
+                log.debug(
+                        "Snapshot marker found {} the new messages will be applied on top of the snapshot data.",
+                        record.key());
+                snapshotProcessed = true;
+                break;
+            } else {
+                log.debug(
+                        "Discarding message with key {} as it was sent before a newer snapshot was created.",
+                        record.key());
+            }
+        }
+
+        // If the snapshot marker has not been found, continue with message skipping until
+        // we find it.
+        if (snapshotProcessed) {
+            // Once the snapshot marker message has been found, we can process the rest of
+            // the messages as usual, applying the new changes on top of the existing ones
+            // in the snapshot.
+            while (it.hasNext()) {
+                ConsumerRecord<KafkaSqlMessageKey, KafkaSqlMessage> record = it.next();
+                processRecord(record, bootstrapId, bootstrapStart);
+            }
+        }
     }
 
     private boolean processSnapshot(String snapshotId,
@@ -1099,6 +1137,39 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
     }
 
     /**
+     * @see io.apicurio.registry.storage.RegistryStorage#createPeer(io.apicurio.registry.storage.dto.PeerDto)
+     */
+    @Override
+    public void createPeer(PeerDto peer) throws RegistryStorageException {
+        PeerValidator.validate(peer);
+        var message = new CreatePeer1Message(peer);
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#updatePeer(io.apicurio.registry.storage.dto.PeerDto)
+     */
+    @Override
+    public void updatePeer(PeerDto peer) throws RegistryStorageException {
+        PeerValidator.validate(peer);
+        var message = new UpdatePeer1Message(peer);
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#deletePeer(java.lang.String)
+     */
+    @Override
+    public void deletePeer(String peerId) throws RegistryStorageException {
+        PeerValidator.validatePeerId(peerId);
+        var message = new DeletePeer1Message(peerId);
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+    }
+
+    /**
      * @see io.apicurio.registry.storage.RegistryStorage#deleteAllUserData()
      */
     @Override
@@ -1141,15 +1212,18 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
     }
 
     /**
-     * Bypasses the Kafka journal and writes directly to SQL. This operation is triggered by a
-     * scheduled job that runs independently on every pod, so coordinating via the journal is
-     * unnecessary and would add bloat that slows down new-pod bootstrap.
+     * Must go through the Kafka journal. Content ID allocation deduplicates by content hash against
+     * the local SQL state, so deleting orphaned content only locally would make replicas (and
+     * replicas replaying the journal) assign different content IDs when identical content is
+     * re-registered. Journaling the deletion makes every replica apply it at the same position.
      *
      * @see io.apicurio.registry.storage.RegistryStorage#deleteAllOrphanedContent()
      */
     @Override
     public void deleteAllOrphanedContent() throws RegistryStorageException {
-        sqlStore.deleteAllOrphanedContent();
+        var message = new DeleteAllOrphanedContent0Message();
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
     }
 
     @Override
@@ -1434,13 +1508,37 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
 
     @Override
     public void recordUsageEvent(SchemaUsageEventDto event) {
-        submitter.submitMessage(new RecordUsageEvent1Message(
+        submitWithoutResponse(new RecordUsageEvent1Message(
                 event.getGlobalId(), event.getContentId(), event.getClientId(), event.getOperation(), event.getEventTimestamp()));
     }
 
     @Override
     public void deleteOldUsageEvents(long cutoffTimestamp) {
-        submitter.submitMessage(new DeleteOldUsageEvents1Message(cutoffTimestamp));
+        submitWithoutResponse(new DeleteOldUsageEvents1Message(cutoffTimestamp));
+    }
+
+    /**
+     * Usage writes are best effort and their callers never wait for the result, so they must not register a
+     * latch in the coordinator that nothing would ever remove. A broker outage fails every event of a flush,
+     * so the failure is logged at WARN at most once a minute and at DEBUG otherwise.
+     */
+    private void submitWithoutResponse(KafkaSqlMessage message) {
+        submitter.submitMessageWithoutResponse(message).whenComplete((requestId, error) -> {
+            if (error != null) {
+                Throwable cause = error instanceof CompletionException && error.getCause() != null
+                        ? error.getCause() : error;
+                long now = System.nanoTime();
+                long last = lastUsageSendWarning.get();
+                if (now - last >= USAGE_SEND_WARNING_INTERVAL_NANOS
+                        && lastUsageSendWarning.compareAndSet(last, now)) {
+                    log.warn("Failed to send {} to the KafkaSQL journal.", message.getKey().getMessageType(),
+                            cause);
+                } else {
+                    log.debug("Failed to send {} to the KafkaSQL journal.",
+                            message.getKey().getMessageType(), cause);
+                }
+            }
+        });
     }
 
 }

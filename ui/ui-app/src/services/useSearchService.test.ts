@@ -126,6 +126,7 @@ describe("useSearchService name filter wildcard wrapping (#10128)", () => {
 
         expect(get).toHaveBeenCalledTimes(1);
         expect(get.mock.calls[0][0].queryParameters.name).toBe("*Cart*");
+        expect(get.mock.calls[0][0].queryParameters.nameCaseInsensitive).toBe(true);
     });
 
     it("preserves explicit wildcards in searchArtifacts", async () => {
@@ -139,6 +140,7 @@ describe("useSearchService name filter wildcard wrapping (#10128)", () => {
 
         expect(get).toHaveBeenCalledTimes(1);
         expect(get.mock.calls[0][0].queryParameters.name).toBe("Cart*");
+        expect(get.mock.calls[0][0].queryParameters.nameCaseInsensitive).toBe(true);
     });
 
     it("wraps partial name in wildcards for searchVersions", async () => {
@@ -152,6 +154,7 @@ describe("useSearchService name filter wildcard wrapping (#10128)", () => {
 
         expect(get).toHaveBeenCalledTimes(1);
         expect(get.mock.calls[0][0].queryParameters.name).toBe("*Cart*");
+        expect(get.mock.calls[0][0].queryParameters.nameCaseInsensitive).toBe(true);
     });
 
     it("preserves explicit wildcards in searchVersions", async () => {
@@ -165,5 +168,6 @@ describe("useSearchService name filter wildcard wrapping (#10128)", () => {
 
         expect(get).toHaveBeenCalledTimes(1);
         expect(get.mock.calls[0][0].queryParameters.name).toBe("*Cart");
+        expect(get.mock.calls[0][0].queryParameters.nameCaseInsensitive).toBe(true);
     });
 });

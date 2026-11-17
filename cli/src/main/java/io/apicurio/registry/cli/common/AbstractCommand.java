@@ -6,9 +6,12 @@ import io.apicurio.registry.cli.services.Client;
 import io.apicurio.registry.cli.services.UpdateNotifier;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.rest.client.models.ProblemDetails;
+import io.apicurio.registry.rest.client.models.RuleViolationCause;
+import io.apicurio.registry.rest.client.models.RuleViolationDetails;
 import io.apicurio.registry.rest.client.models.RuleViolationProblemDetails;
 import jakarta.inject.Inject;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -63,7 +66,11 @@ public abstract class AbstractCommand implements Callable<Integer> {
             handleRuleViolation(output, ex);
             return SERVER_ERROR_RETURN_CODE;
         } catch (ProblemDetails ex) {
-            handleProblemDetails(output, ex);
+            if (hasRuleViolationCauses(ex)) {
+                handleRuleViolation(output, ex);
+            } else {
+                handleProblemDetails(output, ex);
+            }
             return SERVER_ERROR_RETURN_CODE;
         } catch (Exception ex) {
             log.error("Unexpected error", ex);
@@ -102,14 +109,32 @@ public abstract class AbstractCommand implements Callable<Integer> {
         }
     }
 
-    private static void handleRuleViolation(final OutputBuffer output, final RuleViolationProblemDetails ex) {
+    static void handleRuleViolation(final OutputBuffer output, final RuleViolationProblemDetails ex) {
+        printRuleViolation(output, Optional.ofNullable(ex.getDetail()).orElse(ex.getMessage()), ex.getCauses());
+    }
+
+    static void handleRuleViolation(final OutputBuffer output, final ProblemDetails ex) {
+        List<RuleViolationCause> causes = Optional.ofNullable(ex.getRuleViolation())
+                .map(RuleViolationDetails::getCauses)
+                .orElse(null);
+        printRuleViolation(output, Optional.ofNullable(ex.getDetail()).orElse(ex.getMessage()), causes);
+    }
+
+    private static void printRuleViolation(final OutputBuffer output, final String message, final List<RuleViolationCause> causes) {
         output.writeStdErrChunk(err -> {
-            err.append(ERROR_PREFIX).append(Optional.ofNullable(ex.getDetail()).orElse(ex.getMessage())).append('\n');
-            Optional.ofNullable(ex.getCauses()).ifPresent(causes ->
-                    causes.forEach(cause ->
-                            err.append("  -> ").append(Optional.ofNullable(cause.getContext()).orElse(""))
-                                    .append(": ").append(Optional.ofNullable(cause.getDescription()).orElse("")).append('\n')));
+            err.append(ERROR_PREFIX).append(message).append('\n');
+            if (causes != null) {
+                causes.forEach(cause ->
+                        err.append("  -> ").append(Optional.ofNullable(cause.getContext()).orElse(""))
+                                .append(": ").append(Optional.ofNullable(cause.getDescription()).orElse("")).append('\n'));
+            }
         });
+    }
+
+    static boolean hasRuleViolationCauses(final ProblemDetails ex) {
+        return ex.getRuleViolation() != null
+                && ex.getRuleViolation().getCauses() != null
+                && !ex.getRuleViolation().getCauses().isEmpty();
     }
 
     protected static void handleProblemDetails(final OutputBuffer output, final ProblemDetails ex) {

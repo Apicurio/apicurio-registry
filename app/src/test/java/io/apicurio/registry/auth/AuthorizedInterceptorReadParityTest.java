@@ -1,5 +1,6 @@
 package io.apicurio.registry.auth;
 
+import io.apicurio.registry.auth.grants.GrantsAccessControllerConfig;
 import io.quarkus.security.ForbiddenException;
 import io.quarkus.security.UnauthorizedException;
 import io.quarkus.security.identity.SecurityIdentity;
@@ -29,6 +30,7 @@ class AuthorizedInterceptorReadParityTest {
 
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public void readOperation() {
+        // Intentionally empty: only the @Authorized annotation is inspected.
     }
 
     private enum Caller { ANONYMOUS, NO_ROLE, READONLY, DEVELOPER, ADMIN_ROLE, PROXY_USER }
@@ -109,6 +111,8 @@ class AuthorizedInterceptorReadParityTest {
         interceptor.adminOverride = adminOverride;
         interceptor.rbac = rbac;
         interceptor.obac = obac;
+        // Per-resource authorization is out of scope for read-access parity
+        interceptor.grantsAcConfig = mock(GrantsAccessControllerConfig.class);
 
         InvocationContext context = mock(InvocationContext.class);
         when(context.getMethod()).thenReturn(method);

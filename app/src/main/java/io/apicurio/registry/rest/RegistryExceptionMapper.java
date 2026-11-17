@@ -3,6 +3,7 @@ package io.apicurio.registry.rest;
 import io.apicurio.registry.services.http.CCompatExceptionMapperService;
 import io.apicurio.registry.services.http.CoreRegistryExceptionMapperService;
 import io.apicurio.registry.services.http.CoreV2RegistryExceptionMapperService;
+import io.apicurio.registry.services.http.ExceptionMapperService;
 import io.apicurio.registry.services.http.IcebergExceptionMapperService;
 import io.apicurio.registry.extensions.ApiExceptionMapper;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -20,6 +21,9 @@ import jakarta.ws.rs.ext.Provider;
 @ApplicationScoped
 @Provider
 public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
+
+    @Inject
+    ApiSurfaceResolver apiSurfaceResolver;
 
     @Inject
     CoreRegistryExceptionMapperService coreMapper;
@@ -44,61 +48,28 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
      */
     @Override
     public Response toResponse(Throwable t) {
-        Response res;
-        if (isCompatEndpoint()) {
-            res = ccompatMapper.mapException(t);
-        } else if (isV2Endpoint()) {
-            res = coreV2Mapper.mapException(t);
-        } else if (isIcebergEndpoint()) {
-            res = icebergMapper.mapException(t);
-        } else {
-            res = mapWithExtensionOrCore(t);
-        }
+        ApiSurface surface = apiSurfaceResolver.resolve(this.request);
+        return toResponse(t, surface);
+    }
 
-        // Response.ResponseBuilder builder;
-        // if (res.getJaxrsResponse() != null) {
-        // builder = Response.fromResponse(res.getJaxrsResponse());
-        // } else {
-        // builder = Response.status(res.getStatus()).entity(res.getError());
-        // }
-        //
-        // return builder.type(res.getContentType()).build();
-        return res;
+    public Response toResponse(Throwable t, ApiSurface surface) {
+        if (surface == ApiSurface.V3) {
+            return mapWithExtensionOrCore(t);
+        }
+        return getMapperService(surface).mapException(t);
+    }
+
+    ExceptionMapperService getMapperService(ApiSurface surface) {
+        return switch (surface) {
+            case CCOMPAT -> ccompatMapper;
+            case V2 -> coreV2Mapper;
+            case ICEBERG -> icebergMapper;
+            case V3 -> coreMapper;
+        };
     }
 
     /**
-     * Returns true if the endpoint that caused the error is a "ccompat" endpoint. If so we need to simplify
-     * the error we return. The apicurio error structure has at least one additional property.
-     */
-    private boolean isCompatEndpoint() {
-        if (this.request != null) {
-            return this.request.getRequestURI().contains("/apis/ccompat");
-        }
-        return false;
-    }
-
-    /**
-     * Returns true if the endpoint that caused the error is a Core V2 endpoint.
-     */
-    private boolean isV2Endpoint() {
-        if (this.request != null) {
-            return this.request.getRequestURI().contains("/apis/registry/v2");
-        }
-        return false;
-    }
-
-    /**
-     * Returns true if the endpoint that caused the error is an Iceberg REST Catalog endpoint.
-     */
-    private boolean isIcebergEndpoint() {
-        if (this.request != null) {
-            return this.request.getRequestURI().contains("/apis/iceberg");
-        }
-        return false;
-    }
-
-    /**
-     * Returns true if the endpoint that caused the error is an MCP Registry API endpoint.
+     * Returns true if the endpoint that caused the error is an extension endpoint (e.g. MCP Registry API endpoint).
      */
     private Response mapWithExtensionOrCore(Throwable t) {
         for (ApiExceptionMapper mapper : apiMappers) {

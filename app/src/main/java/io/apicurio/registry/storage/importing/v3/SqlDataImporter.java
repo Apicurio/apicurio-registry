@@ -6,6 +6,7 @@ import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.error.VersionAlreadyExistsException;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
+import io.apicurio.registry.references.ReferenceResolution;
 import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
 import io.apicurio.registry.types.RegistryException;
 import io.apicurio.registry.utils.impexp.Entity;
@@ -116,7 +117,7 @@ public class SqlDataImporter extends AbstractDataImporter {
             // We do not need canonicalHash if we have artifactType
             if (entity.canonicalHash == null && entity.artifactType != null) {
                 TypedContent canonicalContent = utils.canonicalizeContent(entity.artifactType, typedContent,
-                        RegistryContentUtils.recursivelyResolveReferences(references,
+                        ReferenceResolution.recursivelyResolveReferences(references,
                                 storage::getContentByReference));
                 entity.canonicalHash = DigestUtils.sha256Hex(canonicalContent.getContent().bytes());
             }

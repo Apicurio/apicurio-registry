@@ -100,18 +100,18 @@ The same test with the fix applied must pass. The Byteman rule still tries to fo
 
 ```bash
 # Run the Byteman concurrency test
-./mvnw test -pl :apicurio-registry-app -Pbyteman -Dtest=ConcurrentVersionCreationTest
+./mvnw test -pl :apicurio-registry-app -Pconcurrency-tests -Dtest=ConcurrentVersionCreationTest
 
 # Run with a different Byteman script
-./mvnw test -pl :apicurio-registry-app -Pbyteman -Dbyteman.script=byteman/other-test.btm -Dtest=OtherTest
+./mvnw test -pl :apicurio-registry-app -Pconcurrency-tests -Dbyteman.script=byteman/other-test.btm -Dtest=OtherTest
 ```
 
-The `-Pbyteman` Maven profile:
+The `-Pconcurrency-tests` Maven profile:
 - Adds `org.jboss.byteman:byteman:4.0.27` as a test dependency
 - Loads the Byteman agent via `-javaagent` in the surefire argLine
 - Sets `byteman.agent=true` so `@EnabledIfSystemProperty` gates the test
 
-Without `-Pbyteman`, the test is skipped. The normal test suite is unaffected.
+Without `-Pconcurrency-tests`, the test is skipped. The normal test suite is unaffected.
 
 ## How to write a new Byteman test
 
@@ -149,7 +149,7 @@ Without `-Pbyteman`, the test is skipped. The normal test suite is unaffected.
 |---|---|
 | Byteman rules | `app/src/test/resources/byteman/*.btm` |
 | Byteman tests | `app/src/test/java/.../ConcurrentVersionCreationTest.java` |
-| Maven profile | `app/pom.xml`, `<profile id="byteman">` |
+| Maven profile | `app/pom.xml`, `<profile id="concurrency-tests">` |
 | Script path property | `-Dbyteman.script=byteman/<name>.btm` |
 | Test gate | `@EnabledIfSystemProperty(named = "byteman.agent", matches = "true")` |
 

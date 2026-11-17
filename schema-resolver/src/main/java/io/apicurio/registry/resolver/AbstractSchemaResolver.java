@@ -11,6 +11,10 @@ import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.resolver.strategy.ArtifactCoordinates;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
+import io.apicurio.registry.resolver.strategy.DefaultReferenceNamingStrategy;
+import io.apicurio.registry.resolver.strategy.ReferenceCoordinates;
+import io.apicurio.registry.resolver.strategy.ReferenceNamingContext;
+import io.apicurio.registry.resolver.strategy.ReferenceNamingStrategy;
 import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.utils.IoUtil;
 
@@ -37,6 +41,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
     protected SchemaParser<S, T> schemaParser;
     protected RegistryClientFacade clientFacade;
     protected ArtifactReferenceResolverStrategy<S, T> artifactResolverStrategy;
+    protected ReferenceNamingStrategy referenceNamingStrategy = new DefaultReferenceNamingStrategy();
 
     protected String explicitArtifactGroupId;
     protected String explicitArtifactId;
@@ -55,10 +60,15 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
 
         Object ais = config.getArtifactResolverStrategy();
         Utils.instantiate(ArtifactReferenceResolverStrategy.class, ais, this::setArtifactResolverStrategy);
+        Utils.instantiate(ReferenceNamingStrategy.class, config.getReferenceNamingStrategy(),
+                this::setReferenceNamingStrategy);
 
         schemaCache.configureLifetime(config.getCheckPeriod());
         schemaCache.configureRetryBackoff(config.getRetryBackoff());
         schemaCache.configureRetryCount(config.getRetryCount());
+        schemaCache.configureRetryTransientErrors(config.getRetryTransientErrors());
+        schemaCache.configureRetryTotalTimeout(config.getRetryTotalTimeout());
+        schemaCache.warnIfRetryBudgetUnbounded(estimateClientRetryLadderSleepMs(config));
         schemaCache.configureCacheLatest(config.getCacheLatest());
         schemaCache.configureFaultTolerantRefresh(config.getFaultTolerantRefresh());
         schemaCache.configureBackgroundRefresh(config.getBackgroundRefresh());
@@ -155,6 +165,40 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         } else {
             return this.explicitArtifactId == null ? artifactId : this.explicitArtifactId;
         }
+    }
+
+    /**
+     * @param referenceNamingStrategy the strategy naming auto-registered referenced schemas
+     */
+    public void setReferenceNamingStrategy(ReferenceNamingStrategy referenceNamingStrategy) {
+        this.referenceNamingStrategy = referenceNamingStrategy;
+    }
+
+    /**
+     * Coordinates for a referenced schema: the coordinates the resolver would use without a naming strategy,
+     * with the group and artifact ID replaced by the reference naming strategy's choice. The version is not
+     * affected.
+     *
+     * @param data the record being serialized
+     * @param referencedSchema a schema referenced by the schema being registered
+     * @return the coordinates to register the referenced schema under
+     * @throws IllegalStateException if the strategy returns no artifact ID
+     */
+    protected ArtifactReference resolveReferenceArtifactReference(Record<T> data,
+            ParsedSchema<S> referencedSchema) {
+        String referenceName = referencedSchema.referenceName();
+        ArtifactReference defaults = resolveArtifactReference(data, referencedSchema, true, referenceName);
+        ReferenceNamingContext context = new ReferenceNamingContext(referenceName, schemaParser.artifactType(),
+                defaults.getGroupId(), schemaParser.referenceNamespace(referencedSchema), referencedSchema);
+        ReferenceCoordinates coordinates = referenceNamingStrategy.name(context);
+        if (coordinates == null || coordinates.artifactId() == null || coordinates.artifactId().isBlank()) {
+            throw new IllegalStateException("Reference naming strategy " + referenceNamingStrategy.getClass()
+                    .getName() + " returned no artifact ID for reference '" + referenceName + "'.");
+        }
+        String groupId = coordinates.groupId() == null || coordinates.groupId().isBlank() ? null
+                : coordinates.groupId();
+        return ArtifactReference.builder().groupId(groupId).artifactId(coordinates.artifactId())
+                .version(defaults.getVersion()).build();
     }
 
     protected SchemaLookupResult<S> resolveSchemaByGlobalId(long globalId) {
@@ -290,5 +334,65 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
                 .parsedSchema(parsedSchema)
                 .references(references)
                 .build();
+    }
+
+    /**
+     * Lower-bound estimate of sleep time for one HTTP client retry ladder (excludes request latency).
+     * Closed form once the per-step delay hits {@code maxDelayMs}, so a large
+     * {@code max-attempts} cannot hang {@code configure()}.
+     */
+    static long estimateClientRetryLadderSleepMs(SchemaResolverConfig config) {
+        if (!config.getClientRetryEnabled()) {
+            return 0L;
+        }
+        long maxAttempts = config.getClientRetryMaxAttempts();
+        if (maxAttempts <= 1) {
+            return 0L;
+        }
+        long delayMs = config.getClientRetryDelayMs();
+        long maxDelayMs = config.getClientRetryMaxDelayMs();
+        if (delayMs <= 0L || maxDelayMs <= 0L) {
+            return 0L;
+        }
+        double multiplier = config.getClientRetryBackoffMultiplier();
+        long sleeps = maxAttempts - 1;
+        long sleepMs = 0L;
+        long step = delayMs;
+        for (long i = 0; i < sleeps; i++) {
+            long capped = Math.min(step, maxDelayMs);
+            sleepMs = saturatingAdd(sleepMs, capped);
+            if (capped >= maxDelayMs) {
+                long remaining = sleeps - i - 1;
+                if (remaining > 0) {
+                    sleepMs = saturatingAdd(sleepMs, saturatingMul(remaining, maxDelayMs));
+                }
+                break;
+            }
+            double next = step * multiplier;
+            if (!Double.isFinite(next) || next >= maxDelayMs) {
+                step = maxDelayMs;
+            } else {
+                step = Math.max(1L, (long) next);
+            }
+        }
+        return sleepMs;
+    }
+
+    private static long saturatingAdd(long a, long b) {
+        long r = a + b;
+        if (((a ^ r) & (b ^ r)) < 0) {
+            return Long.MAX_VALUE;
+        }
+        return r;
+    }
+
+    private static long saturatingMul(long a, long b) {
+        if (a == 0L || b == 0L) {
+            return 0L;
+        }
+        if (a > Long.MAX_VALUE / b) {
+            return Long.MAX_VALUE;
+        }
+        return a * b;
     }
 }

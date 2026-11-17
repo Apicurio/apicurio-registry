@@ -2,11 +2,12 @@ package io.apicurio.registry.agents.mcpregistry.rest.v0.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import io.apicurio.registry.auth.AuthConfig;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
+import io.apicurio.registry.auth.AuthorizedResource;
 import io.apicurio.registry.auth.AuthorizedStyle;
-import io.apicurio.registry.auth.RoleBasedAccessController;
+import io.apicurio.registry.auth.ISearchAuthorizer;
+import io.apicurio.registry.auth.ResourceAccessGuard;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
@@ -62,7 +63,6 @@ import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.ClientErrorException;
-import jakarta.ws.rs.ForbiddenException;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.ServerErrorException;
 import jakarta.ws.rs.core.Response;
@@ -112,8 +112,8 @@ public class McpRegistryApiResourceImpl implements ApisResource {
      * Label holding a published version's UUID. {@code globalId} is unique only within one registry
      * instance, so the id is minted at publish time and persisted rather than recomputed.
      */
-    private static final String SERVER_VERSION_ID_LABEL = "apicurio.mcp-registry.version-id";
-    private static final String LEGACY_SERVER_VERSION_ID_LABEL = "mcp-server-version-id";
+    static final String SERVER_VERSION_ID_LABEL = "apicurio.mcp-registry.version-id";
+    static final String LEGACY_SERVER_VERSION_ID_LABEL = "mcp-server-version-id";
 
     private static final String META_ID = "id";
     private static final String META_PUBLISHED_AT = "publishedAt";
@@ -124,7 +124,8 @@ public class McpRegistryApiResourceImpl implements ApisResource {
     private static final String LATEST_VERSION = "latest";
     private static final int DEFAULT_PAGE_SIZE = 30;
     private static final int STATUS_MESSAGE_MAX_LENGTH = 500;
-    private static final String STATUS_PREFIX = "apicurio.mcp-registry.status.";
+    static final String STATUS_PREFIX = "apicurio.mcp-registry.status.";
+    private static final String MESSAGE_LABEL = "message";
 
     /** Internal envelope data must not overwrite publisher-owned server._meta keys. */
     @RegisterForReflection
@@ -147,10 +148,10 @@ public class McpRegistryApiResourceImpl implements ApisResource {
     McpRegistryConfig config;
 
     @Inject
-    AuthConfig authConfig;
+    ISearchAuthorizer searchAuthorizer;
 
     @Inject
-    RoleBasedAccessController rbac;
+    ResourceAccessGuard accessGuard;
 
     @Inject
     ArtifactTypeUtilProviderFactory factory;
@@ -199,19 +200,30 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         Set<SearchFilter> filters = new HashSet<>();
         filters.add(SearchFilter.ofArtifactType(ArtifactType.MCP_SERVER));
         if ((search == null || search.isBlank()) && updatedSince == null && !includeDeleted) {
-            ArtifactSearchResultsDto results = storage.searchArtifacts(filters, OrderBy.name,
-                    OrderDirection.asc, offset, pageSize, false);
-            List<Server> servers = new ArrayList<>();
-            for (SearchedArtifactDto artifact : results.getArtifacts()) {
-                Server server = tryLoadServer(new McpServerName(artifact.getGroupId(), artifact.getArtifactId()),
-                        version);
-                if (server != null && !isDeleted(server)) {
-                    servers.add(server);
-                }
-            }
-            boolean hasMore = (long) offset + pageSize < results.getCount();
-            return buildServerList(servers, hasMore ? offset + pageSize : -1, fingerprint);
+            return listServersAtVersion(filters, offset, pageSize, fingerprint, version);
         }
+        return scanServersAtVersion(filters, offset, pageSize, fingerprint, search, updatedSince, version,
+                includeDeleted);
+    }
+
+    private ServerList listServersAtVersion(Set<SearchFilter> filters, int offset, int pageSize,
+            String fingerprint, String version) {
+        ArtifactSearchResultsDto results = searchAuthorizer.searchArtifacts(filters, OrderBy.name,
+                OrderDirection.asc, offset, pageSize, false);
+        List<Server> servers = new ArrayList<>();
+        for (SearchedArtifactDto artifact : results.getArtifacts()) {
+            Server server = tryLoadServer(new McpServerName(artifact.getGroupId(), artifact.getArtifactId()),
+                    version);
+            if (server != null && !isDeleted(server)) {
+                servers.add(server);
+            }
+        }
+        boolean hasMore = (long) offset + pageSize < results.getCount();
+        return buildServerList(servers, hasMore ? offset + pageSize : -1, fingerprint);
+    }
+
+    private ServerList scanServersAtVersion(Set<SearchFilter> filters, int offset, int pageSize,
+            String fingerprint, String search, Date updatedSince, String version, boolean includeDeleted) {
         // Artifact metadata is not the version exposed by this API: status changes update only the
         // version timestamp, and descriptions can differ across versions. Filter the resolved server
         // documents before slicing the response, rather than dropping rows from an artifact page.
@@ -221,13 +233,12 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         String query = search == null ? "" : search.trim().toLowerCase(Locale.ROOT);
         int scanOffset = 0;
         while (true) {
-            ArtifactSearchResultsDto results = storage.searchArtifacts(filters, OrderBy.name,
+            ArtifactSearchResultsDto results = searchAuthorizer.searchArtifacts(filters, OrderBy.name,
                     OrderDirection.asc, scanOffset, pageSize, false);
             for (SearchedArtifactDto artifact : results.getArtifacts()) {
                 McpServerName name = new McpServerName(artifact.getGroupId(), artifact.getArtifactId());
                 Server server = tryLoadServer(name, version, latestVersionOrNull(name, includeDeleted));
-                if (server != null && (includeDeleted || !isDeleted(server)) && matchesSearch(server, query)
-                        && (updatedSince == null || !updatedAt(server).isBefore(updatedSince.toInstant()))) {
+                if (isVisibleAtVersion(server, includeDeleted, query, updatedSince)) {
                     servers.add(server);
                 }
             }
@@ -248,6 +259,11 @@ public class McpRegistryApiResourceImpl implements ApisResource {
                 end < servers.size() ? end : -1, fingerprint);
     }
 
+    private boolean isVisibleAtVersion(Server server, boolean includeDeleted, String query, Date updatedSince) {
+        return server != null && (includeDeleted || !isDeleted(server)) && matchesSearch(server, query)
+                && (updatedSince == null || !updatedAt(server).isBefore(updatedSince.toInstant()));
+    }
+
     private ServerList listAllServerVersions(int offset, int pageSize, String fingerprint, String search,
             Date updatedSince, boolean includeDeleted) {
         Set<SearchFilter> filters = new HashSet<>();
@@ -260,7 +276,7 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         List<Server> matches = new ArrayList<>();
         int scanOffset = 0;
         while (true) {
-            VersionSearchResultsDto results = storage.searchVersions(filters, OrderBy.globalId,
+            VersionSearchResultsDto results = searchAuthorizer.searchVersions(filters, OrderBy.globalId,
                     OrderDirection.asc, scanOffset, pageSize, false);
             for (SearchedVersionDto found : results.getVersions()) {
                 McpServerName name = new McpServerName(found.getGroupId(), found.getArtifactId());
@@ -417,7 +433,7 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         loadServer(name, resolved);
         ServerStatus requested = requireStatus(data);
         ArtifactVersionMetaDataDto current = storage.getArtifactVersionMetaData(name.namespace(), name.serverId(), resolved);
-        String currentMessage = current.getLabels() == null ? null : current.getLabels().get(STATUS_PREFIX + "message");
+        String currentMessage = current.getLabels() == null ? null : current.getLabels().get(STATUS_PREFIX + MESSAGE_LABEL);
         if (current.getState() == toVersionState(requested) && Objects.equals(currentMessage, data.getStatusMessage())) {
             throw new BadRequestException("No changes to apply: status and message are unchanged");
         }
@@ -460,7 +476,7 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         Map<String, String> labels = new HashMap<>();
         labels.put(STATUS_PREFIX + "changed-at", Instant.now().toString());
         if (data.getStatusMessage() != null) {
-            labels.put(STATUS_PREFIX + "message", data.getStatusMessage());
+            labels.put(STATUS_PREFIX + MESSAGE_LABEL, data.getStatusMessage());
         }
         return labels;
     }
@@ -476,10 +492,16 @@ public class McpRegistryApiResourceImpl implements ApisResource {
             throw new BadRequestException("A server definition is required");
         }
         McpServerName name = McpServerName.parse(data.getName());
-        verifyPublishOwnership(name);
+        // The server name comes from the body, so owner-only and per-resource authorization are
+        // checked here rather than by the interceptor
+        accessGuard.requireAccess(AuthorizedLevel.Write,
+                AuthorizedResource.artifact(name.namespace(), name.serverId()));
         boolean exists = artifactExists(name);
         if (exists) {
             requireServerArtifact(name);
+        } else {
+            // Publishing a new server creates an artifact, which needs write access to its group too
+            accessGuard.requireGrantsAccess(AuthorizedLevel.Write, AuthorizedResource.group(name.namespace()));
         }
 
         String version = data.getVersion();
@@ -550,30 +572,6 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         }
 
         return response(loadServer(name, version));
-    }
-
-    /**
-     * Owner-only authorization for publishing. The name arrives in the body, not the path, so
-     * {@code AuthorizedStyle.GroupAndArtifact} cannot apply and {@code isOwner} would wave this through.
-     * Any other body-addressed write endpoint needs the same treatment.
-     */
-    private void verifyPublishOwnership(McpServerName name) {
-        if (!authConfig.isObacEnabled()) {
-            return;
-        }
-        if (authConfig.isRbacEnabled() && rbac.isAdmin()) {
-            return;
-        }
-
-        try {
-            String owner = storage.getArtifactMetaData(name.namespace(), name.serverId()).getOwner();
-            if (owner != null && !owner.equals(currentUser())) {
-                throw new ForbiddenException(
-                        "User is not authorized to perform the requested operation.");
-            }
-        } catch (ArtifactNotFoundException e) {
-            // No such server yet, so there is no owner to conflict with.
-        }
     }
 
     /**
@@ -712,7 +710,7 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         registryMeta.put(META_IS_LATEST, isLatest);
         registryMeta.put(META_STATUS, toStatus(meta.getState()).value());
         if (meta.getLabels() != null) {
-            String message = meta.getLabels().get(STATUS_PREFIX + "message");
+            String message = meta.getLabels().get(STATUS_PREFIX + MESSAGE_LABEL);
             String changedAt = meta.getLabels().get(STATUS_PREFIX + "changed-at");
             if (message != null) {
                 registryMeta.put("statusMessage", message);

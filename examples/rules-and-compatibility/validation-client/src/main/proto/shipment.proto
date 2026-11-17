@@ -1,0 +1,11 @@
+// Not registered: a different message type, to show that it does not validate against order.proto.
+syntax = "proto3";
+package com.example.orders;
+
+option java_package = "io.apicurio.registry.examples.rules.proto";
+option java_multiple_files = true;
+
+message ShipmentCreated {
+  string shipment_id = 1;
+  int32 parcels = 2;
+}

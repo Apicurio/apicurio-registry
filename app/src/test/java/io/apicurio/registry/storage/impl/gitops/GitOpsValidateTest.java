@@ -4,6 +4,7 @@ import io.apicurio.registry.storage.util.GitopsTestProfile;
 import io.apicurio.registry.util.JsonObjectMapper;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import jakarta.inject.Inject;
 import org.eclipse.jgit.api.Git;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,17 +18,30 @@ import java.time.Instant;
 
 import static io.restassured.RestAssured.given;
 import static org.awaitility.Awaitility.await;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
 @TestProfile(GitopsTestProfile.class)
 public class GitOpsValidateTest {
+
+    @Inject
+    GitOpsConfig gitOpsConfig;
+
+    @Inject
+    GitOpsValidationTaskManager taskManager;
+
+    private String repoId() {
+        return gitOpsConfig.getRepos().get(0).id();
+    }
 
     @BeforeEach
     void cleanup() {
@@ -48,16 +62,67 @@ public class GitOpsValidateTest {
         given()
                 .contentType("application/json")
                 .body("""
-                        {"type": "pull", "repoId": "default", "ref": "main"}
-                        """)
+                        {"type": "pull", "repoId": "%s", "ref": "main"}
+                        """.formatted(repoId()))
                 .when()
                 .post("/apis/registry/v3/admin/gitops/validate")
                 .then()
                 .statusCode(200)
                 .body("taskId", notNullValue())
                 .body("state", notNullValue())
-                .body("repoId", equalTo("default"))
+                .body("repoId", equalTo(repoId()))
                 .body("ref", equalTo("main"));
+    }
+
+    @Test
+    void createValidateTaskRejectsUnknownRepoId() {
+        given()
+                .contentType("application/json")
+                .body("""
+                        {"type": "pull", "repoId": "does-not-exist", "ref": "main"}
+                        """)
+                .when()
+                .post("/apis/registry/v3/admin/gitops/validate")
+                .then()
+                .statusCode(400)
+                .body("status", equalTo(400))
+                .body("name", equalTo("BadRequestException"))
+                .body("detail", containsString("Repository 'does-not-exist' is not configured"))
+                .body("detail", containsString(repoId()));
+    }
+
+    @Test
+    void createValidateTaskRejectsMissingRepoId() {
+        given()
+                .contentType("application/json")
+                .body("""
+                        {"type": "pull", "ref": "main"}
+                        """)
+                .when()
+                .post("/apis/registry/v3/admin/gitops/validate")
+                .then()
+                .statusCode(400)
+                .body("status", equalTo(400))
+                .body("name", equalTo("BadRequestException"))
+                .body("detail", containsString("Repository ID is required"))
+                .body("detail", containsString(repoId()));
+    }
+
+    @Test
+    void createValidateTaskRejectsEmptyRepoId() {
+        given()
+                .contentType("application/json")
+                .body("""
+                        {"type": "pull", "repoId": "", "ref": "main"}
+                        """)
+                .when()
+                .post("/apis/registry/v3/admin/gitops/validate")
+                .then()
+                .statusCode(400)
+                .body("status", equalTo(400))
+                .body("name", equalTo("BadRequestException"))
+                .body("detail", containsString("Repository ID is required"))
+                .body("detail", containsString(repoId()));
     }
 
     @Test
@@ -65,8 +130,8 @@ public class GitOpsValidateTest {
         var taskId = given()
                 .contentType("application/json")
                 .body("""
-                        {"type": "pull", "repoId": "default", "ref": "main"}
-                        """)
+                        {"type": "pull", "repoId": "%s", "ref": "main"}
+                        """.formatted(repoId()))
                 .when()
                 .post("/apis/registry/v3/admin/gitops/validate")
                 .then()
@@ -86,8 +151,8 @@ public class GitOpsValidateTest {
         var taskId = given()
                 .contentType("application/json")
                 .body("""
-                        {"type": "pull", "repoId": "default", "ref": "main"}
-                        """)
+                        {"type": "pull", "repoId": "%s", "ref": "main"}
+                        """.formatted(repoId()))
                 .when()
                 .post("/apis/registry/v3/admin/gitops/validate")
                 .then()
@@ -103,13 +168,33 @@ public class GitOpsValidateTest {
                 .body("state", notNullValue());
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"../etc/passwd", "ABCDEF012345", "not-a-valid-id", "abcdef0123456"})
+    void getTaskRejectsInvalidTaskId(String invalidId) {
+        given()
+                .when()
+                .get("/apis/registry/v3/admin/gitops/validate/" + invalidId)
+                .then()
+                .statusCode(404);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"../etc/passwd", "ABCDEF012345", "not-a-valid-id", "abcdef0123456"})
+    void deleteTaskRejectsInvalidTaskId(String invalidId) {
+        given()
+                .when()
+                .delete("/apis/registry/v3/admin/gitops/validate/" + invalidId)
+                .then()
+                .statusCode(404);
+    }
+
     @Test
     void deleteTaskRemovesIt() {
         var taskId = given()
                 .contentType("application/json")
                 .body("""
-                        {"type": "pull", "repoId": "default", "ref": "main"}
-                        """)
+                        {"type": "pull", "repoId": "%s", "ref": "main"}
+                        """.formatted(repoId()))
                 .when()
                 .post("/apis/registry/v3/admin/gitops/validate")
                 .then()
@@ -148,8 +233,8 @@ public class GitOpsValidateTest {
         var taskId = given()
                 .contentType("application/json")
                 .body("""
-                        {"type": "pull", "repoId": "default", "ref": "main"}
-                        """)
+                        {"type": "pull", "repoId": "%s", "ref": "main"}
+                        """.formatted(repoId()))
                 .when()
                 .post("/apis/registry/v3/admin/gitops/validate")
                 .then()
@@ -202,8 +287,8 @@ public class GitOpsValidateTest {
         var taskId = given()
                 .contentType("application/json")
                 .body("""
-                        {"type": "pull", "repoId": "default", "ref": "main"}
-                        """)
+                        {"type": "pull", "repoId": "%s", "ref": "main"}
+                        """.formatted(repoId()))
                 .when()
                 .post("/apis/registry/v3/admin/gitops/validate")
                 .then()
@@ -235,6 +320,45 @@ public class GitOpsValidateTest {
         });
     }
 
+    @Test
+    void loadPendingTasksSkipsInvalidButLoadsValidFiles() throws Exception {
+        final var testRepository = GitTestRepositoryManager.getTestRepository();
+        final Path validateDir = Path.of(testRepository.getGitRepoUrl()).getParent().resolve("validate");
+        Files.createDirectories(validateDir);
+
+        final String validId = ValidationTaskId.random().value();
+        final Path validFile = validateDir.resolve(validId + ".json");
+        final Path invalidFile = validateDir.resolve("not-a-valid-id.json");
+        final Path traversalFile = validateDir.resolve("...json");
+        try {
+            final String requestJson = """
+                    {"apiVersion": "v1", "kind": "ValidateRequest",
+                     "spec": {"type": "pull", "repoId": "%s", "ref": "main"}}
+                    """.formatted(repoId());
+            Files.writeString(validFile, requestJson);
+            Files.writeString(invalidFile, requestJson);
+            Files.writeString(traversalFile, requestJson);
+
+            taskManager.loadPendingTasks();
+
+            final var tasks = given()
+                    .when()
+                    .get("/apis/registry/v3/admin/gitops/validate")
+                    .then()
+                    .statusCode(200)
+                    .extract().jsonPath().getList("taskId", String.class);
+
+            assertTrue(tasks.contains(validId));
+            assertFalse(tasks.contains("not-a-valid-id"));
+            assertFalse(tasks.contains(".."));
+        } finally {
+            Files.deleteIfExists(validFile);
+            Files.deleteIfExists(invalidFile);
+            Files.deleteIfExists(traversalFile);
+            taskManager.deleteTask(validId);
+        }
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {"../../../../etc", "/etc", "repo/../../etc"})
     void validationRejectsMaliciousCheckoutPath(String maliciousPath) throws Exception {
@@ -253,8 +377,8 @@ public class GitOpsValidateTest {
         final var taskId = given()
                 .contentType("application/json")
                 .body("""
-                        {"type": "pull", "repoId": "default", "ref": "main"}
-                        """)
+                        {"type": "pull", "repoId": "%s", "ref": "main"}
+                        """.formatted(repoId()))
                 .when()
                 .post("/apis/registry/v3/admin/gitops/validate")
                 .then()

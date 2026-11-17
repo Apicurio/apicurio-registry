@@ -1,0 +1,10 @@
+$type: registry-v0
+registryId: test
+globalRules: []
+properties: []
+peers:
+  - peerId: update-test-peer
+    url: https://before.example.com
+    name: Before Update
+    enabled: false
+    credentialSecretRef: before-cred

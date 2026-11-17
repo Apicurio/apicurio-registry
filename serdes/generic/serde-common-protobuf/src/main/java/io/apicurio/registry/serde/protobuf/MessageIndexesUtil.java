@@ -11,9 +11,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class MessageIndexesUtil {
+
+    // Mirrors Confluent's MessageIndexes.DEFAULT_INDEX: the index of the first message type.
+    public static final List<Integer> DEFAULT_INDEX = Collections.singletonList(0);
 
     private static IllegalArgumentException illegalVarintException(int value) {
         throw new IllegalArgumentException("Varint is too long, the most significant bit in the 5th byte is set, " +
@@ -54,6 +58,12 @@ public class MessageIndexesUtil {
     }
 
     public static void writeTo(List<Integer> indexes, OutputStream out) throws IOException {
+        if (indexes.equals(DEFAULT_INDEX)) {
+            // Confluent-compatible optimization: the default index [0] (the first message
+            // type) is encoded as a single 0x00 var-int instead of [size][indexes].
+            writeVarInt(0, out);
+            return;
+        }
         writeVarInt(indexes.size(), out);
 
         for (Integer index : indexes) {
@@ -70,32 +80,22 @@ public class MessageIndexesUtil {
     }
 
     static int readUnsignedVarInt(InputStream in) throws IOException {
-        byte tmp = readByte(in);
-        if (tmp >= 0) {
-            return tmp;
-        } else {
-            int result = tmp & 127;
-            if ((tmp = readByte(in)) >= 0) {
-                result |= tmp << 7;
-            } else {
-                result |= (tmp & 127) << 7;
-                if ((tmp = readByte(in)) >= 0) {
-                    result |= tmp << 14;
-                } else {
-                    result |= (tmp & 127) << 14;
-                    if ((tmp = readByte(in)) >= 0) {
-                        result |= tmp << 21;
-                    } else {
-                        result |= (tmp & 127) << 21;
-                        result |= (tmp = readByte(in)) << 28;
-                        if (tmp < 0) {
-                            throw illegalVarintException(result);
-                        }
-                    }
-                }
+        int result = 0;
+        // The first four bytes each carry 7 bits; a clear continuation (sign) bit ends the varint
+        for (int shift = 0; shift < 28; shift += 7) {
+            byte tmp = readByte(in);
+            if (tmp >= 0) {
+                return result | (tmp << shift);
             }
-            return result;
+            result |= (tmp & 127) << shift;
         }
+        // The fifth byte must not have its continuation bit set
+        byte tmp = readByte(in);
+        result |= tmp << 28;
+        if (tmp < 0) {
+            throw illegalVarintException(result);
+        }
+        return result;
     }
 
     public static int readVarInt(InputStream in) throws IOException {
@@ -106,6 +106,8 @@ public class MessageIndexesUtil {
     public static List<Integer> readFrom(InputStream in) throws IOException {
         int size = readVarInt(in);
         if (size == 0) {
+            // A bare 0x00 var-int is Confluent's optimized encoding for the default
+            // index [0] (the first message type), so it must map to [0], not an empty list.
             return List.of(0);
         }
         List<Integer> indexes = new ArrayList<>(size);

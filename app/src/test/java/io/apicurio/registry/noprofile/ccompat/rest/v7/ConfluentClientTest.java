@@ -74,7 +74,11 @@ import static io.confluent.kafka.schemaregistry.CompatibilityLevel.BACKWARD;
 import static io.confluent.kafka.schemaregistry.CompatibilityLevel.FORWARD;
 import static io.confluent.kafka.schemaregistry.CompatibilityLevel.FULL;
 import static io.confluent.kafka.schemaregistry.CompatibilityLevel.NONE;
+import static io.restassured.RestAssured.given;
 import static java.net.HttpURLConnection.HTTP_CONFLICT;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasKey;
+import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -672,6 +676,135 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testCompatibilityVerbose() throws Exception {
+        String subject = "testCompatibilityVerbose";
+
+        String schema1String = "{\"type\":\"record\"," + "\"name\":\"myrecord\"," + "\"fields\":"
+                + "[{\"type\":\"string\",\"name\":\"f\"}]}";
+        String schema1 = new AvroSchema(schema1String).canonicalString();
+
+        String schema2String = "{\"type\":\"record\"," + "\"name\":\"myrecord\"," + "\"fields\":"
+                + "[{\"type\":\"int\",\"name\":\"f\"}]}";
+        String schema2 = new AvroSchema(schema2String).canonicalString();
+
+        confluentClient.updateCompatibility(CompatibilityLevel.FULL.name, subject);
+        confluentClient.registerSchema(schema1, subject);
+        int version = confluentClient.lookUpSubjectVersion(schema1, subject).getVersion();
+
+        RegisterSchemaRequest request2 = new RegisterSchemaRequest();
+        request2.setSchema(schema2);
+
+        RegisterSchemaRequest request1 = new RegisterSchemaRequest();
+        request1.setSchema(schema1);
+
+        // 1. verbose=false: messages are omitted in response, so Confluent client falls back to generic message
+        List<String> messagesNonVerbose = confluentClient.testCompatibility(request2, subject, String.valueOf(version), false, false);
+        assertEquals(1, messagesNonVerbose.size());
+        assertEquals("Schemas are incompatible", messagesNonVerbose.get(0));
+
+        // 2. verbose=true: messages are populated from violation causes
+        List<String> messagesVerbose = confluentClient.testCompatibility(request2, subject, String.valueOf(version), false, true);
+        assertFalse(messagesVerbose.isEmpty());
+        assertNotEquals("Schemas are incompatible", messagesVerbose.get(0));
+        assertTrue(messagesVerbose.stream().anyMatch(msg -> msg.contains("reader type: INT not compatible with writer type: STRING")));
+
+        // 3. check all versions with verbose=true
+        List<String> allVersionsVerbose = confluentClient.testCompatibility(schema2, subject, true);
+        assertFalse(allVersionsVerbose.isEmpty());
+        assertNotEquals("Schemas are incompatible", allVersionsVerbose.get(0));
+        assertTrue(allVersionsVerbose.stream().anyMatch(msg -> msg.contains("reader type: INT not compatible with writer type: STRING")));
+
+        // 4. check compatible schema with verbose=true: messages should be empty
+        List<String> compatibleVerbose = confluentClient.testCompatibility(request1, subject, String.valueOf(version), false, true);
+        assertTrue(compatibleVerbose.isEmpty());
+
+        // 5. Raw JSON wire checks: messages must be omitted (null) unless verbose=true on incompatible check
+        // Incompatible without verbose parameter on v7
+        given().when()
+                .contentType(CT_JSON)
+                .body(request2.toJson())
+                .post("/ccompat/v7/compatibility/subjects/{subject}/versions/{version}", subject, version)
+                .then()
+                .statusCode(200)
+                .body("is_compatible", equalTo(false))
+                .body("$", not(hasKey("messages")));
+
+        // Incompatible with verbose=false on v7
+        given().when()
+                .contentType(CT_JSON)
+                .queryParam("verbose", false)
+                .body(request2.toJson())
+                .post("/ccompat/v7/compatibility/subjects/{subject}/versions/{version}", subject, version)
+                .then()
+                .statusCode(200)
+                .body("is_compatible", equalTo(false))
+                .body("$", not(hasKey("messages")));
+
+        // Incompatible without verbose across all versions on v7
+        given().when()
+                .contentType(CT_JSON)
+                .body(request2.toJson())
+                .post("/ccompat/v7/compatibility/subjects/{subject}/versions", subject)
+                .then()
+                .statusCode(200)
+                .body("is_compatible", equalTo(false))
+                .body("$", not(hasKey("messages")));
+
+        // Incompatible with verbose=true on v7: messages MUST be present
+        given().when()
+                .contentType(CT_JSON)
+                .queryParam("verbose", true)
+                .body(request2.toJson())
+                .post("/ccompat/v7/compatibility/subjects/{subject}/versions/{version}", subject, version)
+                .then()
+                .statusCode(200)
+                .body("is_compatible", equalTo(false))
+                .body("$", hasKey("messages"));
+
+        // Compatible check with verbose omitted: messages must be omitted
+        given().when()
+                .contentType(CT_JSON)
+                .body(request1.toJson())
+                .post("/ccompat/v7/compatibility/subjects/{subject}/versions/{version}", subject, version)
+                .then()
+                .statusCode(200)
+                .body("is_compatible", equalTo(true))
+                .body("$", not(hasKey("messages")));
+
+        // Compatible check with verbose=true: messages must also be omitted
+        given().when()
+                .contentType(CT_JSON)
+                .queryParam("verbose", true)
+                .body(request1.toJson())
+                .post("/ccompat/v7/compatibility/subjects/{subject}/versions/{version}", subject, version)
+                .then()
+                .statusCode(200)
+                .body("is_compatible", equalTo(true))
+                .body("$", not(hasKey("messages")));
+
+        // v8 compatibility check: messages must be omitted without verbose
+        given().when()
+                .contentType(CT_JSON)
+                .body(request2.toJson())
+                .post("/ccompat/v8/compatibility/subjects/{subject}/versions/{version}", subject, version)
+                .then()
+                .statusCode(200)
+                .body("is_compatible", equalTo(false))
+                .body("$", not(hasKey("messages")));
+
+        // v8 compatibility check with verbose=true: messages MUST be present
+        given().when()
+                .contentType(CT_JSON)
+                .queryParam("verbose", true)
+                .body(request2.toJson())
+                .post("/ccompat/v8/compatibility/subjects/{subject}/versions/{version}", subject, version)
+                .then()
+                .statusCode(200)
+                .body("is_compatible", equalTo(false))
+                .body("$", hasKey("messages"));
+    }
+
+    @Test
     public void testIncompatibleSchemaBySubject() throws Exception {
         String subject = "testSubject";
 
@@ -944,7 +1077,8 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
     public void testSchemaReferences() throws Exception {
         List<String> schemas = ConfluentTestUtils.getAvroSchemaWithReferences();
         String subject = "testSchemaReferences";
-        String referrer = "testSchemaReferencesReferer";
+        String referrer1 = "testSchemaReferencesReferer1";
+        String referrer2 = "testSchemaReferencesReferer2";
 
         ConfluentTestUtils.registerAndVerifySchema(confluentClient, schemas.get(0), subject);
 
@@ -952,29 +1086,55 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         request.setSchema(schemas.get(1));
         SchemaReference ref = new SchemaReference("otherns.Subrecord", subject, 1);
         request.setReferences(Collections.singletonList(ref));
-        int registeredId = confluentClient.registerSchema(request, referrer, false).getId();
 
-        SchemaString schemaString = confluentClient.getId(registeredId);
-        // the newly registered schema should be immediately readable on the leader
-        assertEquals(schemas.get(1), schemaString.getSchemaString(), "Registered schema should be found");
+        int registeredId1 = confluentClient.registerSchema(request, referrer1, false).getId();
+        int registeredId2 = confluentClient.registerSchema(request, referrer2, false).getId();
+
+        SchemaString schemaString = confluentClient.getId(registeredId1);
+        assertEquals(schemas.get(1), schemaString.getSchemaString(),
+                "Registered schema should be found");
 
         List<Integer> refs = confluentClient.getReferencedBy(subject, 1);
-        assertEquals(registeredId, refs.get(0).intValue());
+        assertTrue(refs.contains(registeredId1));
+        assertTrue(refs.contains(registeredId2));
 
+        // Deletion must fail while both referrers are enabled.
         try {
-            confluentClient.deleteSchemaVersion(RestService.DEFAULT_REQUEST_PROPERTIES, subject,
-                    String.valueOf(1));
-            fail("Deleting reference should fail with " + ErrorCode.REFERENCE_EXISTS.value());
+            confluentClient.deleteSchemaVersion(
+                    RestService.DEFAULT_REQUEST_PROPERTIES, subject, "1");
+            fail("Deleting a schema with enabled referrers should fail with "
+                    + ErrorCode.REFERENCE_EXISTS.value());
         } catch (RestClientException rce) {
-            assertEquals(ErrorCode.REFERENCE_EXISTS.value(), rce.getErrorCode(), "Reference found");
+            assertEquals(ErrorCode.REFERENCE_EXISTS.value(), rce.getErrorCode(),
+                    "Reference found");
         }
 
+        // Soft-delete the first referrer, but leave the second enabled.
         assertEquals((Integer) 1,
-                confluentClient.deleteSchemaVersion(RestService.DEFAULT_REQUEST_PROPERTIES, referrer, "1"));
+                confluentClient.deleteSchemaVersion(
+                        RestService.DEFAULT_REQUEST_PROPERTIES, referrer1, "1"));
+
+        // The base schema must still not be deletable.
+        try {
+            confluentClient.deleteSchemaVersion(
+                    RestService.DEFAULT_REQUEST_PROPERTIES, subject, "1");
+            fail("Deleting a schema with an enabled referrer should fail with "
+                    + ErrorCode.REFERENCE_EXISTS.value());
+        } catch (RestClientException rce) {
+            assertEquals(ErrorCode.REFERENCE_EXISTS.value(), rce.getErrorCode(),
+                    "An enabled referrer should prevent deletion");
+        }
+
+        // Once every referrer is soft-deleted, deleting the base schema should succeed.
+        assertEquals((Integer) 1,
+                confluentClient.deleteSchemaVersion(
+                        RestService.DEFAULT_REQUEST_PROPERTIES, referrer2, "1"));
 
         assertEquals((Integer) 1,
-                confluentClient.deleteSchemaVersion(RestService.DEFAULT_REQUEST_PROPERTIES, subject, "1"));
+                confluentClient.deleteSchemaVersion(
+                        RestService.DEFAULT_REQUEST_PROPERTIES, subject, "1"));
     }
+
 
     @Test
     public void testSchemaReferencesMultipleLevels() throws Exception {

@@ -17,6 +17,7 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ElasticsearchSearchServiceTest {
 
@@ -103,5 +104,32 @@ public class ElasticsearchSearchServiceTest {
 
         assertNotNull(query.bool());
         assertEquals(2, query.bool().must().size());
+    }
+
+    @Test
+    void caseInsensitiveNameFilterUsesCaseInsensitiveWildcardQueries() {
+        ElasticsearchSearchService service = new ElasticsearchSearchService();
+
+        Query query = service.buildEsQuery(
+                Set.of(SearchFilter.ofNameCaseInsensitive("*ca?rt\\id*part*")));
+
+        assertNotNull(query.bool(), "The top-level query should be a bool query");
+        List<Query> mustQueries = query.bool().must();
+        assertEquals(1, mustQueries.size(), "The name filter should add one required query");
+
+        Query nameFilterQuery = mustQueries.get(0);
+        assertNotNull(nameFilterQuery.bool(), "The name filter should combine fields with a bool query");
+        List<Query> fieldQueries = nameFilterQuery.bool().should();
+        assertEquals(2, fieldQueries.size(), "The name filter should search name and artifactId");
+
+        Query nameQuery = fieldQueries.get(0);
+        Query artifactIdQuery = fieldQueries.get(1);
+        String escapedPattern = "*ca\\?rt\\\\id\\*part*";
+        assertEquals("name.keyword", nameQuery.wildcard().field());
+        assertEquals(escapedPattern, nameQuery.wildcard().value());
+        assertTrue(nameQuery.wildcard().caseInsensitive());
+        assertEquals("artifactId", artifactIdQuery.wildcard().field());
+        assertEquals(escapedPattern, artifactIdQuery.wildcard().value());
+        assertTrue(artifactIdQuery.wildcard().caseInsensitive());
     }
 }

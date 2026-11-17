@@ -54,34 +54,7 @@ public class VersionSortKeyUpgrader implements IDbUpgrader {
                     .list();
 
             if (!batch.isEmpty()) {
-                // Dynamically build a single bulk UPDATE statement to eliminate N-round trips
-                StringBuilder updateSql = new StringBuilder("UPDATE versions SET versionSortKey = CASE globalId ");
-                for (int i = 0; i < batch.size(); i++) {
-                    updateSql.append("WHEN ? THEN ? ");
-                }
-                updateSql.append("END WHERE globalId IN (");
-                for (int i = 0; i < batch.size(); i++) {
-                    updateSql.append(i == 0 ? "?" : ", ?");
-                }
-                updateSql.append(")");
-
-                var update = handle.createUpdate(updateSql.toString());
-                int bindIdx = 0;
-                
-                // 1. Bind the CASE WHEN id THEN sortKey parameters
-                for (VersionRecord vRecord : batch) {
-                    String sortKey = VersionUtil.generateVersionSortKey(vRecord.version);
-                    update.bind(bindIdx++, vRecord.globalId);
-                    update.bind(bindIdx++, sortKey);
-                }
-                
-                // 2. Bind the WHERE globalId IN (...) parameters
-                for (VersionRecord vRecord : batch) {
-                    update.bind(bindIdx++, vRecord.globalId);
-                }
-                
-                // 3. Execute the entire chunk in a single network round-trip!
-                update.execute();
+                updateSortKeys(handle, batch);
                 
                 totalProcessed += batch.size();
                 log.info("Backfilled {} / {} artifacts...", totalProcessed, totalRows);
@@ -90,6 +63,37 @@ public class VersionSortKeyUpgrader implements IDbUpgrader {
         }
 
         log.info("Successfully backfilled versionSortKey for {} versions.", totalRows);
+    }
+
+    private static void updateSortKeys(Handle handle, List<VersionRecord> batch) {
+        // Dynamically build a single bulk UPDATE statement to eliminate N-round trips
+        StringBuilder updateSql = new StringBuilder("UPDATE versions SET versionSortKey = CASE globalId ");
+        for (int i = 0; i < batch.size(); i++) {
+            updateSql.append("WHEN ? THEN ? ");
+        }
+        updateSql.append("END WHERE globalId IN (");
+        for (int i = 0; i < batch.size(); i++) {
+            updateSql.append(i == 0 ? "?" : ", ?");
+        }
+        updateSql.append(")");
+
+        var update = handle.createUpdate(updateSql.toString());
+        int bindIdx = 0;
+
+        // 1. Bind the CASE WHEN id THEN sortKey parameters
+        for (VersionRecord vRecord : batch) {
+            String sortKey = VersionUtil.generateVersionSortKey(vRecord.version);
+            update.bind(bindIdx++, vRecord.globalId);
+            update.bind(bindIdx++, sortKey);
+        }
+
+        // 2. Bind the WHERE globalId IN (...) parameters
+        for (VersionRecord vRecord : batch) {
+            update.bind(bindIdx++, vRecord.globalId);
+        }
+
+        // 3. Execute the entire chunk in a single network round-trip!
+        update.execute();
     }
 
     private static class VersionRecord {

@@ -59,17 +59,32 @@ public class PromptRenderingService {
     private static final Pattern UNLESS_BLOCK_PATTERN =
             Pattern.compile("\\{\\{#unless\\s+(\\w+)\\}\\}((?:(?!\\{\\{/unless\\}\\})[\\s\\S])*?)\\{\\{/unless\\}\\}");
 
+    private static final String TYPE_STRING = "string";
+    private static final String TYPE_INTEGER = "integer";
+    private static final String TYPE_NUMBER = "number";
+    private static final String TYPE_BOOLEAN = "boolean";
+    private static final String TYPE_ARRAY = "array";
+    private static final String TYPE_OBJECT = "object";
+
+    /**
+     * Exclusive upper bound of the {@code long} range, expressed as a {@code double}. Both this
+     * value and {@code Long.MIN_VALUE} are exactly representable as a {@code double}, so they can
+     * be used to test whether a whole-number {@code double} converts to {@code long} without
+     * {@link Double#longValue()}'s silent saturation.
+     */
+    private static final double LONG_RANGE_UPPER_BOUND_EXCLUSIVE = 9223372036854775808.0;
+
     /**
      * Renders a prompt template by substituting variables.
      *
      * @param content       The prompt template content (YAML or JSON)
-     * @param variables     The variables to substitute
+     * @param suppliedVariables The variables to substitute
      * @param groupId       The group ID of the artifact
      * @param artifactId    The artifact ID
      * @param version       The version of the artifact
      * @return The rendered prompt response
      */
-    public RenderPromptResponse render(ContentHandle content, Map<String, Object> variables,
+    public RenderPromptResponse render(ContentHandle content, Map<String, Object> suppliedVariables,
                                         String groupId, String artifactId, String version) {
         // Parse the template content (could be YAML or JSON)
         JsonNode templateNode = parseContent(content);
@@ -80,6 +95,9 @@ public class PromptRenderingService {
         // Extract template field and variables schema
         String templateText = extractTemplateText(templateNode);
         JsonNode variablesSchema = templateNode.path("variables");
+
+        // A whole-number decimal (7.0) supplied for an integer variable is treated as an integer
+        Map<String, Object> variables = coerceSuppliedVariables(suppliedVariables, variablesSchema);
 
         // Validate variables against schema. Validation intentionally runs against the
         // caller-supplied variables, so that a missing required variable is still reported
@@ -179,10 +197,71 @@ public class PromptRenderingService {
             if (effective == null) {
                 effective = new HashMap<>(variables);
             }
-            effective.put(varName, MAPPER.convertValue(defaultNode, Object.class));
+            String declaredType = field.getValue().path("type").asText(TYPE_STRING);
+            effective.put(varName, convertDefaultValue(defaultNode, declaredType));
         }
 
         return effective != null ? effective : variables;
+    }
+
+    /**
+     * Converts a declared default's JSON node to a Java value, coercing a whole-number decimal
+     * literal (e.g. {@code 5.0}) to {@code Long} when the variable's declared type is
+     * {@code integer}. YAML and JSON numeric literals with a decimal point always deserialize as
+     * a floating-point type, even when they represent a whole number, so without this coercion an
+     * {@code integer}-typed default written as {@code 5.0} would fail its own type validation.
+     * <p>
+     * A whole-number value outside the {@code long} range (e.g. {@code 1e20}) is left as a
+     * {@code Double} so it still fails type validation, rather than being silently saturated to
+     * {@code Long.MIN_VALUE}/{@code Long.MAX_VALUE} by {@link Double#longValue()}.
+     */
+    private Object convertDefaultValue(JsonNode defaultNode, String declaredType) {
+        return coerceWholeNumberForInteger(MAPPER.convertValue(defaultNode, Object.class), declaredType);
+    }
+
+    /**
+     * Returns the caller-supplied variables with whole-number decimal values (e.g. {@code 7.0})
+     * coerced to {@code Long} for variables the schema declares as {@code integer}, so they are
+     * treated the same way as a declared default of that form. JSON clients commonly serialize
+     * whole numbers with a decimal point.
+     * <p>
+     * The caller's map is never modified; a copy is made only when a value needs coercion.
+     */
+    private Map<String, Object> coerceSuppliedVariables(Map<String, Object> variables,
+            JsonNode variablesSchema) {
+        if (variablesSchema.isMissingNode() || !variablesSchema.isObject()) {
+            return variables;
+        }
+
+        Map<String, Object> coerced = null;
+        for (Map.Entry<String, Object> entry : variables.entrySet()) {
+            if (!(entry.getValue() instanceof Double)) {
+                continue;
+            }
+            String declaredType = variablesSchema.path(entry.getKey()).path("type").asText(TYPE_STRING);
+            Object converted = coerceWholeNumberForInteger(entry.getValue(), declaredType);
+            if (converted != entry.getValue()) {
+                if (coerced == null) {
+                    coerced = new HashMap<>(variables);
+                }
+                coerced.put(entry.getKey(), converted);
+            }
+        }
+
+        return coerced != null ? coerced : variables;
+    }
+
+    /**
+     * Coerces a whole-number {@code Double} to {@code Long} when the declared type is
+     * {@code integer}; any other value is returned unchanged.
+     */
+    private Object coerceWholeNumberForInteger(Object value, String declaredType) {
+        if (TYPE_INTEGER.equals(declaredType) && value instanceof Double doubleValue
+                && doubleValue == Math.rint(doubleValue)
+                && doubleValue >= Long.MIN_VALUE && doubleValue < LONG_RANGE_UPPER_BOUND_EXCLUSIVE) {
+            return doubleValue.longValue();
+        }
+        return value;
     }
 
     /**
@@ -231,7 +310,7 @@ public class PromptRenderingService {
      */
     private void validateValue(String varName, Object value, JsonNode varSchema,
             List<RenderValidationError> errors) {
-        String expectedType = varSchema.path("type").asText("string");
+        String expectedType = varSchema.path("type").asText(TYPE_STRING);
         RenderValidationError typeError = validateType(varName, value, expectedType);
         if (typeError != null) {
             errors.add(typeError);
@@ -240,14 +319,14 @@ public class PromptRenderingService {
         // Validate enum if specified
         JsonNode enumNode = varSchema.path("enum");
         if (!enumNode.isMissingNode() && enumNode.isArray()) {
-            RenderValidationError enumError = validateEnum(varName, value, enumNode);
+            RenderValidationError enumError = validateEnum(varName, value, enumNode, expectedType);
             if (enumError != null) {
                 errors.add(enumError);
             }
         }
 
         // Validate range for numeric types
-        if ("integer".equals(expectedType) || "number".equals(expectedType)) {
+        if (TYPE_INTEGER.equals(expectedType) || TYPE_NUMBER.equals(expectedType)) {
             RenderValidationError rangeError = validateRange(varName, value, varSchema);
             if (rangeError != null) {
                 errors.add(rangeError);
@@ -291,12 +370,12 @@ public class PromptRenderingService {
         String actualType = getTypeName(value);
 
         boolean valid = switch (expectedType) {
-            case "string" -> value instanceof String;
-            case "integer" -> value instanceof Integer || value instanceof Long;
-            case "number" -> value instanceof Number;
-            case "boolean" -> value instanceof Boolean;
-            case "array" -> value instanceof List;
-            case "object" -> value instanceof Map;
+            case TYPE_STRING -> value instanceof String;
+            case TYPE_INTEGER -> value instanceof Integer || value instanceof Long;
+            case TYPE_NUMBER -> value instanceof Number;
+            case TYPE_BOOLEAN -> value instanceof Boolean;
+            case TYPE_ARRAY -> value instanceof List;
+            case TYPE_OBJECT -> value instanceof Map;
             default -> true; // Unknown types pass validation
         };
 
@@ -315,10 +394,16 @@ public class PromptRenderingService {
     /**
      * Validate that a value is within the allowed enum values.
      */
-    private RenderValidationError validateEnum(String varName, Object value, JsonNode enumNode) {
+    private RenderValidationError validateEnum(String varName, Object value, JsonNode enumNode,
+            String declaredType) {
         String strValue = String.valueOf(value);
         for (JsonNode enumValue : enumNode) {
-            if (enumValue.asText().equals(strValue)) {
+            // A whole-number decimal enum entry (7.0) on an integer variable matches the coerced
+            // value (7), the same way supplied values and defaults are coerced.
+            String enumText = enumValue.isFloatingPointNumber()
+                ? String.valueOf(coerceWholeNumberForInteger(enumValue.doubleValue(), declaredType))
+                : enumValue.asText();
+            if (enumText.equals(strValue)) {
                 return null; // Valid
             }
         }
@@ -375,12 +460,12 @@ public class PromptRenderingService {
      */
     private String getTypeName(Object value) {
         if (value == null) return "null";
-        if (value instanceof String) return "string";
-        if (value instanceof Integer || value instanceof Long) return "integer";
-        if (value instanceof Number) return "number";
-        if (value instanceof Boolean) return "boolean";
-        if (value instanceof List) return "array";
-        if (value instanceof Map) return "object";
+        if (value instanceof String) return TYPE_STRING;
+        if (value instanceof Integer || value instanceof Long) return TYPE_INTEGER;
+        if (value instanceof Number) return TYPE_NUMBER;
+        if (value instanceof Boolean) return TYPE_BOOLEAN;
+        if (value instanceof List) return TYPE_ARRAY;
+        if (value instanceof Map) return TYPE_OBJECT;
         return value.getClass().getSimpleName();
     }
 

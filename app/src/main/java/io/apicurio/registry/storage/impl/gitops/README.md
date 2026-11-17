@@ -91,7 +91,7 @@ discriminator field. Content files are plain schema files referenced via relativ
 
 | `$type` | Description |
 |---------|-------------|
-| `registry-v0` | Registry configuration — global rules, settings, scoped by `registryId` |
+| `registry-v0` | Registry configuration — global rules, settings, peer registries, scoped by `registryId` |
 | `group-v0` | Group definition, scoped by `registryIds` |
 | `artifact-v0` | Artifact with inline versions, scoped by `registryIds` |
 | `content-v0` | *(Optional)* Content metadata for explicit `contentId` and references |
@@ -117,6 +117,13 @@ Key fields:
 - `Registry` has a single `registryId` — must match the instance's `apicurio.polling-storage.id`
 - `Group` and `Artifact` have `registryIds` lists — an entity is loaded by all listed registries
 - If `registryIds` is omitted or empty, the entity is loaded by any registry (simple setups)
+- `Registry` has an optional `peers` list — admin-managed peer registries for federated search.
+  Each peer has `peerId` (lowercase letters, digits, `.`, `_` and `-` only; must not be `local`,
+  which is reserved), `url`, optional `name` and `description`, `enabled` (defaults to `true`
+  when omitted), and an optional
+  `credentialSecretRef` (a *reference* to a credential, never a secret value). Omitting the
+  `peers` key, or setting it to an empty list, removes all previously loaded peers on the next
+  successful load — the full set is replaced on every load, not merged.
 
 ### Example Repository Layout
 
@@ -136,7 +143,7 @@ my-schemas/
     └── user-activity.avsc
 ```
 
-For complete data format reference and runnable examples, see `examples/gitops/`.
+For a runnable example with checks, see `examples/storage-variants/`; for sync sidecar setups, `distro/gitops/compose/`.
 
 ## Use Cases
 
@@ -207,7 +214,7 @@ These properties are shared between GitOps and KubernetesOps storage implementat
 | `apicurio.polling-storage.id` | `main` | Registry instance identifier. Only data matching this ID is loaded. Must match the `registryId` in registry configuration files. |
 | `apicurio.polling-storage.deterministic-ids-enabled` | `true` | Generate `contentId` and `globalId` from content/coordinate hashes when not specified. |
 | `apicurio.polling-storage.poll-period` | `PT10S` | Minimum period between polls. |
-| `apicurio.polling-storage.debounce.quiet-period` | `PT30S` | Wait for no new changes before loading. Set to `PT0S` to disable. |
+| `apicurio.polling-storage.debounce.quiet-period` | `PT3S` | Wait for no new changes before loading. Set to `PT0S` to disable. |
 | `apicurio.polling-storage.debounce.max-wait-period` | `PT90S` | Force loading after this duration. Set to `PT0S` for no limit. |
 | `apicurio.polling-storage.file-suffixes` | `registry,ar` | Comma-separated suffixes identifying metadata files (combined with `.yaml`, `.yml`, `.json`). |
 
@@ -407,7 +414,7 @@ For the full design document and implementation plan, see the
 
 ### Docker Compose
 
-For complete working examples with Docker Compose, see [`examples/gitops/`](../../../../../../../../../../examples/gitops/).
+For a working example with Docker Compose, see [`examples/storage-variants/`](../../../../../../../../../../examples/storage-variants/); for the sync sidecar, [`distro/gitops/compose/`](../../../../../../../../../../distro/gitops/compose/).
 
 ### Kubernetes / OpenShift (Operator)
 

@@ -13,6 +13,8 @@ import java.util.Map;
  */
 public final class TableUpdateApplicator {
 
+    private static final String LAST_COLUMN_ID = "last-column-id";
+
     private TableUpdateApplicator() {
     }
 
@@ -131,11 +133,11 @@ public final class TableUpdateApplicator {
         metadata.put("schemas", schemas);
 
         // Update last-column-id from the update's last-column-id or from field IDs
-        if (update.containsKey("last-column-id")) {
-            int updateLastColumnId = toInt(update.get("last-column-id"));
-            int currentLastColumnId = toInt(metadata.getOrDefault("last-column-id", 0));
+        if (update.containsKey(LAST_COLUMN_ID)) {
+            int updateLastColumnId = toInt(update.get(LAST_COLUMN_ID));
+            int currentLastColumnId = toInt(metadata.getOrDefault(LAST_COLUMN_ID, 0));
             if (updateLastColumnId > currentLastColumnId) {
-                metadata.put("last-column-id", updateLastColumnId);
+                metadata.put(LAST_COLUMN_ID, updateLastColumnId);
             }
         } else {
             updateLastColumnId(schema, metadata);
@@ -144,9 +146,9 @@ public final class TableUpdateApplicator {
 
     private static void updateLastColumnId(Map<String, Object> schema, Map<String, Object> metadata) {
         int schemaMaxId = IcebergSchemaUtil.computeMaxFieldId(schema);
-        int currentLastColumnId = toInt(metadata.getOrDefault("last-column-id", 0));
+        int currentLastColumnId = toInt(metadata.getOrDefault(LAST_COLUMN_ID, 0));
         if (schemaMaxId > currentLastColumnId) {
-            metadata.put("last-column-id", schemaMaxId);
+            metadata.put(LAST_COLUMN_ID, schemaMaxId);
         }
     }
 

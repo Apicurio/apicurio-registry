@@ -24,11 +24,14 @@ import io.apicurio.registry.avro.rules.compatibility.AvroCompatibilityChecker;
 import io.apicurio.registry.avro.rules.validity.AvroContentValidator;
 import io.apicurio.registry.content.OdcsContractContentAccepter;
 import io.apicurio.registry.content.canon.YamlContentCanonicalizer;
+import io.apicurio.registry.content.dereference.OdcsContractDereferencer;
 import io.apicurio.registry.content.refs.AvroReferenceArtifactIdentifierExtractor;
 import io.apicurio.registry.content.refs.OdcsContractReferenceFinder;
 import io.apicurio.registry.graphql.content.GraphQLContentAccepter;
 import io.apicurio.registry.graphql.content.canon.GraphQLContentCanonicalizer;
+import io.apicurio.registry.graphql.content.dereference.GraphQLContentDereferencer;
 import io.apicurio.registry.graphql.content.extract.GraphQLStructuredContentExtractor;
+import io.apicurio.registry.graphql.content.refs.GraphQLReferenceFinder;
 import io.apicurio.registry.graphql.rules.validity.GraphQLContentValidator;
 import io.apicurio.registry.iceberg.content.IcebergCompatibilityChecker;
 import io.apicurio.registry.iceberg.content.IcebergContentExtractor;
@@ -71,6 +74,7 @@ import io.apicurio.registry.rules.validity.OdcsContractContentValidator;
 import io.apicurio.registry.thrift.content.ThriftContentAccepter;
 import io.apicurio.registry.thrift.content.canon.ThriftContentCanonicalizer;
 import io.apicurio.registry.thrift.content.extract.ThriftStructuredContentExtractor;
+import io.apicurio.registry.thrift.content.refs.ThriftReferenceFinder;
 import io.apicurio.registry.thrift.rules.validity.ThriftContentValidator;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
@@ -78,6 +82,8 @@ import io.apicurio.registry.wsdl.content.WsdlContentAccepter;
 import io.apicurio.registry.wsdl.content.extract.WsdlOrXsdContentExtractor;
 import io.apicurio.registry.wsdl.content.extract.WsdlStructuredContentExtractor;
 import io.apicurio.registry.wsdl.rules.validity.WsdlContentValidator;
+import io.apicurio.registry.xml.content.dereference.XmlReferenceDereferencer;
+import io.apicurio.registry.xml.content.refs.XmlReferenceFinder;
 import io.apicurio.registry.xml.content.XmlContentAccepter;
 import io.apicurio.registry.xml.content.canon.XmlContentCanonicalizer;
 import io.apicurio.registry.xml.content.extract.XmlStructuredContentExtractor;
@@ -101,6 +107,7 @@ public class StandardArtifactTypeProviderRegistry {
     static {
         PROVIDERS.put(ArtifactType.PROTOBUF, new ProviderConfig.Builder()
                 .contentTypes(Set.of(ContentTypes.APPLICATION_PROTOBUF))
+                .fileExtensions(Set.of(".proto"))
                 .accepter(ProtobufContentAccepter::new)
                 .compatibilityChecker(ProtobufCompatibilityChecker::new)
                 .canonicalizer(ProtobufContentCanonicalizer::new)
@@ -146,6 +153,7 @@ public class StandardArtifactTypeProviderRegistry {
                 .build());
         PROVIDERS.put(ArtifactType.AVRO, new ProviderConfig.Builder()
                 .contentTypes(Set.of(ContentTypes.APPLICATION_JSON))
+                .fileExtensions(Set.of(".avsc"))
                 .accepter(AvroContentAccepter::new)
                 .compatibilityChecker(AvroCompatibilityChecker::new)
                 .canonicalizer(EnhancedAvroContentCanonicalizer::new)
@@ -158,10 +166,13 @@ public class StandardArtifactTypeProviderRegistry {
                 .build());
         PROVIDERS.put(ArtifactType.GRAPHQL, new ProviderConfig.Builder()
                 .contentTypes(Set.of(ContentTypes.APPLICATION_GRAPHQL))
+                .fileExtensions(Set.of(".graphql", ".gql"))
                 .accepter(GraphQLContentAccepter::new)
                 .canonicalizer(GraphQLContentCanonicalizer::new)
                 .validator(GraphQLContentValidator::new)
                 .structuredContentExtractor(GraphQLStructuredContentExtractor::new)
+                .dereferencer(GraphQLContentDereferencer::new)
+                .referenceFinder(GraphQLReferenceFinder::new)
                 .build());
         PROVIDERS.put(ArtifactType.KCONNECT, new ProviderConfig.Builder()
                 .contentTypes(Set.of(ContentTypes.APPLICATION_JSON))
@@ -170,20 +181,26 @@ public class StandardArtifactTypeProviderRegistry {
                 .build());
         PROVIDERS.put(ArtifactType.WSDL, new ProviderConfig.Builder()
                 .contentTypes(Set.of(ContentTypes.APPLICATION_XML))
+                .fileExtensions(Set.of(".wsdl"))
                 .accepter(WsdlContentAccepter::new)
                 .canonicalizer(XmlContentCanonicalizer::new)
                 .validator(WsdlContentValidator::new)
                 .extractor(WsdlOrXsdContentExtractor::new)
                 .structuredContentExtractor(WsdlStructuredContentExtractor::new)
+                .dereferencer(XmlReferenceDereferencer::new)
+                .referenceFinder(XmlReferenceFinder::new)
                 .build());
         PROVIDERS.put(ArtifactType.XSD, new ProviderConfig.Builder()
                 .contentTypes(Set.of(ContentTypes.APPLICATION_XML))
+                .fileExtensions(Set.of(".xsd"))
                 .accepter(XsdContentAccepter::new)
                 .compatibilityChecker(XsdCompatibilityChecker::new)
                 .canonicalizer(XmlContentCanonicalizer::new)
                 .validator(XsdContentValidator::new)
                 .extractor(WsdlOrXsdContentExtractor::new)
                 .structuredContentExtractor(XsdStructuredContentExtractor::new)
+                .dereferencer(XmlReferenceDereferencer::new)
+                .referenceFinder(XmlReferenceFinder::new)
                 .build());
         PROVIDERS.put(ArtifactType.XML, new ProviderConfig.Builder()
                 .contentTypes(Set.of(ContentTypes.APPLICATION_XML))
@@ -226,12 +243,15 @@ public class StandardArtifactTypeProviderRegistry {
                 .canonicalizer(YamlContentCanonicalizer::new)
                 .validator(OdcsContractContentValidator::new)
                 .referenceFinder(OdcsContractReferenceFinder::new)
+                .dereferencer(OdcsContractDereferencer::new)
                 .build());
         PROVIDERS.put(ArtifactType.THRIFT, new ProviderConfig.Builder()
                 .contentTypes(Set.of(ContentTypes.APPLICATION_THRIFT))
+                .fileExtensions(Set.of(".thrift"))
                 .accepter(ThriftContentAccepter::new)
                 .canonicalizer(ThriftContentCanonicalizer::new)
                 .validator(ThriftContentValidator::new)
+                .referenceFinder(ThriftReferenceFinder::new)
                 .structuredContentExtractor(ThriftStructuredContentExtractor::new)
                 .build());
         PROVIDERS.putAll(loadContributedProviders(PROVIDERS));

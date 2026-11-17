@@ -195,6 +195,53 @@ public class AbstractSchemaResolverTest {
         }
     }
 
+    @Test
+    void estimateClientRetryLadderSleepMsMatchesManualSumForSmallAttemptCounts() {
+        Map<String, Object> originals = new HashMap<>();
+        originals.put(SchemaResolverConfig.CLIENT_RETRY_ENABLED, true);
+        originals.put(SchemaResolverConfig.CLIENT_RETRY_MAX_ATTEMPTS, 5);
+        originals.put(SchemaResolverConfig.CLIENT_RETRY_DELAY_MS, 250);
+        originals.put(SchemaResolverConfig.CLIENT_RETRY_BACKOFF_MULTIPLIER, 2.0);
+        originals.put(SchemaResolverConfig.CLIENT_RETRY_MAX_DELAY_MS, 10000);
+        SchemaResolverConfig config = new SchemaResolverConfig(originals);
+        // sleeps: 250 + 500 + 1000 + 2000
+        assertEquals(3750L, AbstractSchemaResolver.estimateClientRetryLadderSleepMs(config));
+    }
+
+    @Test
+    void estimateClientRetryLadderSleepMsBailsOutOnceClampEngages() {
+        Map<String, Object> originals = new HashMap<>();
+        originals.put(SchemaResolverConfig.CLIENT_RETRY_ENABLED, true);
+        originals.put(SchemaResolverConfig.CLIENT_RETRY_MAX_ATTEMPTS,
+                SchemaResolverConfig.CLIENT_RETRY_MAX_ATTEMPTS_MAX);
+        originals.put(SchemaResolverConfig.CLIENT_RETRY_DELAY_MS, 10000);
+        originals.put(SchemaResolverConfig.CLIENT_RETRY_BACKOFF_MULTIPLIER, 2.0);
+        originals.put(SchemaResolverConfig.CLIENT_RETRY_MAX_DELAY_MS, 10000);
+        SchemaResolverConfig config = new SchemaResolverConfig(originals);
+
+        long start = System.nanoTime();
+        long sleepMs = AbstractSchemaResolver.estimateClientRetryLadderSleepMs(config);
+        long elapsedMs = (System.nanoTime() - start) / 1_000_000L;
+
+        // 999 sleeps at the clamp = 9_990_000; must not iterate 999 times of Math.pow.
+        assertEquals(9_990_000L, sleepMs);
+        assertTrue(elapsedMs < 50, "clamp short-circuit should be near-instant, was " + elapsedMs + "ms");
+    }
+
+    @Test
+    void estimateClientRetryLadderSleepMsIsZeroWhenDisabledOrSingleAttempt() {
+        Map<String, Object> disabled = new HashMap<>();
+        disabled.put(SchemaResolverConfig.CLIENT_RETRY_ENABLED, false);
+        disabled.put(SchemaResolverConfig.CLIENT_RETRY_MAX_ATTEMPTS, 10);
+        assertEquals(0L, AbstractSchemaResolver.estimateClientRetryLadderSleepMs(
+                new SchemaResolverConfig(disabled)));
+
+        Map<String, Object> once = new HashMap<>();
+        once.put(SchemaResolverConfig.CLIENT_RETRY_MAX_ATTEMPTS, 1);
+        assertEquals(0L, AbstractSchemaResolver.estimateClientRetryLadderSleepMs(
+                new SchemaResolverConfig(once)));
+    }
+
     private TestAbstractSchemaResolver<String, Object> createResolver(MockRegistryClientFacade mockFacade) {
         Map<String, String> configs = Collections.singletonMap(SchemaResolverConfig.REGISTRY_URL,
                 "http://localhost");

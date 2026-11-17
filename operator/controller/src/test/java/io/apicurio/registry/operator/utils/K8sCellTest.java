@@ -10,6 +10,10 @@ import io.fabric8.kubernetes.client.dsl.NamespaceableResource;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Proxy;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.apicurio.registry.operator.utils.K8sCell.k8sCell;
@@ -114,6 +118,232 @@ class K8sCellTest {
         assertThat(K8sCell.isRetryableTimeout(other)).isFalse();
     }
 
+    @Test
+    void deleteWaitsForGracefulRemoval() {
+        var item = configMap("cm");
+        item.getMetadata().setFinalizers(new java.util.ArrayList<>(List.of("apicurio.io/some-finalizer")));
+
+        AtomicInteger getCalls = new AtomicInteger();
+        AtomicInteger deleteCalls = new AtomicInteger();
+        AtomicInteger patchCalls = new AtomicInteger();
+        KubernetesClient client = stubClient(new StubBehavior() {
+            @Override
+            public HasMetadata get(HasMetadata resource) {
+                return getCalls.incrementAndGet() < 2 ? resource : null;
+            }
+
+            @Override
+            public void delete(HasMetadata resource) {
+                deleteCalls.incrementAndGet();
+            }
+
+            @Override
+            public HasMetadata patch(HasMetadata resource) {
+                patchCalls.incrementAndGet();
+                return resource;
+            }
+        });
+
+        k8sCell(client, () -> item).delete(Duration.ofSeconds(2), Duration.ofSeconds(1));
+
+        assertThat(deleteCalls.get()).isEqualTo(1);
+        assertThat(getCalls.get()).isGreaterThanOrEqualTo(2);
+        // The force path must not run: finalizers are left untouched when the resource goes away on its own.
+        assertThat(patchCalls.get()).isZero();
+        assertThat(item.getMetadata().getFinalizers()).containsExactly("apicurio.io/some-finalizer");
+    }
+
+    @Test
+    void deleteForceRemovesFinalizersAfterGracefulTimeoutExpires() {
+        var item = configMap("cm");
+        item.getMetadata().setFinalizers(new java.util.ArrayList<>(List.of("apicurio.io/some-finalizer")));
+
+        AtomicInteger patchCalls = new AtomicInteger();
+        AtomicBoolean forceCleared = new AtomicBoolean(false);
+        KubernetesClient client = stubClient(new StubBehavior() {
+            @Override
+            public HasMetadata get(HasMetadata resource) {
+                return forceCleared.get() ? null : resource;
+            }
+
+            @Override
+            public HasMetadata patch(HasMetadata resource) {
+                patchCalls.incrementAndGet();
+                forceCleared.set(true);
+                return resource;
+            }
+        });
+
+        k8sCell(client, () -> item).delete(Duration.ofMillis(300), Duration.ofSeconds(2));
+
+        assertThat(patchCalls.get()).isEqualTo(1);
+        assertThat(item.getMetadata().getFinalizers()).isEmpty();
+    }
+
+    @Test
+    void deleteTreats404FromDeleteCallAsAlreadyGone() {
+        var item = configMap("cm");
+        var notFound = new KubernetesClientException("configmaps \"cm\" not found", 404,
+                new StatusBuilder().withCode(404).build());
+
+        AtomicInteger getCalls = new AtomicInteger();
+        KubernetesClient client = stubClient(new StubBehavior() {
+            @Override
+            public HasMetadata get(HasMetadata resource) {
+                getCalls.incrementAndGet();
+                return resource;
+            }
+
+            @Override
+            public void delete(HasMetadata resource) {
+                throw notFound;
+            }
+        });
+
+        k8sCell(client, () -> item).delete(Duration.ofSeconds(1), Duration.ofSeconds(1));
+
+        // Returns immediately on the 404 -- no polling for a disappearance that already happened.
+        assertThat(getCalls.get()).isZero();
+    }
+
+    @Test
+    void deleteRethrowsNon404FailuresFromDeleteCall() {
+        var item = configMap("cm");
+        var forbidden = new KubernetesClientException("forbidden", 403,
+                new StatusBuilder().withReason("Forbidden").withCode(403).build());
+
+        KubernetesClient client = stubClient(new StubBehavior() {
+            @Override
+            public void delete(HasMetadata resource) {
+                throw forbidden;
+            }
+        });
+
+        assertThatThrownBy(() -> k8sCell(client, () -> item).delete(Duration.ofSeconds(1), Duration.ofSeconds(1)))
+                .isSameAs(forbidden);
+    }
+
+    @Test
+    void deleteIsNoOpWhenResourceAlreadyGone() {
+        AtomicInteger deleteCalls = new AtomicInteger();
+        KubernetesClient client = stubClient(new StubBehavior() {
+            @Override
+            public void delete(HasMetadata resource) {
+                deleteCalls.incrementAndGet();
+            }
+        });
+
+        k8sCell(client, () -> (HasMetadata) null).delete(Duration.ofSeconds(1), Duration.ofSeconds(1));
+
+        assertThat(deleteCalls.get()).isZero();
+    }
+
+    @Test
+    void deletePollsThroughTransientReadErrors() {
+        var item = configMap("cm");
+        var unavailable = new KubernetesClientException("service unavailable", 503,
+                new StatusBuilder().withCode(503).build());
+
+        AtomicInteger getCalls = new AtomicInteger();
+        KubernetesClient client = stubClient(new StubBehavior() {
+            @Override
+            public HasMetadata get(HasMetadata resource) {
+                if (getCalls.incrementAndGet() <= 2) {
+                    throw unavailable;
+                }
+                return null;
+            }
+        });
+
+        k8sCell(client, () -> item).delete(Duration.ofSeconds(2), Duration.ofSeconds(1));
+
+        assertThat(getCalls.get()).isEqualTo(3);
+    }
+
+    @Test
+    void deleteFailsFastOnNonTransientReadError() {
+        var item = configMap("cm");
+        var forbidden = new KubernetesClientException("forbidden", 403,
+                new StatusBuilder().withReason("Forbidden").withCode(403).build());
+
+        KubernetesClient client = stubClient(new StubBehavior() {
+            @Override
+            public HasMetadata get(HasMetadata resource) {
+                throw forbidden;
+            }
+        });
+
+        long start = System.nanoTime();
+        assertThatThrownBy(() -> k8sCell(client, () -> item).delete(Duration.ofSeconds(5), Duration.ofSeconds(5)))
+                .isSameAs(forbidden);
+        // Surfaces the 403 itself instead of waiting out the graceful timeout.
+        assertThat(Duration.ofNanos(System.nanoTime() - start)).isLessThan(Duration.ofSeconds(2));
+    }
+
+    @Test
+    void deleteToleratesResourceVanishingBeforeFinalizerPatch() {
+        var item = configMap("cm");
+        item.getMetadata().setFinalizers(new ArrayList<>(List.of("apicurio.io/some-finalizer")));
+        var notFound = new KubernetesClientException("configmaps \"cm\" not found", 404,
+                new StatusBuilder().withCode(404).build());
+
+        AtomicInteger patchCalls = new AtomicInteger();
+        AtomicBoolean gone = new AtomicBoolean(false);
+        KubernetesClient client = stubClient(new StubBehavior() {
+            @Override
+            public HasMetadata get(HasMetadata resource) {
+                return gone.get() ? null : resource;
+            }
+
+            @Override
+            public HasMetadata patch(HasMetadata resource) {
+                patchCalls.incrementAndGet();
+                // The finalizer finished between the last read and the patch.
+                gone.set(true);
+                throw notFound;
+            }
+        });
+
+        k8sCell(client, () -> item).delete(Duration.ofMillis(300), Duration.ofSeconds(2));
+
+        assertThat(patchCalls.get()).isEqualTo(1);
+    }
+
+    @Test
+    void deleteRetriesFinalizerPatchOnConflict() {
+        var item = configMap("cm");
+        item.getMetadata().setFinalizers(new ArrayList<>(List.of("apicurio.io/some-finalizer")));
+        var conflict = new KubernetesClientException("the object has been modified", 409,
+                new StatusBuilder().withReason("Conflict").withCode(409).build());
+
+        AtomicInteger patchCalls = new AtomicInteger();
+        AtomicBoolean forceCleared = new AtomicBoolean(false);
+        KubernetesClient client = stubClient(new StubBehavior() {
+            @Override
+            public HasMetadata get(HasMetadata resource) {
+                if (forceCleared.get()) {
+                    return null;
+                }
+                // A concurrent writer keeps the finalizer on until the patch succeeds.
+                resource.getMetadata().setFinalizers(new ArrayList<>(List.of("apicurio.io/some-finalizer")));
+                return resource;
+            }
+
+            @Override
+            public HasMetadata patch(HasMetadata resource) {
+                if (patchCalls.incrementAndGet() == 1) {
+                    throw conflict;
+                }
+                forceCleared.set(true);
+                return resource;
+            }
+        });
+
+        k8sCell(client, () -> item).delete(Duration.ofMillis(300), Duration.ofSeconds(3));
+
+        assertThat(patchCalls.get()).isEqualTo(2);
+    }
+
     private static ConfigMap configMap(String name) {
         return new ConfigMapBuilder()
                 .withNewMetadata()
@@ -135,6 +365,13 @@ class K8sCellTest {
         }
 
         default HasMetadata update(HasMetadata resource) {
+            return resource;
+        }
+
+        default void delete(HasMetadata resource) {
+        }
+
+        default HasMetadata patch(HasMetadata resource) {
             return resource;
         }
     }
@@ -171,6 +408,11 @@ class K8sCellTest {
                     case "create" -> behavior.create(item);
                     case "get" -> behavior.get(item);
                     case "update" -> behavior.update(item);
+                    case "patch" -> behavior.patch(item);
+                    case "delete" -> {
+                        behavior.delete(item);
+                        yield null;
+                    }
                     case "toString" -> "stub-resource";
                     case "hashCode" -> System.identityHashCode(proxy);
                     case "equals" -> proxy == args[0];

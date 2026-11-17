@@ -13,7 +13,8 @@ type RuleViolationProblemDetails struct {
 	i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.ApiError
 	// Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
 	additionalData map[string]any
-	// List of rule violation causes.
+	// List of rule violation causes. Deprecated: use ruleViolation.causes instead.
+	// Deprecated:
 	causes []RuleViolationCauseable
 	// A human-readable explanation specific to this occurrence of the problem.
 	detail *string
@@ -21,6 +22,8 @@ type RuleViolationProblemDetails struct {
 	instance *string
 	// The name of the error (typically a server exception class name).
 	name *string
+	// Details of rule violations when the problem is caused by a rule violation.
+	ruleViolation RuleViolationDetailsable
 	// The HTTP status code.
 	status *int32
 	// A short, human-readable summary of the problem type.
@@ -56,7 +59,8 @@ func (m *RuleViolationProblemDetails) GetAdditionalData() map[string]any {
 	return m.additionalData
 }
 
-// GetCauses gets the causes property value. List of rule violation causes.
+// GetCauses gets the causes property value. List of rule violation causes. Deprecated: use ruleViolation.causes instead.
+// Deprecated:
 // returns a []RuleViolationCauseable when successful
 func (m *RuleViolationProblemDetails) GetCauses() []RuleViolationCauseable {
 	return m.causes
@@ -118,6 +122,16 @@ func (m *RuleViolationProblemDetails) GetFieldDeserializers() map[string]func(i8
 		}
 		return nil
 	}
+	res["ruleViolation"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetObjectValue(CreateRuleViolationDetailsFromDiscriminatorValue)
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetRuleViolation(val.(RuleViolationDetailsable))
+		}
+		return nil
+	}
 	res["status"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 		val, err := n.GetInt32Value()
 		if err != nil {
@@ -161,6 +175,12 @@ func (m *RuleViolationProblemDetails) GetInstance() *string {
 // returns a *string when successful
 func (m *RuleViolationProblemDetails) GetName() *string {
 	return m.name
+}
+
+// GetRuleViolation gets the ruleViolation property value. Details of rule violations when the problem is caused by a rule violation.
+// returns a RuleViolationDetailsable when successful
+func (m *RuleViolationProblemDetails) GetRuleViolation() RuleViolationDetailsable {
+	return m.ruleViolation
 }
 
 // GetStatus gets the status property value. The HTTP status code.
@@ -214,6 +234,12 @@ func (m *RuleViolationProblemDetails) Serialize(writer i878a80d2330e89d26896388a
 		}
 	}
 	{
+		err := writer.WriteObjectValue("ruleViolation", m.GetRuleViolation())
+		if err != nil {
+			return err
+		}
+	}
+	{
 		err := writer.WriteInt32Value("status", m.GetStatus())
 		if err != nil {
 			return err
@@ -245,7 +271,8 @@ func (m *RuleViolationProblemDetails) SetAdditionalData(value map[string]any) {
 	m.additionalData = value
 }
 
-// SetCauses sets the causes property value. List of rule violation causes.
+// SetCauses sets the causes property value. List of rule violation causes. Deprecated: use ruleViolation.causes instead.
+// Deprecated:
 func (m *RuleViolationProblemDetails) SetCauses(value []RuleViolationCauseable) {
 	m.causes = value
 }
@@ -263,6 +290,11 @@ func (m *RuleViolationProblemDetails) SetInstance(value *string) {
 // SetName sets the name property value. The name of the error (typically a server exception class name).
 func (m *RuleViolationProblemDetails) SetName(value *string) {
 	m.name = value
+}
+
+// SetRuleViolation sets the ruleViolation property value. Details of rule violations when the problem is caused by a rule violation.
+func (m *RuleViolationProblemDetails) SetRuleViolation(value RuleViolationDetailsable) {
+	m.ruleViolation = value
 }
 
 // SetStatus sets the status property value. The HTTP status code.
@@ -287,6 +319,7 @@ type RuleViolationProblemDetailsable interface {
 	GetDetail() *string
 	GetInstance() *string
 	GetName() *string
+	GetRuleViolation() RuleViolationDetailsable
 	GetStatus() *int32
 	GetTitle() *string
 	GetTypeEscaped() *string
@@ -294,6 +327,7 @@ type RuleViolationProblemDetailsable interface {
 	SetDetail(value *string)
 	SetInstance(value *string)
 	SetName(value *string)
+	SetRuleViolation(value RuleViolationDetailsable)
 	SetStatus(value *int32)
 	SetTitle(value *string)
 	SetTypeEscaped(value *string)

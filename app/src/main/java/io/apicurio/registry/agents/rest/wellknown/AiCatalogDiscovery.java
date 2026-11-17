@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.MissingNode;
 import io.apicurio.registry.agents.aicatalog.AiCatalogConfig;
 import io.apicurio.registry.agents.aicatalog.AiCatalogConstants;
 import io.apicurio.registry.agents.ard.ArdConfig;
+import io.apicurio.registry.auth.ISearchAuthorizer;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
@@ -60,6 +61,7 @@ import org.slf4j.LoggerFactory;
 public class AiCatalogDiscovery {
 
     private static final Logger log = LoggerFactory.getLogger(AiCatalogDiscovery.class);
+    private static final String PUBLISHER = "publisher";
 
     static final ObjectMapper mapper = new ObjectMapper();
 
@@ -72,13 +74,13 @@ public class AiCatalogDiscovery {
      * results in a 400 response.
      */
     private static final Set<String> SUPPORTED_ARD_FILTER_KEYS = Set.of(
-            "type", "tags", "capabilities", "publisher");
+            "type", "tags", "capabilities", PUBLISHER);
 
     /**
      * Supported ARD {@code POST /explore} facet field names. Any other field results in a
      * 400 response.
      */
-    private static final Set<String> SUPPORTED_ARD_FACET_FIELDS = Set.of("type", "publisher");
+    private static final Set<String> SUPPORTED_ARD_FACET_FIELDS = Set.of("type", PUBLISHER);
 
     /**
      * The set of media types this registry actually emits in AI Catalog / ARD entries. Used
@@ -106,6 +108,10 @@ public class AiCatalogDiscovery {
     @Inject
     @Current
     RegistryStorage storage;
+
+    /** Discovery lists registry artifacts, so it is restricted by per-resource authorization. */
+    @Inject
+    ISearchAuthorizer searchAuthorizer;
 
     @Inject
     AgentCardDiscovery agentCardDiscovery;
@@ -326,7 +332,7 @@ public class AiCatalogDiscovery {
         if (!StringUtil.isEmpty(textFilter)) {
             agentFilters.add(SearchFilter.ofPartialName(textFilter));
         }
-        ArtifactSearchResultsDto agentResults = storage.searchArtifacts(
+        ArtifactSearchResultsDto agentResults = searchAuthorizer.searchArtifacts(
                 agentFilters, OrderBy.createdOn, OrderDirection.desc, 0, MAX_VISIBILITY_FILTER_RESULTS, false);
         warnIfTruncated(agentResults);
         for (SearchedArtifactDto artifact : agentVisibilityFilter.filterDtosByVisibility(agentResults.getArtifacts())) {
@@ -338,7 +344,7 @@ public class AiCatalogDiscovery {
         if (!StringUtil.isEmpty(textFilter)) {
             toolFilters.add(SearchFilter.ofPartialName(textFilter));
         }
-        ArtifactSearchResultsDto toolResults = storage.searchArtifacts(
+        ArtifactSearchResultsDto toolResults = searchAuthorizer.searchArtifacts(
                 toolFilters, OrderBy.createdOn, OrderDirection.desc, 0, MAX_VISIBILITY_FILTER_RESULTS, false);
         warnIfTruncated(toolResults);
         for (SearchedArtifactDto artifact : toolResults.getArtifacts()) {
@@ -433,20 +439,31 @@ public class AiCatalogDiscovery {
         JsonNode skillsNode = root.path("skills");
         if (skillsNode.isArray()) {
             for (JsonNode skill : skillsNode) {
-                JsonNode examplesNode = skill.path("examples");
-                if (examplesNode.isArray()) {
-                    for (JsonNode example : examplesNode) {
-                        if (example.isTextual()) {
-                            queries.add(example.asText());
-                            if (queries.size() >= MAX_REPRESENTATIVE_QUERIES) {
-                                return queries;
-                            }
-                        }
-                    }
+                if (addExampleQueries(skill.path("examples"), queries)) {
+                    return queries;
                 }
             }
         }
         return queries.isEmpty() ? null : queries;
+    }
+
+    /**
+     * Adds the textual examples to {@code queries}.
+     *
+     * @return {@code true} once {@value #MAX_REPRESENTATIVE_QUERIES} queries have been collected
+     */
+    private static boolean addExampleQueries(JsonNode examplesNode, List<String> queries) {
+        if (examplesNode.isArray()) {
+            for (JsonNode example : examplesNode) {
+                if (example.isTextual()) {
+                    queries.add(example.asText());
+                    if (queries.size() >= MAX_REPRESENTATIVE_QUERIES) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     /**
@@ -588,7 +605,7 @@ public class AiCatalogDiscovery {
             case "type":
                 return values.stream().anyMatch(value -> candidate.entry.getType() != null
                         && candidate.entry.getType().contains(value));
-            case "publisher":
+            case PUBLISHER:
                 return values.stream()
                         .anyMatch(value -> value.equals(publisherOf(candidate.entry.getIdentifier())));
             case "capabilities":
@@ -720,7 +737,7 @@ public class AiCatalogDiscovery {
         if ("type".equals(field)) {
             return candidate.entry.getType();
         }
-        if ("publisher".equals(field)) {
+        if (PUBLISHER.equals(field)) {
             return publisherOf(candidate.entry.getIdentifier());
         }
         return null;

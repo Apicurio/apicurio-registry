@@ -296,7 +296,7 @@ public class FileDescriptorUtils {
             requiredSchemaDeps.clear();
         }
         return resolveFileDescriptor(mainProtoElement, schemaDefinition, mainProtoFile.getName(), schemaDeps,
-                resolvedDeps, requiredSchemaDeps, new HashSet<>(), cachedProtoFileDependencies);
+                resolvedDeps, requiredSchemaDeps, new HashSet<>(), cachedProtoFileDependencies, new HashMap<>());
     }
 
     private static void readAndParseSchemas(Collection<File> schemas, Map<String, String> schemaContents,
@@ -452,7 +452,7 @@ public class FileDescriptorUtils {
                 : mainProtoFile.schemaDefinition();
         return resolveFileDescriptor(mainProtoElement, mainSchemaText,
                 mainProtoFile.fileName(), schemaDefinitions, resolvedDependencies, requiredSchemaDeps,
-                new HashSet<>(), protoFileElements);
+                new HashSet<>(), protoFileElements, new HashMap<>());
     }
 
     /**
@@ -468,7 +468,8 @@ public class FileDescriptorUtils {
     private static FileDescriptor resolveFileDescriptor(ProtoFileElement mainProtoElement,
                                                         String schemaDefinition, String protoFileName, Map<String, String> schemaDefinitions,
                                                         Map<String, FileDescriptor> resolvedDependencies, Map<String, String> requiredDependentSchemas,
-                                                        Set<String> unresolvedImportNames, Map<String, ProtoFileElement> cachedProtoFileDependencies)
+                                                        Set<String> unresolvedImportNames, Map<String, ProtoFileElement> cachedProtoFileDependencies,
+                                                        Map<String, Map<String, String>> requiredSchemasByResolvedDependency)
             throws DescriptorValidationException {
         final String mainProtoImportName = toProtoFullName(mainProtoElement, protoFileName);
         if (!unresolvedImportNames.add(mainProtoImportName)) {
@@ -520,7 +521,10 @@ public class FileDescriptorUtils {
                 // schemaDep is already in text format (converted by parseSchemas if binary)
                 fdDep = resolveFileDescriptor(protoFile, schemaDep, fileName, schemaDefinitions,
                         resolvedDependencies, requiredSubDependencies, unresolvedImportNames,
-                        cachedProtoFileDependencies);
+                        cachedProtoFileDependencies, requiredSchemasByResolvedDependency);
+                // remember what this dependency needs, so a later import of it can reuse fdDep
+                // and still hand its imports over to Wire
+                requiredSchemasByResolvedDependency.put(depFullName, new HashMap<>(requiredSubDependencies));
                 // no need to add anything
                 if (requiredDependentSchemas != requiredSubDependencies) {
                     requiredDependentSchemas.putAll(requiredSubDependencies);
@@ -528,6 +532,13 @@ public class FileDescriptorUtils {
                 // we have accumulated new requiredSubDependencies, we need to add them to the
                 // requiredDependentSchemas
                 resolvedDependencies.put(depFullName, fdDep);
+            } else {
+                // already resolved through another import path: fdDep is reused, but Wire still needs
+                // the schemas it depends on to load it, otherwise it fails with "unable to find ..."
+                final Map<String, String> requiredByDep = requiredSchemasByResolvedDependency.get(depFullName);
+                if (requiredByDep != null) {
+                    requiredDependentSchemas.putAll(requiredByDep);
+                }
             }
             // this is the case of a well-known dependency
             if (schemaDep != null) {

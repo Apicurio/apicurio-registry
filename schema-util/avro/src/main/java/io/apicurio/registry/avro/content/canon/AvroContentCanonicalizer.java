@@ -57,15 +57,12 @@ public class AvroContentCanonicalizer implements ContentCanonicalizer {
             String converted = mapper.writeValueAsString(mapper.treeToValue(root, Object.class));
             return TypedContent.create(ContentHandle.create(converted), ContentTypes.APPLICATION_JSON);
         } catch (Throwable t) {
-            // best effort
-            // Seeded inline rather than via AvroParserAccessor#newParser(Map) because this call site also
-            // needs the parsed reference schemas themselves, to pass to Schema#toString.
-            final Schema.Parser parser = AvroParserAccessor.newParser();
-            final List<Schema> schemaRefs = new ArrayList<>();
-            for (TypedContent referencedContent : resolvedReferences.values()) {
-                Schema schemaRef = parser.parse(referencedContent.getContent().content());
-                schemaRefs.add(schemaRef);
-            }
+            // Best effort. Reached when the content is valid Avro but not readable by the plain mapper
+            // above, e.g. because it contains comments. The seeded parser resolves interdependent references
+            // regardless of map iteration order (#9188); the types they define are snapshotted before the
+            // main parse so that only those are treated as external by Schema#toString.
+            final Schema.Parser parser = AvroParserAccessor.newParser(resolvedReferences);
+            final List<Schema> schemaRefs = new ArrayList<>(parser.getTypes().values());
             final Schema schema = parser.parse(content.getContent().content());
             return TypedContent.create(ContentHandle.create(schema.toString(schemaRefs, false)),
                     ContentTypes.APPLICATION_JSON);

@@ -1,0 +1,12 @@
+"""
+Example description that happens to mention an import, e.g.:
+#import "not-a-real-reference.graphql"
+This should not be treated as an import directive.
+"""
+type Query {
+    user(id: ID!): User
+}
+
+type User {
+    id: ID!
+}

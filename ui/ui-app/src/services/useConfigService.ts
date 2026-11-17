@@ -56,6 +56,8 @@ export declare type Alerts = {
 export interface FeaturesConfig {
     showMasthead?: boolean;
     readOnly?: boolean;
+    readOnlyReason?: string;
+    storageName?: string;
     breadcrumbs?: boolean;
     roleManagement?: boolean;
     deleteGroup?: boolean;
@@ -65,6 +67,7 @@ export interface FeaturesConfig {
     settings?: boolean;
     agents?: boolean;
     searchIndex?: boolean;
+    mcpImport?: boolean;
     urlImportMaxContentLength?: number;
     alerts?: Alerts;
 }
@@ -229,6 +232,7 @@ export interface ConfigService {
     uiNavPrefixPath(): string|undefined;
     features(): FeaturesConfig;
     featureReadOnly(): boolean;
+    featureReadOnlyReason(): string | undefined;
     featureBreadcrumbs(): boolean;
     featureRoleManagement(): boolean;
     featureSettings(): boolean;
@@ -238,6 +242,7 @@ export interface ConfigService {
     featureDraftMutability(): boolean;
     featureAgents(): boolean;
     featureSearchIndex(): boolean;
+    featureMcpImport(): boolean;
     featureUrlImportMaxContentLength(): number;
     authType(): string;
     authRbacEnabled(): boolean;
@@ -330,6 +335,10 @@ export class ConfigServiceImpl implements ConfigService {
         return this.features().readOnly || false;
     }
 
+    public featureReadOnlyReason(): string | undefined {
+        return this.features().readOnlyReason;
+    }
+
     public featureBreadcrumbs(): boolean {
         return this.features().breadcrumbs || false;
     }
@@ -360,6 +369,10 @@ export class ConfigServiceImpl implements ConfigService {
 
     public featureAgents(): boolean {
         return this.features().agents || false;
+    }
+
+    public featureMcpImport(): boolean {
+        return this.features().mcpImport || false;
     }
 
     public featureSearchIndex(): boolean {

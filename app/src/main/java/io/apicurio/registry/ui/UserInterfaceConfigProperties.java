@@ -34,13 +34,14 @@ public class UserInterfaceConfigProperties {
     @ConfigProperty(name = "apicurio.ui.auth.oidc.client-id", defaultValue = "apicurio-registry-ui")
     @Info(category = CATEGORY_UI, description = "The OIDC clientId", availableSince = "3.0.0")
     public String authOidcClientId;
-    @ConfigProperty(name = "apicurio.ui.auth.oidc.logout-url", defaultValue = "f5")
+    @ConfigProperty(name = "apicurio.ui.auth.oidc.logout-url")
     @Info(category = CATEGORY_UI, description = "The OIDC logout URL", availableSince = "3.0.0")
-    public String authOidcLogoutUrl;
+    public Optional<String> authOidcLogoutUrl;
 
+    @Dynamic(label = "UI read-only mode", description = "When selected, the UI will present itself in read-only mode.")
     @ConfigProperty(name = "apicurio.ui.features.read-only.enabled", defaultValue = "false")
     @Info(category = CATEGORY_UI, description = "Enabled to set the UI to read-only mode", availableSince = "3.0.0")
-    public String featureReadOnly;
+    public Supplier<Boolean> featureReadOnly;
     @ConfigProperty(name = "apicurio.ui.features.breadcrumbs", defaultValue = "true")
     @Info(category = CATEGORY_UI, description = "Enabled to show breadcrumbs in the UI", availableSince = "3.0.0")
     public String featureBreadcrumbs;

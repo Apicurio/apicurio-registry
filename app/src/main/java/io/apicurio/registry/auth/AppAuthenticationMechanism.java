@@ -53,7 +53,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -132,6 +131,34 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
                             + "Both use Bearer tokens and would conflict.");
         }
 
+        Map<String, Supplier<AuthenticationStrategy>> strategyFactories = strategyFactories();
+
+        List<AuthenticationStrategy> chain = new ArrayList<>();
+        List<String> priorityList = authConfig.getMechanismPriorityList();
+        Set<String> prioritySet = new HashSet<>(priorityList);
+
+        warnEnabledMechanismsMissingFromPriority(prioritySet);
+
+        log.debug("Mechanism priority list: {}", priorityList);
+        for (String name : priorityList) {
+            Supplier<AuthenticationStrategy> factory = strategyFactories.get(name);
+            if (factory == null) {
+                log.warn("Unknown authentication mechanism name in priority list: '{}'. "
+                        + "Valid values are: basic, form, proxy-header, oidc, kubernetes", name);
+                continue;
+            }
+            AuthenticationStrategy strategy = factory.get();
+            if (strategy != null) {
+                chain.add(strategy);
+            } else {
+                log.debug("Mechanism '{}' is in priority list but not enabled, skipping.",
+                        name);
+            }
+        }
+        return Collections.unmodifiableList(chain);
+    }
+
+    private Map<String, Supplier<AuthenticationStrategy>> strategyFactories() {
         Map<String, Supplier<AuthenticationStrategy>> strategyFactories = new LinkedHashMap<>();
         strategyFactories.put(MECH_BASIC, () -> authConfig.isBasicAuthEnabled() && basicAuthenticationMechanism.isResolvable()
                 ? new DelegatingAuthenticationStrategy(MECH_BASIC, basicAuthenticationMechanism.get())
@@ -171,11 +198,10 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
             }
             return new KubernetesAuthenticationStrategy(tokenReviewClient, authConfig, log);
         });
+        return strategyFactories;
+    }
 
-        List<AuthenticationStrategy> chain = new ArrayList<>();
-        List<String> priorityList = authConfig.getMechanismPriorityList();
-        Set<String> prioritySet = new HashSet<>(priorityList);
-
+    private void warnEnabledMechanismsMissingFromPriority(Set<String> prioritySet) {
         if (authConfig.isBasicAuthEnabled() && !prioritySet.contains(MECH_BASIC)) {
             log.warn("Basic auth is enabled but '{}' is missing from apicurio.authn.mechanism.priority.", MECH_BASIC);
         }
@@ -191,24 +217,6 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
         if (authConfig.isKubernetesAuthEnabled() && !prioritySet.contains(MECH_KUBERNETES)) {
             log.warn("Kubernetes auth is enabled but '{}' is missing from apicurio.authn.mechanism.priority.", MECH_KUBERNETES);
         }
-
-        log.debug("Mechanism priority list: {}", priorityList);
-        for (String name : priorityList) {
-            Supplier<AuthenticationStrategy> factory = strategyFactories.get(name);
-            if (factory == null) {
-                log.warn("Unknown authentication mechanism name in priority list: '{}'. "
-                        + "Valid values are: basic, form, proxy-header, oidc, kubernetes", name);
-                continue;
-            }
-            AuthenticationStrategy strategy = factory.get();
-            if (strategy != null) {
-                chain.add(strategy);
-            } else {
-                log.debug("Mechanism '{}' is in priority list but not enabled, skipping.",
-                        name);
-            }
-        }
-        return Collections.unmodifiableList(chain);
     }
 
     @Override
@@ -252,17 +260,16 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
      * bean (rather than on {@link OidcAuthenticationStrategy}) so that the MicroProfile
      * {@link Retry} interceptor is applied.
      *
+     * <p>This method performs only the HTTP token request. Cache insertion is handled
+     * atomically by the caller via {@code ConcurrentHashMap.compute()}.
+     *
      * @param clientCredentials the client ID and secret
-     * @param credentialsHash hash key for the token cache
-     * @param cachedAccessTokens token cache (owned by the OIDC strategy)
-     * @param cachedAuthFailures failure cache (owned by the OIDC strategy)
      * @param oidcTokenUrl the token endpoint URL (computed by the OIDC strategy at init)
+     * @return the fetched token wrapped with its computed expiration
      */
     @Retry(retryOn = OidcAuthException.class, maxRetries = 4, delay = 1,
             delayUnit = ChronoUnit.SECONDS)
-    public String getAccessToken(Pair<String, String> clientCredentials, String credentialsHash,
-            ConcurrentHashMap<String, WrappedValue<String>> cachedAccessTokens,
-            ConcurrentHashMap<String, WrappedValue<RuntimeException>> cachedAuthFailures,
+    public WrappedValue<String> getAccessToken(Pair<String, String> clientCredentials,
             String oidcTokenUrl) {
         String clientId = clientCredentials.getLeft();
         String clientSecret = clientCredentials.getRight();
@@ -286,23 +293,11 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
 
             int statusCode = response.statusCode();
             if (statusCode == 401) {
-                var ex = new io.quarkus.security.UnauthorizedException(
+                throw new io.quarkus.security.UnauthorizedException(
                         "OIDC token request returned 401");
-                cachedAuthFailures.put(credentialsHash,
-                        new WrappedValue<>(
-                                OidcAuthenticationStrategy.getAccessTokenExpiration(null,
-                                        authConfig, jwtParser, log),
-                                Instant.now(), ex));
-                throw ex;
             } else if (statusCode == 403) {
-                var ex = new io.quarkus.security.ForbiddenException(
+                throw new io.quarkus.security.ForbiddenException(
                         "OIDC token request returned 403");
-                cachedAuthFailures.put(credentialsHash,
-                        new WrappedValue<>(
-                                OidcAuthenticationStrategy.getAccessTokenExpiration(null,
-                                        authConfig, jwtParser, log),
-                                Instant.now(), ex));
-                throw ex;
             } else if (statusCode < 200 || statusCode >= 300) {
                 throw new OidcAuthException(
                         "OIDC token request failed with status " + statusCode);
@@ -310,12 +305,10 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
 
             JsonObject json = response.bodyAsJsonObject();
             String jwtToken = json.getString("access_token");
-            cachedAccessTokens.put(credentialsHash,
-                    new WrappedValue<>(
-                            OidcAuthenticationStrategy.getAccessTokenExpiration(jwtToken,
-                                    authConfig, jwtParser, log),
-                            Instant.now(), jwtToken));
-            return jwtToken;
+            return new WrappedValue<>(
+                    OidcAuthenticationStrategy.getAccessTokenExpiration(jwtToken,
+                            authConfig, jwtParser, log),
+                    Instant.now(), jwtToken);
         } catch (io.quarkus.security.UnauthorizedException
                 | io.quarkus.security.ForbiddenException ex) {
             throw ex;

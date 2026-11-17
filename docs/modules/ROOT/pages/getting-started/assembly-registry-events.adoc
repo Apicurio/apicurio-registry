@@ -6,7 +6,8 @@ include::{mod-loc}shared/all-attributes.adoc[]
 :_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
-{registry} emits change events whenever artifacts, versions, groups, or rules are created, updated, or deleted. These events enable integration with external systems for auditing, automation, and event-driven workflows.
+{registry} emits change events for artifact, version, group, rule, and contract operations.
+You can consume these events to audit changes and automate workflows in external systems.
 
 This chapter explains the event system architecture, available event types, and how to configure event delivery for your storage variant.
 
@@ -19,10 +20,15 @@ This chapter explains the event system architecture, available event types, and 
 [role="_abstract"]
 {registry} generates structured change events as part of its normal operations. Every time the state of the registry changes, an event is emitted with details about what changed.
 
-Events follow the *outbox pattern*: they are produced as part of the same transaction that modifies the registry state, guaranteeing that events are consistent with the data. The delivery mechanism depends on which storage variant you use:
+How events are produced, and what is guaranteed, depends on the storage variant:
 
-* **SQL storage (PostgreSQL, MSSQL)**: Events are written to an `outbox` database table and consumed using Debezium Change Data Capture (CDC).
-* **KafkaSQL storage**: Events are published directly to a dedicated Kafka topic.
+* **SQL storage (PostgreSQL, MSSQL)**: Events follow the *outbox pattern*. Each event is written to an `outbox` database table in the same transaction as the change, and Debezium Change Data Capture (CDC) publishes it to Kafka. An event is published if, and only if, the change is committed, at least once, and in commit order. The exception is contract ruleset changes, whose event is written after the change's transaction. If Debezium or Kafka is unavailable, changes still succeed, and their events are published when Debezium catches up.
+* **KafkaSQL storage**: The registry replica that handled the request publishes each event to a dedicated Kafka topic, after the change is applied. This is not part of a transaction: if publishing fails, the change is kept and the event is lost. The topic has a single partition, so all events are in one order.
+* **GitOps and KubernetesOps storage**: No events are produced.
+
+Each event is a flat JSON object with the event `id`, its `eventType`, and the fields of the change. The key is the coordinates of the changed group, artifact, or version (for example `orders-order-placed-1`). Bulk deletion of a group's artifacts and imports do not produce events. Events are not CloudEvents: the payload is published as is, with no CloudEvents envelope or `ce_` headers.
+
+When an artifact is created together with its first version, two events are produced: `ARTIFACT_CREATED` and `ARTIFACT_VERSION_CREATED`. On SQL storage, `ARTIFACT_VERSION_CREATED` currently comes first.
 
 Typical use cases for registry events include:
 
@@ -31,7 +37,10 @@ CI/CD automation:: Trigger pipeline runs when a new artifact version is register
 Cache invalidation:: Notify downstream services when a schema changes.
 Event-driven architectures:: React to registry state changes in real time.
 
-NOTE: Event publishing is supported only with PostgreSQL and MSSQL when using SQL storage. MySQL and H2 do not support the outbox table. KafkaSQL supports events natively.
+NOTE: Event publishing is supported only with PostgreSQL and MSSQL when using SQL storage. With H2 and MySQL, no events are produced: MySQL has an `outbox` table, but the registry does not write to it. KafkaSQL supports events natively.
+
+Event delivery uses Kafka, with Debezium for SQL storage and direct publishing for KafkaSQL storage.
+{registry} does not currently provide an HTTP webhook subscription API or a webhook delivery service.
 
 
 [id="registry-event-types-reference_{context}"]
@@ -117,6 +126,27 @@ Rule changes produce the following event types:
 |An artifact-level rule was created, updated, or deleted.
 |===
 
+Contract operations produce the following event types:
+
+.Contract event types
+[cols="1,2",options="header"]
+|===
+|Event type
+|Description
+
+|`CONTRACT_RULESET_CONFIGURED`
+|A global, artifact, or version contract ruleset is set or deleted.
+
+|`CONTRACT_METADATA_UPDATED`
+|Contract metadata labels are updated.
+
+|`CONTRACT_STATUS_CHANGED`
+|The contract lifecycle status changes, for example, from `DRAFT` to `STABLE`.
+|===
+
+Contract events use the same delivery mechanism as the other change events for your storage variant.
+The internal `READY` startup signal is not a published change event.
+
 
 [id="registry-event-payload-structure_{context}"]
 == Event payload structure
@@ -124,9 +154,10 @@ Rule changes produce the following event types:
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-All {registry} change events share a common JSON payload structure, with additional fields depending on the event type.
+Each {registry} change event has a JSON payload with an `id` and an `eventType`.
+Additional fields identify the affected resource and describe the change.
 
-All events share a common base structure:
+Artifact events include the following identifying fields:
 
 [source,json]
 ----
@@ -140,10 +171,15 @@ All events share a common base structure:
 
 Additional fields vary by event type:
 
-* *Version events* include a `version` field.
-* *State change events* include `oldState` and `newState` fields.
+* *Group events* include `groupId` and omit `artifactId`.
+* *Global rule events* omit both `groupId` and `artifactId`.
+* *Artifact version events* include a `version` field.
+* *Artifact version state change events* include `oldState` and `newState` fields.
 * *Metadata update events* include `name`, `description`, and `owner` fields where applicable.
 * *Rule events* include `ruleType` and `rule` (the rule configuration) fields.
+
+For artifacts in the default group, the payload omits `groupId`.
+Optional metadata fields with no value are also omitted.
 
 .Example: ARTIFACT_VERSION_CREATED payload
 [source,json]
@@ -173,6 +209,67 @@ Additional fields vary by event type:
 }
 ----
 
+Contract events have the following payload fields in addition to `id` and `eventType`:
+
+.Contract event payload fields
+[cols="1,2",options="header"]
+|===
+|Event type
+|Fields and behavior
+
+|`CONTRACT_RULESET_CONFIGURED`
+|`groupId`, `artifactId`, and `action`, which is `SET` or `DELETE`.
+Version rulesets also include `version`.
+Global rulesets use `__GLOBAL__` for both `groupId` and `artifactId` and omit `version`.
+The payload does not include the ruleset content.
+
+|`CONTRACT_METADATA_UPDATED`
+|`groupId` and `artifactId` identify the affected contract.
+The payload does not include the updated labels.
+
+|`CONTRACT_STATUS_CHANGED`
+|`groupId`, `artifactId`, `fromStatus`, and `toStatus`.
+If the contract had no previous status, `fromStatus` is an empty string.
+The payload does not include the transition effective date.
+|===
+
+.Example: Version contract ruleset update
+[source,json]
+----
+{
+  "id": "550e8400-e29b-41d4-a716-446655440002",
+  "eventType": "CONTRACT_RULESET_CONFIGURED",
+  "groupId": "com.example",
+  "artifactId": "orders",
+  "version": "1.0.0",
+  "action": "SET"
+}
+----
+
+.Example: Contract metadata update
+[source,json]
+----
+{
+  "id": "550e8400-e29b-41d4-a716-446655440003",
+  "eventType": "CONTRACT_METADATA_UPDATED",
+  "groupId": "com.example",
+  "artifactId": "orders"
+}
+----
+
+.Example: Contract status change
+[source,json]
+----
+{
+  "id": "550e8400-e29b-41d4-a716-446655440004",
+  "eventType": "CONTRACT_STATUS_CHANGED",
+  "groupId": "com.example",
+  "artifactId": "orders",
+  "fromStatus": "DRAFT",
+  "toStatus": "STABLE"
+}
+----
+
 
 [id="registry-events-architecture_{context}"]
 == Event system architecture
@@ -180,9 +277,9 @@ Additional fields vary by event type:
 :_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
-The event system uses CDI (Contexts and Dependency Injection) events internally to decouple the storage layer from event delivery. When a storage operation modifies state, it fires a CDI event. A storage-specific event processor observes the CDI event and routes it to the appropriate delivery mechanism.
+The event system uses CDI (Contexts and Dependency Injection) events internally to decouple the storage layer from event delivery. When a storage operation modifies state, it fires a CDI event.
 
-The following diagram shows the event flow from a storage operation to external consumers:
+A storage-specific event processor observes the CDI event and routes it to the appropriate delivery mechanism. The following diagram shows the event flow from a storage operation to external consumers:
 
 ----
 Storage operation (for example, createArtifact)
@@ -365,7 +462,7 @@ The events topic is configured with the following defaults:
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-The following table lists configuration properties related to the {registry} event system.
+You configure the {registry} event system with properties that set the Kafka events topic name and, for KafkaSQL storage only, the replication factor, cleanup policy, and retention time of that topic.
 
 .Event configuration properties
 [cols="2,1,2",options="header"]
@@ -441,3 +538,4 @@ The following table lists event support by storage variant:
 .Additional resources
 * {registry-config-reference}
 * link:https://debezium.io/documentation/reference/stable/transformations/outbox-event-router.html[Debezium Outbox Event Router documentation]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/registry-events[Registry events example]: consumes and checks the events of a sequence of changes, with PostgreSQL and Debezium, and with KafkaSQL.

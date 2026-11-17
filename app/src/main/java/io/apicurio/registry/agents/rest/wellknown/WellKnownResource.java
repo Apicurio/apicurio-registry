@@ -1,6 +1,5 @@
 package io.apicurio.registry.agents.rest.wellknown;
 
-import io.apicurio.registry.agents.mcptools.rest.beans.McpCompatibleToolsResults;
 import io.apicurio.registry.rest.v3.beans.AgentCard;
 import io.apicurio.registry.rest.v3.beans.AgentSearchResults;
 import io.apicurio.registry.rest.v3.beans.AiCatalog;
@@ -9,6 +8,8 @@ import io.apicurio.registry.rest.v3.beans.ArdExploreRequest;
 import io.apicurio.registry.rest.v3.beans.ArdExploreResponse;
 import io.apicurio.registry.rest.v3.beans.ArdSearchRequest;
 import io.apicurio.registry.rest.v3.beans.ArdSearchResponse;
+import io.apicurio.registry.rest.v3.beans.McpCompatibleToolsResults;
+import io.apicurio.registry.rest.v3.beans.McpToolCompatibilityResults;
 import io.apicurio.registry.rest.v3.beans.McpToolSearchResults;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DefaultValue;
@@ -21,6 +22,7 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
+import java.math.BigInteger;
 import java.util.List;
 
 /**
@@ -163,8 +165,37 @@ public interface WellKnownResource {
             @PathParam("groupId") String groupId,
             @PathParam("artifactId") String artifactId,
             @QueryParam("version") String version,
-            @QueryParam("offset") @DefaultValue("0") Integer offset,
-            @QueryParam("limit") @DefaultValue("20") Integer limit);
+            @QueryParam("offset") @DefaultValue("0") BigInteger offset,
+            @QueryParam("limit") @DefaultValue("20") BigInteger limit);
+
+    /**
+     * Compares the given source tool's {@code outputSchema} with the {@code inputSchema} of every
+     * MCP tool that {@link #findCompatibleTools} scans, and returns each verdict with the reasons
+     * and limitations that decide it. {@link #findCompatibleTools} returns the candidates whose
+     * verdict here is compatible.
+     *
+     * <p>If the source tool has no {@code outputSchema}, or one that cannot be compared, no
+     * candidate is evaluated and the top-level limitations say why. The source tool itself is never
+     * evaluated.</p>
+     *
+     * @param groupId    the group ID of the source MCP tool artifact
+     * @param artifactId the artifact ID of the source MCP tool
+     * @param version    optional version expression (defaults to latest)
+     * @param verdict    the verdicts to return (defaults to all three)
+     * @param offset     pagination offset, applied after the verdict filter
+     * @param limit      pagination limit, applied after the verdict filter
+     * @return the verdict for each evaluated candidate
+     */
+    @GET
+    @Path("/mcp-tools/{groupId}/{artifactId}/compatibility")
+    @Produces(MediaType.APPLICATION_JSON)
+    McpToolCompatibilityResults getToolCompatibility(
+            @PathParam("groupId") String groupId,
+            @PathParam("artifactId") String artifactId,
+            @QueryParam("version") String version,
+            @QueryParam("verdict") List<String> verdict,
+            @QueryParam("offset") @DefaultValue("0") BigInteger offset,
+            @QueryParam("limit") @DefaultValue("20") BigInteger limit);
 
     /**
      * Returns the JSON Schema for a specific LLM artifact type.

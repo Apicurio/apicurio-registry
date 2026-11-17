@@ -66,7 +66,7 @@ public abstract class AbstractSerializer<T, U> implements AutoCloseable {
     private boolean contractRulesEnabled = false;
     private boolean contractRulesFailOnError = true;
     private RuleExecutionEngine ruleEngine;
-    private ContractRulesetCache rulesetCache;
+    private ContractRuleLoader ruleLoader;
 
     public AbstractSerializer() {
         this.baseSerde = new BaseSerde<>();
@@ -131,7 +131,7 @@ public abstract class AbstractSerializer<T, U> implements AutoCloseable {
             if (ttlObj != null) {
                 ttl = Long.parseLong(ttlObj.toString());
             }
-            rulesetCache = new ContractRulesetCache(ttl);
+            ruleLoader = new ContractRuleLoader(new ContractRulesetCache(ttl), baseSerde::getClientFacade);
         }
     }
 
@@ -198,7 +198,8 @@ public abstract class AbstractSerializer<T, U> implements AutoCloseable {
             if (ref.getArtifactId() == null || ref.getArtifactId().isEmpty()) {
                 return;
             }
-            List<RuleDefinition> rules = loadRules(ref.getGroupId(), ref.getArtifactId());
+            List<RuleDefinition> rules = ruleLoader.domainRules(ref.getGroupId(), ref.getArtifactId(),
+                    ref.getVersion());
             if (rules.isEmpty()) {
                 return;
             }
@@ -219,23 +220,6 @@ public abstract class AbstractSerializer<T, U> implements AutoCloseable {
         }
     }
 
-    private List<RuleDefinition> loadRules(String groupId, String artifactId) {
-        ContractRuleSet cached = rulesetCache.get(groupId, artifactId, null);
-        if (cached != null) {
-            return toRuleDefinitions(cached);
-        }
-        var facade = baseSerde.getClientFacade();
-        if (facade == null) {
-            return List.of();
-        }
-        ContractRuleSet ruleset = facade.getContractRuleset(groupId, artifactId);
-        if (ruleset == null) {
-            return List.of();
-        }
-        rulesetCache.put(groupId, artifactId, null, ruleset);
-        return toRuleDefinitions(ruleset);
-    }
-
     static List<RuleDefinition> toRuleDefinitions(ContractRuleSet ruleset) {
         List<RuleDefinition> result = new ArrayList<>();
         if (ruleset.getDomainRules() != null) {
@@ -252,16 +236,7 @@ public abstract class AbstractSerializer<T, U> implements AutoCloseable {
     }
 
     static RuleDefinition toRuleDefinition(ContractRule r) {
-        RuleDefinition def = new RuleDefinition();
-        def.setName(r.getName());
-        def.setKind(r.getKind() != null ? r.getKind().getValue() : null);
-        def.setType(r.getType());
-        def.setMode(r.getMode() != null ? r.getMode().getValue() : null);
-        def.setExpr(r.getExpr());
-        def.setOnFailure(r.getOnFailure() != null ? r.getOnFailure().getValue() : null);
-        def.setDisabled(r.getDisabled() != null && r.getDisabled());
-        def.setOrderIndex(0);
-        return def;
+        return ContractRuleLoader.toRuleDefinition(r, 0);
     }
 
     @SuppressWarnings("unchecked")

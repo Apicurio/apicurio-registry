@@ -12,6 +12,7 @@ import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import lombok.Getter;
 import lombok.Setter;
 
 import java.net.URI;
@@ -46,34 +47,53 @@ public class Client {
      * request and response of every call it makes.
      */
     @Setter
+    @Getter
     private boolean httpLoggingEnabled;
 
     public RegistryClient getRegistryClient() {
-        var currentContext = config.read();
-        if (isBlank(currentContext.getCurrentContext())) {
+        requireCurrentContext();
+        if (registryClient == null) {
+            registryClient = createRegistryClient(httpLoggingEnabled);
+        }
+        return registryClient;
+    }
+
+    /**
+     * A Registry client that never logs request or response bodies, even with {@code --verbose}.
+     * For calls whose body carries secrets the SDK cannot recognise, such as headers forwarded to
+     * another server. Always a new client: the cached one may have been created with logging on
+     * by an earlier command in the same JVM.
+     */
+    public RegistryClient getRegistryClientWithoutHttpLogging() {
+        return createRegistryClient(false);
+    }
+
+    private void requireCurrentContext() {
+        if (isBlank(config.read().getCurrentContext())) {
             throw new CliException("No current context is set. " +
                     "Run `acr context use <context>` " +
                     "or `acr context create <name> <url>`.", APPLICATION_ERROR_RETURN_CODE);
-        } else {
-            if (registryClient == null) {
-                try {
-                    var uri = new URI(currentContext.getContext().get(currentContext.getCurrentContext()).getRegistryUrl());
-                    if (uri.getPath() == null) {
-                        uri = uri.resolve("/apis/registry/v3");
-                    }
-                    final var options = RegistryClientOptions.create(uri.toString(), vertx);
-                    if (httpLoggingEnabled) {
-                        options.enableHttpLogging();
-                    }
-                    final var context = currentContext.getContext().get(currentContext.getCurrentContext());
-                    configureAuth(options, context, currentContext.getCurrentContext());
-                    registryClient = RegistryClientFactory.create(options);
-                } catch (Exception ex) {
-                    throw new CliException("Could not create Registry client: " + ex.getMessage(),
-                            APPLICATION_ERROR_RETURN_CODE);
-                }
+        }
+    }
+
+    private RegistryClient createRegistryClient(final boolean logHttp) {
+        requireCurrentContext();
+        var currentContext = config.read();
+        try {
+            var uri = new URI(currentContext.getContext().get(currentContext.getCurrentContext()).getRegistryUrl());
+            if (uri.getPath() == null) {
+                uri = uri.resolve("/apis/registry/v3");
             }
-            return registryClient;
+            final var options = RegistryClientOptions.create(uri.toString(), vertx);
+            if (logHttp) {
+                options.enableHttpLogging();
+            }
+            final var context = currentContext.getContext().get(currentContext.getCurrentContext());
+            configureAuth(options, context, currentContext.getCurrentContext());
+            return RegistryClientFactory.create(options);
+        } catch (Exception ex) {
+            throw new CliException("Could not create Registry client: " + ex.getMessage(),
+                    APPLICATION_ERROR_RETURN_CODE);
         }
     }
 

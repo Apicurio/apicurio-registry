@@ -18,6 +18,7 @@ import io.apicurio.registry.storage.dto.EditableBranchMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableGroupMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
+import io.apicurio.registry.storage.dto.PeerDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.SchemaUsageEventDto;
 import io.apicurio.registry.storage.dto.SchemaUsageSummaryDto;
@@ -265,6 +266,21 @@ public abstract class AbstractReadOnlyRegistryStorage implements RegistryStorage
     }
 
     @Override
+    public void createPeer(PeerDto peer) throws RegistryStorageException {
+        readOnlyViolation();
+    }
+
+    @Override
+    public void updatePeer(PeerDto peer) throws RegistryStorageException {
+        readOnlyViolation();
+    }
+
+    @Override
+    public void deletePeer(String peerId) throws RegistryStorageException {
+        readOnlyViolation();
+    }
+
+    @Override
     public void deleteAllUserData() throws RegistryStorageException {
         readOnlyViolation();
     }
@@ -437,12 +453,14 @@ public abstract class AbstractReadOnlyRegistryStorage implements RegistryStorage
 
     @Override
     public void deleteOldUsageEvents(long cutoffTimestamp) {
-        readOnlyViolation();
+        // Usage events are best-effort telemetry produced as a side effect of reads, so a read-only
+        // storage drops them instead of failing the background flush. The retention job skips read-only
+        // storages itself and never called this, but the method must not throw if it is.
     }
 
     @Override
     public void recordUsageEvent(SchemaUsageEventDto event) {
-        readOnlyViolation();
+        // See deleteOldUsageEvents: dropped on purpose.
     }
 
     @Override

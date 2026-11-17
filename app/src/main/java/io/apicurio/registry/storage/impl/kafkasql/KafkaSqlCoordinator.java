@@ -74,6 +74,13 @@ public class KafkaSqlCoordinator {
     }
 
     /**
+     * Number of latches and return values currently held for operations nobody has collected yet.
+     */
+    int pendingCount() {
+        return latches.size() + returnValues.size();
+    }
+
+    /**
      * Countdown the latch for the given UUID. This will wake up the thread waiting for the response so that
      * it can proceed.
      *

@@ -25,7 +25,7 @@ import {
 } from "@patternfly/react-core";
 import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 import { TrashIcon } from "@patternfly/react-icons";
-import { RootPageHeader } from "@app/components";
+import { IfFeature, RootPageHeader } from "@app/components";
 import { CONTRACT_RULES_PAGE_IDX, PageDataLoader, PageError, PageErrorHandler, PageProperties, toPageError } from "@app/pages";
 import {
     ContractRule,
@@ -140,9 +140,11 @@ export const GlobalContractRulesPage: FunctionComponent<PageProperties> = () => 
         <>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 20, marginBottom: 10 }}>
                 <strong>{title}</strong>
-                <Button variant="secondary" size="sm" onClick={() => openAddModal(category)}>
-                    Add {category} rule
-                </Button>
+                <IfFeature feature="readOnly" isNot={true}>
+                    <Button variant="secondary" size="sm" onClick={() => openAddModal(category)}>
+                        Add {category} rule
+                    </Button>
+                </IfFeature>
             </div>
             {rules.length > 0 ? (
                 <Table aria-label={`${title}`} variant="compact">
@@ -155,7 +157,9 @@ export const GlobalContractRulesPage: FunctionComponent<PageProperties> = () => 
                             <Th>Expression</Th>
                             <Th>On Failure</Th>
                             <Th>Enabled</Th>
-                            <Th />
+                            <IfFeature feature="readOnly" isNot={true}>
+                                <Th />
+                            </IfFeature>
                         </Tr>
                     </Thead>
                     <Tbody>
@@ -168,12 +172,14 @@ export const GlobalContractRulesPage: FunctionComponent<PageProperties> = () => 
                                 <Td><code>{rule.expr || "-"}</code></Td>
                                 <Td>{rule.onFailure || "-"}</Td>
                                 <Td>{rule.disabled ? <Label color="grey">Disabled</Label> : <Label color="green">Active</Label>}</Td>
-                                <Td>
-                                    <Button variant="plain" aria-label="Delete rule"
-                                        onClick={() => doDeleteRule(idx, category)}>
-                                        <TrashIcon />
-                                    </Button>
-                                </Td>
+                                <IfFeature feature="readOnly" isNot={true}>
+                                    <Td>
+                                        <Button variant="plain" aria-label="Delete rule"
+                                            onClick={() => doDeleteRule(idx, category)}>
+                                            <TrashIcon />
+                                        </Button>
+                                    </Td>
+                                </IfFeature>
                             </Tr>
                         ))}
                     </Tbody>
@@ -210,13 +216,15 @@ export const GlobalContractRulesPage: FunctionComponent<PageProperties> = () => 
                     {renderRulesTable(ruleset.domainRules || [], "domain", "Domain Rules")}
                     {renderRulesTable(ruleset.migrationRules || [], "migration", "Migration Rules")}
 
-                    {allRules.length > 0 && (
-                        <div style={{ marginTop: 20 }}>
-                            <Button variant="danger" onClick={doDeleteAll}>
-                                Delete all global contract rules
-                            </Button>
-                        </div>
-                    )}
+                    <IfFeature feature="readOnly" isNot={true}>
+                        {allRules.length > 0 && (
+                            <div style={{ marginTop: 20 }}>
+                                <Button variant="danger" onClick={doDeleteAll}>
+                                    Delete all global contract rules
+                                </Button>
+                            </div>
+                        )}
+                    </IfFeature>
                 </PageSection>
             </PageDataLoader>
 

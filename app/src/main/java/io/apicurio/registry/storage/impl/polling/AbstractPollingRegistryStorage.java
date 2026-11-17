@@ -20,6 +20,7 @@ import jakarta.inject.Inject;
 import org.slf4j.Logger;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -89,6 +90,16 @@ public abstract class AbstractPollingRegistryStorage<MARKER extends SourceMarker
 
     private volatile PollingStorageStatus status = PollingStorageStatus.initializing();
 
+    // Tracks whether the current ERROR state includes a poll() failure.
+    // Only poll-level errors (transient) should self-clear on the next successful poll.
+    // Load-level errors (bad data) must persist until valid data is loaded.
+    private boolean pollFailed = false;
+
+    // Persists load-level errors across poll failure/recovery cycles.
+    // Cleared only when loadInactive() succeeds, so a transient poll failure
+    // cannot erase the evidence of a rejected commit.
+    private List<PollingError> loadErrors = List.of();
+
     @Override
     public String storageName() {
         return pollingConfig.getStorageName();
@@ -132,82 +143,117 @@ public abstract class AbstractPollingRegistryStorage<MARKER extends SourceMarker
                         storageName(), active == green ? "green" : "blue", state);
 
                 switch (state) {
-                    case READY_TO_SWITCH -> {
-                        MARKER completedMarker = pendingResult.getMarker();
-                        if (doSwitch()) {
-                            switchRetryCount = 0;
-                            pendingResult.commit();
-                            pendingResult = null;
-                            var completedResult = pendingProcessingResult;
-                            pendingProcessingResult = null;
-                            status = PollingStorageStatus.builder()
-                                    .syncState(PollingStorageStatus.SyncState.IDLE)
-                                    .sources(completedMarker.toSources())
-                                    .lastSuccessfulSync(Instant.now())
-                                    .lastSyncAttempt(status.getLastSyncAttempt())
-                                    .groupCount(completedResult.getGroupCount())
-                                    .artifactCount(completedResult.getArtifactCount())
-                                    .versionCount(completedResult.getVersionCount())
-                                    .errors(Collections.emptyList())
-                                    .build();
-                            if (!isReady) {
-                                isReady = true;
-                                log.info("{} initial data load completed, storage is now ready", storageName());
-                            }
-                        } else {
-                            switchRetryCount++;
-                            if (switchRetryCount >= MAX_SWITCH_RETRIES) {
-                                log.error("{} failed to acquire write lock after {} attempts, " +
-                                        "discarding pending update to prevent deadlock", storageName(), MAX_SWITCH_RETRIES);
-                                status = status.toBuilder()
-                                        .syncState(PollingStorageStatus.SyncState.ERROR)
-                                        .errors(List.of(new PollingError("Failed to publish update: could not acquire write lock after "
-                                                + MAX_SWITCH_RETRIES + " attempts")))
-                                        .build();
-                                pendingResult = null;
-                                pendingProcessingResult = null;
-                                state = State.READY_TO_WRITE;
-                                switchRetryCount = 0;
-                            } else {
-                                status = status.toBuilder()
-                                        .syncState(PollingStorageStatus.SyncState.SWITCHING)
-                                        .build();
-                            }
-                        }
-                    }
-                    case READY_TO_WRITE -> {
-                        var now = Instant.now();
-                        boolean forceRefresh = syncRequested;
-                        if (forceRefresh) {
-                            syncRequested = false;
-                        }
-                        if (forceRefresh || now.isAfter(lastRefresh.plus(pollingConfig.getPollPeriod()))) {
-                            lastRefresh = now;
-                            status = status.toBuilder()
-                                    .lastSyncAttempt(now)
-                                    .build();
-                            log.debug("Running {} poll. Active database is {} and state is {}.",
-                                    storageName(), active == green ? "green" : "blue", state);
-                            try {
-                                var pollResult = pollingDataSourceManager.poll();
-                                if (pollResult.isHasChanges()) {
-                                    debouncer.onChange(pollResult);
-                                }
-                                if (debouncer.isReady()) {
-                                    loadInactive(debouncer.pending());
-                                    debouncer.reset();
-                                }
-                            } catch (Exception e) {
-                                log.error("{} poll/load failed: {}", storageName(), e.getMessage(), e);
-                            }
-                        }
-                    }
+                    case READY_TO_SWITCH -> handleReadyToSwitch();
+                    case READY_TO_WRITE -> handleReadyToWrite();
                 }
                 log.trace("{} refresh finished. Active database is {} and state is {}.",
                         storageName(), active == green ? "green" : "blue", state);
             } finally {
                 refreshLock.unlock();
             }
+        }
+    }
+
+    private void handleReadyToSwitch() {
+        MARKER completedMarker = pendingResult.getMarker();
+        if (doSwitch()) {
+            switchRetryCount = 0;
+            pendingResult.commit();
+            pendingResult = null;
+            var completedResult = pendingProcessingResult;
+            pendingProcessingResult = null;
+            status = PollingStorageStatus.builder()
+                    .syncState(PollingStorageStatus.SyncState.IDLE)
+                    .sources(completedMarker.toSources())
+                    .lastSuccessfulSync(Instant.now())
+                    .lastSyncAttempt(status.getLastSyncAttempt())
+                    .groupCount(completedResult.getGroupCount())
+                    .artifactCount(completedResult.getArtifactCount())
+                    .versionCount(completedResult.getVersionCount())
+                    .errors(Collections.emptyList())
+                    .build();
+            if (!isReady) {
+                isReady = true;
+                log.info("{} initial data load completed, storage is now ready", storageName());
+            }
+        } else {
+            onSwitchFailed();
+        }
+    }
+
+    private void onSwitchFailed() {
+        switchRetryCount++;
+        if (switchRetryCount >= MAX_SWITCH_RETRIES) {
+            log.error("{} failed to acquire write lock after {} attempts, " +
+                    "discarding pending update to prevent deadlock", storageName(), MAX_SWITCH_RETRIES);
+            status = status.toBuilder()
+                    .syncState(PollingStorageStatus.SyncState.ERROR)
+                    .errors(List.of(new PollingError("Failed to publish update: could not acquire write lock after "
+                            + MAX_SWITCH_RETRIES + " attempts")))
+                    .build();
+            pendingResult = null;
+            pendingProcessingResult = null;
+            state = State.READY_TO_WRITE;
+            switchRetryCount = 0;
+        } else {
+            status = status.toBuilder()
+                    .syncState(PollingStorageStatus.SyncState.SWITCHING)
+                    .build();
+        }
+    }
+
+    private void handleReadyToWrite() {
+        var now = Instant.now();
+        boolean forceRefresh = syncRequested;
+        if (forceRefresh) {
+            syncRequested = false;
+        }
+        if (forceRefresh || now.isAfter(lastRefresh.plus(pollingConfig.getPollPeriod()))) {
+            lastRefresh = now;
+            status = status.toBuilder()
+                    .lastSyncAttempt(now)
+                    .build();
+            log.debug("Running {} poll. Active database is {} and state is {}.",
+                    storageName(), active == green ? "green" : "blue", state);
+            pollAndLoad();
+        }
+    }
+
+    private void pollAndLoad() {
+        try {
+            var pollResult = pollingDataSourceManager.poll();
+            if (pollFailed) {
+                pollFailed = false;
+                if (!loadErrors.isEmpty()) {
+                    status = status.toBuilder()
+                            .syncState(PollingStorageStatus.SyncState.ERROR)
+                            .errors(loadErrors)
+                            .build();
+                } else {
+                    status = status.toBuilder()
+                            .syncState(PollingStorageStatus.SyncState.IDLE)
+                            .errors(Collections.emptyList())
+                            .build();
+                }
+            }
+            if (pollResult.isHasChanges()) {
+                debouncer.onChange(pollResult);
+            }
+            if (debouncer.isReady()) {
+                loadInactive(debouncer.pending());
+                debouncer.reset();
+            }
+        } catch (Exception e) {
+            log.error("{} poll/load failed: {}", storageName(), e.getMessage(), e);
+            pollFailed = true;
+            final var pollError = new PollingError(
+                    "Poll failed: " + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()));
+            final var allErrors = new ArrayList<>(loadErrors);
+            allErrors.add(pollError);
+            status = status.toBuilder()
+                    .syncState(PollingStorageStatus.SyncState.ERROR)
+                    .errors(allErrors)
+                    .build();
         }
     }
 
@@ -224,6 +270,7 @@ public abstract class AbstractPollingRegistryStorage<MARKER extends SourceMarker
             var result = pollingDataSourceManager.process(inactive, pollResult);
             if (result.isSuccessful()) {
                 log.info("{} update loaded successfully (marker: {})", storageName(), pollResult.getMarker());
+                loadErrors = List.of();
                 pendingResult = pollResult;
                 pendingProcessingResult = result;
                 state = State.READY_TO_SWITCH;
@@ -234,18 +281,25 @@ public abstract class AbstractPollingRegistryStorage<MARKER extends SourceMarker
                 // Data errors won't be fixed by retrying the same commit — commit the marker
                 // so we stop re-detecting this change. A new commit will trigger a fresh attempt.
                 pollResult.commit();
+                loadErrors = result.getErrors();
                 status = status.toBuilder()
                         .syncState(PollingStorageStatus.SyncState.ERROR)
-                        .errors(result.getErrors())
+                        .errors(loadErrors)
                         .build();
             }
         } catch (Exception e) {
             // Transient errors (H2 issues, OOM, etc.) — don't commit the marker,
             // so the next poll cycle will retry the same commit.
             log.error("{} failed to load data into inactive storage: {}", storageName(), e.getMessage(), e);
+            loadErrors = List.of(new PollingError(
+                    "Transient error: " +
+                            (e.getMessage() != null
+                                    ? e.getMessage()
+                                    : e.getClass().getSimpleName())
+            ));
             status = status.toBuilder()
                     .syncState(PollingStorageStatus.SyncState.ERROR)
-                    .errors(List.of(new PollingError("Transient error: " + e.getMessage())))
+                    .errors(loadErrors)
                     .build();
         }
     }
@@ -606,6 +660,21 @@ public abstract class AbstractPollingRegistryStorage<MARKER extends SourceMarker
     }
 
     @Override
+    public PeerDto getPeer(String peerId) {
+        return proxy(storage -> storage.getPeer(peerId));
+    }
+
+    @Override
+    public List<PeerDto> getPeers() {
+        return proxy(RegistryStorage::getPeers);
+    }
+
+    @Override
+    public PeerSearchResultsDto searchPeers(int offset, int limit) throws RegistryStorageException {
+        return proxy(storage -> storage.searchPeers(offset, limit));
+    }
+
+    @Override
     public DynamicConfigPropertyDto getRawConfigProperty(String propertyName) {
         return proxy(storage -> storage.getRawConfigProperty(propertyName));
     }
@@ -638,6 +707,11 @@ public abstract class AbstractPollingRegistryStorage<MARKER extends SourceMarker
     @Override
     public boolean isRoleMappingExists(String principalId) {
         return proxy(storage -> storage.isRoleMappingExists(principalId));
+    }
+
+    @Override
+    public boolean isPeerExists(String peerId) {
+        return proxy(storage -> storage.isPeerExists(peerId));
     }
 
     @Override

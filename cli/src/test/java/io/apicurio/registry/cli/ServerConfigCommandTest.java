@@ -7,6 +7,8 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
+import static io.apicurio.registry.cli.common.CliException.SERVER_ERROR_RETURN_CODE;
+import static io.apicurio.registry.cli.common.CliException.VALIDATION_ERROR_RETURN_CODE;
 import static io.apicurio.registry.cli.utils.Mapper.MAPPER;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -125,24 +127,32 @@ public class ServerConfigCommandTest extends AbstractCLITest {
     @Test
     @Order(8)
     public void testGetMissingArg() {
-        executeAndAssertFailure("server-config", "get");
+        assertThat(cmd.execute("server-config", "get"))
+                .as(withCliOutput("Command should fail with the expected exit code"))
+                .isEqualTo(VALIDATION_ERROR_RETURN_CODE);
     }
 
     @Test
     @Order(9)
     public void testSetMissingArgs() {
-        executeAndAssertFailure("server-config", "set");
+        assertThat(cmd.execute("server-config", "set"))
+                .as(withCliOutput("Command should fail with the expected exit code"))
+                .isEqualTo(VALIDATION_ERROR_RETURN_CODE);
     }
 
     @Test
     @Order(10)
     public void testResetMissingArg() {
-        executeAndAssertFailure("server-config", "reset");
+        assertThat(cmd.execute("server-config", "reset"))
+                .as(withCliOutput("Command should fail with the expected exit code"))
+                .isEqualTo(VALIDATION_ERROR_RETURN_CODE);
     }
 
     @Test
     @Order(11)
     public void testGetNonExistent() {
-        executeAndAssertFailure("server-config", "get", "non.existent.property");
+        assertThat(cmd.execute("server-config", "get", "non.existent.property"))
+                .as(withCliOutput("Command should fail with the expected exit code"))
+                .isEqualTo(SERVER_ERROR_RETURN_CODE);
     }
 }

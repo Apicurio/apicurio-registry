@@ -59,6 +59,11 @@ public class OpenApiAgentCardService {
     private final OpenApiAgentCardAssembler assembler = new OpenApiAgentCardAssembler();
     private final JsonContentCanonicalizer canonicalizer = new JsonContentCanonicalizer();
 
+    /** @return the ID of the AGENT_CARD companion generated for an OPENAPI artifact */
+    public static String companionId(String sourceId) {
+        return sourceId + "-agent-card";
+    }
+
     /** Preflight only for a version being published; callers must skip ordinary drafts. */
     public String validateAndAssemble(TypedContent content, boolean isUpdate) {
         if (!config.isEnabled() || (isUpdate && !config.isSyncOnUpdateEnabled())) {
@@ -99,7 +104,7 @@ public class OpenApiAgentCardService {
         if (!config.isEnabled()) {
             return;
         }
-        String companionId = sourceId + "-agent-card";
+        String companionId = companionId(sourceId);
         ArtifactMetaDataDto companion;
         try {
             companion = storage.getArtifactMetaData(groupId, companionId);
@@ -127,43 +132,9 @@ public class OpenApiAgentCardService {
                         EditableArtifactMetaDataDto.builder().name(companionId).labels(provenance).build(), "1",
                         content(json), EditableVersionMetaDataDto.builder().name(companionId).labels(provenance).build(),
                         List.of(), false, false, owner);
-        } else {
-            requireCompanionOwner(companion, owner);
-            if (!ArtifactType.AGENT_CARD.equals(companion.getArtifactType())
-                    || !isGeneratedFrom(companion.getLabels(), groupId, sourceId)) {
-                log.warn("Skipping unrelated companion {}/{}", groupId, companionId);
-                return;
-            }
-            ArtifactVersionMetaDataDto previous = newest(storage, groupId, companionId);
-            if (previous.getState() == VersionState.DRAFT) {
-                log.warn("Preserving draft companion {}/{}", groupId, companionId);
-                return;
-            }
-            Map<String, String> labels = previous.getLabels();
-            if (!isGeneratedFrom(labels, groupId, sourceId)
-                    || !validSourceVersion(storage, groupId, sourceId, labels)) {
-                log.warn("Missing generation provenance for {}/{}; explicit regeneration required", groupId, companionId);
-                return;
-            }
-            String recorded = labels.get(A2AConstants.LABEL_OPENAPI_AGENT_CARD_GENERATED_HASH);
-            String actual = canonicalHash(storage.getArtifactVersionContent(groupId, companionId,
-                    previous.getVersion()).getContent().content());
-            if (recorded == null || !recorded.equals(actual)) {
-                log.warn("Preserving manually edited companion {}/{}", groupId, companionId);
-                return;
-            }
-            if (!hash.equals(actual)) {
-                rulesService.applyRules(groupId, companionId, ArtifactType.AGENT_CARD, card,
-                        RuleApplicationType.UPDATE, List.of(), Map.of());
-                if (latest(storage, groupId, sourceId).getGlobalId() != source.getGlobalId()) {
-                    throw new CommitFailedException(groupId, companionId, "Source advanced during generation");
-                }
-                // Content and provenance commit together. Concurrent manual/generated versions reject
-                // this write instead of moving the companion tip backwards or losing manual changes.
-                storage.createArtifactVersionIfLatest(groupId, companionId, null, ArtifactType.AGENT_CARD,
-                        content(json), EditableVersionMetaDataDto.builder().name(companionId).labels(provenance).build(),
-                        List.of(), false, owner, previous.getVersionOrder(), null);
-            }
+        } else if (!updateCompanion(storage, groupId, sourceId, owner, companion, companionId, source, hash,
+                provenance, card, json)) {
+            return;
         }
         if (latest(storage, groupId, sourceId).getGlobalId() != source.getGlobalId()) {
             throw new CommitFailedException(groupId, companionId, "Source advanced during generation");
@@ -171,6 +142,53 @@ public class OpenApiAgentCardService {
         // Repairable, best-effort navigation hint. It is not ownership or generation proof.
         storage.mergeArtifactLabels(groupId, sourceId, A2AConstants.PREFIX_OPENAPI_AGENT_CARD,
                 Map.of(A2AConstants.LABEL_OPENAPI_AGENT_CARD_ARTIFACT_ID, companionId));
+    }
+
+    /**
+     * Updates an existing companion when it is still an unmodified generated card.
+     *
+     * @return {@code false} when synchronization must stop without touching the source labels
+     */
+    private boolean updateCompanion(RegistryStorage storage, String groupId, String sourceId, String owner,
+            ArtifactMetaDataDto companion, String companionId, ArtifactVersionMetaDataDto source, String hash,
+            Map<String, String> provenance, TypedContent card, String json) throws IOException {
+        requireCompanionOwner(companion, owner);
+        if (!ArtifactType.AGENT_CARD.equals(companion.getArtifactType())
+                || !isGeneratedFrom(companion.getLabels(), groupId, sourceId)) {
+            log.warn("Skipping unrelated companion {}/{}", groupId, companionId);
+            return false;
+        }
+        ArtifactVersionMetaDataDto previous = newest(storage, groupId, companionId);
+        if (previous.getState() == VersionState.DRAFT) {
+            log.warn("Preserving draft companion {}/{}", groupId, companionId);
+            return false;
+        }
+        Map<String, String> labels = previous.getLabels();
+        if (!isGeneratedFrom(labels, groupId, sourceId)
+                || !validSourceVersion(storage, groupId, sourceId, labels)) {
+            log.warn("Missing generation provenance for {}/{}; explicit regeneration required", groupId, companionId);
+            return false;
+        }
+        String recorded = labels.get(A2AConstants.LABEL_OPENAPI_AGENT_CARD_GENERATED_HASH);
+        String actual = canonicalHash(storage.getArtifactVersionContent(groupId, companionId,
+                previous.getVersion()).getContent().content());
+        if (recorded == null || !recorded.equals(actual)) {
+            log.warn("Preserving manually edited companion {}/{}", groupId, companionId);
+            return false;
+        }
+        if (!hash.equals(actual)) {
+            rulesService.applyRules(groupId, companionId, ArtifactType.AGENT_CARD, card,
+                    RuleApplicationType.UPDATE, List.of(), Map.of());
+            if (latest(storage, groupId, sourceId).getGlobalId() != source.getGlobalId()) {
+                throw new CommitFailedException(groupId, companionId, "Source advanced during generation");
+            }
+            // Content and provenance commit together. Concurrent manual/generated versions reject
+            // this write instead of moving the companion tip backwards or losing manual changes.
+            storage.createArtifactVersionIfLatest(groupId, companionId, null, ArtifactType.AGENT_CARD,
+                    content(json), EditableVersionMetaDataDto.builder().name(companionId).labels(provenance).build(),
+                    List.of(), false, owner, previous.getVersionOrder(), null);
+        }
+        return true;
     }
 
     private void requireCompanionOwner(ArtifactMetaDataDto companion, String owner) {

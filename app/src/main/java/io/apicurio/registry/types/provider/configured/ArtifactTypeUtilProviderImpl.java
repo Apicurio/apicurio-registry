@@ -46,6 +46,7 @@ public class ArtifactTypeUtilProviderImpl extends DefaultArtifactTypeUtilProvide
             // No external config — use standard providers (includes all built-in types)
             loadStandardProviders();
         }
+        validateFileExtensions();
     }
 
     private ArtifactTypesConfiguration loadArtifactTypeConfiguration() {

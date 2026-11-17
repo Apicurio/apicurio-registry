@@ -1,6 +1,7 @@
 import { FunctionComponent, useState } from "react";
 import "./RoleToolbar.css";
 import { If, ObjectSelect } from "@apitomy/common-ui-components";
+import { IfFeature } from "@app/components";
 import {
     Button,
     ButtonVariant,
@@ -190,9 +191,11 @@ export const RoleToolbar: FunctionComponent<RoleToolbarProps> = (props: RoleTool
                         filterAscending ? <SortAlphaDownIcon/> : <SortAlphaDownAltIcon/>
                     } variant="plain" aria-label="edit" data-testid="toolbar-btn-sort" onClick={onToggleAscending} />
                 </ToolbarItem>
-                <ToolbarItem className="grant-access-item">
-                    <Button variant="primary" data-testid="btn-grant-access" onClick={props.onGrantAccess}>Grant access</Button>
-                </ToolbarItem>
+                <IfFeature feature="readOnly" isNot={true}>
+                    <ToolbarItem className="grant-access-item">
+                        <Button variant="primary" data-testid="btn-grant-access" onClick={props.onGrantAccess}>Grant access</Button>
+                    </ToolbarItem>
+                </IfFeature>
                 <ToolbarItem className="artifact-paging-item" align={{ default: "alignEnd" }}>
                     <Pagination
                         variant="top"

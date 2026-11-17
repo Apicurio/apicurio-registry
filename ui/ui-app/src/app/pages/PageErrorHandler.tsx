@@ -4,10 +4,12 @@ import {
     ConnectionFailedErrorPage,
     ErrorPage,
     NotFoundErrorPage,
-    RateLimitErrorPage
+    RateLimitErrorPage,
+    ReadOnlyErrorPage
 } from "@app/components";
 import { PageError } from "@app/pages/PageError.ts";
 import { useReauthenticationService } from "@services/useReauthenticationService.ts";
+import { useConfigService } from "@services/useConfigService.ts";
 import { isErrorStatus } from "@utils/rest.utils.ts";
 
 /**
@@ -24,6 +26,7 @@ export type PageErrorHandlerProps = {
  * @constructor
  */
 export const PageErrorHandler: FunctionComponent<PageErrorHandlerProps> = (props: PageErrorHandlerProps) => {
+    const config = useConfigService();
     const reauthentication = useReauthenticationService();
     const [isReauthenticationPending, setReauthenticationPending] = useState<boolean>(
         reauthentication.isReauthenticationPending()
@@ -48,6 +51,9 @@ export const PageErrorHandler: FunctionComponent<PageErrorHandlerProps> = (props
     const is401Error = (): boolean => {
         return props.error !== undefined && isErrorStatus(props.error.error, 401);
     };
+    const is409Error = (): boolean => {
+        return props.error !== undefined && isErrorStatus(props.error.error, 409);
+    };
     const is419Error = (): boolean => {
         return props.error !== undefined && isErrorStatus(props.error.error, 419);
     };
@@ -68,6 +74,10 @@ export const PageErrorHandler: FunctionComponent<PageErrorHandlerProps> = (props
         } else if (is404Error()) {
             return (
                 <NotFoundErrorPage error={props.error}/>
+            );
+        } else if (is409Error() && config.featureReadOnlyReason() === "storage") {
+            return (
+                <ReadOnlyErrorPage />
             );
         } else if (isFetchError()) {
             return (

@@ -1,0 +1,9 @@
+$type: artifact-v0
+registryIds: [test]
+groupId: default
+artifactId: unknown
+name: Unknown Extension
+versions:
+  - version: "1"
+    state: ENABLED
+    content: ./content/schema.txt

@@ -13,6 +13,7 @@ import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.error.InvalidArtifactTypeException;
 import io.apicurio.registry.storage.error.VersionAlreadyExistsException;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
+import io.apicurio.registry.references.ReferenceResolution;
 import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.RegistryException;
@@ -193,7 +194,7 @@ public class SqlDataUpgrader extends AbstractDataImporter {
 
             // Try to recalculate the canonical hash - this may fail if the content has references
             try {
-                Map<String, TypedContent> resolvedReferences = RegistryContentUtils
+                Map<String, TypedContent> resolvedReferences = ReferenceResolution
                         .recursivelyResolveReferences(references, storage::getContentByReference);
                 entity.artifactType = utils.determineArtifactType(typedContent, null, resolvedReferences);
 
@@ -324,7 +325,7 @@ public class SqlDataUpgrader extends AbstractDataImporter {
 
             TypedContent content = TypedContent.create(wrapperDto.getContent(), wrapperDto.getContentType());
             String artifactType = versions.get(0).getArtifactType();
-            Map<String, TypedContent> resolvedReferences = RegistryContentUtils
+            Map<String, TypedContent> resolvedReferences = ReferenceResolution
                     .recursivelyResolveReferences(references, storage::getContentByReference);
             TypedContent canonicalContent = utils.canonicalizeContent(artifactType, content,
                     resolvedReferences);

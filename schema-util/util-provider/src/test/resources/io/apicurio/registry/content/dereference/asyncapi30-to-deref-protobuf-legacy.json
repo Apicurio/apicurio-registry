@@ -1,0 +1,27 @@
+{
+    "asyncapi": "3.0.0",
+    "info": {
+        "title": "Legacy Service API",
+        "version": "1.0.0",
+        "description": "API referencing a Protobuf schema with no syntax statement"
+    },
+    "channels": {
+        "legacyRecords": {
+            "address": "legacy/records",
+            "messages": {
+                "legacyRecordMessage": {
+                    "$ref": "#/components/messages/LegacyRecordMessage"
+                }
+            }
+        }
+    },
+    "components": {
+        "messages": {
+            "LegacyRecordMessage": {
+                "payload": {
+                    "$ref": "http://schemas.example.org/legacy-record.proto"
+                }
+            }
+        }
+    }
+}

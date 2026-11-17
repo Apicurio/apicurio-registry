@@ -21,7 +21,7 @@ jobs:
           - runner: ubuntu-latest
             os-name: linux-x86_64
             test-args: '-Dtest.app.image=quay.io/apicurio/apicurio-registry:latest-release'
-          - runner: macos-14
+          - runner: macos-15
             os-name: osx-aarch_64
             # Docker is not available on macOS runners (see https://github.com/douglascamata/setup-docker-macos-action/issues/35),
             # skip @DockerRequired tests
@@ -47,7 +47,7 @@ jobs:
       # Use JDK 25 (latest) instead of JDK 23 (release default) to catch
       # forward-compatibility issues with GraalVM/native-image early in PRs.
       - name: Set up GraalVM
-        uses: graalvm/setup-graalvm@27b360dbb857524eaf0b4c4cef364d38e5b4f173 # v1
+        uses: graalvm/setup-graalvm@60e76998d25690099182b796e99b8804da582d90 # v1
         with:
           java-version: '25'
           distribution: 'graalvm-community'
@@ -62,7 +62,7 @@ jobs:
           native-image-job-reports: ${{ matrix.os-name != 'windows-x86_64' }}
 
       - name: Download Build Artifacts
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           name: build-artifacts-${{ inputs.image-tag }}
           path: .

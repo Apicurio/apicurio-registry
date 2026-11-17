@@ -2,10 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { GroupsService } from "@services/useGroupsService.ts";
 import { RenderPromptResponse, RenderPromptValidationError } from "@models/RenderPromptResponse.ts";
 import {
-    buildInitialValues,
+    buildContentKey,
+    buildInitialPanelState,
     buildVersionIdentity,
+    parseObjectInput,
     renderErrorMessage,
-    shouldAcceptRenderResponse
+    shouldAcceptRenderResponse,
+    TestPanelInitialState
 } from "./PromptTemplateTestPanel.utils";
 import { VariableSchema } from "./promptTemplateVariables";
 
@@ -23,57 +26,80 @@ export type UsePromptTemplateTestPanelStateArgs = PromptTemplateTestPanelIdentit
 
 export type PromptTemplateTestPanelState = {
     values: Record<string, any>;
+    rawTexts: Record<string, string>;
     renderedOutput: string;
     validationErrors: RenderPromptValidationError[];
     isLoading: boolean;
     error: string;
     setValue: (name: string, value: any) => void;
+    /** Store the raw text of an object/array field and its parsed value in one update. */
+    setObjectText: (name: string, text: string) => void;
     doRender: () => void;
 };
 
 /**
- * Owns Test Prompt panel state, including version-identity resets and stale Render guards.
- * Reset/race contracts are unit-tested via helpers in PromptTemplateTestPanel.utils.
+ * Owns Test Prompt panel state, including version/content resets and stale Render guards.
+ * Pure helpers are tested in PromptTemplateTestPanel.utils.test.ts; the hook's reset and
+ * race behavior is tested in usePromptTemplateTestPanelState.test.tsx.
  */
 export const usePromptTemplateTestPanelState = (
     args: UsePromptTemplateTestPanelStateArgs
 ): PromptTemplateTestPanelState => {
-    // Keep the latest template/variables for the version-identity reset without depending on
-    // object identity — the parent may rebuild these on every render for a given version.
-    const templateRef = useRef(args.template);
-    templateRef.current = args.template;
-    const variablesRef = useRef(args.variables);
-    variablesRef.current = args.variables;
-
     // Version identity at the time of the latest reset / Render. Used to ignore stale
     // async Render resolutions after the viewed version has moved on.
     const versionIdentity = buildVersionIdentity(args.groupId, args.artifactId, args.version);
     const versionIdentityRef = useRef(versionIdentity);
     const renderRequestIdRef = useRef(0);
 
-    const [values, setValues] = useState<Record<string, any>>(
-        () => buildInitialValues(args.template, args.variables)
+    // Latest template/variables, read by the reset effect without depending on object identity.
+    const templateRef = useRef(args.template);
+    templateRef.current = args.template;
+    const variablesRef = useRef(args.variables);
+    variablesRef.current = args.variables;
+
+    // Re-initialize when the version identity or the content (by value) changes. Comparing
+    // content by value means an unmemoized parent cannot wipe in-progress input, while content
+    // that arrives after mount, or after a version switch, still resets the form.
+    const resetKey = `${versionIdentity}|${buildContentKey(args.template, args.variables)}`;
+    const resetKeyRef = useRef(resetKey);
+
+    // values and rawTexts live in one state object so they are built in a single pass and
+    // can never drift apart.
+    const [panelState, setPanelState] = useState<TestPanelInitialState>(
+        () => buildInitialPanelState(args.template, args.variables)
     );
     const [renderedOutput, setRenderedOutput] = useState<string>("");
     const [validationErrors, setValidationErrors] = useState<RenderPromptValidationError[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string>("");
 
-    // Reset form values and render results whenever the viewed version identity changes.
-    // Depend only on the version key — not template/variables by reference — so an unstable
-    // parent object cannot wipe in-progress user input on every re-render.
     useEffect(() => {
+        if (resetKeyRef.current === resetKey) {
+            return;
+        }
+        resetKeyRef.current = resetKey;
         versionIdentityRef.current = versionIdentity;
         renderRequestIdRef.current += 1;
-        setValues(buildInitialValues(templateRef.current, variablesRef.current));
+        setPanelState(buildInitialPanelState(templateRef.current, variablesRef.current));
         setRenderedOutput("");
         setValidationErrors([]);
         setError("");
         setIsLoading(false);
-    }, [versionIdentity]);
+    }, [resetKey]);
+
+    const values = panelState.values;
+    const rawTexts = panelState.rawTexts;
 
     const setValue = (name: string, value: any): void => {
-        setValues(prev => ({ ...prev, [name]: value }));
+        setPanelState(prev => ({ ...prev, values: { ...prev.values, [name]: value } }));
+    };
+
+    const setObjectText = (name: string, text: string): void => {
+        const parsed = parseObjectInput(text).value;
+        setPanelState(prev => ({
+            values: { ...prev.values, [name]: parsed },
+            rawTexts: { ...prev.rawTexts, [name]: text }
+        }));
     };
 
     const doRender = (): void => {
@@ -130,11 +156,13 @@ export const usePromptTemplateTestPanelState = (
 
     return {
         values,
+        rawTexts,
         renderedOutput,
         validationErrors,
         isLoading,
         error,
         setValue,
+        setObjectText,
         doRender
     };
 };

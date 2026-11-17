@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Runs the 113-to-114 schema_usage upgrade against a MySQL server configured the way managed and
+ * Runs the 114-to-115 schema_usage upgrade against a MySQL server configured the way managed and
  * InnoDB Cluster deployments often are: sql_require_primary_key and
  * sql_generate_invisible_primary_key both ON. schema_usage is created from the real 105 upgrade
  * script, either with the invisible key the server generates or, as on a server where the settings

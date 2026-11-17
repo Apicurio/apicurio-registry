@@ -237,7 +237,7 @@ jobs:
           ref: ${{ needs.release-prepare.outputs.release-sha }}
 
       - name: Set up GraalVM
-        uses: graalvm/setup-graalvm@d6eca2595046623d69d636041513c80abf745406 # v1
+        uses: graalvm/setup-graalvm@60e76998d25690099182b796e99b8804da582d90 # v1
         with:
           java-version: '25'
           distribution: 'graalvm-community'

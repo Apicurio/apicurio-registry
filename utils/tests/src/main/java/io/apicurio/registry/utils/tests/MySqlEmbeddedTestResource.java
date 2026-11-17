@@ -17,7 +17,7 @@ public class MySqlEmbeddedTestResource implements QuarkusTestResourceLifecycleMa
 
     // sql_require_primary_key matches managed MySQL services and InnoDB Cluster, which reject tables
     // created without a primary key.
-    private MySQLContainer database = new MySQLContainer(IMAGE).withPassword(DB_PASSWORD)
+    private final MySQLContainer database = new MySQLContainer(IMAGE).withPassword(DB_PASSWORD)
             .withCommand("--sql-require-primary-key=ON");
 
     /**

@@ -1205,10 +1205,11 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
             config.queryParameters.limit = 500;
         });
 
-        // This test's candidates are the newest tools, so the two it expects lead the results.
+        // Other tests' tools can match too, and on MySQL can share this test's creation second, so
+        // only this group's results are checked here.
         List<String> matching = unpaginated.getResults().stream().map(result -> identity(result.getTool())).toList();
         assertEquals(Set.of(groupId + "/" + CATALOG_INCOMPATIBLE, groupId + "/" + CATALOG_INDETERMINATE),
-                Set.copyOf(matching.subList(0, 2)));
+                matching.stream().filter(tool -> tool.startsWith(groupId + "/")).collect(Collectors.toSet()));
         assertFalse(matching.contains(groupId + "/" + CATALOG_COMPATIBLE));
         assertEquals(matching.size(), unpaginated.getCount());
         // The offset skips the first of them, and count still covers every match.

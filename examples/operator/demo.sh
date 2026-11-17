@@ -2,7 +2,7 @@
 # Runs the Apicurio Registry operator on a local kind cluster and checks what it does with an
 # ApicurioRegistry3 custom resource: in memory, on PostgreSQL, on KafkaSQL with two replicas, with
 # configuration from the CR, and with an invalid CR.
-# Usage: ./demo.sh                 (builds the operator with build.sh when target/install.yaml is missing)
+# Usage: ./demo.sh                 (builds the operator with build.sh when its image is missing)
 #        KEEP=1 ./demo.sh          leave the cluster running
 # Requires kind, kubectl, curl, jq, and Docker or Podman (KIND_EXPERIMENTAL_PROVIDER=podman).
 # Creates the kind cluster $KIND_CLUSTER (default apicurio-operator-example) and deletes it at the end,
@@ -76,9 +76,12 @@ trap cleanup EXIT
 
 # ------------------------------------------------------------------------------ step 1
 part "Step 1: a cluster, and the operator"
-if [ ! -f target/install.yaml ]; then
-  ./build.sh || { fail "build.sh"; exit 1; }
+# Build the operator once; regenerate the install file every run, so it names the images of this run
+if ! docker image inspect "$OPERATOR_IMAGE" > /dev/null 2>&1; then
+  ./build.sh > /tmp/operator-build.log 2>&1 || { tail -20 /tmp/operator-build.log; fail "build.sh"; exit 1; }
 fi
+OPERATOR_IMAGE=$OPERATOR_IMAGE REGISTRY_IMAGE=$REGISTRY_IMAGE REGISTRY_UI_IMAGE=$REGISTRY_UI_IMAGE \
+  ./build.sh --install-file > /tmp/operator-build.log 2>&1 || { tail -20 /tmp/operator-build.log; fail "build.sh --install-file"; exit 1; }
 kind delete cluster --name "$CLUSTER" > /dev/null 2>&1 || true
 kind create cluster --name "$CLUSTER" --wait 120s > /tmp/operator-kind.log 2>&1 || { tail /tmp/operator-kind.log; fail "kind create cluster"; exit 1; }
 # Images built or loaded locally go into the cluster; anything else is pulled from its registry

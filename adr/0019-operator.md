@@ -23,10 +23,11 @@ look: on the resource.
 ## Decision
 
 1. **One custom resource, `ApicurioRegistry3` (`registry.apicur.io/v1`), per registry.** `spec.app`
-   (the API), `spec.ui` (the console) and `spec.consolePlugin` (OpenShift) are components with the
-   same shape: `env`, `ingress`, `replicas`, `autoscaling`, `podDisruptionBudget`, `networkPolicy`,
-   `podTemplateSpec`. `spec.app` adds `storage`, `auth`, `tls`, `otel`, `searchIndex` and `features`.
-   `spec: {}` is a valid registry (in-memory storage, console included).
+   (the API) and `spec.ui` (the console) are components with the same shape: `env`, `ingress`,
+   `replicas`, `autoscaling`, `podDisruptionBudget`, `networkPolicy`, `podTemplateSpec`. `spec.app`
+   adds `storage`, `auth`, `tls`, `otel`, `searchIndex` and `features`. `spec.consolePlugin`
+   (OpenShift) only has `enabled`. `spec: {}` is a valid registry (in-memory storage, console
+   included).
 2. **A Java Operator SDK workflow of dependent resources.** `ApicurioRegistry3Reconciler` declares one
    dependent per Kubernetes resource (`resource/app`, `resource/ui`, `resource/consoleplugin`). Optional
    ones (Ingress, PodDisruptionBudget, NetworkPolicy, HorizontalPodAutoscaler, KubernetesOps RBAC, the
@@ -47,7 +48,9 @@ look: on the resource.
    generated template. Anything the CR has no field for is still possible.
 6. **Problems are status conditions.** `Ready` reflects the availability of the active Deployments;
    `OperatorError` and `ValidationError` carry the reason (for example a JDBC URL that does not match
-   `storage.type`). An invalid CR is accepted by Kubernetes and reported by the operator.
+   `storage.type`). The CRD schema rejects malformed CRs (an unknown `storage.type`, a wrong type) at
+   admission; a schema-valid CR whose values do not fit together is accepted and reported by the
+   operator in its status.
 7. **The CR evolves without breaking users.** Deprecated fields (the 3.0 `sql` and `kafkasql`
    locations) are migrated by updaters (`SqlCRUpdater`, `KafkaSqlCRUpdater`, `IngressCRUpdater`)
    into the current shape.
@@ -104,7 +107,8 @@ hand-written cleanup.
 ## Limitations and open work
 
 1. The operator does not create databases or Kafka; it connects the registry to them.
-2. An invalid CR is reported after it is accepted; there is no validating webhook.
+2. Inconsistencies the schema cannot express are reported after the CR is accepted; there is no
+   validating webhook.
 3. The generated install file names the operator Deployment with the version
    (`apicurio-registry-operator-v3.4.0-snapshot`), which Kubernetes warns about (dots in a name).
 4. The install file pulls the operator image every time (`imagePullPolicy: Always`), which needs a

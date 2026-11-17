@@ -115,7 +115,9 @@ state from the journal topic (see [ADR-0010](../../adr/0010-storage-architecture
 
 ## Step 5: An invalid CR
 
-A CR that cannot be applied is not rejected by Kubernetes; the operator reports it in the status.
+Kubernetes rejects a CR that breaks the CRD schema (an unknown `storage.type`, say) when you apply it.
+A CR that is valid but whose values do not fit together is accepted, and the operator reports the
+problem in its status.
 `demo.sh` applies `storage.type: postgresql` with a MySQL JDBC URL and finds:
 
 ```

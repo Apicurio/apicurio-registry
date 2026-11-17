@@ -222,14 +222,17 @@ v3_kafkasql_refuses() { # <reason>: "refused" once the reason is logged and the 
     echo "not logged"
     return 0
   fi
-  # Startup has failed; the process normally exits. Wait a little, and make sure it never serves
-  sleep 10
-  state=$(docker inspect -f '{{.State.Status}} {{if .State.Health}}{{.State.Health.Status}}{{end}}' migration-registry-v3-kafkasql 2>/dev/null)
-  case "$state" in
-    exited*) echo refused ;;
-    *healthy*) [[ "$state" == *unhealthy* ]] && echo refused || echo "serving ($state)" ;;
-    *) echo refused ;;
-  esac
+  # Startup has failed; the process normally exits. Until it does (at most 60 seconds), it must never
+  # become healthy
+  for _ in $(seq 1 30); do
+    state=$(docker inspect -f '{{.State.Status}} {{if .State.Health}}{{.State.Health.Status}}{{end}}' migration-registry-v3-kafkasql 2>/dev/null)
+    case "$state" in
+      exited*) break ;;
+      *" healthy") echo "serving ($state)"; return 0 ;;
+    esac
+    sleep 2
+  done
+  echo refused
   if [[ "$state" != exited* ]]; then
     # Diagnosis: the process did not exit after a failed startup (#10992)
     echo "  info  still $state after refusing to start; last log lines:" >&2

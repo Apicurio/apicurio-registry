@@ -82,7 +82,7 @@ public class EnhancedAvroContentCanonicalizer implements ContentCanonicalizer {
                 break;
             case ENUM:
                 result = Schema.createEnum(schema.getName(), EMPTY_DOC, schema.getNamespace(),
-                        schema.getEnumSymbols());
+                        schema.getEnumSymbols(), schema.getEnumDefault());
                 break;
             case ARRAY:
                 result = Schema.createArray(normalizeSchema(schema.getElementType(), alreadyNormalized));

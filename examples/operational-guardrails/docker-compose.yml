@@ -1,0 +1,61 @@
+# Operational guardrails example: one registry image with the switches that bound what users can do.
+#
+#   postgres        the database both replicas share
+#   registry-a/-b   two replicas, with limits, disabled APIs and the default (off) deletion switches;
+#                   read-only mode is switched at runtime by demo.sh
+#
+# For local demonstration only: no authentication, default passwords, no TLS.
+# Host ports: 8081 and 8082; override with REGISTRY_PORT and REGISTRY_B_PORT.
+services:
+  postgres:
+    image: postgres:15
+    container_name: guardrails-postgres
+    environment:
+      POSTGRES_DB: registry
+      POSTGRES_USER: registry
+      POSTGRES_PASSWORD: registry
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U registry -d registry"]
+      interval: 3s
+      retries: 30
+
+  registry-a: &registry
+    image: ${REGISTRY_IMAGE:-apicurio/apicurio-registry:latest-snapshot}
+    container_name: guardrails-registry-a
+    environment:
+      APICURIO_STORAGE_KIND: sql
+      APICURIO_STORAGE_SQL_KIND: postgresql
+      APICURIO_DATASOURCE_URL: jdbc:postgresql://postgres:5432/registry
+      APICURIO_DATASOURCE_USERNAME: registry
+      APICURIO_DATASOURCE_PASSWORD: registry
+      # Limits (all default to -1: no limit)
+      APICURIO_LIMITS_CONFIG_MAX_ARTIFACTS: "6"
+      APICURIO_LIMITS_CONFIG_MAX_VERSIONS_PER_ARTIFACT: "2"
+      APICURIO_LIMITS_CONFIG_MAX_SCHEMA_SIZE_BYTES: "512"
+      APICURIO_LIMITS_CONFIG_MAX_ARTIFACT_LABELS: "2"
+      APICURIO_LIMITS_CONFIG_MAX_LABEL_SIZE_BYTES: "32"
+      APICURIO_LIMITS_CONFIG_MAX_NAME_LENGTH: "20"
+      APICURIO_LIMITS_CONFIG_MAX_DESCRIPTION_LENGTH: "40"
+      # Runtime settings (read-only mode, the deletion switches) live in the database; each replica
+      # re-reads them this often (default 1m)
+      APICURIO_CONFIG_REFRESH_EVERY: 5s
+      # Disabled APIs: regular expressions matched against the request path (404)
+      APICURIO_DISABLE_APIS: "/apis/ccompat/.*,/apis/registry/v2/.*"
+    ports:
+      - "${REGISTRY_PORT:-8081}:8080"
+    depends_on:
+      postgres: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9000/health/ready > /dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+
+  # A second replica on the same database
+  registry-b:
+    <<: *registry
+    container_name: guardrails-registry-b
+    ports:
+      - "${REGISTRY_B_PORT:-8082}:8080"
+    depends_on:
+      registry-a: {condition: service_healthy}

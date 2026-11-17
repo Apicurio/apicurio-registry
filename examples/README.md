@@ -67,6 +67,12 @@ checks what usage telemetry reports: per-version usage, the consumer heatmap and
 deprecation readiness, and the Active/Stale/Dead summary with liveness inherited through references.
 See its [step-by-step guide](usage-telemetry-demo/GUIDE.md).
 
+## Operational Guardrails Example
+This example runs two registry replicas with limits, disabled APIs, and the deletion and read-only
+switches, and checks each one: refused requests and their messages, switches changed at runtime and
+followed by the other replica, and why count limits are per replica. See its
+[step-by-step guide](operational-guardrails/GUIDE.md).
+
 ## Registry Events Example
 This example makes a fixed sequence of changes in the registry and checks the events it publishes to
 Kafka, on PostgreSQL (outbox table, Debezium outbox event router, delivery after an outage) and on

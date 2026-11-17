@@ -9,7 +9,10 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 API=${API:-http://localhost:${REGISTRY_PORT:-8080}/apis/registry/v3}
-G=telemetry-$RANDOM$RANDOM
+RUN=$RANDOM$RANDOM
+G=telemetry-$RUN
+# Every schema is unique to this run (its namespace), so no content ID is shared with an earlier run
+NS=com.example.run$RUN
 failures=0
 
 ok()   { printf '  ok    %s\n' "$1"; }
@@ -30,7 +33,7 @@ eventually() {
 get() { curl -sf --max-time 30 "$API$1"; }
 status() { curl -s --max-time 30 -o /dev/null -w '%{http_code}' "$@"; }
 # record <name> <fields...>: an Avro record schema with string fields
-record() { local name=$1; shift; jq -nc --arg n "$name" '$ARGS.positional | {type: "record", name: $n, namespace: "com.example", fields: map({name: ., type: "string"})}' --args "$@"; }
+record() { local name=$1; shift; jq -nc --arg n "$name" --arg ns "$NS" '$ARGS.positional | {type: "record", name: $n, namespace: $ns, fields: map({name: ., type: "string"})}' --args "$@"; }
 # version <artifact> <version> <schema> [references]: creates the artifact, or a version of it
 version() {
   local body
@@ -83,8 +86,9 @@ version order-placed 1 "$(record OrderPlaced orderId)" > /dev/null
 O1=$(global_id order-placed 1)
 status "$API/ids/globalIds/$O1" > /dev/null
 status "$API/ids/globalIds/$O1" -H 'X-Registry-Client-Id: not a valid id!' > /dev/null
-status "$API/ids/contentIds/$(content_id order-placed 1)" -H 'X-Registry-Client-Id: by-content-id' > /dev/null
 status "$API/groups/$G/artifacts/order-placed/versions/1/content" -H 'X-Registry-Client-Id: by-coordinates' > /dev/null
+# Last: once its event is visible, the earlier requests have been flushed too
+status "$API/ids/contentIds/$(content_id order-placed 1)" -H 'X-Registry-Client-Id: by-content-id' > /dev/null
 check "recorded: by content ID too; not: without a client ID, an invalid one, or by coordinates" "1:by-content-id" \
   "$(eventually 30 "1:by-content-id" clients order-placed)"
 
@@ -111,8 +115,8 @@ check "deprecate, then sunset version 1 (SUNSET: the migration deadline has pass
 # ------------------------------------------------------------------------------ step 5
 part "Step 5: the summary, and references"
 version address 1 "$(record Address city)" > /dev/null
-version customer 1 "$(jq -nc '{type: "record", name: "Customer", namespace: "com.example", fields: [{name: "home", type: "com.example.Address"}]}')" \
-  "[{\"groupId\": \"$G\", \"artifactId\": \"address\", \"version\": \"1\", \"name\": \"com.example.Address\"}]" > /dev/null
+version customer 1 "$(jq -nc --arg ns "$NS" '{type: "record", name: "Customer", namespace: $ns, fields: [{name: "home", type: ($ns + ".Address")}]}')" \
+  "[{\"groupId\": \"$G\", \"artifactId\": \"address\", \"version\": \"1\", \"name\": \"$NS.Address\"}]" > /dev/null
 fetch crm "$(global_id customer 1)"
 # This run made 6 versions ACTIVE: user-event 1-3, order-placed 1, customer 1, and address 1, which
 # nobody fetched but customer references

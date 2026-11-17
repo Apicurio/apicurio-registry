@@ -29,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * {@link AccessRules} must read rules files exactly as Kroxylicious does: its authorizer must decide
+ * {@link AccessRulesAuthorizer} must read rules files exactly as Kroxylicious does: it must decide
  * as the one {@code AclAuthorizerService} builds, it must reject the same files, and its search
  * scope must select exactly the names that point access allows. Checked for every subject,
  * operation and name of a fixture covering every selector.

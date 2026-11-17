@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class SchemaNormalizerTest {
 
@@ -1104,6 +1105,59 @@ class SchemaNormalizerTest {
 
         assertNotEquals(normalized.getContent().content(), normalizedPermuted.getContent().content(),
                 "Avro field order is significant and must not be normalized away");
+    }
+
+    @Test
+    void normalizeSchema_withEnumDefault_preservesEnumDefault() {
+        String schemaWithEnumDefault = """
+                {
+                  "type": "record",
+                  "name": "Order",
+                  "namespace": "com.example",
+                  "fields": [
+                    {
+                      "name": "status",
+                      "type": {
+                        "type": "enum",
+                        "name": "Status",
+                        "symbols": ["PENDING", "ACTIVE", "INACTIVE", "UNKNOWN"],
+                        "default": "UNKNOWN"
+                      }
+                    }
+                  ]
+                }""";
+
+        String schemaWithoutEnumDefault = """
+                {
+                  "type": "record",
+                  "name": "Order",
+                  "namespace": "com.example",
+                  "fields": [
+                    {
+                      "name": "status",
+                      "type": {
+                        "type": "enum",
+                        "name": "Status",
+                        "symbols": ["PENDING", "ACTIVE", "INACTIVE", "UNKNOWN"]
+                      }
+                    }
+                  ]
+                }""";
+
+        Schema normalized = EnhancedAvroContentCanonicalizer.normalizeSchema(schemaWithEnumDefault);
+        Schema enumSchema = normalized.getField("status").schema();
+        assertEquals("UNKNOWN", enumSchema.getEnumDefault(),
+                "Enum default must be preserved during normalization");
+
+        Schema normalizedWithout = EnhancedAvroContentCanonicalizer.normalizeSchema(schemaWithoutEnumDefault);
+        assertNull(normalizedWithout.getField("status").schema().getEnumDefault());
+
+        EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
+        TypedContent canonicalWithDefault = canonicalizer.canonicalize(toTypedContent(schemaWithEnumDefault), new HashMap<>());
+        TypedContent canonicalWithoutDefault = canonicalizer.canonicalize(toTypedContent(schemaWithoutEnumDefault), new HashMap<>());
+
+        assertNotEquals(canonicalWithDefault.getContent().content(), canonicalWithoutDefault.getContent().content(),
+                "Schemas differing in enum default must produce different canonical forms");
     }
 
     private String getSchemaFromResource(String resourcePath) throws IOException {

@@ -1,0 +1,12 @@
+# KafkaSQL storage, two replicas sharing one journal topic.
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: registry
+spec:
+  app:
+    replicas: 2
+    storage:
+      type: kafkasql
+      kafkasql:
+        bootstrapServers: kafka:9092

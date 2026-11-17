@@ -1,0 +1,16 @@
+# PostgreSQL storage: the password comes from a Secret, never from the CR.
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: registry
+spec:
+  app:
+    storage:
+      type: postgresql
+      sql:
+        dataSource:
+          url: jdbc:postgresql://postgres:5432/registry
+          username: registry
+          password:
+            name: registry-db
+            key: password

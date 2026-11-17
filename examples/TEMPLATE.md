@@ -75,7 +75,7 @@ saying why:
 | `CI_MATRIX` | none | Space-separated values: one job per value, for an example too long for one job. Each job sets `CI_VARIANT` and `COMPOSE_PROFILES` to its value, so put each variant's services in a Compose profile of that name |
 | `CI_NEEDS_MUTABLE_IMAGE` | `false` | `true` loads this commit's re-augmentable registry image as `REGISTRY_MUTABLE_IMAGE`, for an example that builds an image with its own Java providers from it |
 | `CI_RELEASED_IMAGES` | none | Space-separated `image:tag` values: released Apicurio Registry images the example runs on purpose besides this commit's (for example, the source of a migration). They are exempt from the check that every Apicurio Registry image is this commit's |
-| `CI_SELF_MANAGED` | `false` | `true`: `demo.sh` starts and stops its own containers, for an example that must prepare something first; the runner skips its start step |
+| `CI_SELF_MANAGED` | `false` | `true`: `demo.sh` starts and stops its own containers, for an example that must prepare something first; the runner skips its start step. A self-managed example may have no Compose file at all (for example one that creates a kind cluster): the runner then skips every Compose step, and `demo.sh` must deploy `REGISTRY_IMAGE` and `REGISTRY_UI_IMAGE` |
 | any other key | | Exported to `docker compose` and `demo.sh`, for example `SKIP_LLM=1` |
 
 **Java clients.** Snapshots of the client libraries (SDK, serdes, validation library) are not

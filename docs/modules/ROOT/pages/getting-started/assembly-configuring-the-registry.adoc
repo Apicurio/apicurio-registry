@@ -204,6 +204,49 @@ In read-only mode, you cannot make changes to registered artifacts. For example,
 * Updating artifact metadata
 * Deleting an artifact
 
++
+NOTE: `REGISTRY_FEATURE_READ_ONLY` only hides these actions in the web console. The REST API still accepts them. To refuse every write, enable the storage read-only mode, `apicurio.storage.read-only.enabled`, as described in xref:registry-operational-guardrails_{context}[].
+
+
+// ref-registry-operational-guardrails
+[id="registry-operational-guardrails_{context}"]
+== Operational guardrails
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+{registry} has settings that bound what clients can do: size and count limits, disabled API paths, switches for destructive operations, and a read-only mode.
+
+.Operational guardrails
+[%header,cols="2,3,2"]
+|===
+|Setting
+|Effect
+|Changed at runtime
+
+|`apicurio.limits.config.*`, for example `max-artifacts`, `max-versions-per-artifact`, `max-schema-size.bytes`, `max-artifact-labels`, `max-label-size.bytes`, `max-name-length`, `max-description-length`
+|Refuses a create or metadata update that would exceed the limit with HTTP 409 and a message that names the limit. Reads are never limited, and neither are imports or edits of draft version content. The default, `-1`, means no limit. The artifact and version counts are checked against counters that each replica reloads from storage every 30 seconds (`apicurio.storage.metrics.cache.check-period.ms`), so they are approximate: with several replicas, or concurrent requests, the registry can hold more than the limit.
+|No
+
+|`apicurio.disable.apis`
+|A comma-separated list of regular expressions. A request whose path matches one of them gets HTTP 404, for example `/apis/ccompat/.*` disables the Confluent-compatible API.
+|No
+
+|`apicurio.rest.deletion.group.enabled`, `apicurio.rest.deletion.artifact.enabled`, `apicurio.rest.deletion.artifact-version.enabled`
+|Deleting groups, artifacts, or versions through the v2 and v3 REST APIs. Off by default: a delete gets HTTP 405. The Confluent-compatible API does not check these settings.
+|Yes
+
+|`apicurio.storage.read-only.enabled`
+|Refuses every write from clients with HTTP 409, including other configuration changes. Reads work, and the web console shows the registry as read-only. The one exception is `apicurio.storage.read-only.enabled` itself, so read-only mode can be switched off through the API. Usage telemetry, when enabled, keeps recording.
+|Yes
+|===
+
+Settings that can be changed at runtime are set with `PUT /apis/registry/v3/admin/config/properties/\{name}`. They are stored in the database, so every replica applies them within `apicurio.config.refresh.every` (default `1m`).
+
+[role="_additional-resources"]
+.Additional resources
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/operational-guardrails[Operational guardrails example]
+
 
 // ref-configuring-registry-observability
 [id="configuring-registry-observability_{context}"]

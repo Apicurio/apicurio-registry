@@ -76,8 +76,7 @@ class KafkaSqlUsageSubmissionTest {
         storage.deleteOldUsageEvents(5000L);
 
         assertEquals(0, coordinator.pendingCount());
-        // A count of 0 also holds for writes that send nothing, so pin that all 101 were sent
-        // and that none of them reached the coordinator.
+        // A count of 0 also holds if nothing was sent, so verify the sends too.
         verify(producer, times(101)).apply(any());
         verify(coordinatorInstance, never()).get();
     }
@@ -96,8 +95,7 @@ class KafkaSqlUsageSubmissionTest {
 
         ProducerRecord<KafkaSqlMessageKey, KafkaSqlMessage> sent = sentRecord();
         assertEquals("DeleteOldUsageEvents1Message", sent.key().getMessageType());
-        // KafkaSqlSink parses this header with UUID.fromString, so anything but a real
-        // UUID would break response routing while this test still passed.
+        // KafkaSqlSink parses this header with UUID.fromString.
         assertEquals(4, UUID.fromString(new String(
                 sent.headers().lastHeader(KafkaSqlSubmitter.REQUEST_ID_HEADER).value(), StandardCharsets.UTF_8))
                 .version(), "The request ID must be a well-formed random UUID");

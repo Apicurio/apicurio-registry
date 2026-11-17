@@ -84,11 +84,7 @@ class KafkaSqlSubmitterTest {
         assertSame(message.getKey(), record.key());
         assertSame(message, record.value());
 
-        // The returned UUID is how the caller later claims its response, and the header is how
-        // KafkaSqlSink routes that response back. Nothing else pins them to the same value: a
-        // send() handed a fresh UUID.randomUUID() would still register one entry and still
-        // return a UUID, and every other assertion here would pass while the response was
-        // delivered under an ID no one is waiting on.
+        // The response is routed by the header, so it must match the UUID the caller waits on.
         assertEquals(requestId, sentRequestId(),
                 "The registered UUID and the one on the wire must be the same");
     }
@@ -99,9 +95,7 @@ class KafkaSqlSubmitterTest {
 
         UUID requestId = submitter.submitMessageWithoutResponse(message()).get(5, TimeUnit.SECONDS);
 
-        // KafkaSqlValueDeserializer needs the type header to decode the record. KafkaAdminUtil
-        // classifies a journal topic as v3 only when the request ID header is present too, and
-        // KafkaSqlSink parses that header with UUID.fromString, so it must be a real UUID.
+        // Consumers need the type header, and a real UUID in the request ID header.
         assertEquals("RecordUsageEvent1", sentHeader(KafkaSqlSubmitter.MESSAGE_TYPE_HEADER));
         assertEquals(4, sentRequestId().version(), "The request ID must be a well-formed random UUID");
         assertEquals(requestId, sentRequestId(), "The returned UUID must be the one on the wire");
@@ -111,10 +105,8 @@ class KafkaSqlSubmitterTest {
     }
 
     /**
-     * Fails the send after submitMessage has returned, which is the ordering the forget() in
-     * whenComplete exists for. Asserting the entry is still pending in between is what
-     * separates "forget ran" from "nothing was ever registered": without that mid-flight
-     * check, a submitMessage that never called createUUID would pass just as happily.
+     * A send that fails after submitMessage returns forgets the entry. The mid-flight count
+     * proves the entry was registered in the first place.
      */
     @Test
     @Timeout(10)
@@ -136,13 +128,7 @@ class KafkaSqlSubmitterTest {
                 "A send that failed asynchronously must not leave its entry in the pending map");
     }
 
-    /**
-     * Models a synchronous throw out of send(). AsyncProducer.apply turns an Exception from the
-     * Kafka client into an exceptionally-completed future, but it is reached through a CDI client
-     * proxy whose bean is created on first use, so a failure creating that bean still throws
-     * from apply() itself; the Instance.get() lookups and the ProducerRecord constructor throw
-     * the same way. This covers the topic lookup, which is the first of them.
-     */
+    /** A synchronous throw from send() (here, the topic lookup) still forgets the entry. */
     @Test
     void testSynchronousSendFailureForgetsPendingEntry() {
         when(configurationInstance.get()).thenThrow(new IllegalStateException("configuration unavailable"));
@@ -152,30 +138,23 @@ class KafkaSqlSubmitterTest {
         assertEquals("configuration unavailable", thrown.getMessage());
 
         assertEquals(0, coordinator.pendingCount());
-        // A count of 0 is also the state before submitMessage runs, so on its own it cannot tell
-        // "forget ran" from "createUUID was never called". Verifying forget directly states the
-        // contract the catch block exists for.
+        // pendingCount() alone can't tell "forgot" from "never registered".
         verify(coordinator).forget(any(UUID.class));
     }
 
     @Test
     void testSubmitMessageWithoutResponseSynchronousFailurePropagates() {
-        // A synchronous send failure means the record was never handed to the producer.
         when(producerInstance.get()).thenThrow(new IllegalStateException("producer unavailable"));
 
         IllegalStateException thrown = assertThrows(IllegalStateException.class,
                 () -> submitter.submitMessageWithoutResponse(message()));
         assertEquals("producer unavailable", thrown.getMessage());
 
-        // Not pendingCount(): this path never registers, so a count of 0 holds even for an
-        // empty method body. Asserting the coordinator is never consulted states the contract.
+        // This path never registers, so assert the coordinator is never consulted.
         verify(coordinatorInstance, never()).get();
     }
 
-    /**
-     * The submitter does not swallow an asynchronous failure: it reaches the caller through the
-     * returned future, which is where KafkaSqlRegistryStorage logs it for usage writes.
-     */
+    /** An asynchronous failure reaches the caller through the returned future. */
     @Test
     void testSubmitMessageWithoutResponseAsyncFailureReachesTheCaller() {
         RuntimeException sendFailure = new RuntimeException("broker down");
@@ -191,18 +170,8 @@ class KafkaSqlSubmitterTest {
     }
 
     /**
-     * submitBootstrap used to route through send(), which allocated a coordinator entry, so
-     * every node startup registered a pending entry nobody ever waited on. It now passes a
-     * random UUID instead. Nothing else pins that, so this is what stops the coordinator
-     * lookup being reintroduced here. The headers are asserted too: KafkaAdminUtil classifies
-     * journal topics by their presence, so dropping them would break topic detection rather
-     * than anything this class can see.
-     * <p>
-     * The pre-completion at the start of the test is load-bearing. submitBootstrap blocks in
-     * ConcurrentUtil.blockOnResult, whose retry loop swallows InterruptedException, so a
-     * future that never completes would ignore a same-thread {@code @Timeout}'s interrupt and
-     * hang the fork. The separate thread mode lets the timeout fail the test anyway, leaking
-     * only the blocked thread.
+     * Bootstrap must not register a coordinator entry, since nobody waits on it. Runs in a separate
+     * thread because blockOnResult swallows interrupts and would otherwise ignore the timeout.
      */
     @Test
     @Timeout(value = 10, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
@@ -214,8 +183,7 @@ class KafkaSqlSubmitterTest {
         assertEquals(KafkaSqlSubmitter.BOOTSTRAP_MESSAGE_TYPE, sentHeader(KafkaSqlSubmitter.MESSAGE_TYPE_HEADER));
         assertEquals(4, sentRequestId().version(), "The request ID must be a well-formed random UUID");
         ProducerRecord<KafkaSqlMessageKey, KafkaSqlMessage> record = sentRecord();
-        // Once the type marks a record as a bootstrap, the consumer matches it to its own
-        // bootstrap sequence by this key UUID.
+        // The consumer matches a bootstrap record to its own sequence by this key UUID.
         assertEquals("bootstrap-1", record.key().getUuid());
         assertNull(record.value());
 

@@ -3,6 +3,8 @@ package io.apicurio.registry.storage.impl.kafkasql;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.storage.impl.util.ProducerActions;
+
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_STORAGE;
 import io.quarkus.arc.lookup.LookupIfProperty;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
@@ -19,7 +21,6 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_STORAGE;
 import static io.apicurio.registry.utils.ConcurrentUtil.blockOnResult;
 
 @ApplicationScoped
@@ -95,21 +96,16 @@ public class KafkaSqlSubmitter {
      */
     public CompletableFuture<UUID> submitMessage(KafkaSqlMessage message) {
         var key = message.getKey();
-        // Resolved once: a second lookup throwing on a cleanup path would lose the forget and
-        // replace the send failure the caller is waiting on with the lookup failure.
         KafkaSqlCoordinator kafkaSqlCoordinator = coordinator.get();
         UUID requestId = kafkaSqlCoordinator.createUUID();
         try {
+            // A failed send means the caller will never wait, so drop the pending entry.
             return send(key, message, requestId).whenComplete((uuid, error) -> {
                 if (error != null) {
-                    // Forgets even if the record did reach the log. A response arriving
-                    // later then finds no entry, and notifyResponse drops it.
                     kafkaSqlCoordinator.forget(requestId);
                 }
             });
         } catch (Throwable e) {
-            // The record never reached the broker, so no response will ever arrive for
-            // this UUID; the entry registered above must not linger in the coordinator.
             kafkaSqlCoordinator.forget(requestId);
             throw e;
         }

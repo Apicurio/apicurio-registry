@@ -44,8 +44,7 @@ public class KafkaSqlCoordinator {
 
     /**
      * Blocks until the operation with the given UUID completes or times out, then removes its entry.
-     * Throws a RegistryException immediately when nothing is registered under the UUID, which the
-     * old dual-map design surfaced as a NullPointerException instead.
+     * Throws a RegistryException immediately when nothing is registered under the UUID.
      */
     public Object waitForResponse(UUID uuid) {
         CompletableFuture<Object> future = pending.get(uuid);
@@ -63,23 +62,24 @@ public class KafkaSqlCoordinator {
             }
             return result;
         } catch (TimeoutException e) {
-            // No cause, deliberately: ProblemDetails.detail renders only the root cause, and the
-            // TimeoutException from CompletableFuture.get() has a null message, so chaining it
-            // would reduce detail to "TimeoutException: " and drop the operation UUID.
-            throw new RegistryException(
+            // Suppressed rather than chained: the error detail renders the root cause message,
+            // and this exception's null message would hide the operation UUID.
+            RegistryException timeout = new RegistryException(
                     "[KafkaSqlCoordinator] Timed out waiting for a Kafka Sql response for operation " + uuid);
+            timeout.addSuppressed(e);
+            throw timeout;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            // No cause, for the same reason as the timeout above: the InterruptedException
-            // also has a null message, so chaining it would reduce detail to
-            // "InterruptedException: " and drop the operation UUID.
-            throw new RegistryException(
+            // Suppressed rather than chained, for the same reason as the timeout above.
+            RegistryException interrupted = new RegistryException(
                     "[KafkaSqlCoordinator] Thread interrupted waiting for a Kafka Sql response for operation " + uuid);
+            interrupted.addSuppressed(e);
+            throw interrupted;
         } catch (ExecutionException e) {
-            // Unreachable: notifyResponse uses complete(), never completeExceptionally().
-            // Required because CompletableFuture.get() declares this checked exception.
+            // Unreachable today: notifyResponse never calls completeExceptionally().
             throw new RegistryException(
-                    "[KafkaSqlCoordinator] Error waiting for response.", e.getCause());
+                    "[KafkaSqlCoordinator] Error waiting for a Kafka Sql response for operation " + uuid,
+                    e.getCause());
         } finally {
             pending.remove(uuid);
         }
@@ -98,15 +98,11 @@ public class KafkaSqlCoordinator {
             return;
         }
 
-        // If there is no pending future, then there is no HTTP thread waiting for
-        // a response on this node. Among the reasons: we're in a cluster and the HTTP
-        // thread is on another node, we're starting up and consuming old journal entries,
-        // or the entry was already removed (see waitForResponse's finally and forget).
-        // Dropping the response is correct in all of them.
+        // No entry means nobody on this node is waiting (another node's request, journal
+        // replay at startup, or already cleaned up), so the response is dropped.
         CompletableFuture<Object> future = pending.get(uuid);
         if (future != null) {
-            // First response wins: complete() drops a second notify, where the old
-            // dual-map design let a later notify overwrite an undelivered earlier one.
+            // First response wins: complete() ignores any later notify.
             future.complete(returnValue);
         }
     }

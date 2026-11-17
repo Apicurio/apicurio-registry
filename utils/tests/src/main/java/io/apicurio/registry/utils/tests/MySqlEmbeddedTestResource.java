@@ -15,7 +15,10 @@ public class MySqlEmbeddedTestResource implements QuarkusTestResourceLifecycleMa
 
     private static final DockerImageName IMAGE =DockerImageName.parse("mysql:8").asCompatibleSubstituteFor("mysql");
 
-    private MySQLContainer database = new MySQLContainer(IMAGE).withPassword(DB_PASSWORD);
+    // sql_require_primary_key matches managed MySQL services and InnoDB Cluster, which reject tables
+    // created without a primary key.
+    private MySQLContainer database = new MySQLContainer(IMAGE).withPassword(DB_PASSWORD)
+            .withCommand("--sql-require-primary-key=ON");
 
     /**
      * Constructor.

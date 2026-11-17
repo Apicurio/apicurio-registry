@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.io.InputStream;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -85,6 +86,21 @@ class SqlSchemaConsistencyTest {
                     "Upgrade DDL for dialect '" + dialect + "' at version " + PEERS_DB_VERSION
                             + " must create the peers table with the same columns as the base DDL.");
         }
+    }
+
+    /**
+     * MySQL servers with sql_require_primary_key=ON (managed services, InnoDB Cluster) reject a
+     * CREATE TABLE without a primary key, even if a later ALTER TABLE would add one.
+     */
+    @Test
+    void testEveryMysqlTableDeclaresPrimaryKeyInline() {
+        List<String> keyless = new MySQLSqlStatements().databaseInitialization().stream()
+                .filter(statement -> statement.startsWith("CREATE TABLE"))
+                .filter(statement -> !statement.contains("PRIMARY KEY"))
+                .map(statement -> statement.substring(0, statement.indexOf('(')).trim())
+                .toList();
+        Assertions.assertEquals(List.of(), keyless,
+                "Every CREATE TABLE in mysql.ddl must declare its PRIMARY KEY inline.");
     }
 
     private static String peersColumns(String ddl) {

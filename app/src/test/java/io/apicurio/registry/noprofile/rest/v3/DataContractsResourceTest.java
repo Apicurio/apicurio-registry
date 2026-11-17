@@ -39,6 +39,8 @@ import io.apicurio.registry.rest.v3.beans.CreateVersion;
 import io.apicurio.registry.rest.v3.beans.VersionContent;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.Map;
 
@@ -1329,6 +1331,66 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
                 .get("/registry/v3/search/contracts")
                 .then().statusCode(200)
                 .body("count", notNullValue());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { "bogus", "CREATEDON", "version", "globalId", "artifactId" })
+    public void testSearchContracts_UnsupportedOrderByReturns400(String orderby) {
+        given().when()
+                .queryParam("orderby", orderby)
+                .get("/registry/v3/search/contracts")
+                .then().statusCode(400)
+                .body("title", equalTo("Invalid 'orderby' value. Allowed values are: name, createdOn, modifiedOn."));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { "name", "createdOn", "modifiedOn" })
+    public void testSearchContracts_SupportedOrderBy(String orderby) throws Exception {
+        String artifactId = "testSearch_OrderBy_" + orderby + "-" + UUID.randomUUID();
+        createArtifactWithContractMetadata(artifactId);
+
+        given().when()
+                .queryParam("orderby", orderby).queryParam("limit", 1000)
+                .get("/registry/v3/search/contracts")
+                .then().statusCode(200)
+                .body("artifacts.artifactId", hasItem(artifactId));
+    }
+
+    @Test
+    public void testSearchContracts_OrderByNameAppliesDirection() throws Exception {
+        String suffix = UUID.randomUUID().toString();
+        String first = "testSearch_OrderByName_A-" + suffix;
+        String second = "testSearch_OrderByName_B-" + suffix;
+        createArtifactWithContractMetadata(second);
+        createArtifactWithContractMetadata(first);
+
+        assertEquals(List.of(first, second), contractSearchOrder("asc", first, second));
+        assertEquals(List.of(second, first), contractSearchOrder("desc", first, second));
+    }
+
+    private void createArtifactWithContractMetadata(String artifactId) throws Exception {
+        createArtifact(GROUP, artifactId, ArtifactType.AVRO,
+                "{\"type\":\"record\",\"name\":\"R\",\"fields\":[{\"name\":\"x\",\"type\":\"int\"}]}",
+                ContentTypes.APPLICATION_JSON);
+        given().when().contentType(CT_JSON)
+                .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                .body(EditableContractMetadata.builder().status(EditableContractMetadata.Status.DRAFT).build())
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
+                .then().statusCode(200);
+    }
+
+    /**
+     * Returns the given artifact IDs in the order {@code /search/contracts?orderby=name} lists them. Other
+     * tests share the registry, so the full result is filtered down to the IDs of interest.
+     */
+    private List<String> contractSearchOrder(String order, String... artifactIds) {
+        List<String> listed = given().when()
+                .queryParam("orderby", "name").queryParam("order", order).queryParam("limit", 1000)
+                .get("/registry/v3/search/contracts")
+                .then().statusCode(200)
+                .extract().jsonPath().getList("artifacts.artifactId", String.class);
+        List<String> wanted = List.of(artifactIds);
+        return listed.stream().filter(wanted::contains).toList();
     }
 
     // ========== #7375 Global Rules Acceptance Criteria ==========

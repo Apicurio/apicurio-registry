@@ -964,6 +964,11 @@ The following {registry} configuration options are available for each component 
 |`10`
 |`3.4.0`
 |Timeout, in seconds, for connecting to the MCP server and for each request to it during an import
+|`apicurio.mcp-import.tls-configuration.name`
+|`optional<string>`
+|
+|`3.4.0`
+|Name of a TLS configuration in the Quarkus TLS registry (quarkus.tls.<name>.*) used for HTTPS connections to MCP servers during an import, for example to trust an internal certificate authority. When not set, the default truststore of the JVM is used
 |`apicurio.mcp-import.tools.max-size`
 |`int`
 |`500`

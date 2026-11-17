@@ -54,6 +54,10 @@ public class McpImportConfig {
     @Info(category = CATEGORY_MCP, description = "Maximum total size, in bytes, of the tool definitions an MCP server may list for an import, across all pages", availableSince = "3.4.0")
     long toolsMaxTotalSize;
 
+    @ConfigProperty(name = "apicurio.mcp-import.tls-configuration.name")
+    @Info(category = CATEGORY_MCP, description = "Name of a TLS configuration in the Quarkus TLS registry (quarkus.tls.<name>.*) used for HTTPS connections to MCP servers during an import, for example to trust an internal certificate authority. When not set, the default truststore of the JVM is used", availableSince = "3.4.0")
+    Optional<String> tlsConfigurationName;
+
     public boolean isEnabled() {
         return enabled;
     }
@@ -88,5 +92,9 @@ public class McpImportConfig {
 
     public long getToolsMaxTotalSize() {
         return toolsMaxTotalSize;
+    }
+
+    public Optional<String> getTlsConfigurationName() {
+        return tlsConfigurationName;
     }
 }

@@ -102,6 +102,10 @@ public class SqlSearchRepository {
             // Add order by to artifact query
             appendArtifactOrderBy(orderByQuery, orderBy);
             orderByQuery.append(" ").append(orderDirection.name());
+            // A unique key last, so rows that tie on the sort key come back in the same order on
+            // every query, and paging neither repeats nor skips them.
+            orderByQuery.append(", a.groupId ").append(orderDirection.name())
+                    .append(", a.artifactId ").append(orderDirection.name());
 
             // Query for the artifacts
             String artifactsQuerySql = sqlStatements.selectTableTemplate("a.*", "artifacts", "a",
@@ -171,7 +175,9 @@ public class SqlSearchRepository {
                 limitOffset.append(" LIMIT ? OFFSET ?");
             }
 
-            if (orderBy == OrderBy.createdOn || orderBy == OrderBy.modifiedOn) {
+            // A unique key last, so rows that tie on the sort key come back in the same order on
+            // every query, and paging neither repeats nor skips them.
+            if (orderBy != OrderBy.globalId) {
                 orderByQuery.append(", v.globalId ").append(orderDirection.name());
             }
 

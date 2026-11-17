@@ -236,7 +236,9 @@ public class McpToolImportService implements McpToolImportHandler {
                         "The MCP server lists two tools with the same name.");
             }
             String toolArtifactId = serverArtifactId + "." + tool.name();
-            if (storage.isArtifactExists(raw(toolGroupId), toolArtifactId)) {
+            // A tool with an invalid name is rejected without a lookup: some databases cannot even
+            // compare such an ID (MySQL fails on non-ASCII characters, #11180).
+            if (isValidTool(tool, toolArtifactId) && storage.isArtifactExists(raw(toolGroupId), toolArtifactId)) {
                 accessGuard.requireAccess(AuthorizedLevel.Write, AuthorizedResource.artifact(toolGroupId,
                         toolArtifactId));
             }
@@ -289,7 +291,7 @@ public class McpToolImportService implements McpToolImportHandler {
         result.setGroupId(groupId);
         result.setArtifactId(artifactId);
 
-        if (!isValidToolName(tool.name()) || !ArtifactId.isValid(artifactId)) {
+        if (!isValidTool(tool, artifactId)) {
             result.setStatus(McpToolImportStatus.REJECTED);
             result.setCauses(List.of(cause("The tool name must be 1 to " + TOOL_NAME_MAX_LENGTH
                     + " ASCII letters, digits, '_', '-' or '.', as the MCP specification recommends, and the"
@@ -435,6 +437,10 @@ public class McpToolImportService implements McpToolImportHandler {
     }
 
     /** A character allowed in an HTTP field name: RFC 9110 {@code tchar}. */
+    private static boolean isValidTool(McpSchema.Tool tool, String artifactId) {
+        return isValidToolName(tool.name()) && ArtifactId.isValid(artifactId);
+    }
+
     private static boolean isValidToolName(String name) {
         return name != null && TOOL_NAME.matcher(name).matches();
     }

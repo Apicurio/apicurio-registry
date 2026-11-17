@@ -141,8 +141,10 @@ check "PUT /config/orders-value BACKWARD" '200 {"compatibility":"BACKWARD","norm
   "$(cc PUT "$V7/config/orders-value" '{"compatibility": "BACKWARD"}')"
 check "  is an Apicurio COMPATIBILITY rule" BACKWARD \
   "$(curl -s "$V3/groups/default/artifacts/orders-value/rules/COMPATIBILITY" | jq -r .config)"
-check "an incompatible schema is now rejected: 409, error_code 409" "409 409" \
-  "$(err "$(cc POST "$V7/subjects/orders-value/versions" "$(schema "$ORDER_BAD")")")"
+INCOMPATIBLE=$(cc POST "$V7/subjects/orders-value/versions" "$(schema "$ORDER_BAD")")
+check "an incompatible schema is now rejected: 409, error_code 409" "409 409" "$(err "$INCOMPATIBLE")"
+check "  with Confluent's message" 'Schema being registered is incompatible with an earlier schema for subject "orders-value"' \
+  "$(read -r _ b <<< "$INCOMPATIBLE"; jq -r .message <<< "$b" | sed 's/, details:.*//')"
 check "  and the Confluent producer fails to send" "failed" \
   "$(echo '{"id":1,"amount":1}' | produce kafka-avro-console-producer orders "$SR_V7" --property value.schema="$ORDER_BAD" && echo sent || echo failed)"
 check "a compatible schema is registered: version 2" "200 [1,2]" \
@@ -158,11 +160,10 @@ check "a soft delete of version 2" "200 2" "$(cc DELETE "$V7/subjects/orders-val
 check "  is the version's state DISABLED" DISABLED "$(curl -s "$V3/groups/default/artifacts/orders-value/versions/2" | jq -r .state)"
 check "  hidden from the versions" "200 [1]" "$(cc GET "$V7/subjects/orders-value/versions")"
 check "  unless deleted=true" "200 [1,2]" "$(cc GET "$V7/subjects/orders-value/versions?deleted=true")"
-# The status of 40405, 40406 and 40407 is 409; Confluent's is 404 (#11125)
-check "a second soft delete: error_code 40406" 40406 \
-  "$(err "$(cc DELETE "$V7/subjects/orders-value/versions/2")" | cut -d' ' -f2)"
-check "a permanent delete of a version not soft deleted first: error_code 40407" 40407 \
-  "$(err "$(cc DELETE "$V7/subjects/orders-value/versions/1?permanent=true")" | cut -d' ' -f2)"
+check "a second soft delete: 404, error_code 40406" "404 40406" \
+  "$(err "$(cc DELETE "$V7/subjects/orders-value/versions/2")")"
+check "a permanent delete of a version not soft deleted first: 404, error_code 40407" "404 40407" \
+  "$(err "$(cc DELETE "$V7/subjects/orders-value/versions/1?permanent=true")")"
 check "a permanent delete after the soft delete removes the version" "200 2 404" \
   "$(cc DELETE "$V7/subjects/orders-value/versions/2?permanent=true") $(curl -s -o /dev/null -w '%{http_code}' "$V3/groups/default/artifacts/orders-value/versions/2")"
 check "a soft-deleted subject (both its versions) is hidden, but listed with deleted=true" "200 [1,2] false true" \

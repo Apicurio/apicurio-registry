@@ -486,7 +486,8 @@ status developer GET /groups/team-b/artifacts/inventory-schema
 
 Reload `team-b` in the UI: `inventory-schema` is gone again.
 
-Rules must all come before `otherwise deny;`. Nothing after it ever applies.
+Rules must all come before `otherwise deny;`. A file with anything after it is invalid, so the
+registry keeps the previous rules, as with the missing semicolon above.
 
 ## Step 14: Clean up
 
@@ -513,13 +514,15 @@ rm -f access.rules.orig
 - **Questions that usually come up:**
   - *Does a group rule give access to the artifacts in the group?* No. Group and artifact rules
     are independent (step 4).
-  - *Can rules give more than the role?* No. Without RBAC enabled, the rules alone decide, but
-    with RBAC both must allow (step 9).
+  - *Can rules give more than the role?* No. With RBAC enabled, both must allow (step 9). Without
+    it, the rules decide, apart from the admin and owner bypasses (steps 5 and 11).
   - *Where is the policy stored?* In a file, so it can be versioned in Git or mounted from a
     Kubernetes ConfigMap (mount the ConfigMap as a directory, not with `subPath`). Each registry
     replica reads its own copy.
   - *What about regular expressions?* `matching /regex/` works for direct access, but search
-    cannot use it. Use `=`, `in` or `like` for anything that must show up in search.
+    cannot use it: if any `matching` rule applies to a caller, search shows them only the
+    resources of that type they own. Use `=`, `in` or `like` for anything that must show up in
+    search.
 - **To reset between runs:** `docker compose down -v`, `cp access.rules.orig access.rules`, then
   steps 1 to 3 again.
 

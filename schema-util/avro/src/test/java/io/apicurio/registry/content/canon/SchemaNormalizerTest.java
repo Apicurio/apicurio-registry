@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 class SchemaNormalizerTest {
 
@@ -1191,7 +1192,7 @@ class SchemaNormalizerTest {
                 .normalizeSchema(schemaWithoutDefault);
         Schema normalizedWithDefault = EnhancedAvroContentCanonicalizer.normalizeSchema(schemaWithDefault);
 
-        assertEquals(normalizedWithoutDefault.getField("billingAddress").schema(),
+        assertSame(normalizedWithoutDefault.getField("billingAddress").schema(),
                 normalizedWithoutDefault.getField("shippingAddress").schema());
         assertEquals(normalizedWithDefault, normalizedWithoutDefault);
     }

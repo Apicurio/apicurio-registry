@@ -67,9 +67,10 @@ public class EnhancedAvroContentCanonicalizer implements ContentCanonicalizer {
         switch (schema.getType()) {
             case RECORD:
                 String key = createKey(schema);
-                if (alreadyNormalized.containsKey(key)) {
+                Schema existing = alreadyNormalized.get(key);
+                if (existing != null) {
                     // don't normalize again
-                    return alreadyNormalized.get(key);
+                    return existing;
                 }
                 result = Schema.createRecord(schema.getName(), EMPTY_DOC, schema.getNamespace(), false);
                 alreadyNormalized.put(key, result);

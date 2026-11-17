@@ -171,13 +171,11 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
     public GlobalConfigResponse deleteSubjectConfig(String subject, String groupId) {
         final GA ga = getGA(groupId, subject);
-        final GlobalConfigResponse compatibilityLevel = getCompatibilityLevel(() -> storage
-                .getArtifactRule(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), RuleType.COMPATIBILITY)
-                .getConfiguration());
-        if (!CompatibilityLevel.NONE.name().equals(compatibilityLevel.getCompatibilityLevel())) {
-            storage.deleteArtifactRule(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(),
-                    RuleType.COMPATIBILITY);
-        }
-        return compatibilityLevel;
+        RuleConfigurationDto rule = storage.getArtifactRule(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(),
+                RuleType.COMPATIBILITY);
+        storage.deleteArtifactRule(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), RuleType.COMPATIBILITY);
+        GlobalConfigResponse response = new GlobalConfigResponse();
+        response.setCompatibilityLevel(rule.getConfiguration());
+        return response;
     }
 }

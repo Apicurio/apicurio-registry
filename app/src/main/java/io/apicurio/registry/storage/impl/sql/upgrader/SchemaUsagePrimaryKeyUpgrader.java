@@ -15,6 +15,9 @@ import java.sql.SQLException;
  * replaced in the same statement (MySQL rejects dropping it on its own while the setting is ON). The
  * generated column is detected by selecting it: it is hidden from information_schema when
  * show_gipk_in_create_table_and_information_schema is OFF, but can always be selected by name.
+ * <p>
+ * A table that already has usageId is left alone. Operators who could not wait for this upgrade (for
+ * example to migrate to InnoDB Cluster) add the same key by hand, and adding it again would fail.
  */
 @RegisterForReflection
 public class SchemaUsagePrimaryKeyUpgrader implements IDbUpgrader {
@@ -30,12 +33,15 @@ public class SchemaUsagePrimaryKeyUpgrader implements IDbUpgrader {
 
     @Override
     public void upgrade(Handle handle) {
-        handle.createUpdate(hasGeneratedKey(handle) ? REPLACE_GENERATED_KEY : ADD_KEY).execute();
+        if (hasColumn(handle, "usageId")) {
+            return;
+        }
+        handle.createUpdate(hasColumn(handle, "my_row_id") ? REPLACE_GENERATED_KEY : ADD_KEY).execute();
     }
 
-    private static boolean hasGeneratedKey(Handle handle) {
+    private static boolean hasColumn(Handle handle, String column) {
         try {
-            handle.createQuery("SELECT my_row_id FROM schema_usage WHERE 1 = 0").map(rs -> 0).list();
+            handle.createQuery("SELECT " + column + " FROM schema_usage WHERE 1 = 0").map(rs -> 0).list();
             return true;
         } catch (RuntimeSqlException e) {
             if (e.getCause() instanceof SQLException sqlException

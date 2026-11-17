@@ -83,6 +83,14 @@ class SchemaUsagePrimaryKeyUpgraderMysqlTest {
         upgradeAndAssertRowsKept();
     }
 
+    @Test
+    void testKeepsPrimaryKeyAddedByHand() {
+        createSchemaUsageFrom105(false);
+        execute("ALTER TABLE schema_usage ADD COLUMN usageId BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY FIRST");
+
+        upgradeAndAssertRowsKept();
+    }
+
     private void upgradeAndAssertRowsKept() {
         insertUsage(10L, "client-a");
         insertUsage(20L, "client-b");

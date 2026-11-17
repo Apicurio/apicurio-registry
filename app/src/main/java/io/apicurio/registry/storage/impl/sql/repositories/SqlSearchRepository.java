@@ -20,6 +20,7 @@ import io.apicurio.registry.storage.impl.sql.mappers.SearchedVersionMapper;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -467,6 +468,10 @@ public class SqlSearchRepository {
                 break;
             case state:
             case version:
+                if (cannotMatchIdColumn(filter.getStringValue())) {
+                    appendNoMatch(where, filter.isNot());
+                    break;
+                }
                 op = equalityOperator(filter.isNot());
                 where.append("v.");
                 where.append(filter.getType().name());
@@ -618,6 +623,10 @@ public class SqlSearchRepository {
 
     private void buildWildcardClause(StringBuilder where, String column, String value, boolean not,
             List<SqlStatementVariableBinder> binders) {
+        if (!column.contains("labelValue") && cannotMatchIdColumn(value)) {
+            appendNoMatch(where, not);
+            return;
+        }
         if (value.contains("*")) {
             String op = not ? NOT_LIKE : "LIKE";
             where.append(column).append(" ").append(op).append(" ?");
@@ -632,6 +641,21 @@ public class SqlSearchRepository {
                 query.bind(idx, value);
             });
         }
+    }
+
+    /**
+     * Whether the value can never equal or match an ID column (group, artifact and version IDs,
+     * label keys). MySQL stores those as ASCII and fails a comparison with a non-ASCII value instead
+     * of answering false; no stored ID can contain one, because IDs are ASCII on write there.
+     */
+    private boolean cannotMatchIdColumn(String value) {
+        return "mysql".equals(sqlStatements.dbType()) && value != null
+                && !StandardCharsets.US_ASCII.newEncoder().canEncode(value);
+    }
+
+    /** A condition that is false, or true when negated, so the comparison it replaces is never sent. */
+    private static void appendNoMatch(StringBuilder where, boolean not) {
+        where.append(not ? "1 = 1" : "1 = 0");
     }
 
     private long getRequiredNumberValue(SearchFilter filter) {
@@ -666,8 +690,14 @@ public class SqlSearchRepository {
             nameColumn = "LOWER(" + nameColumn + ")";
             artifactIdColumn = "LOWER(" + artifactIdColumn + ")";
         }
-        where.append("(").append(nameColumn).append(" ").append(op).append(" ? OR ")
-                .append(artifactIdColumn).append(" ").append(op).append(" ?)");
+        boolean idCanMatch = !cannotMatchIdColumn(searchValue);
+        where.append("(").append(nameColumn).append(" ").append(op).append(" ? OR ");
+        if (idCanMatch) {
+            where.append(artifactIdColumn).append(" ").append(op).append(" ?)");
+        } else {
+            appendNoMatch(where, not);
+            where.append(")");
+        }
 
         // Translate leading/trailing '*' into SQL '%' wildcards, else bind the literal for exact match
         String pattern = wildcard ? toLikePattern(searchValue, startsWithWildcard, endsWithWildcard)
@@ -676,9 +706,11 @@ public class SqlSearchRepository {
         binders.add((query, idx) -> {
             query.bind(idx, bound);
         });
-        binders.add((query, idx) -> {
-            query.bind(idx, bound);
-        });
+        if (idCanMatch) {
+            binders.add((query, idx) -> {
+                query.bind(idx, bound);
+            });
+        }
     }
 
     private static String stripWildcardMarkers(String value, boolean startsWithWildcard,

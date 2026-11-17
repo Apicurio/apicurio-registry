@@ -47,7 +47,7 @@ X-Cache-Cacheability: HIGH                              the registry's assessmen
 |---|---|---|
 | `HIGH` | Content by global ID, content ID, content hash; a concrete, non-draft version's content | 10 days, `immutable` |
 | `MODERATE` | `branch=latest` and other branches; drafts; `references=DEREFERENCE`/`REWRITE` | 30 seconds, then revalidated |
-| `LOW` | When no reliable ETag exists (random ETag, never revalidated) | 10 seconds |
+| `LOW` | Inbound references, and anything without a reliable ETag (random ETag, never revalidated) | 10 seconds |
 
 The `Vary` header includes `Authorization`, so with authentication each caller's responses are
 cached separately.
@@ -73,7 +73,8 @@ curl -sI localhost:8081/apis/registry/v3/ids/globalIds/1 | grep X-Debug-Cache   
 ## Step 3: What goes stale
 
 The registry does not tell the cache when something changes. A `HIGH` entry is kept for 10 days on
-the assumption that it never changes, which holds for content by ID, but not for coordinates:
+the assumption that it never changes. That holds for content by content ID or hash, which are derived
+from the content, but not for coordinates:
 
 - `demo.sh` reads `reborn` version 1 (record `First`) through Varnish, deletes the artifact, and
   creates it again with record `Second`;
@@ -82,7 +83,9 @@ the assumption that it never changes, which holds for content by ID, but not for
 - a `PURGE` of that URL fixes it.
 
 Purge (or ban) after anything that changes data behind existing URLs: deleting versions, imports,
-restores, GitOps commits that change a version. `MODERATE` entries fix themselves within their TTL.
+restores, GitOps commits that change a version. On GitOps and KubernetesOps the global ID is derived
+from the coordinates too, so purge the `/ids/globalIds/...` URL of a replaced version as well.
+`MODERATE` entries fix themselves within their TTL.
 
 ## Step 4: Two replicas behind one cache
 
@@ -101,7 +104,8 @@ Varnish that sends each request to the next replica ([`varnish/cluster.vcl`](var
   here, 30 by default), then the new version: staleness is bounded by the `MODERATE` TTL.
 
 A replica that lags the journal can serve, and the cache keep, the previous `branch=latest` for one
-more TTL. `HIGH` content is not affected: IDs never point at different content.
+more TTL. `HIGH` content is not affected there: on KafkaSQL a recreated version gets a new global
+ID.
 
 ## Step 5: The full suite
 

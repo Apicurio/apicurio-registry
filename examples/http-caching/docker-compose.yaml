@@ -74,7 +74,7 @@ services:
     image: ${UI_IMAGE:-quay.io/apicurio/apicurio-registry-ui:latest-snapshot}
     environment:
       # Connect to Varnish (cached endpoint) for better performance
-      REGISTRY_API_URL: http://localhost:8081/apis/registry/v3
+      REGISTRY_API_URL: http://localhost:${VARNISH_PORT:-8081}/apis/registry/v3
     ports:
       - "${UI_PORT:-8888}:8080"  # UI web interface
     depends_on:

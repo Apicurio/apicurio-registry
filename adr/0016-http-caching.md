@@ -32,8 +32,8 @@ changed.
    | Level | When | `Surrogate-Control` |
    |---|---|---|
    | `HIGH` | Content by global ID, content ID or hash; a concrete, non-draft version; `references=PRESERVE`; outbound references | `max-age=864000, immutable` |
-   | `MODERATE` | Branch expressions, drafts, dereferenced or rewritten content, inbound references, when a deterministic ETag exists | `max-age=30, must-revalidate` |
-   | `LOW` | No deterministic ETag (a random one) | `max-age=10` |
+   | `MODERATE` | Branch expressions, drafts, dereferenced or rewritten content, when a deterministic ETag exists | `max-age=30, must-revalidate` |
+   | `LOW` | Inbound references, and anything without a deterministic ETag (a random one, never revalidated) | `max-age=10` |
    | `NONE` | Everything else, including writes | none |
 
 3. **ETags are deterministic inputs, optionally hashed.** The ETag lists what the content depends on
@@ -63,7 +63,8 @@ staleness for `MODERATE` and correctness relying on immutability for `HIGH`.
 
 | Situation | Result |
 |---|---|
-| Content by ID (`HIGH`) | Correct for ever: IDs never point at different content (on GitOps too: IDs are deterministic, see [ADR-0010](0010-storage-architecture.md)) |
+| Content by content ID or content hash (`HIGH`) | Correct for ever: both are derived from the content |
+| Content by global ID (`HIGH`) | Correct on SQL and KafkaSQL, where a recreated version gets a new global ID. On GitOps and KubernetesOps the global ID is derived from the coordinates ([ADR-0010](0010-storage-architecture.md)), so a commit that replaces a version's content keeps the URL and the old content is served for up to 10 days: purge it ([#11183](https://github.com/Apicurio/apicurio-registry/issues/11183)) |
 | `branch=latest`, drafts (`MODERATE`) | Stale for at most one TTL (30 seconds by default) |
 | A version's content by coordinates (`HIGH`) | **Stale for up to 10 days** after the version is deleted and recreated, or its content replaced by an import or a GitOps commit ([#11183](https://github.com/Apicurio/apicurio-registry/issues/11183)) |
 | Several replicas | Same ETags on every replica; a replica that lags the KafkaSQL journal can fill an entry with the previous `branch=latest` for one more TTL |
@@ -102,8 +103,9 @@ compares with the unhashed one, so revalidation always downloads the content aga
 
 ## Limitations and open work
 
-1. No invalidation: deletes, imports, restores and GitOps changes need a manual purge for `HIGH`
-   coordinates ([#11183](https://github.com/Apicurio/apicurio-registry/issues/11183)).
+1. No invalidation: deletes, imports, restores and GitOps changes need a manual purge of the affected
+   coordinate URLs and, on GitOps and KubernetesOps, global-ID URLs
+   ([#11183](https://github.com/Apicurio/apicurio-registry/issues/11183)).
 2. Conditional requests never match with opaque ETags
    ([#11207](https://github.com/Apicurio/apicurio-registry/issues/11207)).
 3. Only content and reference endpoints are cacheable; metadata, search and lists are not.
@@ -121,7 +123,7 @@ compares with the unhashed one, so revalidation always downloads the content aga
 
 ## Consequences
 
-- **Benefits:** most reads answered without the registry; IDs cacheable for ever; staleness bounded
+- **Benefits:** most reads answered without the registry; content IDs and hashes cacheable for ever; staleness bounded
   and explicit for moving targets; works with any number of replicas.
 - **Costs:** a cache to run and configure; deletes need purges; revalidation savings lost in `prod`
   until #11207 is fixed.

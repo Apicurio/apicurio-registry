@@ -87,17 +87,7 @@ public final class ReferenceGraphWalker {
         int depth = 1;
 
         while (!currentLevel.isEmpty()) {
-            List<GAV> distinctTargets = new ArrayList<>();
-            for (ArtifactReferenceDto reference : currentLevel) {
-                if (reference.getName() == null) {
-                    throw new IllegalStateException("Invalid reference: " + reference);
-                }
-                GAV target = coordinatesOf(reference);
-                discoveryOrder.add(new ResolvedReferences.DiscoveredEdge(reference.getName(), target));
-                if (queued.add(target)) {
-                    distinctTargets.add(target);
-                }
-            }
+            List<GAV> distinctTargets = discoverTargets(currentLevel, discoveryOrder, queued);
 
             // The limit applies only to coordinates newly discovered at this depth: an edge back to a
             // coordinate already queued at a shallower depth (for example the closing edge of a cycle, or
@@ -110,25 +100,49 @@ public final class ReferenceGraphWalker {
             Map<GAV, ReferenceNode> loaded = distinctTargets.isEmpty() ? Map.of()
                     : loader.loadBatch(distinctTargets);
 
-            List<ArtifactReferenceDto> nextLevel = new ArrayList<>();
-            for (GAV target : distinctTargets) {
-                ReferenceNode node = loaded.get(target);
-                if (node == null) {
-                    missing.add(target);
-                } else {
-                    nodes.put(target, node);
-                    depths.put(target, depth);
-                    if (node.getReferences() != null) {
-                        nextLevel.addAll(node.getReferences());
-                    }
-                }
-            }
-
-            currentLevel = nextLevel;
+            currentLevel = recordLevel(distinctTargets, loaded, depth, nodes, missing, depths);
             depth++;
         }
 
         return new ResolvedReferences(nodes, missing, depths, discoveryOrder);
+    }
+
+    private static List<GAV> discoverTargets(List<ArtifactReferenceDto> currentLevel,
+            List<ResolvedReferences.DiscoveredEdge> discoveryOrder, Set<GAV> queued) {
+        List<GAV> distinctTargets = new ArrayList<>();
+        for (ArtifactReferenceDto reference : currentLevel) {
+            if (reference.getName() == null) {
+                throw new IllegalStateException("Invalid reference: " + reference);
+            }
+            GAV target = coordinatesOf(reference);
+            discoveryOrder.add(new ResolvedReferences.DiscoveredEdge(reference.getName(), target));
+            if (queued.add(target)) {
+                distinctTargets.add(target);
+            }
+        }
+        return distinctTargets;
+    }
+
+    /**
+     * Records the loaded nodes of one level and returns the references making up the next level.
+     */
+    private static List<ArtifactReferenceDto> recordLevel(List<GAV> distinctTargets,
+            Map<GAV, ReferenceNode> loaded, int depth, Map<GAV, ReferenceNode> nodes, Set<GAV> missing,
+            Map<GAV, Integer> depths) {
+        List<ArtifactReferenceDto> nextLevel = new ArrayList<>();
+        for (GAV target : distinctTargets) {
+            ReferenceNode node = loaded.get(target);
+            if (node == null) {
+                missing.add(target);
+            } else {
+                nodes.put(target, node);
+                depths.put(target, depth);
+                if (node.getReferences() != null) {
+                    nextLevel.addAll(node.getReferences());
+                }
+            }
+        }
+        return nextLevel;
     }
 
     /**

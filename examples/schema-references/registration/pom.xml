@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>io.apicurio</groupId>
+    <artifactId>apicurio-registry-examples</artifactId>
+    <version>3.4.0-SNAPSHOT</version>
+    <relativePath>../../pom.xml</relativePath>
+  </parent>
+
+  <!-- Registers the schemas in schemas/ with the Apicurio Registry Maven plugin. Not bound to the
+       build: demo.sh runs each execution, for example `mvn apicurio-registry:register@avro-manual`. -->
+  <artifactId>apicurio-registry-examples-schema-references-registration</artifactId>
+  <packaging>pom</packaging>
+  <name>Registry :: Examples :: Schema References :: Registration</name>
+
+  <properties>
+    <projectRoot>${project.basedir}/../../..</projectRoot>
+    <!-- Override on the command line: -Dregistry.url=http://localhost:8081/apis/registry/v3 -->
+    <registry.url>http://localhost:8081/apis/registry/v3</registry.url>
+    <schemas>${project.basedir}/schemas</schemas>
+  </properties>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry-maven-plugin</artifactId>
+        <version>${project.version}</version>
+        <configuration>
+          <registryUrl>${registry.url}</registryUrl>
+        </configuration>
+        <executions>
+          <!-- Step 4: every reference spelled out. A reference's name is how the parent refers to it:
+               for Avro, the full name of the type. -->
+          <execution>
+            <id>avro-manual</id>
+            <phase>none</phase>
+            <goals>
+              <goal>register</goal>
+            </goals>
+            <configuration>
+              <artifacts>
+                <artifact>
+                  <groupId>orders-manual</groupId>
+                  <artifactId>Order</artifactId>
+                  <version>1</version>
+                  <artifactType>AVRO</artifactType>
+                  <file>${schemas}/avro/Order.avsc</file>
+                  <ifExists>FIND_OR_CREATE_VERSION</ifExists>
+                  <references>
+                    <reference>
+                      <name>com.example.common.Money</name>
+                      <groupId>common-manual</groupId>
+                      <artifactId>Money</artifactId>
+                      <version>1</version>
+                      <artifactType>AVRO</artifactType>
+                      <file>${schemas}/avro/Money.avsc</file>
+                      <ifExists>FIND_OR_CREATE_VERSION</ifExists>
+                    </reference>
+                    <reference>
+                      <name>com.example.common.Address</name>
+                      <groupId>common-manual</groupId>
+                      <artifactId>Address</artifactId>
+                      <version>1</version>
+                      <artifactType>AVRO</artifactType>
+                      <file>${schemas}/avro/Address.avsc</file>
+                      <ifExists>FIND_OR_CREATE_VERSION</ifExists>
+                      <references>
+                        <reference>
+                          <name>com.example.common.Country</name>
+                          <groupId>common-manual</groupId>
+                          <artifactId>Country</artifactId>
+                          <version>1</version>
+                          <artifactType>AVRO</artifactType>
+                          <file>${schemas}/avro/Country.avsc</file>
+                          <ifExists>FIND_OR_CREATE_VERSION</ifExists>
+                        </reference>
+                      </references>
+                    </reference>
+                  </references>
+                </artifact>
+              </artifacts>
+            </configuration>
+          </execution>
+          <!-- Step 5: the same schemas, references found by the plugin. Avro types are registered in
+               a group named after their namespace. -->
+          <execution>
+            <id>avro-auto</id>
+            <phase>none</phase>
+            <goals>
+              <goal>register</goal>
+            </goals>
+            <configuration>
+              <artifacts>
+                <artifact>
+                  <groupId>com.example.orders</groupId>
+                  <artifactId>Order</artifactId>
+                  <artifactType>AVRO</artifactType>
+                  <file>${schemas}/avro/Order.avsc</file>
+                  <ifExists>FIND_OR_CREATE_VERSION</ifExists>
+                  <autoRefs>true</autoRefs>
+                </artifact>
+              </artifacts>
+            </configuration>
+          </execution>
+          <!-- Step 5: JSON Schema, references found from each "$ref" to another file -->
+          <execution>
+            <id>json-auto</id>
+            <phase>none</phase>
+            <goals>
+              <goal>register</goal>
+            </goals>
+            <configuration>
+              <artifacts>
+                <artifact>
+                  <groupId>customers</groupId>
+                  <artifactId>customer</artifactId>
+                  <artifactType>JSON</artifactType>
+                  <file>${schemas}/json/customer.json</file>
+                  <ifExists>FIND_OR_CREATE_VERSION</ifExists>
+                  <autoRefs>true</autoRefs>
+                </artifact>
+              </artifacts>
+            </configuration>
+          </execution>
+          <!-- Step 5: an AsyncAPI document whose message payloads are Avro files -->
+          <execution>
+            <id>asyncapi-auto</id>
+            <phase>none</phase>
+            <goals>
+              <goal>register</goal>
+            </goals>
+            <configuration>
+              <artifacts>
+                <artifact>
+                  <groupId>events</groupId>
+                  <artifactId>customer-events</artifactId>
+                  <artifactType>ASYNCAPI</artifactType>
+                  <file>${schemas}/asyncapi/customers.yml</file>
+                  <ifExists>FIND_OR_CREATE_VERSION</ifExists>
+                  <autoRefs>true</autoRefs>
+                </artifact>
+              </artifacts>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

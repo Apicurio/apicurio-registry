@@ -28,6 +28,13 @@ import java.util.Set;
  */
 public class PromptTemplateContentValidator extends AbstractContentValidator {
 
+    private static final String VARIABLES = "variables";
+    private static final String VARIABLES_PATH = "/variables/";
+    private static final String VARIABLE_PREFIX = "Variable '";
+    private static final String OUTPUT_SCHEMA = "outputSchema";
+    private static final String TEMPLATE = "template";
+    private static final String TEMPLATE_ID = "templateId";
+
     private static final List<String> VALID_VARIABLE_TYPES = Arrays.asList(
             "string", "integer", "number", "boolean", "array", "object");
             
@@ -59,7 +66,7 @@ public class PromptTemplateContentValidator extends AbstractContentValidator {
             }
 
             validateRequiredFields(tree, violations);
-            if (tree.has("template") && tree.get("template").isTextual()) {
+            if (tree.has(TEMPLATE) && tree.get(TEMPLATE).isTextual()) {
                 validateTemplateVariables(tree, violations);
             }
             validateVariableDefinitions(tree, violations);
@@ -79,15 +86,15 @@ public class PromptTemplateContentValidator extends AbstractContentValidator {
     }
 
     private void validateRequiredFields(JsonNode tree, Set<RuleViolation> violations) {
-        if (!tree.has("templateId") || !tree.get("templateId").isTextual()
-                || tree.get("templateId").asText().trim().isEmpty()) {
+        if (!tree.has(TEMPLATE_ID) || !tree.get(TEMPLATE_ID).isTextual()
+                || tree.get(TEMPLATE_ID).asText().trim().isEmpty()) {
             violations.add(new RuleViolation(
                     "Missing or invalid required field 'templateId'. Must be a non-empty string.",
                     "/templateId"));
         }
 
-        if (!tree.has("template") || !tree.get("template").isTextual()
-                || tree.get("template").asText().trim().isEmpty()) {
+        if (!tree.has(TEMPLATE) || !tree.get(TEMPLATE).isTextual()
+                || tree.get(TEMPLATE).asText().trim().isEmpty()) {
             violations.add(new RuleViolation(
                     "Missing or invalid required field 'template'. Must be a non-empty string.",
                     "/template"));
@@ -95,10 +102,10 @@ public class PromptTemplateContentValidator extends AbstractContentValidator {
     }
 
     private void validateTemplateVariables(JsonNode tree, Set<RuleViolation> violations) {
-        String template = tree.get("template").asText();
+        String template = tree.get(TEMPLATE).asText();
         List<String> templateVars = extractTemplateVariables(template);
 
-        JsonNode variables = tree.get("variables");
+        JsonNode variables = tree.get(VARIABLES);
         Set<String> definedVars = new HashSet<>();
         if (variables != null && variables.isObject()) {
             Iterator<String> fieldNames = variables.fieldNames();
@@ -111,13 +118,13 @@ public class PromptTemplateContentValidator extends AbstractContentValidator {
             if (!definedVars.contains(variable)) {
                 violations.add(new RuleViolation(
                         "Template variable '{{" + variable + "}}' is used but not defined in 'variables' schema.",
-                        "/variables/" + variable));
+                        VARIABLES_PATH + variable));
             }
         }
     }
 
     private void validateVariableDefinitions(JsonNode tree, Set<RuleViolation> violations) {
-        JsonNode variables = tree.get("variables");
+        JsonNode variables = tree.get(VARIABLES);
         if (variables == null || !variables.isObject()) {
             return;
         }
@@ -125,58 +132,63 @@ public class PromptTemplateContentValidator extends AbstractContentValidator {
         Iterator<Map.Entry<String, JsonNode>> fields = variables.fields();
         while (fields.hasNext()) {
             Map.Entry<String, JsonNode> entry = fields.next();
-            String varName = entry.getKey();
             JsonNode varSchema = entry.getValue();
-
-            if (!varSchema.isObject()) {
-                continue;
+            if (varSchema.isObject()) {
+                validateVariableDefinition(entry.getKey(), varSchema, violations);
             }
+        }
+    }
 
-            if (varSchema.has("type") && varSchema.get("type").isTextual()) {
-                String type = varSchema.get("type").asText();
-                if (!VALID_VARIABLE_TYPES.contains(type)) {
-                    violations.add(new RuleViolation(
-                            "Variable '" + varName + "' has invalid type '" + type
-                                    + "'. Must be one of: " + String.join(", ", VALID_VARIABLE_TYPES) + ".",
-                            "/variables/" + varName + "/type"));
-                }
-            }
-
-            if (varSchema.has(FIELD_MINIMUM) && !varSchema.get(FIELD_MINIMUM).isNumber()) {
+    private void validateVariableDefinition(String varName, JsonNode varSchema,
+            Set<RuleViolation> violations) {
+        if (varSchema.has("type") && varSchema.get("type").isTextual()) {
+            String type = varSchema.get("type").asText();
+            if (!VALID_VARIABLE_TYPES.contains(type)) {
                 violations.add(new RuleViolation(
-                        "Variable '" + varName + "' has invalid '" + FIELD_MINIMUM + "' value. Must be a number.",
-                        "/variables/" + varName + "/" + FIELD_MINIMUM));
+                        VARIABLE_PREFIX + varName + "' has invalid type '" + type
+                                + "'. Must be one of: " + String.join(", ", VALID_VARIABLE_TYPES) + ".",
+                        VARIABLES_PATH + varName + "/type"));
             }
-            if (varSchema.has(FIELD_MAXIMUM) && !varSchema.get(FIELD_MAXIMUM).isNumber()) {
-                violations.add(new RuleViolation(
-                        "Variable '" + varName + "' has invalid '" + FIELD_MAXIMUM + "' value. Must be a number.",
-                        "/variables/" + varName + "/" + FIELD_MAXIMUM));
-            }
+        }
 
-            if (varSchema.has(FIELD_MINIMUM) && varSchema.get(FIELD_MINIMUM).isNumber()
-                    && varSchema.has(FIELD_MAXIMUM) && varSchema.get(FIELD_MAXIMUM).isNumber()) {
-                double minimum = varSchema.get(FIELD_MINIMUM).asDouble();
-                double maximum = varSchema.get(FIELD_MAXIMUM).asDouble();
-                if (minimum > maximum) {
-                    violations.add(new RuleViolation(
-                            "Variable '" + varName + "' has '" + FIELD_MINIMUM + "' ("
-                                    + varSchema.get(FIELD_MINIMUM).asText() + ") greater than '" + FIELD_MAXIMUM
-                                    + "' (" + varSchema.get(FIELD_MAXIMUM).asText()
-                                    + "). No value could ever satisfy this constraint.",
-                            "/variables/" + varName + "/" + FIELD_MINIMUM));
-                }
-            }
+        if (varSchema.has(FIELD_MINIMUM) && !varSchema.get(FIELD_MINIMUM).isNumber()) {
+            violations.add(new RuleViolation(
+                    VARIABLE_PREFIX + varName + "' has invalid '" + FIELD_MINIMUM + "' value. Must be a number.",
+                    VARIABLES_PATH + varName + "/" + FIELD_MINIMUM));
+        }
+        if (varSchema.has(FIELD_MAXIMUM) && !varSchema.get(FIELD_MAXIMUM).isNumber()) {
+            violations.add(new RuleViolation(
+                    VARIABLE_PREFIX + varName + "' has invalid '" + FIELD_MAXIMUM + "' value. Must be a number.",
+                    VARIABLES_PATH + varName + "/" + FIELD_MAXIMUM));
+        }
 
-            if (varSchema.has("enum") && !varSchema.get("enum").isArray()) {
+        validateVariableRange(varName, varSchema, violations);
+
+        if (varSchema.has("enum") && !varSchema.get("enum").isArray()) {
+            violations.add(new RuleViolation(
+                    VARIABLE_PREFIX + varName + "' has invalid 'enum' value. Must be an array.",
+                    VARIABLES_PATH + varName + "/enum"));
+        }
+    }
+
+    private void validateVariableRange(String varName, JsonNode varSchema, Set<RuleViolation> violations) {
+        if (varSchema.has(FIELD_MINIMUM) && varSchema.get(FIELD_MINIMUM).isNumber()
+                && varSchema.has(FIELD_MAXIMUM) && varSchema.get(FIELD_MAXIMUM).isNumber()) {
+            double minimum = varSchema.get(FIELD_MINIMUM).asDouble();
+            double maximum = varSchema.get(FIELD_MAXIMUM).asDouble();
+            if (minimum > maximum) {
                 violations.add(new RuleViolation(
-                        "Variable '" + varName + "' has invalid 'enum' value. Must be an array.",
-                        "/variables/" + varName + "/enum"));
+                        VARIABLE_PREFIX + varName + "' has '" + FIELD_MINIMUM + "' ("
+                                + varSchema.get(FIELD_MINIMUM).asText() + ") greater than '" + FIELD_MAXIMUM
+                                + "' (" + varSchema.get(FIELD_MAXIMUM).asText()
+                                + "). No value could ever satisfy this constraint.",
+                        VARIABLES_PATH + varName + "/" + FIELD_MINIMUM));
             }
         }
     }
 
     private void validateOptionalFields(JsonNode tree, Set<RuleViolation> violations) {
-        if (tree.has("outputSchema") && !tree.get("outputSchema").isObject()) {
+        if (tree.has(OUTPUT_SCHEMA) && !tree.get(OUTPUT_SCHEMA).isObject()) {
             violations.add(new RuleViolation(
                     "Field 'outputSchema' must be an object if provided.", "/outputSchema"));
         }
@@ -204,11 +216,11 @@ public class PromptTemplateContentValidator extends AbstractContentValidator {
         try {
             JsonNode tree = ContentTypeUtil.parseJsonOrYaml(content);
             Set<String> refs = new HashSet<>();
-            if (tree.has("variables")) {
-                findExternalRefs(tree.get("variables"), refs);
+            if (tree.has(VARIABLES)) {
+                findExternalRefs(tree.get(VARIABLES), refs);
             }
-            if (tree.has("outputSchema")) {
-                findExternalRefs(tree.get("outputSchema"), refs);
+            if (tree.has(OUTPUT_SCHEMA)) {
+                findExternalRefs(tree.get(OUTPUT_SCHEMA), refs);
             }
             return refs;
         } catch (Exception e) {

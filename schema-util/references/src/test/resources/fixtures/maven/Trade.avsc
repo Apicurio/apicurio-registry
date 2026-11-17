@@ -1,0 +1,25 @@
+{
+    "namespace": "io.apicurio.test.trade",
+    "type": "record",
+    "name": "Trade",
+    "fields": [
+        {
+            "name": "id",
+            "type": "string"
+        },
+        {
+            "name": "price",
+            "type": ["null", "io.apicurio.test.trade.Price"],
+            "default": null
+        },
+        {
+            "name": "quantity",
+            "type": ["null", "io.apicurio.test.trade.Quantity"],
+            "default": null
+        },
+        {
+            "name": "symbol",
+            "type": "string"
+        }
+    ]
+}

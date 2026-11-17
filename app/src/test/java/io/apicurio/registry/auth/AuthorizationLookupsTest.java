@@ -2,9 +2,11 @@ package io.apicurio.registry.auth;
 
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.GroupNotFoundException;
+import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.quarkus.arc.Arc;
 import io.quarkus.arc.ManagedContext;
 import io.quarkus.test.junit.QuarkusTest;
@@ -101,6 +103,45 @@ public class AuthorizationLookupsTest {
         inRequest(() -> lookups.artifact(storage, "g", "a"));
         inRequest(() -> lookups.artifact(storage, "g", "a"));
         verify(storage, times(2)).getArtifactMetaData("g", "a");
+    }
+
+    /**
+     * Regression test: a data import preserving global IDs can rebind a global ID to a different
+     * artifact. Authorization must resolve the global ID again in every request, so the second
+     * request is authorized against the artifact the ID names now, not the one it named before.
+     */
+    @Test
+    void coordinatesAreResolvedAgainInEveryRequestSoARebindIsSeen() {
+        RegistryStorage storage = mock(RegistryStorage.class);
+        when(storage.getArtifactVersionMetaData(42L))
+                .thenReturn(ArtifactVersionMetaDataDto.builder().groupId("team-a").artifactId("before").version("1")
+                        .build())
+                .thenReturn(ArtifactVersionMetaDataDto.builder().groupId("team-b").artifactId("after").version("1")
+                        .build());
+
+        inRequest(() -> {
+            assertEquals(new GlobalIdCoordinates("team-a", "before", "1"),
+                    lookups.coordinates(storage, 42L).orElseThrow());
+            // Remembered for the rest of this request only
+            assertEquals(new GlobalIdCoordinates("team-a", "before", "1"),
+                    lookups.coordinates(storage, 42L).orElseThrow());
+        });
+        inRequest(() -> assertEquals(new GlobalIdCoordinates("team-b", "after", "1"),
+                lookups.coordinates(storage, 42L).orElseThrow()));
+
+        verify(storage, times(2)).getArtifactVersionMetaData(42L);
+    }
+
+    /** A global ID that does not resolve resolves as missing, and is checked again by the next request. */
+    @Test
+    void anUnresolvedGlobalIdIsCheckedAgainInTheNextRequest() {
+        RegistryStorage storage = mock(RegistryStorage.class);
+        when(storage.getArtifactVersionMetaData(7L)).thenThrow(new VersionNotFoundException(7L));
+
+        inRequest(() -> assertEquals(Optional.empty(), lookups.coordinates(storage, 7L)));
+        inRequest(() -> assertEquals(Optional.empty(), lookups.coordinates(storage, 7L)));
+
+        verify(storage, times(2)).getArtifactVersionMetaData(7L);
     }
 
     @Test

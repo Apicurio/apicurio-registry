@@ -42,4 +42,12 @@ class H2SqlStatementsTest {
         String sql = statements.restoreFromSnapshot(null);
         Assertions.assertEquals("RUNSCRIPT FROM ?", sql);
     }
+
+    @Test
+    void testDatabaseUpgradeThrowsWhenTargetVersionIsOlder() {
+        IllegalArgumentException ex = Assertions.assertThrows(IllegalArgumentException.class, () -> {
+            statements.databaseUpgrade(105, 104);
+        });
+        Assertions.assertTrue(ex.getMessage().contains("Cannot upgrade database from version 105 to version 104"));
+    }
 }

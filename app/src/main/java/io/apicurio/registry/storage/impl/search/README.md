@@ -51,7 +51,7 @@ Key capabilities provided by the search index:
 An external Elasticsearch cluster is required. The feature uses the official Elasticsearch Java client
 provided by the `quarkus-elasticsearch-java-client` Quarkus extension.
 
-**Supported versions**: Elasticsearch 7.x or 8.x.
+**Supported versions**: Elasticsearch 9.x. The 3.4 build bundles the 9.2.3 Java client (managed by the Quarkus platform BOM); use a server version that is the same as or newer than the client within the 9.x series.
 
 **Deployment options**:
 
@@ -63,7 +63,7 @@ provided by the `quarkus-elasticsearch-java-client` Quarkus extension.
 ```yaml
 services:
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.2.3
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
@@ -203,10 +203,9 @@ The search index implementation consists of the following components:
    filters.
 3. If yes, the query is delegated to `ElasticsearchSearchService`, which translates the filters into
    an Elasticsearch query, executes it, and returns results.
-4. If Elasticsearch is unavailable or the filters include unsupported types (`contentHash`,
-   `canonicalHash`), the query falls back to the SQL-based storage implementation.
+4. Queries without a `content` or `structure` filter are not routed to Elasticsearch at all.
 5. If the filters include index-only types (`content`, `structure`) but the index is not available,
-   an error is returned.
+   or are combined with `contentHash` / `canonicalHash`, an error is returned.
 
 ### Startup Reindex
 
@@ -322,12 +321,12 @@ Content search requires the Elasticsearch search index, which is not available.
 Enable the Elasticsearch search index to use content search.
 ```
 
-#### Fallback Behavior
+#### Routing
 
-For queries that use only standard metadata filters (e.g. `groupId`, `name`, `labels`), the search
-decorator routes the query to Elasticsearch when available but automatically falls back to SQL if
-Elasticsearch encounters an error. This provides resilience without requiring any client-side
-changes.
+Only queries with a `content` or `structure` filter use Elasticsearch. Queries that use only metadata
+filters (e.g. `groupId`, `name`, `labels`) always go to the primary storage. Content and structure
+queries do not fall back: if the index is disabled or not ready, or the query also has a content hash
+filter, the request fails with HTTP 400; if Elasticsearch fails during the query, with HTTP 500.
 
 ### User Interface
 
@@ -361,8 +360,10 @@ by the `/apis/registry/v3/system/uiConfig` configuration endpoint.
 
 - **Eventual consistency**: Because index updates are asynchronous, there is a brief delay (typically
   under one second) between a storage operation and the updated data appearing in search results.
-- **Unsupported filters**: The `contentHash` and `canonicalHash` filters cannot be handled by
-  Elasticsearch. Queries using these filters fall back to SQL.
+- **Unsupported filters**: The `contentHash` and `canonicalHash` filters cannot be combined with
+  `content` or `structure` (HTTP 400).
+- **Polling storage**: On GitOps and KubernetesOps the index is not populated, so content and
+  structure searches return nothing (https://github.com/Apicurio/apicurio-registry/issues/11170).
 - **Content truncation**: Very large artifacts may have incomplete content indexing due to the
   content size limit.
 - **Index rebuild on mapping changes**: When the registry is upgraded to a version with a new index

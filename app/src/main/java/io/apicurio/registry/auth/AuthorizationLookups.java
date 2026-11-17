@@ -66,6 +66,21 @@ public class AuthorizationLookups {
     }
 
     /**
+     * @return the (group, artifact, version) the global ID names, or empty if it does not resolve.
+     *         Remembered for the current request only, like every other lookup here. It is
+     *         deliberately not cached across requests: a data import that preserves global IDs can
+     *         rebind an ID to a different artifact, and a cached mapping would then authorize a
+     *         request against the wrong artifact, on this or any other replica.
+     */
+    public Optional<GlobalIdCoordinates> coordinates(RegistryStorage storage, long globalId) {
+        return remember(RequestAuthorizationLookups::coordinates, globalId,
+                () -> find(() -> {
+                    ArtifactVersionMetaDataDto vmd = storage.getArtifactVersionMetaData(globalId);
+                    return new GlobalIdCoordinates(vmd.getGroupId(), vmd.getArtifactId(), vmd.getVersion());
+                }));
+    }
+
+    /**
      * Storage treats a null group and {@code default} as the default group; IDs are otherwise
      * kept as requested, so different spellings are separate lookups.
      */

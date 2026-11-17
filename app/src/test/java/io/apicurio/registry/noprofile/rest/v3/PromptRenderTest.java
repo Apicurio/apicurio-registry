@@ -164,6 +164,77 @@ public class PromptRenderTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testRenderWholeNumberDecimalSuppliedForIntegerVariable() throws Exception {
+        String group = "integer-decimal-" + UUID.randomUUID().toString();
+        String artifactId = "limit-prompt";
+
+        String variablesSchema = """
+            {
+              "max_results": { "type": "integer" }
+            }
+            """;
+
+        String content = createPromptWithSchema("Limit: {{max_results}}", variablesSchema);
+
+        createArtifact(group, artifactId, PROMPT_TEMPLATE, content, ContentTypes.APPLICATION_JSON);
+
+        // A JSON client commonly serializes a whole number with a decimal point; the request body
+        // is parsed into a Double before it reaches the integer coercion/validation.
+        String requestBody = """
+            {
+              "variables": { "max_results": 7.0 }
+            }
+            """;
+
+        given().when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", group)
+                .pathParam("artifactId", artifactId)
+                .pathParam("versionExpression", "branch=latest")
+                .body(requestBody)
+                .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/render")
+                .then()
+                .statusCode(200)
+                .body("rendered", equalTo("Limit: 7"))
+                .body("validationErrors", hasSize(0));
+    }
+
+    @Test
+    public void testRenderFractionalValueRejectedForIntegerVariable() throws Exception {
+        String group = "integer-fraction-" + UUID.randomUUID().toString();
+        String artifactId = "limit-prompt";
+
+        String variablesSchema = """
+            {
+              "max_results": { "type": "integer" }
+            }
+            """;
+
+        String content = createPromptWithSchema("Limit: {{max_results}}", variablesSchema);
+
+        createArtifact(group, artifactId, PROMPT_TEMPLATE, content, ContentTypes.APPLICATION_JSON);
+
+        String requestBody = """
+            {
+              "variables": { "max_results": 7.5 }
+            }
+            """;
+
+        given().when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", group)
+                .pathParam("artifactId", artifactId)
+                .pathParam("versionExpression", "branch=latest")
+                .body(requestBody)
+                .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/render")
+                .then()
+                .statusCode(200)
+                .body("validationErrors", hasSize(1))
+                .body("validationErrors[0].variableName", equalTo("max_results"))
+                .body("validationErrors[0].expectedType", equalTo("integer"));
+    }
+
+    @Test
     public void testRenderYamlTemplate() throws Exception {
         String group = "yaml-render-" + UUID.randomUUID().toString();
         String artifactId = "yaml-prompt";

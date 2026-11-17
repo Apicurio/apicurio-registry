@@ -36,6 +36,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @LookupIfProperty(name = "apicurio.storage.kind", stringValue = "gitops")
 public class GitOpsValidationTaskManager {
 
+    private static final String JSON_EXTENSION = ".json";
+
     @Inject
     Logger log;
 
@@ -71,7 +73,16 @@ public class GitOpsValidationTaskManager {
             return;
         }
         try (var files = Files.list(validateDir)) {
-            files.filter(f -> f.toString().endsWith(".json"))
+            files.filter(Files::isRegularFile)
+                    .filter(f -> f.toString().endsWith(JSON_EXTENSION))
+                    .filter(f -> {
+                        final String name = stripJsonExtension(f.getFileName().toString());
+                        if (!ValidationTaskId.isValid(name)) {
+                            log.warn("Skipping file with invalid task ID format: {}", f.getFileName());
+                            return false;
+                        }
+                        return true;
+                    })
                     .forEach(this::loadTaskFromFile);
         } catch (IOException e) {
             log.warn("Failed to scan validate directory for pending tasks: {}", e.getMessage());
@@ -141,6 +152,9 @@ public class GitOpsValidationTaskManager {
      * @return the task DTO, or null if not found or expired
      */
     public GitOpsValidateTask getTask(String taskId) {
+        if (!ValidationTaskId.isValid(taskId)) {
+            return null;
+        }
         var taskState = tasks.get(new ValidationTaskId(taskId));
         if (taskState == null) {
             return null;
@@ -164,6 +178,9 @@ public class GitOpsValidationTaskManager {
      * @return true if the task existed and was deleted
      */
     public boolean deleteTask(String taskId) {
+        if (!ValidationTaskId.isValid(taskId)) {
+            return false;
+        }
         var taskState = tasks.remove(new ValidationTaskId(taskId));
         if (taskState == null) {
             return false;
@@ -416,7 +433,7 @@ public class GitOpsValidationTaskManager {
             }
 
             var taskId = new ValidationTaskId(
-                    requestFile.getFileName().toString().replace(".json", ""));
+                    stripJsonExtension(requestFile.getFileName().toString()));
 
             var taskState = new ValidationTaskState();
             taskState.setTaskId(taskId);
@@ -452,12 +469,19 @@ public class GitOpsValidationTaskManager {
 
     // ---- Helpers ----
 
+    private static String stripJsonExtension(String fileName) {
+        if (!fileName.endsWith(JSON_EXTENSION)) {
+            throw new IllegalArgumentException("File does not end with " + JSON_EXTENSION);
+        }
+        return fileName.substring(0, fileName.length() - JSON_EXTENSION.length());
+    }
+
     private Path getValidateDir() {
         return Path.of(gitOpsConfig.getWorkspace()).resolve("validate");
     }
 
     private Path getRequestFilePath(ValidationTaskId taskId) {
-        return getValidateDir().resolve(taskId.value() + ".json");
+        return getValidateDir().resolve(taskId.value() + JSON_EXTENSION);
     }
 
     private Path getCheckoutPath(ValidationTaskState taskState) {

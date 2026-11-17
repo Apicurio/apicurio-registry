@@ -1,6 +1,6 @@
 package io.apicurio.registry.federation;
 
-import io.apicurio.registry.federation.PeerAddressPolicy.AddressVerdict;
+import io.apicurio.registry.http.OutboundAddressPolicy.AddressVerdict;
 import io.apicurio.registry.storage.error.InvalidPeerException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;

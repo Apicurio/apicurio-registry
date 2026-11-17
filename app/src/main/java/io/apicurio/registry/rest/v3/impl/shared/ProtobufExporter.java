@@ -2,6 +2,7 @@ package io.apicurio.registry.rest.v3.impl.shared;
 
 import io.apicurio.registry.auth.ResourceAccessGuard;
 import io.apicurio.registry.cdi.Current;
+import io.apicurio.registry.references.AuthorizingReferenceLoader;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.RegistryException;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
@@ -141,6 +142,12 @@ public class ProtobufExporter {
         if (references == null || references.isEmpty()) {
             return;
         }
+
+        // The siblings not collected yet at once, before loading any: one authorizer call per file
+        AuthorizingReferenceLoader.authorizeAll(referenceLoader, references.stream()
+                .filter(ref -> !visited.contains(
+                        buildVisitedKey(ref.getGroupId(), ref.getArtifactId(), ref.getVersion())))
+                .toList());
 
         for (ArtifactReferenceDto ref : references) {
             String key = buildVisitedKey(ref.getGroupId(), ref.getArtifactId(), ref.getVersion());

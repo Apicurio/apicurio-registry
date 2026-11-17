@@ -10,6 +10,7 @@ import io.apicurio.registry.cli.context.ContextCommand;
 import io.apicurio.registry.cli.gitops.GitOpsCommand;
 import io.apicurio.registry.cli.globalrule.GlobalRuleCommand;
 import io.apicurio.registry.cli.group.GroupCommand;
+import io.apicurio.registry.cli.mcp.McpCommand;
 import io.apicurio.registry.cli.reference.ReferenceCommand;
 import io.apicurio.registry.cli.rolemapping.RoleMappingCommand;
 import io.apicurio.registry.cli.search.SearchCommand;
@@ -44,6 +45,7 @@ import static picocli.CommandLine.ScopeType.INHERIT;
                 InstallCommand.class,
                 LoginCommand.class,
                 LogoutCommand.class,
+                McpCommand.class,
                 ReferenceCommand.class,
                 RoleMappingCommand.class,
                 SearchCommand.class,

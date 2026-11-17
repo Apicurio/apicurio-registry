@@ -633,45 +633,51 @@ public class SqlContentRepository {
         final List<ArtifactReferenceDto> finalReferences = references;
 
         handles.withHandleNoException(handle -> {
-            // Look the hash up BEFORE allocating: nextContentIdRaw locks the shared contentId
-            // sequence row until commit, and every concurrent content write queues on that lock,
-            // so no extra round trip may run while it is held. A row inserted concurrently after
-            // this check is still handled below by insertContentIfAbsent / the PK-violation path.
-            boolean exists = contentIdFromHashRaw(handle, finalContentHash).isPresent();
-            // Always allocate so contentId allocation is unchanged from the insert-and-catch-duplicate
-            // behavior; the check only avoids a failing INSERT.
-            long contentId = sequenceRepository.nextContentIdRaw(handle);
-            if (exists) {
-                return null;
-            }
-            try {
-                int inserted = handle.createUpdate(sqlStatements.insertContentIfAbsent())
-                        .bind(0, contentId)
-                        .bind(1, finalCanonicalContentHash)
-                        .bind(2, finalContentHash)
-                        .bind(3, content.getContentType())
-                        .bind(4, content.getContent().bytes())
-                        .bind(5, finalSerializedReferences)
-                        .execute();
-                if (inserted == 0) {
-                    return null;
-                }
-            } catch (Exception e) {
-                if (sqlStatements.isPrimaryKeyViolation(e)) {
-                    log.debug("Content with content hash {} already exists: {}", finalContentHash, content);
-                    return null;
-                } else {
-                    throw e;
-                }
-            }
-
-            // If we get here, then the content was inserted and we need to insert the references.
-            insertReferencesRaw(handle, contentId, finalReferences);
+            insertContentIfAbsentRaw(handle, content, finalContentHash, finalCanonicalContentHash,
+                    finalSerializedReferences, finalReferences);
             return null;
         });
 
         // Get the contentId using the unique contentHash.
         Optional<Long> contentId = contentIdFromHash(contentHash);
         return contentId.orElseThrow(() -> new RegistryStorageException("Failed to ensure content."));
+    }
+
+    private void insertContentIfAbsentRaw(Handle handle, TypedContent content, String contentHash,
+            String canonicalContentHash, String serializedReferences, List<ArtifactReferenceDto> references) {
+        // Look the hash up BEFORE allocating: nextContentIdRaw locks the shared contentId
+        // sequence row until commit, and every concurrent content write queues on that lock,
+        // so no extra round trip may run while it is held. A row inserted concurrently after
+        // this check is still handled below by insertContentIfAbsent / the PK-violation path.
+        boolean exists = contentIdFromHashRaw(handle, contentHash).isPresent();
+        // Always allocate so contentId allocation is unchanged from the insert-and-catch-duplicate
+        // behavior; the check only avoids a failing INSERT.
+        long contentId = sequenceRepository.nextContentIdRaw(handle);
+        if (exists) {
+            return;
+        }
+        try {
+            int inserted = handle.createUpdate(sqlStatements.insertContentIfAbsent())
+                    .bind(0, contentId)
+                    .bind(1, canonicalContentHash)
+                    .bind(2, contentHash)
+                    .bind(3, content.getContentType())
+                    .bind(4, content.getContent().bytes())
+                    .bind(5, serializedReferences)
+                    .execute();
+            if (inserted == 0) {
+                return;
+            }
+        } catch (Exception e) {
+            if (sqlStatements.isPrimaryKeyViolation(e)) {
+                log.debug("Content with content hash {} already exists: {}", contentHash, content);
+                return;
+            } else {
+                throw e;
+            }
+        }
+
+        // If we get here, then the content was inserted and we need to insert the references.
+        insertReferencesRaw(handle, contentId, references);
     }
 }

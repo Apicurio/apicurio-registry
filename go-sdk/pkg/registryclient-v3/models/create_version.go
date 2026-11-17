@@ -10,6 +10,8 @@ import (
 type CreateVersion struct {
 	// Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
 	additionalData map[string]any
+	// Detect references in the content and match them to existing artifacts in the same group. Available since 3.4.0.
+	autoReferences *bool
 	// The branches property
 	branches []string
 	// The content property
@@ -45,6 +47,12 @@ func (m *CreateVersion) GetAdditionalData() map[string]any {
 	return m.additionalData
 }
 
+// GetAutoReferences gets the autoReferences property value. Detect references in the content and match them to existing artifacts in the same group. Available since 3.4.0.
+// returns a *bool when successful
+func (m *CreateVersion) GetAutoReferences() *bool {
+	return m.autoReferences
+}
+
 // GetBranches gets the branches property value. The branches property
 // returns a []string when successful
 func (m *CreateVersion) GetBranches() []string {
@@ -67,6 +75,16 @@ func (m *CreateVersion) GetDescription() *string {
 // returns a map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error when successful
 func (m *CreateVersion) GetFieldDeserializers() map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 	res := make(map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error)
+	res["autoReferences"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetBoolValue()
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetAutoReferences(val)
+		}
+		return nil
+	}
 	res["branches"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 		val, err := n.GetCollectionOfPrimitiveValues("string")
 		if err != nil {
@@ -172,6 +190,12 @@ func (m *CreateVersion) GetVersion() *string {
 
 // Serialize serializes information the current object
 func (m *CreateVersion) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.SerializationWriter) error {
+	{
+		err := writer.WriteBoolValue("autoReferences", m.GetAutoReferences())
+		if err != nil {
+			return err
+		}
+	}
 	if m.GetBranches() != nil {
 		err := writer.WriteCollectionOfStringValues("branches", m.GetBranches())
 		if err != nil {
@@ -228,6 +252,11 @@ func (m *CreateVersion) SetAdditionalData(value map[string]any) {
 	m.additionalData = value
 }
 
+// SetAutoReferences sets the autoReferences property value. Detect references in the content and match them to existing artifacts in the same group. Available since 3.4.0.
+func (m *CreateVersion) SetAutoReferences(value *bool) {
+	m.autoReferences = value
+}
+
 // SetBranches sets the branches property value. The branches property
 func (m *CreateVersion) SetBranches(value []string) {
 	m.branches = value
@@ -266,6 +295,7 @@ func (m *CreateVersion) SetVersion(value *string) {
 type CreateVersionable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable
+	GetAutoReferences() *bool
 	GetBranches() []string
 	GetContent() VersionContentable
 	GetDescription() *string
@@ -273,6 +303,7 @@ type CreateVersionable interface {
 	GetLabels() Labelsable
 	GetName() *string
 	GetVersion() *string
+	SetAutoReferences(value *bool)
 	SetBranches(value []string)
 	SetContent(value VersionContentable)
 	SetDescription(value *string)

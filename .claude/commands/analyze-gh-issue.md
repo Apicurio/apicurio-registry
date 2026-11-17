@@ -6,6 +6,11 @@ agent: repo-ops
 
 You are starting work on a GitHub issue to understand its requirements and identify affected code.
 
+Use the planning stage of `AGENT-VERIFICATION.md`. Keep this command focused on
+analysis; carry its criteria and evidence plan into `/plan-implementation`
+rather than restarting the framework. Load `plan-change` (or read
+`.claude/skills/plan-change/SKILL.md`) for the criteria and verification-plan guidance.
+
 ## Input
 
 Issue: $ARGUMENTS
@@ -27,6 +32,11 @@ If no issue is provided, ask the user for the issue number or URL.
 2. **Summarize**: Present the issue title, description, acceptance criteria, and labels.
 
 3. **Identify Affected Code**: Based on the issue description, search the codebase for relevant files, classes, and modules.
+
+   Propose up to five input/outcome acceptance criteria, preserved behavior, open
+   assumptions, and a Light/Standard/Focused review level. Map criteria to available
+   checks and identify relevant specialist skills. Separate explicit issue requirements
+   from inferred intent and ask the user for an independent edge case.
 
 4. **Create a worktree** for the issue starting from the main branch:
    ```bash

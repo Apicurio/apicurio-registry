@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -1073,11 +1074,12 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
 
         long start = System.currentTimeMillis();
 
-        Set<SearchFilter> filters = Collections.emptySet();
+        // Filtered to this test's groups, because other tests share the store and add their own.
+        Set<SearchFilter> filters = Collections.singleton(SearchFilter.ofGroupId(groupIdPrefix + "*"));
         GroupSearchResultsDto results = storage().searchGroups(filters, OrderBy.groupId, OrderDirection.asc,
                 0, 10);
         Assertions.assertNotNull(results);
-        Assertions.assertEquals(51, results.getCount());
+        Assertions.assertEquals(50, results.getCount());
         Assertions.assertNotNull(results.getGroups());
         Assertions.assertEquals(10, results.getGroups().size());
 
@@ -1103,6 +1105,48 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
 
         long end = System.currentTimeMillis();
         System.out.println("Search time: " + (end - start) + "ms");
+    }
+
+    /**
+     * Thirty artifacts that tie on the sort key (one name, one version number), read in pages of
+     * seven: every page query must order the ties the same way, so each item appears exactly once,
+     * in artifact ID order for artifacts and creation order for versions.
+     */
+    @Test
+    public void testSearchPagesThroughTiesWithoutRepeatsOrGaps() throws Exception {
+        String group = "testSearchTies-" + UUID.randomUUID();
+        List<String> artifactIds = new ArrayList<>();
+        for (int idx = 0; idx < 30; idx++) {
+            String artifactId = "tie-" + (idx < 10 ? "0" : "") + idx;
+            artifactIds.add(artifactId);
+            storage().createArtifact(group, artifactId, ArtifactType.OPENAPI,
+                    new EditableArtifactMetaDataDto("tie", null, null, null), null,
+                    ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON)
+                            .content(ContentHandle.create(OPENAPI_CONTENT)).build(),
+                    null, Collections.emptyList(), false, false, null);
+        }
+        Set<SearchFilter> filters = Set.of(SearchFilter.ofGroupId(group));
+
+        for (OrderDirection direction : OrderDirection.values()) {
+            List<String> paged = new ArrayList<>();
+            for (int offset = 0; offset < 30; offset += 7) {
+                storage().searchArtifacts(filters, OrderBy.name, direction, offset, 7, false).getArtifacts()
+                        .forEach(artifact -> paged.add(artifact.getArtifactId()));
+            }
+            List<String> expected = new ArrayList<>(artifactIds);
+            if (direction == OrderDirection.desc) {
+                Collections.reverse(expected);
+            }
+            Assertions.assertEquals(expected, paged, "artifacts, " + direction);
+
+            List<String> pagedVersions = new ArrayList<>();
+            for (int offset = 0; offset < 30; offset += 7) {
+                storage().searchVersions(filters, OrderBy.version, direction, offset, 7, false).getVersions()
+                        .forEach(version -> pagedVersions.add(version.getArtifactId()));
+            }
+            // Every version is "1", so creation order decides
+            Assertions.assertEquals(expected, pagedVersions, "versions, " + direction);
+        }
     }
 
     @Test
@@ -1708,4 +1752,62 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         }
     }
 
+    @Test
+    public void testPromoteDraftVersionDefaultAndNonDefaultGroup() throws Exception {
+        doTestPromoteDraftVersion(null);
+        doTestPromoteDraftVersion(GROUP_ID);
+    }
+
+    private void doTestPromoteDraftVersion(String groupId) throws Exception {
+        var content = ContentHandle.create(OPENAPI_CONTENT);
+        var contentWrapper = ContentWrapperDto.builder()
+                .contentType(ContentTypes.APPLICATION_JSON)
+                .content(content)
+                .build();
+
+        String artifactId = "test-promote-draft-" + (groupId == null ? "default" : "custom") + "-" + System.currentTimeMillis();
+        GA ga = new GA(groupId, artifactId);
+        try {
+            var dto = storage().createArtifact(
+                    groupId,
+                    artifactId,
+                    ArtifactType.OPENAPI,
+                    null,
+                    "1.0.0",
+                    contentWrapper,
+                    null,
+                    Collections.emptyList(),
+                    true, // versionIsDraft
+                    false,
+                    null
+            ).getValue();
+
+            Assertions.assertNotNull(dto);
+            Assertions.assertEquals(VersionState.DRAFT, dto.getState());
+
+            // Assert the version is on 'drafts' branch
+            var drafts = storage().getBranchVersions(ga, BranchId.DRAFTS, 0, 10);
+            Assertions.assertEquals(1, drafts.getCount());
+            Assertions.assertEquals(dto.getVersion(), drafts.getVersions().get(0).getVersion());
+
+            // Transition it to ENABLED
+            storage().updateArtifactVersionState(groupId, artifactId, dto.getVersion(), VersionState.ENABLED, false);
+
+            // Assert it is no longer on 'drafts' and is on 'latest'
+            var draftsAfter = storage().getBranchVersions(ga, BranchId.DRAFTS, 0, 10);
+            Assertions.assertEquals(0, draftsAfter.getCount());
+            Assertions.assertTrue(draftsAfter.getVersions().isEmpty());
+
+            var latest = storage().getBranchVersions(ga, BranchId.LATEST, 0, 10);
+            Assertions.assertEquals(1, latest.getCount());
+            Assertions.assertEquals(dto.getVersion(), latest.getVersions().get(0).getVersion());
+        } finally {
+            try {
+                storage().deleteArtifact(groupId, artifactId);
+            } catch (Exception ignored) {
+            }
+        }
+    }
+
 }
+

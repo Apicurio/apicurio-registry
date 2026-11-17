@@ -27,6 +27,7 @@ import static io.apicurio.registry.rest.v3.beans.EditableContractMetadata.Classi
 import static io.apicurio.registry.rest.v3.beans.EditableContractMetadata.Stage.DEV;
 
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.storage.StorageEventType;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.rest.v3.beans.ContractRule;
@@ -54,6 +55,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @QuarkusTest
 public class DataContractsResourceTest extends AbstractResourceTestBase {
@@ -1431,9 +1433,12 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
 
     @Test
     public void testContractEvents_StorageEventTypesExist() {
-        io.apicurio.registry.storage.StorageEventType.valueOf("CONTRACT_RULESET_CONFIGURED");
-        io.apicurio.registry.storage.StorageEventType.valueOf("CONTRACT_METADATA_UPDATED");
-        io.apicurio.registry.storage.StorageEventType.valueOf("CONTRACT_STATUS_CHANGED");
+        assertEquals("CONTRACT_RULESET_CONFIGURED",
+                StorageEventType.valueOf("CONTRACT_RULESET_CONFIGURED").name());
+        assertEquals("CONTRACT_METADATA_UPDATED",
+                StorageEventType.valueOf("CONTRACT_METADATA_UPDATED").name());
+        assertEquals("CONTRACT_STATUS_CHANGED",
+                StorageEventType.valueOf("CONTRACT_STATUS_CHANGED").name());
     }
 
     // ========== #7369 SerDes Acceptance Criteria (fail-on-error=false) ==========

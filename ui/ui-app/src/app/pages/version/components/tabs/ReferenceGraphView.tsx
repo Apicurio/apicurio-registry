@@ -9,7 +9,8 @@ import {
     useEdgesState,
     Node,
     Panel,
-    ReactFlowProvider
+    ReactFlowProvider,
+    type ReactFlowInstance
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import {
@@ -17,8 +18,6 @@ import {
     EmptyState,
     EmptyStateBody,
     EmptyStateVariant,
-    Slider,
-    SliderOnChangeEvent,
     Spinner,
     Alert,
     DescriptionList,
@@ -26,7 +25,11 @@ import {
     DescriptionListTerm,
     DescriptionListDescription,
     Tooltip,
-    Content
+    ToggleGroup,
+    ToggleGroupItem,
+    Toolbar,
+    ToolbarContent,
+    ToolbarItem
 } from "@patternfly/react-core";
 import {
     ExpandIcon,
@@ -35,8 +38,9 @@ import {
     InfoCircleIcon
 } from "@patternfly/react-icons";
 import { useNavigate } from "react-router";
-import { ReferenceType, VersionMetaData } from "@sdk/lib/generated-client/models";
+import { ReferenceGraphDirection, ReferenceType, VersionMetaData } from "@sdk/lib/generated-client/models";
 import { ReferenceNodeData, useReferenceGraph, ArtifactCoordinates } from "@services/useReferenceGraph.ts";
+import { isExpandable } from "@utils/referenceGraph.utils.ts";
 import { ReferenceGraphNode } from "./ReferenceGraphNode.tsx";
 import "./ReferenceGraphView.css";
 
@@ -56,9 +60,27 @@ const nodeTypes = {
 };
 
 /**
+ * Depth choices offered by the graph; 0 loads the whole graph.
+ */
+const DEPTH_OPTIONS: { value: number; label: string }[] = [
+    { value: 1, label: "1" },
+    { value: 2, label: "2" },
+    { value: 3, label: "3" },
+    { value: 0, label: "All" }
+];
+
+const DIRECTION_OPTIONS: { value: ReferenceGraphDirection; label: string }[] = [
+    { value: "OUTBOUND", label: "Outbound" },
+    { value: "INBOUND", label: "Inbound" },
+    { value: "BOTH", label: "Both" }
+];
+
+/**
  * Inner component that uses React Flow hooks
  */
-const ReferenceGraphInner: FunctionComponent<ReferenceGraphViewProps & {
+const ReferenceGraphInner: FunctionComponent<{
+    version: VersionMetaData | null;
+    direction: ReferenceGraphDirection;
     maxDepth: number;
     isFullscreen: boolean;
     onToggleFullscreen: () => void;
@@ -66,7 +88,7 @@ const ReferenceGraphInner: FunctionComponent<ReferenceGraphViewProps & {
     onNodeSelect: (node: Node<ReferenceNodeData> | null) => void;
 }> = ({
     version,
-    referenceType,
+    direction,
     maxDepth,
     isFullscreen,
     onToggleFullscreen,
@@ -84,10 +106,10 @@ const ReferenceGraphInner: FunctionComponent<ReferenceGraphViewProps & {
     } : undefined;
 
     // Fetch and build the graph using the new backend endpoint
-    const { nodes: initialNodes, edges: initialEdges, isLoading, isError, errorMessage, hasCycles } = useReferenceGraph(
-        coordinates,
-        { referenceType, maxDepth }
-    );
+    const {
+        nodes: initialNodes, edges: initialEdges, isLoading, isError, errorMessage, hasCycles,
+        expandNode, expandedNodeIds, exhaustedNodeIds, expandingNodeId, expandErrorMessage
+    } = useReferenceGraph(coordinates, { direction, maxDepth });
 
     // Use React Flow's state hooks for interactivity
     const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
@@ -97,6 +119,12 @@ const ReferenceGraphInner: FunctionComponent<ReferenceGraphViewProps & {
     React.useEffect(() => {
         setNodes(initialNodes);
         setEdges(initialEdges);
+        // `fitView` on ReactFlow only applies to the first render; refit so nodes added by an
+        // expansion are brought into view.
+        const instance = reactFlowInstance.current as ReactFlowInstance | null;
+        if (instance) {
+            requestAnimationFrame(() => instance.fitView({ padding: 0.2 }));
+        }
     }, [initialNodes, initialEdges, setNodes, setEdges]);
 
     // Handle node click - navigate to the artifact's references graph
@@ -199,7 +227,7 @@ const ReferenceGraphInner: FunctionComponent<ReferenceGraphViewProps & {
         return (
             <EmptyState titleText="No references found" variant={EmptyStateVariant.xs} data-testid="graph-empty-state">
                 <EmptyStateBody>
-                    This artifact version has no {referenceType === "OUTBOUND" ? "outbound" : "inbound"} references.
+                    This artifact version has no {direction === "BOTH" ? "" : `${direction.toLowerCase()} `}references.
                 </EmptyStateBody>
             </EmptyState>
         );
@@ -293,6 +321,25 @@ const ReferenceGraphInner: FunctionComponent<ReferenceGraphViewProps & {
                             </DescriptionListGroup>
                         )}
                     </DescriptionList>
+                    {isExpandable(selectedNode, maxDepth, expandedNodeIds) && (
+                        <Button
+                            variant="link"
+                            onClick={() => expandNode(selectedNode.id)}
+                            isLoading={expandingNodeId === selectedNode.id}
+                            isDisabled={expandingNodeId !== undefined}
+                            data-testid="graph-expand-node-btn"
+                        >
+                            Expand references
+                        </Button>
+                    )}
+                    {exhaustedNodeIds.has(selectedNode.id) && (
+                        <div className="node-details-note" data-testid="graph-expand-node-empty">No further references.</div>
+                    )}
+                    {expandErrorMessage && (
+                        <Alert variant="danger" isInline isPlain title="Error loading references" data-testid="graph-expand-node-error">
+                            {expandErrorMessage}
+                        </Alert>
+                    )}
                     {!selectedNode.data.isRoot && selectedNode.data.artifactId && (
                         <Button
                             variant="link"
@@ -339,17 +386,20 @@ export const ReferenceGraphView: FunctionComponent<ReferenceGraphViewProps> = ({
     referenceType
 }) => {
     const [maxDepth, setMaxDepth] = useState<number>(3);
+    const [direction, setDirection] = useState<ReferenceGraphDirection>(referenceType);
     const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
     const [selectedNode, setSelectedNode] = useState<Node<ReferenceNodeData> | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
-    // Handle depth change
-    const onDepthChange = useCallback((
-        _event: SliderOnChangeEvent,
-        value: number
-    ) => {
-        setMaxDepth(value);
-    }, []);
+    // Follow the tab's Inbound/Outbound switch; the graph can additionally show both directions.
+    React.useEffect(() => {
+        setDirection(referenceType);
+    }, [referenceType]);
+
+    // A reload replaces the nodes, so a selection from the previous graph no longer applies.
+    React.useEffect(() => {
+        setSelectedNode(null);
+    }, [maxDepth, direction]);
 
     // Toggle fullscreen
     const toggleFullscreen = useCallback(() => {
@@ -375,31 +425,45 @@ export const ReferenceGraphView: FunctionComponent<ReferenceGraphViewProps> = ({
 
     return (
         <div className={`reference-graph-wrapper ${isFullscreen ? "fullscreen" : ""}`} ref={containerRef} data-testid="reference-graph-wrapper">
-            <Content component="h4">Graph Depth: ({maxDepth})</Content>
-            <Content component="small">(Currently shows direct references only. Deeper levels require backend support.)</Content>
-            <Slider
-                value={maxDepth}
-                onChange={onDepthChange}
-                min={1}
-                max={5}
-                step={maxDepth}
-                showTicks
-                customSteps={[
-                    { value: 1, label: "1" },
-                    { value: 2, label: "2" },
-                    { value: 3, label: "3" },
-                    { value: 4, label: "4" },
-                    { value: 5, label: "5" }
-                ]}
-                showBoundaries={false}
-            />
+            <Toolbar className="reference-graph-controls">
+                <ToolbarContent>
+                    <ToolbarItem>
+                        <span className="reference-graph-control-label" id="graph-direction-label">Direction</span>
+                        <ToggleGroup aria-labelledby="graph-direction-label" data-testid="graph-direction">
+                            {DIRECTION_OPTIONS.map((option) => (
+                                <ToggleGroupItem
+                                    key={option.value}
+                                    text={option.label}
+                                    buttonId={`graph-direction-${option.value.toLowerCase()}`}
+                                    isSelected={direction === option.value}
+                                    onChange={() => setDirection(option.value)}
+                                />
+                            ))}
+                        </ToggleGroup>
+                    </ToolbarItem>
+                    <ToolbarItem>
+                        <span className="reference-graph-control-label" id="graph-depth-label">Depth</span>
+                        <ToggleGroup aria-labelledby="graph-depth-label" data-testid="graph-depth">
+                            {DEPTH_OPTIONS.map((option) => (
+                                <ToggleGroupItem
+                                    key={option.value}
+                                    text={option.label}
+                                    buttonId={`graph-depth-${option.label.toLowerCase()}`}
+                                    isSelected={maxDepth === option.value}
+                                    onChange={() => setMaxDepth(option.value)}
+                                />
+                            ))}
+                        </ToggleGroup>
+                    </ToolbarItem>
+                </ToolbarContent>
+            </Toolbar>
 
             {/* Graph container */}
-            <div className="reference-graph-container" data-testid="reference-graph-container" style={{ marginTop: "2rem" }}>
+            <div className="reference-graph-container" data-testid="reference-graph-container">
                 <ReactFlowProvider>
                     <ReferenceGraphInner
                         version={version}
-                        referenceType={referenceType}
+                        direction={direction}
                         maxDepth={maxDepth}
                         isFullscreen={isFullscreen}
                         onToggleFullscreen={toggleFullscreen}

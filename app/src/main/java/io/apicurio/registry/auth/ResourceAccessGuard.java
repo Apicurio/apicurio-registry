@@ -4,6 +4,7 @@ import io.apicurio.registry.auth.grants.GrantsAccessController;
 import io.apicurio.registry.auth.grants.GrantsAccessControllerConfig;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.model.GroupId;
+import io.apicurio.registry.references.AuthorizingReferenceLoader;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
@@ -19,6 +20,10 @@ import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -94,6 +99,25 @@ public class ResourceAccessGuard {
      */
     public void requireGrantsAccess(AuthorizedLevel level, AuthorizedResource resource) {
         if (isEnforced(level) && !grantsAc.isStrictOwner(resource) && !grantsAc.isAllowed(level, resource)) {
+            log.warn("Per-resource authorization denied access.");
+            throw new ForbiddenException(AuthorizedInterceptor.FORBIDDEN_MESSAGE);
+        }
+    }
+
+    /**
+     * Applies per-resource (grants) authorization to many resources at once: the same decisions as
+     * {@link #requireGrantsAccess(AuthorizedLevel, AuthorizedResource)} on each (owners bypass grants
+     * for what they own), with the grants of all the others evaluated in a single access rules call.
+     *
+     * @throws ForbiddenException if per-resource authorization denies {@code level} on any of them
+     */
+    public void requireGrantsAccess(AuthorizedLevel level, Collection<AuthorizedResource> resources) {
+        if (resources.isEmpty() || !isEnforced(level)) {
+            return;
+        }
+        List<AuthorizedResource> notOwned = resources.stream().distinct().filter(r -> !grantsAc.isStrictOwner(r))
+                .toList();
+        if (!grantsAc.isAllowedForAll(level, notOwned)) {
             log.warn("Per-resource authorization denied access.");
             throw new ForbiddenException(AuthorizedInterceptor.FORBIDDEN_MESSAGE);
         }
@@ -181,11 +205,38 @@ public class ResourceAccessGuard {
         if (!isEnforced(AuthorizedLevel.Read)) {
             return storage::getContentByReference;
         }
-        return reference -> {
-            requireGrantsAccess(AuthorizedLevel.Read,
-                    AuthorizedResource.artifact(reference.getGroupId(), reference.getArtifactId()));
+        return new ReadCheckingReferenceLoader();
+    }
+
+    /**
+     * Requires read access on each reference before loading it. Reference walks authorize whole sets of
+     * references at once through {@link #authorize}; a reference loaded without having been authorized
+     * that way is authorized on its own. One instance serves one walk: what it has authorized is
+     * remembered only for its lifetime.
+     */
+    private final class ReadCheckingReferenceLoader implements AuthorizingReferenceLoader {
+
+        /** (group, artifact) as spelled in the references already authorized */
+        private final Set<List<String>> authorized = new HashSet<>();
+
+        @Override
+        public void authorize(Collection<ArtifactReferenceDto> references) {
+            List<ArtifactReferenceDto> pending = references.stream().filter(r -> !authorized.contains(key(r)))
+                    .toList();
+            requireGrantsAccess(AuthorizedLevel.Read, pending.stream()
+                    .map(r -> AuthorizedResource.artifact(r.getGroupId(), r.getArtifactId())).toList());
+            pending.forEach(r -> authorized.add(key(r)));
+        }
+
+        @Override
+        public ContentWrapperDto apply(ArtifactReferenceDto reference) {
+            authorize(List.of(reference));
             return storage.getContentByReference(reference);
-        };
+        }
+
+        private static List<String> key(ArtifactReferenceDto reference) {
+            return Arrays.asList(reference.getGroupId(), reference.getArtifactId());
+        }
     }
 
     /**
@@ -214,7 +265,7 @@ public class ResourceAccessGuard {
     }
 
     /** Bypasses that skip all local resource authorization, as in the interceptor. */
-    private boolean isBypassed() {
+    boolean isBypassed() {
         if (!authConfig.isAuthenticationEnabled()) {
             return true;
         }
@@ -228,7 +279,7 @@ public class ResourceAccessGuard {
         return adminOverride.isAdmin() || (authConfig.roleBasedAuthorizationEnabled && rbac.isAdmin());
     }
 
-    private boolean isAnonymous() {
+    boolean isAnonymous() {
         return securityIdentity == null || securityIdentity.isAnonymous();
     }
 }

@@ -1,6 +1,7 @@
 import React, { FunctionComponent, useEffect, useState } from "react";
 import "./VersionPage.css";
 import { LoaderGuard, newLoaderGuard } from "@utils/loader.utils.ts";
+import { isRuleViolation, SubmittedContent, toSubmittedContent } from "@utils/ruleViolation.utils.ts";
 import { Breadcrumb, BreadcrumbItem, PageSection, Tab, Tabs } from "@patternfly/react-core";
 import { Link, useMatch, useParams } from "react-router";
 import {
@@ -53,6 +54,8 @@ import {
 } from "@app/pages/drafts/components/modals";
 import { EditAgentModal } from "@app/pages/agents/components";
 import { AgentCard } from "@app/components/agentCard";
+import { McpToolCompatibilityPanel } from "@app/components/mcpTool";
+import { showCompatibleToolsTab } from "@app/components/mcpTool/McpToolCompatibility.utils.ts";
 import { isErrorStatus } from "@utils/rest.utils.ts";
 import { fileExtensionForContentType } from "@utils/content.utils.ts";
 
@@ -77,6 +80,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
     const [isCreateDraftFromModalOpen, setIsCreateDraftFromModalOpen] = useState(false);
     const [isInvalidContentModalOpen, setIsInvalidContentModalOpen] = useState<boolean>(false);
     const [invalidContentError, setInvalidContentError] = useState<RuleViolationProblemDetails>();
+    const [invalidContent, setInvalidContent] = useState<SubmittedContent>();
     const [isFinalizeDryRunSuccessModalOpen, setIsFinalizeDryRunSuccessModalOpen] = useState(false);
     const [isTestVersionModalOpen, setIsTestVersionModalOpen] = useState(false);
     const [isTestVersionSuccessModalOpen, setIsTestVersionSuccessModalOpen] = useState(false);
@@ -92,6 +96,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
     const contentMatch = useMatch("/explore/:groupId/:artifactId/versions/:version/content");
     const referencesMatch = useMatch("/explore/:groupId/:artifactId/versions/:version/references");
     const documentationMatch = useMatch("/explore/:groupId/:artifactId/versions/:version/documentation");
+    const compatibilityMatch = useMatch("/explore/:groupId/:artifactId/versions/:version/compatibility");
 
     let activeTabKey: string = "overview";
     if (contentMatch) {
@@ -100,6 +105,8 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
         activeTabKey = "references";
     } else if (documentationMatch) {
         activeTabKey = "documentation";
+    } else if (compatibilityMatch) {
+        activeTabKey = "compatibility";
     }
 
     // Note: the SDK's generated client throws structured error objects (with a
@@ -301,16 +308,17 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
         }).catch(error => {
             pleaseWait(false);
             if (error && (error.status === 400 || error.status === 409)) {
-                handleInvalidContentError(error);
+                handleInvalidContentError(error, { content: versionContent, contentType: versionContentType });
             } else {
                 setPageError(toPageError(error, "Error changing version state."));
             }
         });
     };
 
-    const handleInvalidContentError = (error: any): void => {
+    const handleInvalidContentError = (error: any, content?: SubmittedContent): void => {
         console.info("[DraftsPage] Invalid content error:", error);
         setInvalidContentError(error);
+        setInvalidContent(content);
         setIsInvalidContentModalOpen(true);
     };
 
@@ -323,8 +331,8 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
             setIsTestVersionSuccessModalOpen(true);
         }).catch(error => {
             pleaseWait(false);
-            if (error && (error.status === 400 || error.status === 409) && Array.isArray(error.causes)) {
-                handleInvalidContentError(error);
+            if (isRuleViolation(error)) {
+                handleInvalidContentError(error, toSubmittedContent(data.content));
             } else {
                 setPageError(toPageError(error, "Error testing content."));
             }
@@ -346,7 +354,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
         }).catch(error => {
             pleaseWait(false);
             if (error && (error.status === 400 || error.status === 409)) {
-                handleInvalidContentError(error);
+                handleInvalidContentError(error, { content: versionContent, contentType: versionContentType });
             } else {
                 setPageError(toPageError(error, "Error finalizing a draft."));
             }
@@ -456,6 +464,14 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
     if (!showDocumentationTab()) {
         tabs.splice(1, 1);
     }
+    // Appended after the index-based removal above, so that the removal still targets the documentation tab
+    if (showCompatibleToolsTab(artifact?.artifactType, artifactVersion?.state)) {
+        tabs.push(
+            <Tab data-testid="version-compatibility-tab" eventKey="compatibility" title="Compatible tools" key="compatibility" tabContentId="tab-compatibility">
+                <McpToolCompatibilityPanel groupId={groupId as string} artifactId={artifactId as string} version={version as string} />
+            </Tab>
+        );
+    }
 
     const gid: string = groupId || "default";
     const breadcrumbs = (
@@ -535,9 +551,14 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
                 isOpen={isConfirmFinalizeModalOpen} />
             <InvalidContentModal
                 error={invalidContentError}
+                content={invalidContent?.content}
+                contentType={invalidContent?.contentType}
+                groupId={groupId}
+                artifactId={artifactId}
                 isOpen={isInvalidContentModalOpen}
                 onClose={() => {
                     setInvalidContentError(undefined);
+                    setInvalidContent(undefined);
                     setIsInvalidContentModalOpen(false);
                 }} />
             <TestVersionModal

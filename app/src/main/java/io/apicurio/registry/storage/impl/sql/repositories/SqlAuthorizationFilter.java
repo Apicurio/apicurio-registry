@@ -28,6 +28,8 @@ final class SqlAuthorizationFilter {
     private static final String DEFAULT_GROUP = AuthorizationNames.DEFAULT_GROUP;
     private static final String STORED_DEFAULT_GROUP = normalizeGroupId(null);
     private static final String ESCAPE = " ESCAPE '" + SqlSearchRepository.LIKE_ESCAPE_CHAR + "'";
+    private static final String AND_SEPARATOR = " AND ";
+    private static final String OR_OPEN = " OR (";
 
     /**
      * How to compare a column case-sensitively in a SQL dialect. MySQL and SQL Server compare the ID
@@ -69,7 +71,7 @@ final class SqlAuthorizationFilter {
         private void indexable(StringBuilder sql, List<SqlStatementVariableBinder> binders, String plain,
                 String binary, String value) {
             if (caseInsensitiveColumns) {
-                sql.append("(").append(plain).append(" AND ").append(binary).append(")");
+                sql.append("(").append(plain).append(AND_SEPARATOR).append(binary).append(")");
                 bind(binders, value);
             } else {
                 sql.append(binary);
@@ -163,13 +165,13 @@ final class SqlAuthorizationFilter {
         }
         boolean first = true;
         for (String name : exact) {
-            where.append(first ? "(" : " OR (");
+            where.append(first ? "(" : OR_OPEN);
             matcher.exact(name, where, binders);
             where.append(")");
             first = false;
         }
         for (String prefix : prefixes) {
-            where.append(first ? "(" : " OR (");
+            where.append(first ? "(" : OR_OPEN);
             matcher.prefix(prefix, where, binders);
             where.append(")");
             first = false;
@@ -185,14 +187,14 @@ final class SqlAuthorizationFilter {
         }
         boolean first = true;
         for (AuthorizationNames.Clause clause : clauses) {
-            sql.append(first ? "(" : " OR (");
+            sql.append(first ? "(" : OR_OPEN);
             if (clause.groupPrefix()) {
                 appendGroupPrefix(sql, binders, dialect, clause.group(), groupColumn);
             } else {
                 dialect.equals(sql, binders, groupColumn, normalizeGroupId(clause.group()));
             }
             if (clause.artifact() != null) {
-                sql.append(" AND ");
+                sql.append(AND_SEPARATOR);
                 if (clause.artifactPrefix()) {
                     dialect.like(sql, binders, artifactColumn,
                             SqlSearchRepository.escapeLikePattern(clause.artifact()) + "%");
@@ -210,7 +212,7 @@ final class SqlAuthorizationFilter {
             Dialect dialect, String prefix, String groupColumn) {
         sql.append("(");
         dialect.like(sql, binders, groupColumn, SqlSearchRepository.escapeLikePattern(prefix) + "%");
-        sql.append(" AND ");
+        sql.append(AND_SEPARATOR);
         dialect.notEquals(sql, binders, groupColumn, STORED_DEFAULT_GROUP);
         sql.append(")");
     }

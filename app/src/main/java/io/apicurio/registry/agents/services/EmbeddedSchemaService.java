@@ -7,6 +7,7 @@ import io.apicurio.registry.auth.ResourceAccessGuard;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.extensions.ArtifactVersionWriteHook;
+import io.apicurio.registry.extensions.ContentPlan;
 import io.apicurio.registry.extensions.VersionWriteContext;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
@@ -16,6 +17,8 @@ import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
 import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
+import io.apicurio.registry.storage.error.CommitFailedException;
+import io.apicurio.registry.storage.error.VersionAlreadyExistsException;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -24,7 +27,9 @@ import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static io.apicurio.registry.util.JsonObjectMapper.MAPPER;
 import static io.apicurio.registry.util.YAMLObjectMapper.YAML_MAPPER;
@@ -41,9 +46,19 @@ import static io.apicurio.registry.util.YAMLObjectMapper.YAML_MAPPER;
  *
  * After extraction, the original content is rewritten to replace the embedded schemas with
  * $ref references pointing to the newly created artifacts.
+ *
+ * <p>
+ * Registration is planned, not written, by {@link #planContent}: a schema that matches an existing
+ * version is reused without writing anything; a new artifact or version is predicted (its coordinates
+ * decided) and written only by the returned {@link ContentPlan#commit()}, which the caller runs
+ * after rules and every other hook have passed, and never on a dry run. This keeps a later rejection
+ * from leaving a registered schema behind. See issue #10603.
+ * </p>
  */
 @ApplicationScoped
 public class EmbeddedSchemaService implements ArtifactVersionWriteHook {
+
+    private static final String INPUT_FIELD = "input";
 
     @Inject
     Logger log;
@@ -52,23 +67,24 @@ public class EmbeddedSchemaService implements ArtifactVersionWriteHook {
     ResourceAccessGuard accessGuard;
 
     @Override
-    public ContentWrapperDto prepareContent(VersionWriteContext context, TypedContent content) {
+    public ContentPlan planContent(VersionWriteContext context, TypedContent content) {
         String contentType = content.getContentType();
+        String groupId = context.getGa().getRawGroupIdWithNull();
+        String artifactId = context.getGa().getRawArtifactId();
         // The extracted schemas are written as separate artifacts (created, or given a new version).
-        // Check them all before writing any, with every check a direct write would get (owner-only
+        // Check them all before planning any, with every check a direct write would get (owner-only
         // authorization and grants, and group write for a new one), so a forbidden target fails the
         // request without side effects instead of being written for a caller who may not write it.
-        for (String target : embeddedSchemaArtifactIds(context.getArtifactType(),
-                context.getGa().getRawArtifactId(), content)) {
-            accessGuard.requireGeneratedArtifactWrite(context.getGa().getRawGroupIdWithNull(), target, true);
+        for (String target : embeddedSchemaArtifactIds(context.getArtifactType(), artifactId, content)) {
+            accessGuard.requireGeneratedArtifactWrite(groupId, target, true);
         }
         if (ArtifactType.MODEL_SCHEMA.equals(context.getArtifactType())) {
-            return extractModelSchemaEmbeddedSchemas(context.getStorage(), context.getGa().getRawGroupIdWithNull(),
-                    context.getGa().getRawArtifactId(), content.getContent(), contentType, context.getOwner());
+            return planModelSchemaEmbeddedSchemas(context.getStorage(), groupId, artifactId,
+                    content.getContent(), contentType, context.getOwner());
         }
         if (ArtifactType.PROMPT_TEMPLATE.equals(context.getArtifactType())) {
-            return extractPromptTemplateEmbeddedSchemas(context.getStorage(), context.getGa().getRawGroupIdWithNull(),
-                    context.getGa().getRawArtifactId(), content.getContent(), contentType, context.getOwner());
+            return planPromptTemplateEmbeddedSchemas(context.getStorage(), groupId, artifactId,
+                    content.getContent(), contentType, context.getOwner());
         }
         return null;
     }
@@ -80,7 +96,7 @@ public class EmbeddedSchemaService implements ArtifactVersionWriteHook {
     List<String> embeddedSchemaArtifactIds(String artifactType, String artifactId, TypedContent content) {
         List<String> fields;
         if (ArtifactType.MODEL_SCHEMA.equals(artifactType)) {
-            fields = List.of("input", "output");
+            fields = List.of(INPUT_FIELD, "output");
         } else if (ArtifactType.PROMPT_TEMPLATE.equals(artifactType)) {
             fields = List.of("outputSchema");
         } else {
@@ -99,193 +115,251 @@ public class EmbeddedSchemaService implements ArtifactVersionWriteHook {
         List<String> ids = new ArrayList<>();
         for (String field : fields) {
             if (root.has(field) && root.get(field).isObject() && hasSchemaProperties(root.get(field))) {
-                ids.add(artifactId + ("input".equals(field) ? "-input-schema" : "-output-schema"));
+                ids.add(artifactId + (INPUT_FIELD.equals(field) ? "-input-schema" : "-output-schema"));
             }
         }
         return ids;
     }
 
     /**
-     * Extract embedded schemas from a MODEL_SCHEMA artifact, auto-register them, and return
-     * the modified content with $ref references.
+     * Plans extraction of embedded schemas from a MODEL_SCHEMA artifact's "input" and "output" fields.
      *
-     * @param storage    the registry storage
-     * @param groupId    the group ID where the artifact is being created
-     * @param artifactId the artifact ID of the MODEL_SCHEMA being created
-     * @param content    the raw content of the MODEL_SCHEMA
-     * @param contentType the content type (application/json or application/x-yaml)
-     * @param owner      the owner of the created artifacts
-     * @return the rewritten content and the references to the registered schemas, or null if no extraction was performed
+     * @return the plan, or null if there is nothing to extract
      */
-    public ContentWrapperDto extractModelSchemaEmbeddedSchemas(RegistryStorage storage, String groupId,
-            String artifactId, ContentHandle content, String contentType, String owner) {
+    ContentPlan planModelSchemaEmbeddedSchemas(RegistryStorage storage, String groupId, String artifactId,
+            ContentHandle content, String contentType, String owner) {
         try {
             JsonNode root = parseContent(content.content(), contentType);
             if (root == null || !root.isObject()) {
                 return null;
             }
-
             ObjectNode rootObj = (ObjectNode) root;
-            List<ArtifactReferenceDto> references = new ArrayList<>();
-            boolean modified = false;
+            PlanContext ctx = new PlanContext(storage, groupId, artifactId, owner);
 
-            // Extract "input" schema
-            if (rootObj.has("input") && rootObj.get("input").isObject() && hasSchemaProperties(rootObj.get("input"))) {
-                String schemaArtifactId = artifactId + "-input-schema";
-                JsonNode inputSchema = rootObj.get("input");
+            List<FieldPlan> fieldPlans = new ArrayList<>();
+            planField(ctx, rootObj, INPUT_FIELD, "input-schema", "Input schema for " + artifactId, fieldPlans);
+            planField(ctx, rootObj, "output", "output-schema", "Output schema for " + artifactId, fieldPlans);
 
-                String version = autoRegisterSchema(storage, groupId, schemaArtifactId, inputSchema,
-                        "Input schema for " + artifactId, owner);
-                if (version != null) {
-                    String refName = buildReferenceName(groupId, schemaArtifactId, version);
-                    rootObj.set("input", createRefNode(refName));
-                    references.add(ArtifactReferenceDto.builder()
-                            .groupId(groupId).artifactId(schemaArtifactId).version(version).name(refName)
-                            .build());
-                    modified = true;
-                }
-            }
-
-            // Extract "output" schema
-            if (rootObj.has("output") && rootObj.get("output").isObject() && hasSchemaProperties(rootObj.get("output"))) {
-                String schemaArtifactId = artifactId + "-output-schema";
-                JsonNode outputSchema = rootObj.get("output");
-
-                String version = autoRegisterSchema(storage, groupId, schemaArtifactId, outputSchema,
-                        "Output schema for " + artifactId, owner);
-                if (version != null) {
-                    String refName = buildReferenceName(groupId, schemaArtifactId, version);
-                    rootObj.set("output", createRefNode(refName));
-                    references.add(ArtifactReferenceDto.builder()
-                            .groupId(groupId).artifactId(schemaArtifactId).version(version).name(refName)
-                            .build());
-                    modified = true;
-                }
-            }
-
-            if (!modified) {
+            if (fieldPlans.isEmpty()) {
                 return null;
             }
-
-            // Serialize back to original format
-            String modifiedContentStr = serializeContent(rootObj, contentType);
-            return ContentWrapperDto.builder()
-                    .content(ContentHandle.create(modifiedContentStr))
-                    .contentType(contentType)
-                    .references(references)
-                    .build();
+            return buildContentPlan(rootObj, contentType, fieldPlans);
         } catch (Exception e) {
-            log.warn("Failed to extract embedded schemas from MODEL_SCHEMA artifact: {}", e.getMessage());
+            log.warn("Failed to plan embedded schema extraction from MODEL_SCHEMA artifact: {}", e.getMessage());
             return null;
         }
     }
 
     /**
-     * Extract embedded schemas from a PROMPT_TEMPLATE artifact, auto-register them, and return
-     * the modified content with $ref references.
+     * Plans extraction of the embedded schema from a PROMPT_TEMPLATE artifact's "outputSchema" field.
+     *
+     * @return the plan, or null if there is nothing to extract
      */
-    public ContentWrapperDto extractPromptTemplateEmbeddedSchemas(RegistryStorage storage, String groupId,
-            String artifactId, ContentHandle content, String contentType, String owner) {
+    ContentPlan planPromptTemplateEmbeddedSchemas(RegistryStorage storage, String groupId, String artifactId,
+            ContentHandle content, String contentType, String owner) {
         try {
             JsonNode root = parseContent(content.content(), contentType);
             if (root == null || !root.isObject()) {
                 return null;
             }
-
             ObjectNode rootObj = (ObjectNode) root;
-            List<ArtifactReferenceDto> references = new ArrayList<>();
-            boolean modified = false;
+            PlanContext ctx = new PlanContext(storage, groupId, artifactId, owner);
 
-            // Extract "outputSchema"
-            if (rootObj.has("outputSchema") && rootObj.get("outputSchema").isObject() && hasSchemaProperties(rootObj.get("outputSchema"))) {
-                String schemaArtifactId = artifactId + "-output-schema";
-                JsonNode outputSchema = rootObj.get("outputSchema");
+            List<FieldPlan> fieldPlans = new ArrayList<>();
+            planField(ctx, rootObj, "outputSchema", "output-schema",
+                    "Output schema for prompt template " + artifactId, fieldPlans);
 
-                String version = autoRegisterSchema(storage, groupId, schemaArtifactId, outputSchema,
-                        "Output schema for prompt template " + artifactId, owner);
-                if (version != null) {
-                    String refName = buildReferenceName(groupId, schemaArtifactId, version);
-                    rootObj.set("outputSchema", createRefNode(refName));
-                    references.add(ArtifactReferenceDto.builder()
-                            .groupId(groupId).artifactId(schemaArtifactId).version(version).name(refName)
-                            .build());
-                    modified = true;
-                }
-            }
-
-            if (!modified) {
+            if (fieldPlans.isEmpty()) {
                 return null;
             }
-
-            String modifiedContentStr = serializeContent(rootObj, contentType);
-            return ContentWrapperDto.builder()
-                    .content(ContentHandle.create(modifiedContentStr))
-                    .contentType(contentType)
-                    .references(references)
-                    .build();
+            return buildContentPlan(rootObj, contentType, fieldPlans);
         } catch (Exception e) {
-            log.warn("Failed to extract embedded schemas from PROMPT_TEMPLATE artifact: {}", e.getMessage());
+            log.warn("Failed to plan embedded schema extraction from PROMPT_TEMPLATE artifact: {}", e.getMessage());
             return null;
         }
     }
 
     /**
-     * Auto-register a JSON Schema as a separate JSON artifact. If the schema artifact already
-     * exists, an existing version with identical content is reused, otherwise a new version
-     * is created.
-     *
-     * @return the version of the registered schema, or null if registration failed
+     * If {@code field} holds an embeddable schema, plans its registration (reusing a matching existing
+     * version, or predicting a new artifact or version) and rewrites {@code rootObj}'s field in place to
+     * a {@code $ref}. Appends the plan to {@code fieldPlans} so the caller can build the content plan.
      */
-    private String autoRegisterSchema(RegistryStorage storage, String groupId, String schemaArtifactId,
-            JsonNode schema, String description, String owner) {
+    private void planField(PlanContext ctx, ObjectNode rootObj, String field, String suffix, String description,
+            List<FieldPlan> fieldPlans) {
+        if (!rootObj.has(field) || !rootObj.get(field).isObject() || !hasSchemaProperties(rootObj.get(field))) {
+            return;
+        }
+        String schemaArtifactId = ctx.artifactId() + "-" + suffix;
+        JsonNode schema = rootObj.get(field);
+        SchemaRegistration registration = planSchemaRegistration(ctx, schemaArtifactId, schema, description);
+        if (registration == null) {
+            return;
+        }
+        String refName = buildReferenceName(ctx.groupId(), schemaArtifactId, registration.version());
+        rootObj.set(field, createRefNode(refName));
+        ArtifactReferenceDto reference = ArtifactReferenceDto.builder().groupId(ctx.groupId())
+                .artifactId(schemaArtifactId).version(registration.version()).name(refName).build();
+        fieldPlans.add(new FieldPlan(reference, registration));
+    }
+
+    private ContentPlan buildContentPlan(ObjectNode rootObj, String contentType, List<FieldPlan> fieldPlans)
+            throws JsonProcessingException {
+        String modifiedContentStr = serializeContent(rootObj, contentType);
+        List<ArtifactReferenceDto> references = fieldPlans.stream().map(FieldPlan::reference).toList();
+        ContentWrapperDto content = ContentWrapperDto.builder()
+                .content(ContentHandle.create(modifiedContentStr))
+                .contentType(contentType)
+                .references(references)
+                .build();
+
+        Map<ArtifactReferenceDto, ContentWrapperDto> plannedReferencedContent = new HashMap<>();
+        for (FieldPlan fieldPlan : fieldPlans) {
+            if (fieldPlan.registration().write() != null) {
+                // Reference resolution and rules must see the schema before it is committed; keyed
+                // without a name, matching how the reference loader builds its lookup key.
+                ArtifactReferenceDto key = ArtifactReferenceDto.builder()
+                        .groupId(fieldPlan.reference().getGroupId()).artifactId(fieldPlan.reference().getArtifactId())
+                        .version(fieldPlan.reference().getVersion()).build();
+                plannedReferencedContent.put(key, fieldPlan.registration().write().content());
+            }
+        }
+
+        return new ContentPlan(content, plannedReferencedContent, () -> commitFields(fieldPlans));
+    }
+
+    /**
+     * Each field's write is independent (potentially a different artifact), so one field's write
+     * succeeding does not make the whole plan atomic. If a later field's write fails (its predicted
+     * coordinates were taken concurrently), undoes the earlier fields' writes rather than leaving them
+     * registered with nothing referencing them: the parent is never written when this throws.
+     */
+    private void commitFields(List<FieldPlan> fieldPlans) {
+        List<Runnable> committed = new ArrayList<>();
+        try {
+            for (FieldPlan fieldPlan : fieldPlans) {
+                SchemaWrite write = fieldPlan.registration().write();
+                if (write != null) {
+                    write.commit().run();
+                    committed.add(write.rollback());
+                }
+            }
+        } catch (RuntimeException failure) {
+            rollBack(committed);
+            throw failure;
+        }
+    }
+
+    /** Undoes already-committed writes in reverse order, best-effort: logs but does not throw. */
+    private void rollBack(List<Runnable> committed) {
+        for (int i = committed.size() - 1; i >= 0; i--) {
+            try {
+                committed.get(i).run();
+            } catch (RuntimeException rollbackFailure) {
+                log.warn("Failed to roll back an embedded schema registration after a later field's "
+                        + "commit failed for the same write", rollbackFailure);
+            }
+        }
+    }
+
+    /**
+     * Decides how a schema would be registered: reused from a matching existing version (nothing to
+     * write), a new artifact (version {@code "1"}), or a new version of an existing artifact (predicted
+     * from the artifact's current latest versionOrder, committed with
+     * {@link RegistryStorage#createArtifactVersionIfLatest} so a concurrent write is detected instead of
+     * silently registering under a different version than the one referenced).
+     *
+     * @return the registration, or null if nothing can be planned (matches the old behaviour of leaving
+     *         the field inline and logging a warning)
+     */
+    private SchemaRegistration planSchemaRegistration(PlanContext ctx, String schemaArtifactId, JsonNode schema,
+            String description) {
+        RegistryStorage storage = ctx.storage();
+        String groupId = ctx.groupId();
+        String owner = ctx.owner();
         try {
             String schemaContent = MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(schema);
             ContentHandle contentHandle = ContentHandle.create(schemaContent);
+            ContentWrapperDto contentWrapper = ContentWrapperDto.builder().content(contentHandle)
+                    .contentType(ContentTypes.APPLICATION_JSON).references(Collections.emptyList()).build();
 
-            EditableArtifactMetaDataDto artifactMeta = EditableArtifactMetaDataDto.builder()
-                    .name(schemaArtifactId)
-                    .description(description)
-                    .build();
-            EditableVersionMetaDataDto versionMeta = EditableVersionMetaDataDto.builder()
-                    .name(schemaArtifactId)
-                    .description(description)
-                    .build();
-            ContentWrapperDto contentWrapper = ContentWrapperDto.builder()
-                    .content(contentHandle)
-                    .contentType(ContentTypes.APPLICATION_JSON)
-                    .references(Collections.emptyList())
-                    .build();
-
+            ArtifactVersionMetaDataDto latest;
             try {
-                storage.createArtifact(groupId, schemaArtifactId, "JSON", artifactMeta,
-                        "1", contentWrapper, versionMeta, Collections.emptyList(),
-                        false, false, owner);
-                log.info("Auto-registered embedded schema as artifact: {}/{}", groupId, schemaArtifactId);
-                return "1";
-            } catch (ArtifactAlreadyExistsException e) {
-                // The schema artifact already exists. Reuse an existing version with identical content
-                // if there is one, otherwise register the updated schema as a new version.
-                TypedContent typedContent = TypedContent.create(contentHandle, ContentTypes.APPLICATION_JSON);
-                try {
-                    ArtifactVersionMetaDataDto existing = storage.getArtifactVersionMetaDataByContent(
-                            groupId, schemaArtifactId, false, typedContent, Collections.emptyList());
-                    return existing.getVersion();
-                } catch (ArtifactNotFoundException nfe) {
-                    // No version with matching content - create a new one.
-                    log.debug("No existing version with matching content for {}/{}, creating new version",
-                            groupId, schemaArtifactId);
-                }
-                ArtifactVersionMetaDataDto vmd = storage.createArtifactVersion(groupId, schemaArtifactId,
-                        null, "JSON", contentWrapper, versionMeta, Collections.emptyList(),
-                        false, false, owner);
-                log.info("Auto-registered updated embedded schema as new version: {}/{} v{}",
-                        groupId, schemaArtifactId, vmd.getVersion());
-                return vmd.getVersion();
+                latest = latestVersion(storage, groupId, schemaArtifactId);
+            } catch (ArtifactNotFoundException nfe) {
+                // The schema artifact doesn't exist yet: predict a new artifact at version "1".
+                EditableArtifactMetaDataDto artifactMeta = EditableArtifactMetaDataDto.builder()
+                        .name(schemaArtifactId).description(description).build();
+                EditableVersionMetaDataDto versionMeta = EditableVersionMetaDataDto.builder()
+                        .name(schemaArtifactId).description(description).build();
+                Runnable commit = () -> {
+                    try {
+                        storage.createArtifact(groupId, schemaArtifactId, "JSON", artifactMeta, "1",
+                                contentWrapper, versionMeta, Collections.emptyList(), false, false, owner);
+                        log.info("Registered embedded schema as a new artifact: {}/{}", groupId, schemaArtifactId);
+                    } catch (ArtifactAlreadyExistsException ex) {
+                        // Taken concurrently between planning and commit: fail the request rather than
+                        // register a version the $ref in the parent doesn't match.
+                        throw new VersionAlreadyExistsException(groupId, schemaArtifactId, "1");
+                    }
+                };
+                Runnable rollback = () -> {
+                    // Delete only the version this plan wrote: a concurrent write may have added
+                    // another version to this artifact since, which must not be destroyed by undoing
+                    // this plan. Remove the whole artifact only if it still holds just our version.
+                    if (storage.getArtifactVersions(groupId, schemaArtifactId).size() == 1) {
+                        storage.deleteArtifact(groupId, schemaArtifactId);
+                    } else {
+                        storage.deleteArtifactVersion(groupId, schemaArtifactId, "1");
+                    }
+                    log.info("Rolled back embedded schema artifact: {}/{}", groupId, schemaArtifactId);
+                };
+                return new SchemaRegistration("1", new SchemaWrite(contentWrapper, commit, rollback));
             }
+
+            TypedContent typedContent = TypedContent.create(contentHandle, ContentTypes.APPLICATION_JSON);
+            try {
+                ArtifactVersionMetaDataDto existing = storage.getArtifactVersionMetaDataByContent(groupId,
+                        schemaArtifactId, false, typedContent, Collections.emptyList());
+                // Identical content already registered: nothing to write.
+                return new SchemaRegistration(existing.getVersion(), null);
+            } catch (ArtifactNotFoundException nfe) {
+                // No version with matching content: predict the next one.
+            }
+            String predictedVersion = String.valueOf(latest.getVersionOrder() + 1);
+            EditableVersionMetaDataDto versionMeta = EditableVersionMetaDataDto.builder().name(schemaArtifactId)
+                    .description(description).build();
+            int expectedBaseVersionOrder = latest.getVersionOrder();
+            Runnable commit = () -> {
+                try {
+                    storage.createArtifactVersionIfLatest(groupId, schemaArtifactId, null, "JSON",
+                            contentWrapper, versionMeta, Collections.emptyList(), false, owner,
+                            expectedBaseVersionOrder, null);
+                    log.info("Registered updated embedded schema as new version: {}/{} v{}", groupId,
+                            schemaArtifactId, predictedVersion);
+                } catch (CommitFailedException ex) {
+                    // A concurrent version was committed between planning and commit: the predicted
+                    // version in the parent's $ref would not match what storage would assign now.
+                    throw new VersionAlreadyExistsException(groupId, schemaArtifactId, predictedVersion);
+                }
+            };
+            Runnable rollback = () -> {
+                storage.deleteArtifactVersion(groupId, schemaArtifactId, predictedVersion);
+                log.info("Rolled back embedded schema version: {}/{} v{}", groupId, schemaArtifactId,
+                        predictedVersion);
+            };
+            return new SchemaRegistration(predictedVersion, new SchemaWrite(contentWrapper, commit, rollback));
         } catch (Exception e) {
-            log.warn("Failed to auto-register embedded schema {}/{}: {}", groupId, schemaArtifactId, e.getMessage());
+            log.warn("Failed to plan embedded schema registration {}/{}: {}", groupId, schemaArtifactId,
+                    e.getMessage());
             return null;
         }
+    }
+
+    private ArtifactVersionMetaDataDto latestVersion(RegistryStorage storage, String groupId, String artifactId) {
+        return storage.getArtifactVersions(groupId, artifactId, RegistryStorage.RetrievalBehavior.ALL_STATES)
+                .stream().map(version -> storage.getArtifactVersionMetaData(groupId, artifactId, version))
+                .max(java.util.Comparator.comparingInt(ArtifactVersionMetaDataDto::getVersionOrder))
+                .orElseThrow(() -> new ArtifactNotFoundException(groupId, artifactId));
     }
 
     private JsonNode parseContent(String content, String contentType) throws JsonProcessingException {
@@ -334,5 +408,25 @@ public class EmbeddedSchemaService implements ArtifactVersionWriteHook {
         ObjectNode refNode = MAPPER.createObjectNode();
         refNode.put("$ref", refName);
         return refNode;
+    }
+
+    /** The parameters shared by every field planned for one write: bundled to keep method signatures short. */
+    private record PlanContext(RegistryStorage storage, String groupId, String artifactId, String owner) {
+    }
+
+    /** One field's plan: the reference it rewrites to, and how it would be registered. */
+    private record FieldPlan(ArtifactReferenceDto reference, SchemaRegistration registration) {
+    }
+
+    /** @param version the version the field's $ref uses, reused or predicted
+     *  @param write null if an existing version with matching content is reused (nothing to write) */
+    private record SchemaRegistration(String version, SchemaWrite write) {
+    }
+
+    /** @param content the schema content, for reference resolution and rules before commit runs
+     *  @param commit writes the schema; throws if its predicted coordinates were taken concurrently
+     *  @param rollback undoes {@code commit} after it succeeded; best-effort, used only when a later
+     *                  field in the same plan fails to commit */
+    private record SchemaWrite(ContentWrapperDto content, Runnable commit, Runnable rollback) {
     }
 }

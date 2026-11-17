@@ -78,18 +78,8 @@ public class RegistryReferenceResolver extends LocalReferenceResolver {
             // Check for Avro (has "type" and optionally "name", "namespace", "fields")
             // Avro records have: type, name, namespace (optional), fields
             // Avro primitives/enums/arrays/maps also have "type"
-            if (node.has("type")) {
-                JsonNode typeNode = node.get("type");
-                if (typeNode.isTextual()) {
-                    String type = typeNode.asText();
-                    // Avro types: null, boolean, int, long, float, double, bytes, string,
-                    // record, enum, array, map, fixed
-                    if (type.equals("record") || type.equals("enum") || type.equals("fixed")
-                            || type.equals("array") || type.equals("map")
-                            || (node.has("name") && (node.has("fields") || node.has("symbols")))) {
-                        return ReferencedContentType.AVRO;
-                    }
-                }
+            if (isAvro(node)) {
+                return ReferencedContentType.AVRO;
             }
 
         } catch (IOException e) {
@@ -97,6 +87,21 @@ public class RegistryReferenceResolver extends LocalReferenceResolver {
         }
 
         return ReferencedContentType.OTHER;
+    }
+
+    private static boolean isAvro(JsonNode node) {
+        if (node.has("type")) {
+            JsonNode typeNode = node.get("type");
+            if (typeNode.isTextual()) {
+                String type = typeNode.asText();
+                // Avro types: null, boolean, int, long, float, double, bytes, string,
+                // record, enum, array, map, fixed
+                return type.equals("record") || type.equals("enum") || type.equals("fixed")
+                        || type.equals("array") || type.equals("map")
+                        || (node.has("name") && (node.has("fields") || node.has("symbols")));
+            }
+        }
+        return false;
     }
 
     /**

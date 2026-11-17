@@ -14,27 +14,37 @@ the [README](README.md) and the
 
 This project supports several build configuration options that affect the produced executables.
 
-By default, `mvn clean install` produces an executable JAR with the *dev* Quarkus configuration profile enabled, and *in-memory* persistence implementation.
+By default, `mvn clean install` produces an executable JAR with the *dev* Quarkus configuration profile enabled. Its default storage is SQL on an in-memory H2 database, so data is lost on restart.
 
-Apicurio Registry supports 4 persistence implementations:
- - In-Memory
- - KafkaSQL
- - PostgreSQL
- - SQL Server (community contributed and maintained)
+A single artifact runs every storage variant. Two properties select it:
 
-Starting with Apicurio Registry 3.0, we now produce a single artifact suitable for running any storage variant.
+| Property | Env. variable | Values | Default |
+|---|---|---|---|
+| `apicurio.storage.kind` | `APICURIO_STORAGE_KIND` | `sql`, `kafkasql`, `gitops`, `kubernetesops` | `sql` |
+| `apicurio.storage.sql.kind` | `APICURIO_STORAGE_SQL_KIND` | `h2`, `postgresql`, `mysql`, `mssql` | `h2` |
 
-Which storage variant will be used is determined by the following configuration:
+There is no separate in-memory storage kind: "in-memory" is `sql` with `h2` and the default `jdbc:h2:mem` URL.
 
-| Option                   | Command argument          | Env. variable           |
-|--------------------------|---------------------------|-------------------------|
-| Registry Storage Variant | `-Dapicurio.storage.kind` | `APICURIO_STORAGE_KIND` |
+### Storage support matrix
 
-For this property, there are four possible values:
-- *sql* - for the SQL storage variant.
-- *kafkasql* - for the KafkaSQL storage variant.
-- *gitops* - for the GitOps storage variant (experimental; requires `APICURIO_FEATURES_EXPERIMENTAL_ENABLED=true`).
-- *kubernetesops* - for the Kubernetes ConfigMap storage variant (experimental; requires `APICURIO_FEATURES_EXPERIMENTAL_ENABLED=true`).
+| Storage kind | Database | Writes | Status | Unit tests (`verify-unit-tests.yaml`) | Integration tests | Operator `app.storage.type` |
+|---|---|---|---|---|---|---|
+| `sql` | `h2` (in-memory) | Read/write | Development and testing; not persistent | All shards (default profile) | `h2` groups | Empty (default) |
+| `sql` | `postgresql` | Read/write | Supported | `*PostgresqlTest` classes | `postgresql` groups | `postgresql` |
+| `sql` | `mysql` | Read/write | Supported | `*MysqlTest` classes | None | `mysql` |
+| `sql` | `mssql` | Read/write | Community contributed | `*MssqlTest` classes, skipped on macOS | None | Not supported |
+| `kafkasql` | Kafka journal, replayed into the local SQL store (H2 in-memory by default) | Read/write | Supported | `app-kafkasql` shard and `*KafkaSqlTest` classes | `kafkasql` groups | `kafkasql` |
+| `gitops` | Git repository, loaded into blue/green H2 stores | Read-only | Experimental | `app-gitops` shard | None | `gitops` |
+| `kubernetesops` | ConfigMaps, loaded into blue/green H2 stores | Read-only | Experimental | `app-kubernetesops` shard | `kubernetesops` group | `kubernetesops` |
+
+Notes:
+- **KafkaSQL local store:** it uses whatever `apicurio.storage.sql.kind` selects. Only the default H2 is tested.
+- **GitOps and KubernetesOps:**
+  - Starting either one requires `apicurio.features.experimental.enabled=true`. The operator sets it automatically.
+  - Their blue/green stores use the SQL statements of `apicurio.storage.sql.kind`, so keep it at `h2`.
+  - The GitOps *push mode* is a mode of the `distro/gitops` sidecar that accepts `git push` from CI/CD. The registry never writes back to Git.
+- **Read-only mode for any storage:** `apicurio.storage.read-only.enabled` makes any storage reject writes. It defaults to `false` and can be changed at runtime.
+- **Registry events:** the SQL outbox events are written only on PostgreSQL and SQL Server. KafkaSQL publishes events to the `apicurio.events.kafka.topic` topic.
 
 Additionally, there are 2 main configuration profiles:
  - *dev* - suitable for development, and
@@ -186,6 +196,37 @@ are in a separate module and need to be explicitly enabled:
 
 See the [integration tests module](integration-tests/) for test groups, deployment
 modes, and detailed usage instructions.
+
+### Byteman concurrency tests
+
+Tests that use Byteman to force a specific thread interleaving live in
+`app/src/test-concurrency/java` and are opt-in via `-Pconcurrency-tests`:
+
+```bash
+./mvnw test -pl :apicurio-registry-app -Pconcurrency-tests
+```
+
+That command also runs the regular `app` suite. To run only the Byteman tests, name them
+with `-Dtest=ConcurrentVersionCreationTest,...`.
+
+They sit in their own source root because Byteman is LGPL and may not appear in the
+default build. Only the profile adds that root, so a new test put anywhere else will
+either fail the license scan or not compile. Put new Byteman tests in
+`app/src/test-concurrency/java`. Concurrency tests that do not use Byteman stay in
+`app/src/test/java`, because only that root runs in CI.
+
+Every `@WithByteman` class also carries `@BMUnitConfig`, even when it sets nothing. BMUnit
+pushes a configuration for each Byteman class but pops it only when that annotation is
+present, so without it the next Byteman class in the same JVM fails with "BMUnit test class
+configuration pushed without prior pop!".
+
+Two things to expect. An IDE that has not enabled the profile shows these files as
+non-source with every symbol unresolved. And no CI workflow activates `-Pconcurrency-tests`, so
+these tests run locally only.
+
+Run `clean` when you go back to a build without the profile. The Byteman classes stay in
+`app/target/test-classes` from the earlier build, and a later default build does not remove
+them.
 
 ## Running with Postgres (docker-compose)
 

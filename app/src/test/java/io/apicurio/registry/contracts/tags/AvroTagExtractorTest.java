@@ -343,4 +343,29 @@ class AvroTagExtractorTest {
         assertEquals(1, tags.size());
         assertEquals(Set.of("DEEP"), tags.get("level1.level2[].secret"));
     }
+
+    @Test
+    void testTagsAreReadWhenTheSchemaReferencesATypeDefinedElsewhere() {
+        // com.example.Address is defined in another artifact, so a plain Avro parse fails
+        String schema = """
+                {
+                  "type": "record",
+                  "name": "Customer",
+                  "namespace": "com.example",
+                  "fields": [
+                    {"name": "email", "type": "string", "tags": ["PII", "EMAIL"]},
+                    {"name": "address", "type": "com.example.Address", "tags": ["PII"]},
+                    {"name": "orders", "type": {"type": "array", "items": {
+                      "type": "record", "name": "Order",
+                      "fields": [{"name": "card", "type": ["null", "string"], "confluent:tags": ["PCI"]}]
+                    }}}
+                  ]
+                }
+                """;
+
+        Map<String, Set<String>> tags = extractor.extractTags(ContentHandle.create(schema));
+
+        assertEquals(Map.of("email", Set.of("PII", "EMAIL"), "address", Set.of("PII"),
+                "orders[].card", Set.of("PCI")), tags);
+    }
 }

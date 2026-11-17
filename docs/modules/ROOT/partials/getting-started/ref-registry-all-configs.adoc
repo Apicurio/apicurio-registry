@@ -954,6 +954,11 @@ The following {registry} configuration options are available for each component 
 |`false`
 |`3.4.0`
 |Allow MCP server URLs that point at a loopback address or a localhost name when importing, for development and tests. The host must still be allowed by apicurio.mcp-import.allowed-hosts
+|`apicurio.mcp-import.max-concurrent`
+|`int`
+|`4`
+|`3.4.0`
+|Maximum number of imports from MCP servers running at the same time. An import started while this many are running is refused with HTTP 429
 |`apicurio.mcp-import.response.max-size`
 |`int`
 |`1048576`

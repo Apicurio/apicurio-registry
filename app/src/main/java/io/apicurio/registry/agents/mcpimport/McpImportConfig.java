@@ -58,6 +58,10 @@ public class McpImportConfig {
     @Info(category = CATEGORY_MCP, description = "Name of a TLS configuration in the Quarkus TLS registry (quarkus.tls.<name>.*) used for HTTPS connections to MCP servers during an import, for example to trust an internal certificate authority. When not set, the default truststore of the JVM is used", availableSince = "3.4.0")
     Optional<String> tlsConfigurationName;
 
+    @ConfigProperty(name = "apicurio.mcp-import.max-concurrent", defaultValue = "4")
+    @Info(category = CATEGORY_MCP, description = "Maximum number of imports from MCP servers running at the same time. An import started while this many are running is refused with HTTP 429", availableSince = "3.4.0")
+    int maxConcurrent;
+
     public boolean isEnabled() {
         return enabled;
     }
@@ -84,6 +88,10 @@ public class McpImportConfig {
 
     public int getToolsMaxSize() {
         return toolsMaxSize;
+    }
+
+    public int getMaxConcurrent() {
+        return maxConcurrent;
     }
 
     public int getTotalTimeoutSeconds() {

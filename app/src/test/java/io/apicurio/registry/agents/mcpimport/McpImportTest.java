@@ -26,13 +26,17 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
 import static io.restassured.RestAssured.given;
+import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
@@ -86,6 +90,7 @@ public class McpImportTest extends AbstractResourceTestBase {
         mcp.redirectTo = null;
         mcp.delayMillis = 0;
         mcp.paddingBytes = 0;
+        mcp.release = null;
         mcp.receivedHeaders.clear();
         group = TestUtils.generateGroupId();
         createArtifact(group, SERVER, ArtifactType.MCP_SERVER,
@@ -431,6 +436,33 @@ public class McpImportTest extends AbstractResourceTestBase {
         assertTrue(audit.stream().anyMatch(a -> "importMcpTools".equals(a.get("action"))
                 && group.equals(a.get("group_id"))), () -> "audit: " + audit);
         assertTrue(audit.stream().noneMatch(a -> a.toString().contains("s3cr3t-token")));
+    }
+
+    @Test
+    void importOverTheConcurrencyLimitIsRefused() throws Exception {
+        // The profile allows one import at a time; the first is held at the MCP server until released.
+        mcp.tools(McpTestServer.tool("search", "string"));
+        CompletableFuture<Void> release = new CompletableFuture<>();
+        mcp.release = release;
+        int before = mcp.requests.get();
+        double busy = count(McpToolImportService.METRIC_FAILURES, "reason", "busy");
+        CompletableFuture<Integer> first = CompletableFuture.supplyAsync(
+                () -> importTools().extract().statusCode());
+        try {
+            await().atMost(Duration.ofSeconds(10)).until(() -> mcp.requests.get() > before);
+            int inFlight = mcp.requests.get();
+
+            importTools().statusCode(429)
+                    .body("title", equalTo("Too many MCP imports are running. Try again later."));
+
+            assertEquals(inFlight, mcp.requests.get(), "the refused import must not contact the MCP server");
+            assertEquals(1, count(McpToolImportService.METRIC_FAILURES, "reason", "busy") - busy);
+        } finally {
+            mcp.release = null;
+            release.complete(null);
+        }
+        assertEquals(200, first.get(30, TimeUnit.SECONDS));
+        importTools().statusCode(200);
     }
 
     @Test

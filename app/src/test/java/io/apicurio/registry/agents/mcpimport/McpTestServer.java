@@ -9,6 +9,7 @@ import io.vertx.core.json.JsonObject;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
@@ -36,6 +37,8 @@ public final class McpTestServer implements AutoCloseable {
     public volatile String redirectTo;
     /** When set, each response is held back this long. */
     public volatile long delayMillis;
+    /** When set, each response is held back until this completes. */
+    public volatile CompletableFuture<Void> release;
     /** When set, tools/list answers with a body padded to this many bytes. */
     public volatile int paddingBytes;
     /** When set, replaces the handling of tools/list entirely, given the cursor. */
@@ -93,7 +96,10 @@ public final class McpTestServer implements AutoCloseable {
                 answer.put("result", result);
             }
             Runnable send = () -> response.putHeader("Content-Type", "application/json").end(answer.encode());
-            if (delayMillis > 0) {
+            CompletableFuture<Void> gate = release;
+            if (gate != null) {
+                gate.whenComplete((v, e) -> vertx.runOnContext(x -> send.run()));
+            } else if (delayMillis > 0) {
                 vertx.setTimer(delayMillis, id -> send.run());
             } else {
                 send.run();

@@ -288,7 +288,7 @@ public class AgentCardDiscovery {
         }
 
         return AgentSearchResult.builder()
-                .groupId(artifact.getGroupId())
+                .groupId(new GroupId(artifact.getGroupId()).getRawGroupIdWithDefaultString())
                 .artifactId(artifact.getArtifactId())
                 .name(artifact.getName())
                 .description(artifact.getDescription())

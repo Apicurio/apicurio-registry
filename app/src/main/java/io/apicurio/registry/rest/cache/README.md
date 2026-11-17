@@ -410,7 +410,10 @@ When disabled:
 - Reduces cacheability to LOW for reference-dependent content
 - Faster ETag computation
 
-**Note**: Hashed ETags (SHA256 of ETag value) are automatically enabled in production profile for security.
+**Note**: Hashed ETags (SHA256 of ETag value) are automatically enabled in production profile for security
+(`apicurio.http-caching.opaque-etags-enabled`). Known issue: with hashed ETags, `If-None-Match` never
+matches, so conditional requests always return 200
+([#11207](https://github.com/Apicurio/apicurio-registry/issues/11207)).
 
 ### Extra Headers
 
@@ -438,7 +441,11 @@ internal implementation details. For example, you can configure Varnish to remov
 
 **Current status**: Cache invalidation is not yet implemented.
 
-For now, cached content becomes stale naturally when the TTL expires. This works well for:
+For now, cached content becomes stale naturally when the TTL expires. A version's content by coordinates
+is HIGH, so after the version is deleted and recreated with different content, the cache serves the old
+content until it expires (10 days by default) or is purged
+([#11183](https://github.com/Apicurio/apicurio-registry/issues/11183)): purge after deleting versions.
+This works well for:
 
 - Immutable content (HIGH cacheability) - never needs invalidation
 - Short TTL content (MODERATE cacheability) - invalidates within 30s

@@ -55,6 +55,12 @@ commit that is reported and not applied), and KubernetesOps loading ConfigMaps f
 checks content and structure search with the Elasticsearch index. Its
 [step-by-step guide](storage-variants/GUIDE.md) explains how each one works and how to choose.
 
+## HTTP Caching Example
+This example puts Varnish in front of the registry and checks what is cached and for how long, ETags
+and conditional requests, what is never cached, what goes stale after a delete, and two KafkaSQL
+replicas behind one cache, then runs a per-endpoint suite. See its
+[step-by-step guide](http-caching/GUIDE.md).
+
 ## Registry Events Example
 This example makes a fixed sequence of changes in the registry and checks the events it publishes to
 Kafka, on PostgreSQL (outbox table, Debezium outbox event router, delivery after an outage) and on

@@ -73,6 +73,12 @@ switches, and checks each one: refused requests and their messages, switches cha
 followed by the other replica, and why count limits are per replica. See its
 [step-by-step guide](operational-guardrails/GUIDE.md).
 
+## Operator Example
+This example builds the Apicurio Registry operator, runs it on a local kind cluster, and checks one
+`ApicurioRegistry3` custom resource per storage: in memory (the resources it creates and owns,
+configuration through `env`), PostgreSQL with a Secret, KafkaSQL with two replicas, and an invalid CR
+reported in its status. See its [step-by-step guide](operator/GUIDE.md).
+
 ## Registry Events Example
 This example makes a fixed sequence of changes in the registry and checks the events it publishes to
 Kafka, on PostgreSQL (outbox table, Debezium outbox event router, delivery after an outage) and on

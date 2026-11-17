@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # Lists the examples that verify-examples.yaml runs, as a JSON matrix on stdout:
 #   [{"name": "per-resource-authorization", "timeout": 20, "build": false, "variant": "",
-#     "selfManaged": false, "releasedImages": "", "mutableImage": false}, ...]
+#     "selfManaged": false, "releasedImages": "", "mutableImage": false, "compose": true}, ...]
+#
+# An example without a Compose file is run only when it is CI_SELF_MANAGED: demo.sh then brings its
+# own platform (for example a kind cluster), and the Compose steps are skipped.
 #
 # An example is run when examples/<name>/ has an executable demo.sh and a Compose file. Optional
 # settings come from examples/<name>/ci.env (KEY=value lines, # comments):
@@ -34,10 +37,6 @@ for demo in "$dir"/*/demo.sh; do
   for f in compose.yaml compose.yml docker-compose.yaml docker-compose.yml; do
     [ -f "$example/$f" ] && compose=$f && break
   done
-  if [ -z "$compose" ]; then
-    echo "::warning::$name has demo.sh but no Compose file; skipped" >&2
-    continue
-  fi
   if [ ! -x "$demo" ]; then
     echo "::error::$demo is not executable (git update-index --chmod=+x)" >&2
     exit 1
@@ -64,6 +63,13 @@ for demo in "$dir"/*/demo.sh; do
     echo "::error::$name: CI_SELF_MANAGED must be true or false, got '$managed'" >&2
     exit 1
   fi
+  # Without a Compose file, only a self-managed example can run (demo.sh brings its own platform,
+  # for example a kind cluster)
+  if [ -z "$compose" ] && [ "$managed" != true ]; then
+    echo "::warning::$name has demo.sh but no Compose file, and is not CI_SELF_MANAGED; skipped" >&2
+    continue
+  fi
+  has_compose=$([ -n "$compose" ] && echo true || echo false)
   if [ -n "$released" ] && ! [[ "$released" =~ ^([^ :]+:[^ ]+)( [^ :]+:[^ ]+)*$ ]]; then
     echo "::error::$name: CI_RELEASED_IMAGES must be space-separated image:tag values, got '$released'" >&2
     exit 1
@@ -96,8 +102,8 @@ for demo in "$dir"/*/demo.sh; do
   for variant in ${matrix:-<none>}; do
     [ "$variant" = "<none>" ] && variant=""
     entries+=("$(jq -cn --arg n "$name" --argjson t "$timeout" --argjson b "$build" --arg v "$variant" \
-      --argjson m "$managed" --arg r "$released" --argjson mi "$mutable" \
-      '{name: $n, timeout: $t, build: $b, variant: $v, selfManaged: $m, releasedImages: $r, mutableImage: $mi}')")
+      --argjson m "$managed" --arg r "$released" --argjson mi "$mutable" --argjson c "$has_compose" \
+      '{name: $n, timeout: $t, build: $b, variant: $v, selfManaged: $m, releasedImages: $r, mutableImage: $mi, compose: $c}')")
   done
 done
 

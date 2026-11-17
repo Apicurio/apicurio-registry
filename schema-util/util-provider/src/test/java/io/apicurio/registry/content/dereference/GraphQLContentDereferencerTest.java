@@ -1,8 +1,10 @@
 package io.apicurio.registry.content.dereference;
 
+import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.graphql.content.dereference.GraphQLContentDereferencer;
 import io.apicurio.registry.rules.validity.ArtifactUtilProviderTestBase;
+import io.apicurio.registry.types.ContentTypes;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -69,5 +71,17 @@ public class GraphQLContentDereferencerTest extends ArtifactUtilProviderTestBase
         TypedContent result = new GraphQLContentDereferencer().rewriteReferences(content,
                 Map.of("common-types.graphql", URL));
         Assertions.assertTrue(result.getContent().content().contains("# import Profile from \"" + URL + "\""));
+    }
+
+    @Test
+    public void testRewriteReferencesWithWideSeparatorWhitespace() {
+        String separator = " ".repeat(33);
+        TypedContent content = TypedContent.create(ContentHandle.create(
+                "# import Profile from" + separator + "\"common-types.graphql\"\ntype Query { a: Int }\n"),
+                ContentTypes.APPLICATION_GRAPHQL);
+        TypedContent result = new GraphQLContentDereferencer().rewriteReferences(content,
+                Map.of("common-types.graphql", URL));
+        Assertions.assertEquals("# import Profile from" + separator + "\"" + URL + "\"\ntype Query { a: Int }\n",
+                result.getContent().content());
     }
 }

@@ -4,6 +4,15 @@ import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.agents.noprofile.rest.a2a.ExperimentalFeaturesEnabledProfile;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateVersion;
+import io.apicurio.registry.rest.client.models.McpCompatibleToolsResults;
+import io.apicurio.registry.rest.client.models.McpToolCompatibilityLimitation;
+import io.apicurio.registry.rest.client.models.McpToolCompatibilityReason;
+import io.apicurio.registry.rest.client.models.McpToolCompatibilityResult;
+import io.apicurio.registry.rest.client.models.McpToolCompatibilityResults;
+import io.apicurio.registry.rest.client.models.McpToolCompatibilitySide;
+import io.apicurio.registry.rest.client.models.McpToolCompatibilityVerdict;
+import io.apicurio.registry.rest.client.models.McpToolSearchResult;
+import io.apicurio.registry.rest.client.models.ProblemDetails;
 import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
@@ -11,19 +20,36 @@ import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.restassured.RestAssured;
+import io.restassured.path.json.JsonPath;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for the MCP tool well-known discovery endpoints.
@@ -692,6 +718,603 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body("count", equalTo(total))
                 .body("tools", hasSize(0));
+    }
+
+    private static final String ROOT_ROUTES = "/.well-known/mcp-tools/{groupId}/{artifactId}";
+    private static final String V3_ROUTES = "/apis/registry/v3/well-known/mcp-tools/{groupId}/{artifactId}";
+    private static final String COMPATIBLE = "/compatible";
+    private static final String COMPATIBILITY = "/compatibility";
+
+    private static final String CATALOG_SOURCE = "catalog-source";
+    private static final String CATALOG_COMPATIBLE = "catalog-compatible";
+    private static final String CATALOG_INCOMPATIBLE = "catalog-incompatible";
+    private static final String CATALOG_INDETERMINATE = "catalog-indeterminate";
+
+    @Test
+    public void testToolCompatibilityExplainsEveryVerdict() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        createCompatibilityCatalog(groupId);
+
+        Response response = givenSource(groupId, CATALOG_SOURCE)
+                .queryParam("limit", 500)
+                .get(ROOT_ROUTES + COMPATIBILITY)
+                .then()
+                .statusCode(200)
+                .body(resultsInGroup(groupId) + ".tool.artifactId",
+                        containsInAnyOrder(CATALOG_COMPATIBLE, CATALOG_INCOMPATIBLE, CATALOG_INDETERMINATE))
+                .body(result(groupId, CATALOG_COMPATIBLE) + ".verdict", equalTo("COMPATIBLE"))
+                .body(result(groupId, CATALOG_COMPATIBLE) + ".reasons", hasSize(0))
+                .body(result(groupId, CATALOG_COMPATIBLE) + ".limitations", hasSize(0))
+                .body(result(groupId, CATALOG_INCOMPATIBLE) + ".verdict", equalTo("INCOMPATIBLE"))
+                .body(result(groupId, CATALOG_INCOMPATIBLE) + ".reasons", hasSize(1))
+                .body(result(groupId, CATALOG_INCOMPATIBLE) + ".reasons[0].code", equalTo("TYPE_NOT_ACCEPTED"))
+                .body(result(groupId, CATALOG_INCOMPATIBLE) + ".reasons[0].producerPointer",
+                        equalTo("/outputSchema/properties/records/type"))
+                .body(result(groupId, CATALOG_INCOMPATIBLE) + ".reasons[0].consumerPointer",
+                        equalTo("/inputSchema/properties/records/type"))
+                .body(result(groupId, CATALOG_INCOMPATIBLE) + ".limitations", hasSize(0))
+                .body(result(groupId, CATALOG_INDETERMINATE) + ".verdict", equalTo("INDETERMINATE"))
+                .body(result(groupId, CATALOG_INDETERMINATE) + ".reasons", hasSize(0))
+                .body(result(groupId, CATALOG_INDETERMINATE) + ".limitations", hasSize(1))
+                .body(result(groupId, CATALOG_INDETERMINATE) + ".limitations[0].code",
+                        equalTo("PRODUCER_OBJECT_OPEN"))
+                .body(result(groupId, CATALOG_INDETERMINATE) + ".limitations[0].side", equalTo("PRODUCER"))
+                .body(result(groupId, CATALOG_INDETERMINATE) + ".limitations[0].pointer",
+                        equalTo("/outputSchema"))
+                .body("limitations", hasSize(0))
+                .body("scanLimit", equalTo(500))
+                .extract()
+                .response();
+
+        // Other tests register tools too, so the registry-wide fields are checked against each other.
+        int evaluated = response.path("evaluated");
+        assertEquals(evaluated, (int) response.path("totals.compatible") + (int) response.path("totals.incompatible")
+                + (int) response.path("totals.indeterminate"));
+        assertEquals(evaluated, (int) response.path("count"));
+        assertEquals(evaluated, response.jsonPath().getList("results").size());
+    }
+
+    @Test
+    public void testCompatibleReturnsTheToolsThatCompatibilityFindsCompatible() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        createCompatibilityCatalog(groupId);
+
+        Response compatible = givenSource(groupId, CATALOG_SOURCE)
+                .queryParam("limit", 500)
+                .get(ROOT_ROUTES + COMPATIBLE);
+        Response compatibility = givenSource(groupId, CATALOG_SOURCE)
+                .queryParam("limit", 500)
+                .queryParam("verdict", "COMPATIBLE")
+                .get(ROOT_ROUTES + COMPATIBILITY);
+
+        assertEquals(200, compatible.statusCode());
+        assertEquals(Set.of("count", "tools"), compatible.jsonPath().getMap("$").keySet());
+        assertEquals(compatibility.jsonPath().getList("results.tool"), compatible.jsonPath().getList("tools"));
+        assertEquals((int) compatibility.path("count"), (int) compatible.path("count"));
+        assertEquals(List.of(CATALOG_COMPATIBLE), compatible.jsonPath().getList(artifactIdsInGroup(groupId)));
+    }
+
+    @Test
+    public void testV3RoutesAnswerLikeTheRootRoutes() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        createCompatibilityCatalog(groupId);
+
+        for (String operation : List.of(COMPATIBLE, COMPATIBILITY)) {
+            String atRoot = givenSource(groupId, CATALOG_SOURCE).get(ROOT_ROUTES + operation).then()
+                    .statusCode(200).extract().asString();
+            String atV3 = givenSource(groupId, CATALOG_SOURCE).get(V3_ROUTES + operation).then()
+                    .statusCode(200).extract().asString();
+            assertEquals(atRoot, atV3, operation);
+        }
+    }
+
+    @Test
+    public void testToolCompatibilityOfSourceWithoutOutputSchema() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String sourceId = "no-output-source";
+        createMcpTool(groupId, sourceId, COMPAT_NO_OUTPUT_TOOL);
+
+        givenSource(groupId, sourceId)
+                .get(ROOT_ROUTES + COMPATIBILITY)
+                .then()
+                .statusCode(200)
+                .body("candidateTotal", equalTo(0))
+                .body("evaluated", equalTo(0))
+                .body("scanLimit", equalTo(500))
+                .body("complete", equalTo(true))
+                .body("totals.compatible", equalTo(0))
+                .body("totals.incompatible", equalTo(0))
+                .body("totals.indeterminate", equalTo(0))
+                .body("count", equalTo(0))
+                .body("results", hasSize(0))
+                .body("limitations", hasSize(1))
+                .body("limitations[0].code", equalTo("SOURCE_HAS_NO_OUTPUT_SCHEMA"))
+                .body("limitations[0].side", equalTo("PRODUCER"))
+                .body("limitations[0].pointer", equalTo("/outputSchema"))
+                .body("limitations[0].message", equalTo("The tool declares no outputSchema"));
+    }
+
+    @Test
+    public void testToolCompatibilityFiltersByVerdict() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        createCompatibilityCatalog(groupId);
+
+        Map<String, Object> totals = givenSource(groupId, CATALOG_SOURCE)
+                .queryParam("limit", 500)
+                .get(ROOT_ROUTES + COMPATIBILITY)
+                .then()
+                .statusCode(200)
+                .body(resultsInGroup(groupId) + ".tool.artifactId",
+                        containsInAnyOrder(CATALOG_COMPATIBLE, CATALOG_INCOMPATIBLE, CATALOG_INDETERMINATE))
+                .extract()
+                .path("totals");
+
+        givenSource(groupId, CATALOG_SOURCE)
+                .queryParam("limit", 500)
+                .queryParam("verdict", "INCOMPATIBLE")
+                .get(ROOT_ROUTES + COMPATIBILITY)
+                .then()
+                .statusCode(200)
+                .body("results.verdict", everyItem(equalTo("INCOMPATIBLE")))
+                .body(resultsInGroup(groupId) + ".tool.artifactId", contains(CATALOG_INCOMPATIBLE))
+                .body("count", equalTo(totals.get("incompatible")))
+                .body("totals", equalTo(totals));
+
+        givenSource(groupId, CATALOG_SOURCE)
+                .queryParam("limit", 500)
+                .queryParam("verdict", "COMPATIBLE", "INDETERMINATE")
+                .get(ROOT_ROUTES + COMPATIBILITY)
+                .then()
+                .statusCode(200)
+                .body("results.verdict", everyItem(anyOf(equalTo("COMPATIBLE"), equalTo("INDETERMINATE"))))
+                .body(resultsInGroup(groupId) + ".tool.artifactId",
+                        containsInAnyOrder(CATALOG_COMPATIBLE, CATALOG_INDETERMINATE))
+                .body("count", equalTo((int) totals.get("compatible") + (int) totals.get("indeterminate")))
+                .body("totals", equalTo(totals));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {ROOT_ROUTES + COMPATIBILITY, V3_ROUTES + COMPATIBILITY})
+    public void testToolCompatibilityRejectsUnknownVerdict(String route) throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        createMcpTool(groupId, CATALOG_SOURCE, COMPAT_SOURCE_TOOL);
+
+        givenSource(groupId, CATALOG_SOURCE)
+                .queryParam("verdict", "compatible")
+                .get(route)
+                .then()
+                .statusCode(400)
+                .body("status", equalTo(400))
+                .body("name", equalTo("InvalidParameterValueException"))
+                .body("title", containsString("'verdict'"));
+    }
+
+    @ParameterizedTest
+    @MethodSource("compatibilityRoutes")
+    public void testMalformedPaginationFailsParameterConversion(String route) throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        createMcpTool(groupId, CATALOG_SOURCE, COMPAT_SOURCE_TOOL);
+
+        // The source exists, so the 404 can only come from converting the parameter.
+        for (String parameter : List.of("offset", "limit")) {
+            givenSource(groupId, CATALOG_SOURCE)
+                    .queryParam(parameter, "not-a-number")
+                    .get(route)
+                    .then()
+                    .statusCode(404)
+                    .body("status", equalTo(404))
+                    .body("title", containsString(parameter));
+        }
+    }
+
+    @ParameterizedTest
+    @MethodSource("compatibilityRoutes")
+    public void testPaginationBeyondTheIntegerRangeIsClamped(String route) throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        createCompatibilityCatalog(groupId);
+        String items = route.endsWith(COMPATIBLE) ? "tools" : "results";
+        int count = givenSource(groupId, CATALOG_SOURCE).get(route).then().statusCode(200)
+                .extract().path("count");
+
+        givenSource(groupId, CATALOG_SOURCE)
+                .queryParam("offset", "99999999999999")
+                .get(route)
+                .then()
+                .statusCode(200)
+                .body("count", equalTo(count))
+                .body(items, hasSize(0));
+
+        givenSource(groupId, CATALOG_SOURCE)
+                .queryParam("limit", "99999999999999")
+                .get(route)
+                .then()
+                .statusCode(200)
+                .body("count", equalTo(count))
+                .body(items, hasSize(count));
+
+        givenSource(groupId, CATALOG_SOURCE)
+                .queryParam("offset", 1)
+                .queryParam("limit", Integer.MAX_VALUE)
+                .get(route)
+                .then()
+                .statusCode(200)
+                .body("count", equalTo(count))
+                .body(items, hasSize(count - 1));
+    }
+
+    @ParameterizedTest
+    @MethodSource("compatibilityRoutes")
+    public void testNegativePaginationIsNormalized(String route) throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        createCompatibilityCatalog(groupId);
+        String items = route.endsWith(COMPATIBLE) ? "tools" : "results";
+
+        List<Object> firstPage = givenSource(groupId, CATALOG_SOURCE)
+                .queryParam("offset", 0)
+                .queryParam("limit", 1)
+                .get(route)
+                .then()
+                .statusCode(200)
+                .body(items, hasSize(1))
+                .extract()
+                .jsonPath()
+                .getList(items);
+
+        List<Object> normalized = givenSource(groupId, CATALOG_SOURCE)
+                .queryParam("offset", -1)
+                .queryParam("limit", -1)
+                .get(route)
+                .then()
+                .statusCode(200)
+                .extract()
+                .jsonPath()
+                .getList(items);
+
+        assertEquals(firstPage, normalized);
+    }
+
+    @ParameterizedTest
+    @MethodSource("compatibilityRoutes")
+    public void testPaginationWithoutValueTakesTheDefaults(String route) throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        createCompatibilityCatalog(groupId);
+        String items = route.endsWith(COMPATIBLE) ? "tools" : "results";
+
+        List<Object> defaults = givenSource(groupId, CATALOG_SOURCE)
+                .get(route)
+                .then()
+                .statusCode(200)
+                .extract()
+                .jsonPath()
+                .getList(items);
+
+        List<Object> withoutValue = givenSource(groupId, CATALOG_SOURCE)
+                .queryParam("offset", "")
+                .queryParam("limit", "")
+                .get(route)
+                .then()
+                .statusCode(200)
+                .extract()
+                .jsonPath()
+                .getList(items);
+
+        assertEquals(defaults, withoutValue);
+    }
+
+    @ParameterizedTest
+    @MethodSource("compatibilityRoutes")
+    public void testCompatibilityOfMissingSourceOrNonMcpArtifactIsNotFound(String route) throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String avroId = TestUtils.generateArtifactId();
+        createArtifact(groupId, avroId, ArtifactType.AVRO, "{\"type\": \"record\", \"name\": \"Test\", \"fields\": []}",
+                ContentTypes.APPLICATION_JSON);
+
+        givenSource(groupId, "nonexistent-tool")
+                .get(route)
+                .then()
+                .statusCode(404)
+                .body("status", equalTo(404))
+                .body("title", equalTo("MCP tool not found: " + groupId + "/nonexistent-tool"));
+
+        givenSource(groupId, avroId)
+                .get(route)
+                .then()
+                .statusCode(404)
+                .body("status", equalTo(404))
+                .body("title", equalTo("Artifact is not an MCP tool definition"));
+    }
+
+    @Test
+    public void testToolCompatibilityComparesTheRequestedSourceVersion() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        createArtifact(groupId, CATALOG_SOURCE, ArtifactType.MCP_TOOL, COMPAT_NO_OUTPUT_TOOL,
+                ContentTypes.APPLICATION_JSON, artifact -> artifact.getFirstVersion().setVersion("1.0.0"));
+        createArtifactVersion(groupId, CATALOG_SOURCE, COMPAT_SOURCE_TOOL, ContentTypes.APPLICATION_JSON);
+        createMcpTool(groupId, CATALOG_COMPATIBLE, COMPAT_RECORDS_CONSUMER_TOOL);
+
+        givenSource(groupId, CATALOG_SOURCE)
+                .queryParam("limit", 500)
+                .get(ROOT_ROUTES + COMPATIBILITY)
+                .then()
+                .statusCode(200)
+                .body("limitations", hasSize(0))
+                .body(result(groupId, CATALOG_COMPATIBLE) + ".verdict", equalTo("COMPATIBLE"));
+
+        givenSource(groupId, CATALOG_SOURCE)
+                .queryParam("version", "1.0.0")
+                .get(ROOT_ROUTES + COMPATIBILITY)
+                .then()
+                .statusCode(200)
+                .body("evaluated", equalTo(0))
+                .body("results", hasSize(0))
+                .body("limitations.code", contains("SOURCE_HAS_NO_OUTPUT_SCHEMA"));
+    }
+
+    @Test
+    public void testSourceInTheDefaultGroupIsNotItsOwnCandidate() throws Exception {
+        String sourceId = TestUtils.generateArtifactId();
+        String candidateId = TestUtils.generateArtifactId();
+        createMcpTool("default", sourceId, COMPAT_SOURCE_TOOL);
+        createMcpTool("default", candidateId, COMPAT_RECORDS_CONSUMER_TOOL);
+
+        // Tools in the default group have no groupId in the response, and the IDs are unique.
+        givenSource("default", sourceId)
+                .queryParam("limit", 500)
+                .get(ROOT_ROUTES + COMPATIBILITY)
+                .then()
+                .statusCode(200)
+                .body("results.tool.artifactId", hasItem(candidateId))
+                .body("results.tool.artifactId", not(hasItem(sourceId)))
+                .body("results.find { it.tool.artifactId == '" + candidateId + "' }.verdict",
+                        equalTo("COMPATIBLE"));
+
+        givenSource("default", sourceId)
+                .queryParam("limit", 500)
+                .get(ROOT_ROUTES + COMPATIBLE)
+                .then()
+                .statusCode(200)
+                .body("tools.artifactId", hasItem(candidateId))
+                .body("tools.artifactId", not(hasItem(sourceId)));
+    }
+
+    @Test
+    public void testCompatibilityOperationsThroughTheGeneratedClient() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        createCompatibilityCatalog(groupId);
+        var source = clientV3.wellKnown().mcpTools().byGroupId(groupId).byArtifactId(CATALOG_SOURCE);
+
+        McpToolCompatibilityResults compatibility = source.compatibility()
+                .get(config -> config.queryParameters.limit = 500);
+        Map<String, McpToolCompatibilityResult> results = compatibility.getResults().stream()
+                .filter(result -> groupId.equals(result.getTool().getGroupId()))
+                .collect(Collectors.toMap(result -> result.getTool().getArtifactId(), result -> result));
+
+        assertEquals(Set.of(CATALOG_COMPATIBLE, CATALOG_INCOMPATIBLE, CATALOG_INDETERMINATE), results.keySet());
+        assertEquals(McpToolCompatibilityVerdict.COMPATIBLE, results.get(CATALOG_COMPATIBLE).getVerdict());
+        assertEquals(McpToolCompatibilityVerdict.INCOMPATIBLE, results.get(CATALOG_INCOMPATIBLE).getVerdict());
+        McpToolCompatibilityReason reason = results.get(CATALOG_INCOMPATIBLE).getReasons().get(0);
+        assertEquals("TYPE_NOT_ACCEPTED", reason.getCode());
+        assertEquals("/outputSchema/properties/records/type", reason.getProducerPointer());
+        assertEquals("/inputSchema/properties/records/type", reason.getConsumerPointer());
+        assertEquals(McpToolCompatibilityVerdict.INDETERMINATE, results.get(CATALOG_INDETERMINATE).getVerdict());
+        McpToolCompatibilityLimitation limitation = results.get(CATALOG_INDETERMINATE).getLimitations().get(0);
+        assertEquals("PRODUCER_OBJECT_OPEN", limitation.getCode());
+        assertEquals(McpToolCompatibilitySide.PRODUCER, limitation.getSide());
+        assertEquals("/outputSchema", limitation.getPointer());
+        assertEquals(compatibility.getEvaluated(), compatibility.getTotals().getCompatible()
+                + compatibility.getTotals().getIncompatible() + compatibility.getTotals().getIndeterminate());
+        assertEquals(500, compatibility.getScanLimit());
+        assertEquals(List.of(), compatibility.getLimitations());
+
+        McpCompatibleToolsResults compatible = source.compatible().get(config -> config.queryParameters.limit = 500);
+        assertEquals(List.of(CATALOG_COMPATIBLE), compatible.getTools().stream()
+                .filter(tool -> groupId.equals(tool.getGroupId()))
+                .map(McpToolSearchResult::getArtifactId)
+                .toList());
+    }
+
+    @Test
+    public void testGeneratedClientReadsEveryCompatibilityField() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        createCompatibilityCatalog(groupId);
+
+        // The same request on the wire, which every field the client returns is compared with.
+        JsonPath wire = givenSource(groupId, CATALOG_SOURCE)
+                .queryParam("limit", 500)
+                .get(V3_ROUTES + COMPATIBILITY)
+                .then()
+                .statusCode(200)
+                .extract()
+                .jsonPath();
+        McpToolCompatibilityResults compatibility = clientV3.wellKnown().mcpTools().byGroupId(groupId)
+                .byArtifactId(CATALOG_SOURCE).compatibility().get(config -> config.queryParameters.limit = 500);
+
+        assertEquals(wire.getInt("candidateTotal"), compatibility.getCandidateTotal());
+        assertEquals(wire.getInt("evaluated"), compatibility.getEvaluated());
+        assertEquals(wire.getInt("scanLimit"), compatibility.getScanLimit());
+        assertEquals(wire.getBoolean("complete"), compatibility.getComplete());
+        assertEquals(wire.getInt("totals.compatible"), compatibility.getTotals().getCompatible());
+        assertEquals(wire.getInt("totals.incompatible"), compatibility.getTotals().getIncompatible());
+        assertEquals(wire.getInt("totals.indeterminate"), compatibility.getTotals().getIndeterminate());
+        assertEquals(wire.getInt("count"), compatibility.getCount());
+        assertEquals(List.of(), wire.getList("limitations"));
+        assertEquals(List.of(), compatibility.getLimitations());
+        // Read once as maps: a path evaluated per field takes minutes over a registry-wide scan.
+        List<Map<String, Object>> wireResults = wire.getList("results");
+        assertEquals(wireResults.size(), compatibility.getResults().size());
+        for (int i = 0; i < wireResults.size(); i++) {
+            assertSameResult(wireResults.get(i), compatibility.getResults().get(i));
+        }
+
+        // Explicit values for this test's tools, so that a field lost on both sides cannot pass.
+        Map<String, McpToolCompatibilityResult> results = compatibility.getResults().stream()
+                .filter(result -> groupId.equals(result.getTool().getGroupId()))
+                .collect(Collectors.toMap(result -> result.getTool().getArtifactId(), result -> result));
+        assertEquals(Set.of(CATALOG_COMPATIBLE, CATALOG_INCOMPATIBLE, CATALOG_INDETERMINATE), results.keySet());
+        McpToolSearchResult compatibleTool = results.get(CATALOG_COMPATIBLE).getTool();
+        assertEquals("Records Consumer", compatibleTool.getTitle());
+        assertEquals(List.of("records", "total"), compatibleTool.getParameters());
+        assertFalse(results.get(CATALOG_INCOMPATIBLE).getReasons().get(0).getMessage().isBlank());
+        assertFalse(results.get(CATALOG_INDETERMINATE).getLimitations().get(0).getMessage().isBlank());
+    }
+
+    @Test
+    public void testGeneratedClientCompatibleReturnsTheCompatibleVerdicts() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        createCompatibilityCatalog(groupId);
+        var source = clientV3.wellKnown().mcpTools().byGroupId(groupId).byArtifactId(CATALOG_SOURCE);
+
+        McpCompatibleToolsResults compatible = source.compatible().get(config -> config.queryParameters.limit = 500);
+        McpToolCompatibilityResults compatibility = source.compatibility().get(config -> {
+            config.queryParameters.verdict = new String[] {"COMPATIBLE"};
+            config.queryParameters.limit = 500;
+        });
+
+        List<String> compatibleTools = compatible.getTools().stream().map(WellKnownMcpToolsTest::identity).toList();
+        assertEquals(compatibility.getResults().stream().map(result -> identity(result.getTool())).toList(),
+                compatibleTools);
+        assertEquals(compatibility.getTotals().getCompatible(), compatible.getCount());
+        assertEquals(compatibility.getCount(), compatible.getCount());
+        assertTrue(compatibleTools.contains(groupId + "/" + CATALOG_COMPATIBLE));
+        assertFalse(compatibleTools.contains(groupId + "/" + CATALOG_INCOMPATIBLE));
+        assertFalse(compatibleTools.contains(groupId + "/" + CATALOG_INDETERMINATE));
+    }
+
+    @Test
+    public void testGeneratedClientSendsVersionVerdictAndOffsetTogether() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        // Only version 1.0.0 can be compared, since the latest one has no outputSchema.
+        createArtifact(groupId, CATALOG_SOURCE, ArtifactType.MCP_TOOL, COMPAT_SOURCE_TOOL,
+                ContentTypes.APPLICATION_JSON, artifact -> artifact.getFirstVersion().setVersion("1.0.0"));
+        createArtifactVersion(groupId, CATALOG_SOURCE, COMPAT_NO_OUTPUT_TOOL, ContentTypes.APPLICATION_JSON);
+        createMcpTool(groupId, CATALOG_COMPATIBLE, COMPAT_RECORDS_CONSUMER_TOOL);
+        createMcpTool(groupId, CATALOG_INCOMPATIBLE, COMPAT_INCOMPATIBLE_TOOL);
+        createMcpTool(groupId, CATALOG_INDETERMINATE, COMPAT_OPTIONAL_INPUT_TOOL);
+        var source = clientV3.wellKnown().mcpTools().byGroupId(groupId).byArtifactId(CATALOG_SOURCE);
+        String[] verdicts = {"INCOMPATIBLE", "INDETERMINATE"};
+
+        McpToolCompatibilityResults unpaginated = source.compatibility().get(config -> {
+            config.queryParameters.version = "1.0.0";
+            config.queryParameters.verdict = verdicts;
+            config.queryParameters.limit = 500;
+        });
+        McpToolCompatibilityResults page = source.compatibility().get(config -> {
+            config.queryParameters.version = "1.0.0";
+            config.queryParameters.verdict = verdicts;
+            config.queryParameters.offset = 1;
+            config.queryParameters.limit = 500;
+        });
+
+        // This test's candidates are the newest tools, so the two it expects lead the results.
+        List<String> matching = unpaginated.getResults().stream().map(result -> identity(result.getTool())).toList();
+        assertEquals(Set.of(groupId + "/" + CATALOG_INCOMPATIBLE, groupId + "/" + CATALOG_INDETERMINATE),
+                Set.copyOf(matching.subList(0, 2)));
+        assertFalse(matching.contains(groupId + "/" + CATALOG_COMPATIBLE));
+        assertEquals(matching.size(), unpaginated.getCount());
+        // The offset skips the first of them, and count still covers every match.
+        assertEquals(matching.subList(1, matching.size()),
+                page.getResults().stream().map(result -> identity(result.getTool())).toList());
+        assertEquals(unpaginated.getCount(), page.getCount());
+
+        // Without the version the latest one is compared, which yields nothing.
+        McpToolCompatibilityResults latest = source.compatibility().get(config -> config.queryParameters.verdict = verdicts);
+        assertEquals(0, latest.getEvaluated());
+        assertEquals(List.of("SOURCE_HAS_NO_OUTPUT_SCHEMA"),
+                latest.getLimitations().stream().map(McpToolCompatibilityLimitation::getCode).toList());
+    }
+
+    @Test
+    public void testGeneratedClientReadsErrorsAsProblemDetails() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        var missing = clientV3.wellKnown().mcpTools().byGroupId(groupId).byArtifactId("nonexistent-tool");
+        String notFoundTitle = "MCP tool not found: " + groupId + "/nonexistent-tool";
+
+        ProblemDetails compatibleNotFound = assertThrows(ProblemDetails.class, () -> missing.compatible().get());
+        assertEquals(404, compatibleNotFound.getResponseStatusCode());
+        assertEquals(404, compatibleNotFound.getStatus());
+        assertEquals(notFoundTitle, compatibleNotFound.getTitle());
+
+        ProblemDetails compatibilityNotFound = assertThrows(ProblemDetails.class, () -> missing.compatibility().get());
+        assertEquals(404, compatibilityNotFound.getResponseStatusCode());
+        assertEquals(404, compatibilityNotFound.getStatus());
+        assertEquals(notFoundTitle, compatibilityNotFound.getTitle());
+
+        createMcpTool(groupId, CATALOG_SOURCE, COMPAT_SOURCE_TOOL);
+        ProblemDetails invalidVerdict = assertThrows(ProblemDetails.class, () -> clientV3.wellKnown().mcpTools()
+                .byGroupId(groupId).byArtifactId(CATALOG_SOURCE).compatibility()
+                .get(config -> config.queryParameters.verdict = new String[] {"compatible"}));
+        assertEquals(400, invalidVerdict.getResponseStatusCode());
+        assertEquals(400, invalidVerdict.getStatus());
+        assertEquals("InvalidParameterValueException", invalidVerdict.getName());
+        assertTrue(invalidVerdict.getTitle().contains("'verdict'"));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void assertSameResult(Map<String, Object> wire, McpToolCompatibilityResult result) {
+        Map<String, Object> wireTool = (Map<String, Object>) wire.get("tool");
+        McpToolSearchResult tool = result.getTool();
+        assertEquals(wireTool.get("groupId"), tool.getGroupId());
+        assertEquals(wireTool.get("artifactId"), tool.getArtifactId());
+        assertEquals(wireTool.get("name"), tool.getName());
+        assertEquals(wireTool.get("title"), tool.getTitle());
+        assertEquals(wireTool.get("description"), tool.getDescription());
+        assertEquals(wireTool.get("owner"), tool.getOwner());
+        assertEquals(((Number) wireTool.get("createdOn")).longValue(), tool.getCreatedOn());
+        assertEquals(wireTool.get("parameters"), tool.getParameters());
+        assertEquals(wire.get("verdict"), result.getVerdict().getValue());
+
+        List<Map<String, Object>> wireReasons = (List<Map<String, Object>>) wire.get("reasons");
+        assertEquals(wireReasons.size(), result.getReasons().size());
+        for (int i = 0; i < wireReasons.size(); i++) {
+            McpToolCompatibilityReason reason = result.getReasons().get(i);
+            assertEquals(wireReasons.get(i).get("code"), reason.getCode());
+            assertEquals(wireReasons.get(i).get("producerPointer"), reason.getProducerPointer());
+            assertEquals(wireReasons.get(i).get("consumerPointer"), reason.getConsumerPointer());
+            assertEquals(wireReasons.get(i).get("message"), reason.getMessage());
+        }
+        List<Map<String, Object>> wireLimitations = (List<Map<String, Object>>) wire.get("limitations");
+        assertEquals(wireLimitations.size(), result.getLimitations().size());
+        for (int i = 0; i < wireLimitations.size(); i++) {
+            McpToolCompatibilityLimitation limitation = result.getLimitations().get(i);
+            assertEquals(wireLimitations.get(i).get("code"), limitation.getCode());
+            assertEquals(wireLimitations.get(i).get("side"), limitation.getSide().getValue());
+            assertEquals(wireLimitations.get(i).get("pointer"), limitation.getPointer());
+            assertEquals(wireLimitations.get(i).get("message"), limitation.getMessage());
+        }
+    }
+
+    private static String identity(McpToolSearchResult tool) {
+        return tool.getGroupId() + "/" + tool.getArtifactId();
+    }
+
+    private RequestSpecification givenSource(String groupId, String artifactId) {
+        return givenAtRoot()
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", artifactId);
+    }
+
+    static List<String> compatibilityRoutes() {
+        return List.of(ROOT_ROUTES + COMPATIBLE, ROOT_ROUTES + COMPATIBILITY, V3_ROUTES + COMPATIBLE,
+                V3_ROUTES + COMPATIBILITY);
+    }
+
+    /**
+     * A source whose open {@code outputSchema} makes one candidate compatible, one incompatible
+     * and one indeterminate.
+     */
+    private void createCompatibilityCatalog(String groupId) throws Exception {
+        createMcpTool(groupId, CATALOG_SOURCE, COMPAT_SOURCE_TOOL);
+        createMcpTool(groupId, CATALOG_COMPATIBLE, COMPAT_RECORDS_CONSUMER_TOOL);
+        createMcpTool(groupId, CATALOG_INCOMPATIBLE, COMPAT_INCOMPATIBLE_TOOL);
+        createMcpTool(groupId, CATALOG_INDETERMINATE, COMPAT_OPTIONAL_INPUT_TOOL);
+    }
+
+    private static String resultsInGroup(String groupId) {
+        return "results.findAll { it.tool.groupId == '" + groupId + "' }";
+    }
+
+    private static String result(String groupId, String artifactId) {
+        return "results.find { it.tool.groupId == '" + groupId + "' && it.tool.artifactId == '" + artifactId + "' }";
     }
 
     private static String artifactIdsInGroup(String groupId) {

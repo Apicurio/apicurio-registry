@@ -49,31 +49,36 @@ public class GovernanceRuleExecutor {
         }
 
         if (level == GovernanceLevel.FULL) {
-            String classification = labels.get(prefix + ContractLabels.SUFFIX_CLASSIFICATION);
-            if (classification == null || classification.isBlank()) {
-                violations.add(new RuleViolation(
-                        "Data classification is required",
-                        prefix + ContractLabels.SUFFIX_CLASSIFICATION));
-            }
-
-            String contact = labels.get(prefix + ContractLabels.SUFFIX_SUPPORT_CONTACT);
-            if (contact == null || contact.isBlank()) {
-                violations.add(new RuleViolation(
-                        "Support contact is required",
-                        prefix + ContractLabels.SUFFIX_SUPPORT_CONTACT));
-            }
-
-            String stage = labels.get(prefix + ContractLabels.SUFFIX_STAGE);
-            if ("PROD".equals(stage) && !"STABLE".equals(status)) {
-                violations.add(new RuleViolation(
-                        "PROD promotion requires STABLE status",
-                        prefix + ContractLabels.SUFFIX_STAGE));
-            }
+            checkFullGovernance(labels, prefix, status, violations);
         }
 
         if (!violations.isEmpty()) {
             throw new RuleViolationException("Governance rule violations found",
                     null, level.name(), violations);
+        }
+    }
+
+    private static void checkFullGovernance(Map<String, String> labels, String prefix, String status,
+            Set<RuleViolation> violations) {
+        String classification = labels.get(prefix + ContractLabels.SUFFIX_CLASSIFICATION);
+        if (classification == null || classification.isBlank()) {
+            violations.add(new RuleViolation(
+                    "Data classification is required",
+                    prefix + ContractLabels.SUFFIX_CLASSIFICATION));
+        }
+
+        String contact = labels.get(prefix + ContractLabels.SUFFIX_SUPPORT_CONTACT);
+        if (contact == null || contact.isBlank()) {
+            violations.add(new RuleViolation(
+                    "Support contact is required",
+                    prefix + ContractLabels.SUFFIX_SUPPORT_CONTACT));
+        }
+
+        String stage = labels.get(prefix + ContractLabels.SUFFIX_STAGE);
+        if ("PROD".equals(stage) && !"STABLE".equals(status)) {
+            violations.add(new RuleViolation(
+                    "PROD promotion requires STABLE status",
+                    prefix + ContractLabels.SUFFIX_STAGE));
         }
     }
 }

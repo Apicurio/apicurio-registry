@@ -56,25 +56,20 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
     ISearchAuthorizer searchAuthorizer;
 
     /**
-     * @see io.apicurio.registry.rest.v3.IdsResource#getContentById(long)
+     * @see io.apicurio.registry.rest.v3.IdsResource#getContentById(long, HandleReferencesType)
      */
     @Override
     @Authorized(style = AuthorizedStyle.ContentId, level = AuthorizedLevel.Read)
-    @MethodMetadata(extractParameters = {"0", MPK_ENTITY_ID})
-    @EntityIdContentCache
-    public Response getContentById(long contentId) {
-        ContentWrapperDto dto = storage.getContentById(contentId);
+    public Response getContentById(long contentId, HandleReferencesType references) {
+        HandleReferencesType effective = effectiveReferences(references);
+        ContentWrapperDto dto = effective == HandleReferencesType.PRESERVE ? storage.getContentById(contentId)
+                : storage.getContentAndArtifactTypeById(contentId);
         boolean isEmptyContent = ContentTypes.isEmptyContentType(dto.getContentType());
         boolean isDraft = dto.getContentHash() != null && dto.getContentHash().startsWith("draft:");
         if (isEmptyContent || (isDraft && !restConfig.isDraftProductionModeEnabled())) {
             throw new ContentNotFoundException(contentId);
         }
-        String ext = ContentTypes.getFileExtension(dto.getContentType());
-        String filename = contentId + ext;
-        return Response.ok().entity(dto.getContent())
-                .type(dto.getContentType())
-                .header(HttpHeaders.CONTENT_DISPOSITION, buildContentDisposition(filename))
-                .build();
+        return contentResponse(contentId, dto, effective, String.valueOf(contentId));
     }
 
     /**
@@ -137,20 +132,62 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
     }
 
     /**
-     * @see io.apicurio.registry.rest.v3.IdsResource#getContentByHash(java.lang.String)
+     * @see io.apicurio.registry.rest.v3.IdsResource#getContentByHash(String, HandleReferencesType)
      */
     @Override
     @Authorized(style = AuthorizedStyle.ContentHash, level = AuthorizedLevel.Read)
-    @MethodMetadata(extractParameters = {"0", MPK_ENTITY_ID})
-    @EntityIdContentCache
-    public Response getContentByHash(String contentHash) {
-        ContentWrapperDto dto = storage.getContentByHash(contentHash);
-        if (dto == null) {
-            throw new ContentNotFoundException(contentHash);
+    public Response getContentByHash(String contentHash, HandleReferencesType references) {
+        HandleReferencesType effective = effectiveReferences(references);
+        ContentWrapperDto dto;
+        if (effective == HandleReferencesType.PRESERVE) {
+            dto = storage.getContentByHash(contentHash);
+            if (dto == null) {
+                throw new ContentNotFoundException(contentHash);
+            }
+        } else {
+            long contentId = storage.contentIdFromHash(contentHash)
+                    .orElseThrow(() -> new ContentNotFoundException(contentHash));
+            dto = storage.getContentAndArtifactTypeById(contentId);
         }
-        String ext = ContentTypes.getFileExtension(dto.getContentType());
-        String filename = contentHash + ext;
-        return Response.ok(dto.getContent(), dto.getContentType())
+        return contentResponse(contentHash, dto, effective, contentHash);
+    }
+
+    /**
+     * The reference handling to apply: the requested one, otherwise the admin-configured default, otherwise
+     * {@code PRESERVE} (the same rules as {@link #getContentByGlobalId}).
+     */
+    private HandleReferencesType effectiveReferences(HandleReferencesType requested) {
+        if (requested != null) {
+            return requested;
+        }
+        return restConfig.getDefaultReferenceHandling().filter(value -> !value.isBlank())
+                .map(HandleReferencesType::fromValue).orElse(HandleReferencesType.PRESERVE);
+    }
+
+    /**
+     * Builds the response for a content-ID or content-hash lookup. {@code PRESERVE} returns the content as
+     * stored; {@code DEREFERENCE} and {@code REWRITE} use the artifact type of a version with this content,
+     * so {@code dto} must come from {@code getContentAndArtifactTypeById} for them. The HTTP cache entry
+     * varies by the reference handling, and for converted content by the content IDs of the reference tree.
+     */
+    private Response contentResponse(Object entityId, ContentWrapperDto dto, HandleReferencesType references,
+            String fileBaseName) {
+        boolean preserve = references == HandleReferencesType.PRESERVE;
+        caching(EntityIdContentCacheStrategy.builder()
+                .entityId(entityId)
+                // PRESERVE (explicit or by default) returns the same bytes, so it keeps the ETag it always had.
+                .references(preserve ? null : references)
+                .referenceTreeContentIds(() -> recursivelyResolveReferenceContentIds(dto.getReferences(),
+                        ref -> storage.getArtifactVersionContent(ref.getGroupId(), ref.getArtifactId(),
+                                ref.getVersion())))
+                .build()).prepare();
+
+        TypedContent content = TypedContent.create(dto.getContent(), dto.getContentType());
+        if (!preserve) {
+            content = handleContentReferences(references, dto.getArtifactType(), content, dto.getReferences());
+        }
+        String filename = fileBaseName + ContentTypes.getFileExtension(content.getContentType());
+        return Response.ok(content.getContent(), content.getContentType())
                 .header(HttpHeaders.CONTENT_DISPOSITION, buildContentDisposition(filename))
                 .build();
     }

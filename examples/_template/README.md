@@ -52,8 +52,9 @@ Stop and remove everything with `docker compose down -v`.
 
 - **Other ports:** if 8081 or 8888 are in use, see [Using other ports](GUIDE.md#using-other-ports).
 - **Local build:** the example uses the `latest-snapshot` images. To run a locally built registry,
-  build it (`./mvnw install -pl distro/docker -am -DskipTests`), then build
-  `distro/docker/target/docker/Dockerfile.jvm` as `apicurio/apicurio-registry:latest-snapshot`.
+  build it (`./mvnw install -pl distro/docker -am -DskipTests`), build
+  `distro/docker/target/docker/Dockerfile.jvm` as an image, and start the example with
+  `REGISTRY_IMAGE=<that image> docker compose up -d`.
 - **Local only:** <what makes this configuration unsuitable for production>.
 
 ## Learn more

@@ -263,6 +263,15 @@ endif::[]
 has no dereferencer, so `DEREFERENCE` and `REWRITE` return the content unchanged.
 |===
 
+When you create a version, you can set `autoReferences` to `true` so that {registry} matches the references
+in the content to existing artifacts instead of requiring explicit mappings. For the matching rules, see
+ifndef::service-registry-downstream[]
+xref:getting-started/assembly-managing-registry-artifacts-api.adoc#matching-references-using-rest-api_{context}[Matching references to existing artifacts].
+endif::[]
+ifdef::service-registry-downstream[]
+xref:matching-references-using-rest-api_{context}[].
+endif::[]
+
 // ref-registry-ai-ml-artifact-types
 [id="registry-ai-ml-artifact-types_{context}"]
 == AI/ML artifact types
@@ -513,6 +522,22 @@ Without the property, each API retains its existing default behavior.
 
 
 // ref-registry-artifact-metadata
+[id="registry-reference-identity-lifecycle_{context}"]
+== How references affect content identity and deletion
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+References are stored with the content, not with the artifact version, and they are part of the content's identity:
+
+* A reference always points to an exact artifact version. It does not follow the latest version. To use a new version of a referenced artifact, create a new version of the referencing artifact.
+* Both the content hash and the canonical hash include the references. The same content with different references is stored as different content, with a different content ID.
+* A version in the `DISABLED` state can still be resolved as a reference.
+* In the core REST API, deleting an artifact or version that other versions reference is allowed. The references remain listed, but they can no longer be resolved, so dereferencing the referencing content fails. Check the inbound references (`refType=INBOUND`) before deleting. The Confluent-compatible API refuses to delete referenced subjects and versions.
+* Without an `INTEGRITY` rule, a reference can point to an artifact version that does not exist yet. Configure `INTEGRITY` with `FULL` or `REFS_EXIST` to reject such references.
+
+For a runnable demonstration, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/schema-references[schema-references example].
+
 [id="registry-artifact-metadata_{context}"]
 == {registry} artifact metadata
 

@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.Set;
 
 import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.normalizeGroupId;
-import static io.apicurio.registry.utils.StringUtil.asLowerCase;
 import static io.apicurio.registry.storage.impl.sql.StructuredContentIndexUtils.elementValue;
 
 /**
@@ -53,6 +52,10 @@ public class SqlSearchRepository {
      * literally - the character is only ever consumed as an escape when this code puts it there.
      */
     static final char LIKE_ESCAPE_CHAR = '!';
+    private static final String A_ARTIFACT_ID = "a.artifactId";
+    private static final String A_GROUP_ID = "a.groupId";
+    private static final String V_ARTIFACT_ID = "v.artifactId";
+    private static final String NOT_LIKE = "NOT LIKE";
 
     private static final String STRUCTURE_FILTER_FORMAT_HELP = "Expected '<artifactType>:<kind>:<name>', "
             + "'<kind>:<name>' or '<name>', for example 'agent_card:skill:translation'.";
@@ -84,7 +87,6 @@ public class SqlSearchRepository {
             StringBuilder orderByQuery = new StringBuilder();
 
             // Formulate the WHERE clause for both queries
-            String op;
             boolean first = true;
             for (SearchFilter filter : filters) {
                 if (first) {
@@ -93,204 +95,12 @@ public class SqlSearchRepository {
                 } else {
                     where.append(" AND (");
                 }
-                switch (filter.getType()) {
-                    case description:
-                        op = filter.isNot() ? "NOT LIKE" : "LIKE";
-                        where.append("a.description ");
-                        where.append(op);
-                        where.append(" ?");
-                        binders.add((query, idx) -> {
-                            query.bind(idx, "%" + filter.getStringValue() + "%");
-                        });
-                        break;
-                    case name:
-                        buildNameClause(where, "a.name", "a.artifactId", filter.getStringValue(),
-                                filter.isNot(), false, binders);
-                        break;
-                    case nameCaseInsensitive:
-                        buildNameClause(where, "a.name", "a.artifactId", filter.getStringValue(),
-                                filter.isNot(), true, binders);
-                        break;
-                    case groupId:
-                        buildWildcardClause(where, "a.groupId",
-                                normalizeGroupId(filter.getStringValue()), filter.isNot(), binders);
-                        break;
-                    case authorization:
-                        SqlAuthorizationFilter.appendArtifactCondition(where, binders,
-                                filter.getAuthorizationValue(), sqlStatements.dbType(), "a.groupId", "a.artifactId",
-                                "a.owner");
-                        break;
-                    case artifactId:
-                        buildWildcardClause(where, "a.artifactId",
-                                filter.getStringValue(), filter.isNot(), binders);
-                        break;
-                    case artifactType:
-                        op = filter.isNot() ? "!=" : "=";
-                        where.append("a.type " + op + " ?");
-                        binders.add((query, idx) -> {
-                            query.bind(idx, filter.getStringValue());
-                        });
-                        break;
-                    case contentHash:
-                        op = filter.isNot() ? "!=" : "=";
-                        where.append(
-                                "EXISTS(SELECT c.* FROM content c JOIN versions v ON c.contentId = v.contentId WHERE v.groupId = a.groupId AND v.artifactId = a.artifactId AND ");
-                        where.append("c.contentHash " + op + " ?");
-                        binders.add((query, idx) -> {
-                            query.bind(idx, filter.getStringValue());
-                        });
-                        where.append(")");
-                        break;
-                    case canonicalHash:
-                        op = filter.isNot() ? "!=" : "=";
-                        where.append(
-                                "EXISTS(SELECT c.* FROM content c JOIN versions v ON c.contentId = v.contentId WHERE v.groupId = a.groupId AND v.artifactId = a.artifactId AND ");
-                        where.append("c.canonicalHash " + op + " ?");
-                        binders.add((query, idx) -> {
-                            query.bind(idx, filter.getStringValue());
-                        });
-                        where.append(")");
-                        break;
-                    case labels:
-                        Pair<String, String> label = filter.getLabelFilterValue();
-                        String labelKey = label.getKey().toLowerCase(Locale.ROOT);
-                        where.append("EXISTS(SELECT l.* FROM artifact_labels l WHERE ");
-                        buildWildcardClause(where, "l.labelKey", labelKey, filter.isNot(), binders);
-                        if (label.getValue() != null) {
-                            String labelValue = label.getValue().toLowerCase(Locale.ROOT);
-                            where.append(" AND ");
-                            // Compare against LOWER(l.labelValue) because label values are not always
-                            // lowercased at write time (mergeArtifactLabels stores them verbatim).
-                            buildWildcardClause(where, "LOWER(l.labelValue)", labelValue, filter.isNot(),
-                                    binders);
-                        }
-                        where.append(" AND l.groupId = a.groupId AND l.artifactId = a.artifactId)");
-                        break;
-                    case globalId:
-                        op = filter.isNot() ? "!=" : "=";
-                        where.append(
-                                "EXISTS(SELECT v.* FROM versions v WHERE v.groupId = a.groupId AND v.artifactId = a.artifactId AND ");
-                        where.append("v.globalId " + op + " ?");
-                        binders.add((query, idx) -> {
-                            query.bind(idx, filter.getNumberValue().longValue());
-                        });
-                        where.append(")");
-                        break;
-                    case contentId:
-                        op = filter.isNot() ? "!=" : "=";
-                        where.append(
-                                "EXISTS(SELECT c.* FROM content c JOIN versions v ON c.contentId = v.contentId WHERE v.groupId = a.groupId AND v.artifactId = a.artifactId AND ");
-                        where.append("v.contentId " + op + " ?");
-                        binders.add((query, idx) -> {
-                            query.bind(idx, filter.getNumberValue().longValue());
-                        });
-                        where.append(")");
-                        break;
-                    case state:
-                        op = filter.isNot() ? "!=" : "=";
-                        where.append(
-                                "EXISTS(SELECT v.* FROM versions v WHERE v.groupId = a.groupId AND v.artifactId = a.artifactId AND ");
-                        where.append("v.state " + op + " ?");
-                        binders.add((query, idx) -> {
-                            query.bind(idx, filter.getStringValue());
-                        });
-                        where.append(")");
-                        break;
-                    case content:
-                        throw new ContentSearchNotSupportedException(CONTENT_SEARCH_UNSUPPORTED_MESSAGE);
-                    case structure:
-                        if (filter.isNot() && filters.stream().noneMatch(candidate ->
-                                candidate.getType() == SearchFilterType.artifactType
-                                        && !candidate.isNot())) {
-                            throw new IllegalArgumentException("Negated structure filters require an artifactType filter");
-                        }
-                        // Structured content filter, e.g. "agent_card:skill:translation". Elements are
-                        // stored lowercased in artifact_structured_content as elementType
-                        // ("<artifactType>:<kind>") + elementValue (SHA-256 of the full normalized name).
-                        // Negation (NOT EXISTS) is true for artifacts that have no structured rows at
-                        // all, so a negated filter is only meaningful when the result set is already
-                        // constrained. The only caller that negates this filter is the agent discovery
-                        // endpoint (WellKnownResourceImpl, "capability: false"), which always pairs it
-                        // with an artifactType filter; the general search endpoint
-                        // (SearchResourceImpl) passes the "structure" query parameter through
-                        // un-negated. SearchFilter.ofStructure() documents that precondition for any
-                        // future caller.
-                        // Validate the raw value before normalizing it, so a value that is only
-                        // whitespace is reported as blank rather than being lower-cased and trimmed into
-                        // an empty filter.
-                        String rawStructureValue = filter.getStringValue();
-                        if (rawStructureValue == null || rawStructureValue.isBlank()) {
-                            // Not reachable from the REST layer: the version search endpoint skips an
-                            // empty "structure" parameter, and the discovery endpoints always prefix the
-                            // value with "<artifactType>:<kind>:". Fail loudly rather than degrading to a
-                            // clause that silently matches every artifact.
-                            throw new IllegalArgumentException(
-                                    "Structure filter value must not be blank. "
-                                            + STRUCTURE_FILTER_FORMAT_HELP);
-                        }
-                        String[] structureParts = asLowerCase(rawStructureValue.trim()).split(":", 3);
-                        for (String part : structureParts) {
-                            if (part.isBlank()) {
-                                throw new IllegalArgumentException("Structure filter components must not be blank");
-                            }
-                        }
-                        op = filter.isNot() ? "NOT EXISTS" : "EXISTS";
-                        where.append(op);
-                        where.append(
-                                "(SELECT sc.* FROM artifact_structured_content sc WHERE sc.groupId = a.groupId AND sc.artifactId = a.artifactId AND ");
-                        if (structureParts.length == 3) {
-                            // Full format: "artifactType:kind:name" - exact match
-                            where.append("sc.elementType = ? AND sc.elementValue = ?");
-                            binders.add((query, idx) -> {
-                                query.bind(idx, structureParts[0] + ":" + structureParts[1]);
-                            });
-                            binders.add((query, idx) -> {
-                                query.bind(idx, elementValue(structureParts[2]));
-                            });
-                        } else if (structureParts.length == 2) {
-                            // Partial format: "kind:name" - match the kind for any artifact type. The
-                            // kind is request-derived, so escape LIKE wildcards in it and keep only the
-                            // leading "%:" as an intentional wildcard.
-                            where.append("sc.elementType LIKE ? ESCAPE '" + LIKE_ESCAPE_CHAR
-                                    + "' AND sc.elementValue = ?");
-                            binders.add((query, idx) -> {
-                                query.bind(idx, "%:" + escapeLikePattern(structureParts[0]));
-                            });
-                            binders.add((query, idx) -> {
-                                query.bind(idx, elementValue(structureParts[1]));
-                            });
-                        } else {
-                            // Plain name: match the element value for any kind
-                            where.append("sc.elementValue = ?");
-                            binders.add((query, idx) -> {
-                                query.bind(idx, elementValue(structureParts[0]));
-                            });
-                        }
-                        where.append(")");
-                        break;
-                    default:
-                        throw new RegistryStorageException("Filter type not supported: " + filter.getType());
-                }
+                appendArtifactFilter(where, binders, filter, filters);
                 where.append(")");
             }
 
             // Add order by to artifact query
-            switch (orderBy) {
-                case name:
-                    orderByQuery.append(" ORDER BY coalesce(a.name, a.artifactId)");
-                    break;
-                case artifactType:
-                    orderByQuery.append(" ORDER BY a.type");
-                    break;
-                case groupId:
-                case artifactId:
-                case createdOn:
-                case modifiedOn:
-                    orderByQuery.append(" ORDER BY a." + orderBy.name());
-                    break;
-                default:
-                    throw new RuntimeException("Sort by " + orderBy.name() + " not supported.");
-            }
+            appendArtifactOrderBy(orderByQuery, orderBy);
             orderByQuery.append(" ").append(orderDirection.name());
 
             // Query for the artifacts
@@ -300,27 +110,14 @@ public class SqlSearchRepository {
 
             Query countQuery = null;
             if (!skipCount) {
-                String countQuerySql = sqlStatements.selectCountTableTemplate("a.artifactId", "artifacts",
+                String countQuerySql = sqlStatements.selectCountTableTemplate(A_ARTIFACT_ID, "artifacts",
                         "a", where.toString());
                 countQuery = handle.createQuery(countQuerySql);
             }
 
             // Bind all query parameters
-            int idx = 0;
-            for (SqlStatementVariableBinder binder : binders) {
-                binder.bind(artifactsQuery, idx);
-                if (countQuery != null) {
-                    binder.bind(countQuery, idx);
-                }
-                idx++;
-            }
-            if ("mssql".equals(sqlStatements.dbType())) {
-                artifactsQuery.bind(idx++, offset);
-                artifactsQuery.bind(idx++, limit);
-            } else {
-                artifactsQuery.bind(idx++, limit);
-                artifactsQuery.bind(idx++, offset);
-            }
+            int idx = bindAll(binders, artifactsQuery, countQuery);
+            bindPaging(artifactsQuery, idx, offset, limit);
 
             // Execute artifact query
             List<SearchedArtifactDto> artifacts = artifactsQuery.map(SearchedArtifactMapper.instance).list();
@@ -345,7 +142,6 @@ public class SqlSearchRepository {
         log.debug("Searching for versions");
         return handles.withHandleNoException(handle -> {
             List<SqlStatementVariableBinder> binders = new LinkedList<>();
-            String op;
 
             StringBuilder selectTemplate = new StringBuilder();
             StringBuilder where = new StringBuilder();
@@ -360,134 +156,12 @@ public class SqlSearchRepository {
             where.append(" WHERE (1 = 1)");
             for (SearchFilter filter : filters) {
                 where.append(" AND (");
-                switch (filter.getType()) {
-                    case groupId:
-                        buildWildcardClause(where, "a.groupId",
-                                normalizeGroupId(filter.getStringValue()), filter.isNot(), binders);
-                        break;
-                    case authorization:
-                        SqlAuthorizationFilter.appendArtifactCondition(where, binders,
-                                filter.getAuthorizationValue(), sqlStatements.dbType(), "a.groupId", "a.artifactId",
-                                "a.owner");
-                        break;
-                    case artifactType:
-                        op = filter.isNot() ? "!=" : "=";
-                        where.append("a.type " + op + " ?");
-                        binders.add((query, idx) -> {
-                            query.bind(idx, filter.getStringValue());
-                        });
-                        break;
-                    case artifactId:
-                        buildWildcardClause(where, "v.artifactId",
-                                filter.getStringValue(), filter.isNot(), binders);
-                        break;
-                    case contentId:
-                    case globalId:
-                        op = filter.isNot() ? "!=" : "=";
-                        where.append("v.");
-                        where.append(filter.getType().name());
-                        where.append(" ");
-                        where.append(op);
-                        where.append(" ?");
-                        // globalId/contentId map to numeric SQL columns, unlike state/version string filters.
-                        binders.add((query, idx) -> {
-                            query.bind(idx, getRequiredNumberValue(filter));
-                        });
-                        break;
-                    case state:
-                    case version:
-                        op = filter.isNot() ? "!=" : "=";
-                        where.append("v.");
-                        where.append(filter.getType().name());
-                        where.append(" ");
-                        where.append(op);
-                        where.append(" ?");
-                        binders.add((query, idx) -> {
-                            query.bind(idx, filter.getStringValue());
-                        });
-                        break;
-                    case name:
-                        buildNameClause(where, "v.name", "v.artifactId", filter.getStringValue(),
-                                filter.isNot(), false, binders);
-                        break;
-                    case nameCaseInsensitive:
-                        buildNameClause(where, "v.name", "v.artifactId", filter.getStringValue(),
-                                filter.isNot(), true, binders);
-                        break;
-                    case description:
-                        op = filter.isNot() ? "NOT LIKE" : "LIKE";
-                        where.append("v.description ");
-                        where.append(op);
-                        where.append(" ?");
-                        binders.add((query, idx) -> {
-                            query.bind(idx, "%" + filter.getStringValue() + "%");
-                        });
-                        break;
-                    case labels:
-                        Pair<String, String> label = filter.getLabelFilterValue();
-                        String labelKey = label.getKey().toLowerCase(Locale.ROOT);
-                        where.append("EXISTS(SELECT l.* FROM version_labels l WHERE ");
-                        buildWildcardClause(where, "l.labelKey", labelKey, filter.isNot(), binders);
-                        if (label.getValue() != null) {
-                            String labelValue = label.getValue().toLowerCase(Locale.ROOT);
-                            where.append(" AND ");
-                            // Compare against LOWER(l.labelValue) because label values are not always
-                            // lowercased at write time (mergeVersionLabels stores them verbatim).
-                            buildWildcardClause(where, "LOWER(l.labelValue)", labelValue, filter.isNot(),
-                                    binders);
-                        }
-                        where.append(" AND l.globalId = v.globalId)");
-                        break;
-                    case contentHash:
-                        op = filter.isNot() ? "!=" : "=";
-                        where.append("EXISTS(SELECT c.* FROM content c WHERE c.contentId = v.contentId AND ");
-                        where.append("c.contentHash " + op + " ?");
-                        binders.add((query, idx) -> {
-                            query.bind(idx, filter.getStringValue());
-                        });
-                        where.append(")");
-                        break;
-                    case canonicalHash:
-                        op = filter.isNot() ? "!=" : "=";
-                        where.append("EXISTS(SELECT c.* FROM content c WHERE c.contentId = v.contentId AND ");
-                        where.append("c.canonicalHash " + op + " ?");
-                        binders.add((query, idx) -> {
-                            query.bind(idx, filter.getStringValue());
-                        });
-                        where.append(")");
-                        break;
-                    case content:
-                        throw new ContentSearchNotSupportedException(CONTENT_SEARCH_UNSUPPORTED_MESSAGE);
-                    case structure:
-                        // Structured content is indexed per artifact in SQL (see searchArtifacts), but
-                        // version-level structure search is only served by the search index.
-                        throw new ContentSearchNotSupportedException(VERSION_STRUCTURE_SEARCH_UNSUPPORTED_MESSAGE);
-                    default:
-                        throw new RegistryStorageException("Filter type not supported: " + filter.getType());
-                }
+                appendVersionFilter(where, binders, filter);
                 where.append(")");
             }
 
             // Add order by to query
-            switch (orderBy) {
-                case name:
-                    orderByQuery.append(" ORDER BY coalesce(v.name, v.version)");
-                    break;
-                // NOTE: Falling back to lexical version ordering (v.version) when versionSortKey is null.
-                // Ordering may be unstable during the migration window until VersionSortKeyUpgrader completes.
-                case version:
-                    orderByQuery.append(" ORDER BY coalesce(v.versionSortKey, v.version)");
-                    break;
-                case groupId:
-                case artifactId:
-                case globalId:
-                case createdOn:
-                case modifiedOn:
-                    orderByQuery.append(" ORDER BY v." + orderBy.name());
-                    break;
-                default:
-                    throw new RuntimeException("Sort by " + orderBy.name() + " not supported.");
-            }
+            appendVersionOrderBy(orderByQuery, orderBy);
             orderByQuery.append(" ").append(orderDirection.name());
 
             // Add limit and offset to artifact query
@@ -514,22 +188,9 @@ public class SqlSearchRepository {
             }
 
             // Bind all query parameters
-            int idx = 0;
-            for (SqlStatementVariableBinder binder : binders) {
-                binder.bind(versionsQuery, idx);
-                if (countQuery != null) {
-                    binder.bind(countQuery, idx);
-                }
-                idx++;
-            }
+            int idx = bindAll(binders, versionsQuery, countQuery);
 
-            if ("mssql".equals(sqlStatements.dbType())) {
-                versionsQuery.bind(idx++, offset);
-                versionsQuery.bind(idx++, limit);
-            } else {
-                versionsQuery.bind(idx++, limit);
-                versionsQuery.bind(idx++, offset);
-            }
+            bindPaging(versionsQuery, idx, offset, limit);
 
             // Execute query
             List<SearchedVersionDto> versions = versionsQuery.map(SearchedVersionMapper.instance).list();
@@ -542,6 +203,395 @@ public class SqlSearchRepository {
             results.setCount(count);
             return results;
         });
+    }
+
+    private void appendArtifactFilter(StringBuilder where, List<SqlStatementVariableBinder> binders,
+            SearchFilter filter, Set<SearchFilter> filters) {
+        String op;
+        switch (filter.getType()) {
+            case description:
+                op = likeOperator(filter.isNot());
+                where.append("a.description ");
+                where.append(op);
+                where.append(" ?");
+                binders.add((query, idx) -> {
+                    query.bind(idx, "%" + filter.getStringValue() + "%");
+                });
+                break;
+            case name:
+                buildNameClause(where, "a.name", A_ARTIFACT_ID, filter.getStringValue(),
+                        filter.isNot(), false, binders);
+                break;
+            case nameCaseInsensitive:
+                buildNameClause(where, "a.name", A_ARTIFACT_ID, filter.getStringValue(),
+                        filter.isNot(), true, binders);
+                break;
+            case groupId:
+                buildWildcardClause(where, A_GROUP_ID,
+                        normalizeGroupId(filter.getStringValue()), filter.isNot(), binders);
+                break;
+            case authorization:
+                SqlAuthorizationFilter.appendArtifactCondition(where, binders,
+                        filter.getAuthorizationValue(), sqlStatements.dbType(), A_GROUP_ID, A_ARTIFACT_ID,
+                        "a.owner");
+                break;
+            case artifactId:
+                buildWildcardClause(where, A_ARTIFACT_ID,
+                        filter.getStringValue(), filter.isNot(), binders);
+                break;
+            case artifactType:
+                op = equalityOperator(filter.isNot());
+                where.append("a.type " + op + " ?");
+                binders.add((query, idx) -> {
+                    query.bind(idx, filter.getStringValue());
+                });
+                break;
+            case contentHash:
+                op = equalityOperator(filter.isNot());
+                where.append(
+                        "EXISTS(SELECT c.* FROM content c JOIN versions v ON c.contentId = v.contentId WHERE v.groupId = a.groupId AND v.artifactId = a.artifactId AND ");
+                where.append("c.contentHash " + op + " ?");
+                binders.add((query, idx) -> {
+                    query.bind(idx, filter.getStringValue());
+                });
+                where.append(")");
+                break;
+            case canonicalHash:
+                op = equalityOperator(filter.isNot());
+                where.append(
+                        "EXISTS(SELECT c.* FROM content c JOIN versions v ON c.contentId = v.contentId WHERE v.groupId = a.groupId AND v.artifactId = a.artifactId AND ");
+                where.append("c.canonicalHash " + op + " ?");
+                binders.add((query, idx) -> {
+                    query.bind(idx, filter.getStringValue());
+                });
+                where.append(")");
+                break;
+            case labels:
+                appendArtifactLabelsClause(where, binders, filter);
+                break;
+            case globalId:
+                op = equalityOperator(filter.isNot());
+                where.append(
+                        "EXISTS(SELECT v.* FROM versions v WHERE v.groupId = a.groupId AND v.artifactId = a.artifactId AND ");
+                where.append("v.globalId " + op + " ?");
+                binders.add((query, idx) -> {
+                    query.bind(idx, filter.getNumberValue().longValue());
+                });
+                where.append(")");
+                break;
+            case contentId:
+                op = equalityOperator(filter.isNot());
+                where.append(
+                        "EXISTS(SELECT c.* FROM content c JOIN versions v ON c.contentId = v.contentId WHERE v.groupId = a.groupId AND v.artifactId = a.artifactId AND ");
+                where.append("v.contentId " + op + " ?");
+                binders.add((query, idx) -> {
+                    query.bind(idx, filter.getNumberValue().longValue());
+                });
+                where.append(")");
+                break;
+            case state:
+                op = equalityOperator(filter.isNot());
+                where.append(
+                        "EXISTS(SELECT v.* FROM versions v WHERE v.groupId = a.groupId AND v.artifactId = a.artifactId AND ");
+                where.append("v.state " + op + " ?");
+                binders.add((query, idx) -> {
+                    query.bind(idx, filter.getStringValue());
+                });
+                where.append(")");
+                break;
+            case content:
+                throw new ContentSearchNotSupportedException(CONTENT_SEARCH_UNSUPPORTED_MESSAGE);
+            case structure:
+                appendStructureClause(where, binders, filter, filters);
+                break;
+            default:
+                throw new RegistryStorageException("Filter type not supported: " + filter.getType());
+        }
+    }
+
+    private void appendArtifactLabelsClause(StringBuilder where, List<SqlStatementVariableBinder> binders,
+            SearchFilter filter) {
+        Pair<String, String> label = filter.getLabelFilterValue();
+        String labelKey = label.getKey().toLowerCase(Locale.ROOT);
+        where.append("EXISTS(SELECT l.* FROM artifact_labels l WHERE ");
+        buildWildcardClause(where, "l.labelKey", labelKey, filter.isNot(), binders);
+        if (label.getValue() != null) {
+            String labelValue = label.getValue().toLowerCase(Locale.ROOT);
+            where.append(" AND ");
+            // Compare against LOWER(l.labelValue) because label values are not always
+            // lowercased at write time (mergeArtifactLabels stores them verbatim).
+            buildWildcardClause(where, "LOWER(l.labelValue)", labelValue, filter.isNot(),
+                    binders);
+        }
+        where.append(" AND l.groupId = a.groupId AND l.artifactId = a.artifactId)");
+    }
+
+    private void appendStructureClause(StringBuilder where, List<SqlStatementVariableBinder> binders,
+            SearchFilter filter, Set<SearchFilter> filters) {
+        String[] structureParts = parseStructureParts(filter, filters);
+        String op = filter.isNot() ? "NOT EXISTS" : "EXISTS";
+        where.append(op);
+        where.append(
+                "(SELECT sc.* FROM artifact_structured_content sc WHERE sc.groupId = a.groupId AND sc.artifactId = a.artifactId AND ");
+        if (structureParts.length == 3) {
+            // Full format: "artifactType:kind:name" - exact match
+            where.append("sc.elementType = ? AND sc.elementValue = ?");
+            binders.add((query, idx) -> {
+                query.bind(idx, structureParts[0] + ":" + structureParts[1]);
+            });
+            binders.add((query, idx) -> {
+                query.bind(idx, elementValue(structureParts[2]));
+            });
+        } else if (structureParts.length == 2) {
+            // Partial format: "kind:name" - match the kind for any artifact type. The
+            // kind is request-derived, so escape LIKE wildcards in it and keep only the
+            // leading "%:" as an intentional wildcard.
+            where.append("sc.elementType LIKE ? ESCAPE '" + LIKE_ESCAPE_CHAR
+                    + "' AND sc.elementValue = ?");
+            binders.add((query, idx) -> {
+                query.bind(idx, "%:" + escapeLikePattern(structureParts[0]));
+            });
+            binders.add((query, idx) -> {
+                query.bind(idx, elementValue(structureParts[1]));
+            });
+        } else {
+            // Plain name: match the element value for any kind
+            where.append("sc.elementValue = ?");
+            binders.add((query, idx) -> {
+                query.bind(idx, elementValue(structureParts[0]));
+            });
+        }
+        where.append(")");
+    }
+
+    private static String[] parseStructureParts(SearchFilter filter, Set<SearchFilter> filters) {
+        if (filter.isNot() && filters.stream().noneMatch(candidate ->
+                candidate.getType() == SearchFilterType.artifactType
+                        && !candidate.isNot())) {
+            throw new IllegalArgumentException("Negated structure filters require an artifactType filter");
+        }
+        // Structured content filter, e.g. "agent_card:skill:translation". Elements are
+        // stored lowercased in artifact_structured_content as elementType
+        // ("<artifactType>:<kind>") + elementValue (SHA-256 of the full normalized name).
+        // Negation (NOT EXISTS) is true for artifacts that have no structured rows at
+        // all, so a negated filter is only meaningful when the result set is already
+        // constrained. The only caller that negates this filter is the agent discovery
+        // endpoint (WellKnownResourceImpl, "capability: false"), which always pairs it
+        // with an artifactType filter; the general search endpoint
+        // (SearchResourceImpl) passes the "structure" query parameter through
+        // un-negated. SearchFilter.ofStructure() documents that precondition for any
+        // future caller.
+        // Validate the raw value before normalizing it, so a value that is only
+        // whitespace is reported as blank rather than being lower-cased and trimmed into
+        // an empty filter.
+        String rawStructureValue = filter.getStringValue();
+        if (rawStructureValue == null || rawStructureValue.isBlank()) {
+            // Not reachable from the REST layer: the version search endpoint skips an
+            // empty "structure" parameter, and the discovery endpoints always prefix the
+            // value with "<artifactType>:<kind>:". Fail loudly rather than degrading to a
+            // clause that silently matches every artifact.
+            throw new IllegalArgumentException(
+                    "Structure filter value must not be blank. "
+                            + STRUCTURE_FILTER_FORMAT_HELP);
+        }
+        String[] structureParts = rawStructureValue.trim().toLowerCase(Locale.ROOT).split(":", 3);
+        for (String part : structureParts) {
+            if (part.isBlank()) {
+                throw new IllegalArgumentException("Structure filter components must not be blank");
+            }
+        }
+        return structureParts;
+    }
+
+    private static void appendArtifactOrderBy(StringBuilder orderByQuery, OrderBy orderBy) {
+        switch (orderBy) {
+            case name:
+                orderByQuery.append(" ORDER BY coalesce(a.name, a.artifactId)");
+                break;
+            case artifactType:
+                orderByQuery.append(" ORDER BY a.type");
+                break;
+            case groupId:
+            case artifactId:
+            case createdOn:
+            case modifiedOn:
+                orderByQuery.append(" ORDER BY a." + orderBy.name());
+                break;
+            default:
+                throw new RuntimeException("Sort by " + orderBy.name() + " not supported.");
+        }
+    }
+
+    private void appendVersionFilter(StringBuilder where, List<SqlStatementVariableBinder> binders,
+            SearchFilter filter) {
+        String op;
+        switch (filter.getType()) {
+            case groupId:
+                buildWildcardClause(where, A_GROUP_ID,
+                        normalizeGroupId(filter.getStringValue()), filter.isNot(), binders);
+                break;
+            case authorization:
+                SqlAuthorizationFilter.appendArtifactCondition(where, binders,
+                        filter.getAuthorizationValue(), sqlStatements.dbType(), A_GROUP_ID, A_ARTIFACT_ID,
+                        "a.owner");
+                break;
+            case artifactType:
+                op = equalityOperator(filter.isNot());
+                where.append("a.type " + op + " ?");
+                binders.add((query, idx) -> {
+                    query.bind(idx, filter.getStringValue());
+                });
+                break;
+            case artifactId:
+                buildWildcardClause(where, V_ARTIFACT_ID,
+                        filter.getStringValue(), filter.isNot(), binders);
+                break;
+            case contentId:
+            case globalId:
+                op = equalityOperator(filter.isNot());
+                where.append("v.");
+                where.append(filter.getType().name());
+                where.append(" ");
+                where.append(op);
+                where.append(" ?");
+                // globalId/contentId map to numeric SQL columns, unlike state/version string filters.
+                binders.add((query, idx) -> {
+                    query.bind(idx, getRequiredNumberValue(filter));
+                });
+                break;
+            case state:
+            case version:
+                op = equalityOperator(filter.isNot());
+                where.append("v.");
+                where.append(filter.getType().name());
+                where.append(" ");
+                where.append(op);
+                where.append(" ?");
+                binders.add((query, idx) -> {
+                    query.bind(idx, filter.getStringValue());
+                });
+                break;
+            case name:
+                buildNameClause(where, "v.name", V_ARTIFACT_ID, filter.getStringValue(),
+                        filter.isNot(), false, binders);
+                break;
+            case nameCaseInsensitive:
+                buildNameClause(where, "v.name", V_ARTIFACT_ID, filter.getStringValue(),
+                        filter.isNot(), true, binders);
+                break;
+            case description:
+                op = likeOperator(filter.isNot());
+                where.append("v.description ");
+                where.append(op);
+                where.append(" ?");
+                binders.add((query, idx) -> {
+                    query.bind(idx, "%" + filter.getStringValue() + "%");
+                });
+                break;
+            case labels:
+                appendVersionLabelsClause(where, binders, filter);
+                break;
+            case contentHash:
+                op = equalityOperator(filter.isNot());
+                where.append("EXISTS(SELECT c.* FROM content c WHERE c.contentId = v.contentId AND ");
+                where.append("c.contentHash " + op + " ?");
+                binders.add((query, idx) -> {
+                    query.bind(idx, filter.getStringValue());
+                });
+                where.append(")");
+                break;
+            case canonicalHash:
+                op = equalityOperator(filter.isNot());
+                where.append("EXISTS(SELECT c.* FROM content c WHERE c.contentId = v.contentId AND ");
+                where.append("c.canonicalHash " + op + " ?");
+                binders.add((query, idx) -> {
+                    query.bind(idx, filter.getStringValue());
+                });
+                where.append(")");
+                break;
+            case content:
+                throw new ContentSearchNotSupportedException(CONTENT_SEARCH_UNSUPPORTED_MESSAGE);
+            case structure:
+                // Structured content is indexed per artifact in SQL (see searchArtifacts), but
+                // version-level structure search is only served by the search index.
+                throw new ContentSearchNotSupportedException(VERSION_STRUCTURE_SEARCH_UNSUPPORTED_MESSAGE);
+            default:
+                throw new RegistryStorageException("Filter type not supported: " + filter.getType());
+        }
+    }
+
+    private void appendVersionLabelsClause(StringBuilder where, List<SqlStatementVariableBinder> binders,
+            SearchFilter filter) {
+        Pair<String, String> label = filter.getLabelFilterValue();
+        String labelKey = label.getKey().toLowerCase(Locale.ROOT);
+        where.append("EXISTS(SELECT l.* FROM version_labels l WHERE ");
+        buildWildcardClause(where, "l.labelKey", labelKey, filter.isNot(), binders);
+        if (label.getValue() != null) {
+            String labelValue = label.getValue().toLowerCase(Locale.ROOT);
+            where.append(" AND ");
+            // Compare against LOWER(l.labelValue) because label values are not always
+            // lowercased at write time (mergeVersionLabels stores them verbatim).
+            buildWildcardClause(where, "LOWER(l.labelValue)", labelValue, filter.isNot(),
+                    binders);
+        }
+        where.append(" AND l.globalId = v.globalId)");
+    }
+
+    private static void appendVersionOrderBy(StringBuilder orderByQuery, OrderBy orderBy) {
+        switch (orderBy) {
+            case name:
+                orderByQuery.append(" ORDER BY coalesce(v.name, v.version)");
+                break;
+            // NOTE: Falling back to lexical version ordering (v.version) when versionSortKey is null.
+            // Ordering may be unstable during the migration window until VersionSortKeyUpgrader completes.
+            case version:
+                orderByQuery.append(" ORDER BY coalesce(v.versionSortKey, v.version)");
+                break;
+            case groupId:
+            case artifactId:
+            case globalId:
+            case createdOn:
+            case modifiedOn:
+                orderByQuery.append(" ORDER BY v." + orderBy.name());
+                break;
+            default:
+                throw new RuntimeException("Sort by " + orderBy.name() + " not supported.");
+        }
+    }
+
+    /**
+     * Binds all filter parameters to the query (and to the count query, if any).
+     *
+     * @return the index of the next parameter to bind
+     */
+    private static int bindAll(List<SqlStatementVariableBinder> binders, Query query, Query countQuery) {
+        int idx = 0;
+        for (SqlStatementVariableBinder binder : binders) {
+            binder.bind(query, idx);
+            if (countQuery != null) {
+                binder.bind(countQuery, idx);
+            }
+            idx++;
+        }
+        return idx;
+    }
+
+    private void bindPaging(Query query, int idx, int offset, int limit) {
+        if ("mssql".equals(sqlStatements.dbType())) {
+            query.bind(idx, offset);
+            query.bind(idx + 1, limit);
+        } else {
+            query.bind(idx, limit);
+            query.bind(idx + 1, offset);
+        }
+    }
+
+    private static String equalityOperator(boolean not) {
+        return not ? "!=" : "=";
+    }
+
+    private static String likeOperator(boolean not) {
+        return not ? NOT_LIKE : "LIKE";
     }
 
     /**
@@ -563,7 +613,7 @@ public class SqlSearchRepository {
     private void buildWildcardClause(StringBuilder where, String column, String value, boolean not,
             List<SqlStatementVariableBinder> binders) {
         if (value.contains("*")) {
-            String op = not ? "NOT LIKE" : "LIKE";
+            String op = not ? NOT_LIKE : "LIKE";
             where.append(column).append(" ").append(op).append(" ?");
             String pattern = value.replace('*', '%');
             binders.add((query, idx) -> {
@@ -603,20 +653,9 @@ public class SqlSearchRepository {
 
         // Strip the wildcard markers to obtain the literal search value. The emptiness guards keep a
         // value that is only wildcards (e.g. "*" or "**") from over-stripping into a substring error.
-        String searchValue = value;
-        if (startsWithWildcard && !searchValue.isEmpty()) {
-            searchValue = searchValue.substring(1);
-        }
-        if (endsWithWildcard && !searchValue.isEmpty()) {
-            searchValue = searchValue.substring(0, searchValue.length() - 1);
-        }
+        String searchValue = stripWildcardMarkers(value, startsWithWildcard, endsWithWildcard);
 
-        String op;
-        if (wildcard) {
-            op = not ? "NOT LIKE" : "LIKE";
-        } else {
-            op = not ? "!=" : "=";
-        }
+        String op = wildcard ? likeOperator(not) : equalityOperator(not);
         if (caseInsensitive) {
             nameColumn = "LOWER(" + nameColumn + ")";
             artifactIdColumn = "LOWER(" + artifactIdColumn + ")";
@@ -625,12 +664,8 @@ public class SqlSearchRepository {
                 .append(artifactIdColumn).append(" ").append(op).append(" ?)");
 
         // Translate leading/trailing '*' into SQL '%' wildcards, else bind the literal for exact match
-        String pattern = searchValue;
-        if (wildcard) {
-            String prefix = startsWithWildcard ? "%" : "";
-            String suffix = endsWithWildcard ? "%" : "";
-            pattern = prefix + searchValue + suffix;
-        }
+        String pattern = wildcard ? toLikePattern(searchValue, startsWithWildcard, endsWithWildcard)
+                : searchValue;
         final String bound = caseInsensitive ? pattern.toLowerCase(Locale.ROOT) : pattern;
         binders.add((query, idx) -> {
             query.bind(idx, bound);
@@ -638,6 +673,24 @@ public class SqlSearchRepository {
         binders.add((query, idx) -> {
             query.bind(idx, bound);
         });
+    }
+
+    private static String stripWildcardMarkers(String value, boolean startsWithWildcard,
+            boolean endsWithWildcard) {
+        String searchValue = value;
+        if (startsWithWildcard && !searchValue.isEmpty()) {
+            searchValue = searchValue.substring(1);
+        }
+        if (endsWithWildcard && !searchValue.isEmpty()) {
+            searchValue = searchValue.substring(0, searchValue.length() - 1);
+        }
+        return searchValue;
+    }
+
+    private static String toLikePattern(String searchValue, boolean startsWithWildcard, boolean endsWithWildcard) {
+        String prefix = startsWithWildcard ? "%" : "";
+        String suffix = endsWithWildcard ? "%" : "";
+        return prefix + searchValue + suffix;
     }
 
     /**

@@ -33,6 +33,19 @@ token() {
     -d "grant_type=password&client_id=${2:-apicurio-registry}&username=$1&password=$password" | jq -r .access_token
 }
 
+# Every request gives up after CURL_MAX_TIME seconds (default 120, enough for the model calls), and
+# says which one, so a hung request fails the check instead of hanging the script.
+curl() {
+  local rc=0
+  command curl --max-time "${CURL_MAX_TIME:-120}" "$@" || rc=$?
+  if [ "$rc" -eq 28 ]; then
+    local arg url=
+    for arg in "$@"; do [[ "$arg" == http* ]] && url=$arg; done  # not the headers: they hold tokens
+    echo "  timed out after ${CURL_MAX_TIME:-120}s: $url" >&2
+  fi
+  return "$rc"
+}
+
 # req <base> <user> <method> <path> [body] [extra curl args]: the response body. user "-" = none.
 req() {
   local base=$1 user=$2 method=$3 resource=$4 body=${5:-}
@@ -160,6 +173,12 @@ check "ARD search by name" "Trip planner" \
   "$(req "$OPEN" - POST /.well-known/ard/search '{"query":{"text":"trip"}}' | jq -r '[.results[].displayName] | join(",")')"
 check "ARD explore: facets by type" "true" \
   "$(req "$OPEN" - POST /.well-known/ard/explore '{"query":{"text":"*"},"resultType":{"facets":[{"field":"type","limit":10}]}}' | jq '.facets.type.buckets | length > 0')"
+check "/.well-known/ard.json serves the same catalog as ai-catalog.json" "true" \
+  "$(jq -n --argjson a "$(req "$OPEN" - GET /.well-known/ai-catalog.json)" --argjson b "$(req "$OPEN" - GET /.well-known/ard.json)" '($a.entries | map(.identifier) | sort) == ($b.entries | map(.identifier) | sort)')"
+check "the catalog points crawlers at the live ARD search API" "/.well-known/ard/search" \
+  "$(req "$OPEN" - GET /.well-known/ai-catalog.json | jq -r '.entries[] | select(.type == "application/ai-registry+json") | .url | sub("^https?://[^/]+"; "")')"
+check "the trip planner's entry has its skill examples as representativeQueries" "Plan a day in Lisbon" \
+  "$(req "$OPEN" - GET /.well-known/ai-catalog.json | jq -r '.entries[] | select(.displayName == "Trip planner") | .representativeQueries[0]')"
 
 # ------------------------------------------------------------------------------ part 7
 part "Part 7: MCP Registry API"
@@ -183,6 +202,8 @@ check "importing again changes nothing" "UNCHANGED" \
   "$(req "$OPEN" - POST "$V3/groups/weather-tools/artifacts/weather/mcp-import" '{"url":"http://weather-server:11040/mcp"}' | jq -r .status)"
 check "an import from a host that is not allowed is refused" 400 \
   "$(code "$OPEN" - POST "$V3/groups/weather-tools/artifacts/weather/mcp-import" '{"url":"https://evil.example.com/mcp"}')"
+check "loopback and the cloud metadata address are refused even though they are listed" "400 400" \
+  "$(code "$OPEN" - POST "$V3/groups/weather-tools/artifacts/weather/mcp-import" '{"url":"http://localhost:8080/mcp"}') $(code "$OPEN" - POST "$V3/groups/weather-tools/artifacts/weather/mcp-import" '{"url":"http://169.254.169.254/mcp"}')"
 
 # ------------------------------------------------------------------------------ part 9
 part "Part 9: Quarkus LangChain4j extensions"

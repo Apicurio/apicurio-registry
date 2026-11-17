@@ -146,22 +146,28 @@ final class JsonSchemaLoader {
     private static Set<URI> findReferences(String idKeyword, URI idURI, JsonNode jsonNode) {
         var result = new HashSet<URI>();
         if (jsonNode instanceof ObjectNode objectNode) {
-            var idNode = objectNode.get(idKeyword);
-            if (idNode != null && idNode.isTextual()) {
-                idURI = resolve(null, idNode.textValue());
-            }
-            for (var property : objectNode.properties()) {
-                if ("$ref".equals(property.getKey())) {
-                    if (property.getValue().isTextual()) {
-                        result.add(resolve(idURI, property.getValue().textValue()));
-                    }
-                } else {
-                    result.addAll(findReferences(idKeyword, idURI, property.getValue()));
-                }
-            }
+            result.addAll(findReferencesInObject(idKeyword, idURI, objectNode));
         } else if (jsonNode.isArray()) {
             for (var element : jsonNode) {
                 result.addAll(findReferences(idKeyword, idURI, element));
+            }
+        }
+        return result;
+    }
+
+    private static Set<URI> findReferencesInObject(String idKeyword, URI idURI, ObjectNode objectNode) {
+        var result = new HashSet<URI>();
+        var idNode = objectNode.get(idKeyword);
+        if (idNode != null && idNode.isTextual()) {
+            idURI = resolve(null, idNode.textValue());
+        }
+        for (var property : objectNode.properties()) {
+            if ("$ref".equals(property.getKey())) {
+                if (property.getValue().isTextual()) {
+                    result.add(resolve(idURI, property.getValue().textValue()));
+                }
+            } else {
+                result.addAll(findReferences(idKeyword, idURI, property.getValue()));
             }
         }
         return result;

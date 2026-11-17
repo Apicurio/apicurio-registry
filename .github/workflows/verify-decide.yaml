@@ -21,6 +21,8 @@ on:
         value: ${{ jobs.decide.outputs.run-integration }}
       run-extras:
         value: ${{ jobs.decide.outputs.run-extras }}
+      run-examples:
+        value: ${{ jobs.decide.outputs.run-examples }}
       run-sdk:
         value: ${{ jobs.decide.outputs.run-sdk }}
       run-cli:
@@ -58,6 +60,7 @@ jobs:
       run-scalpel-report: ${{ steps.decide.outputs.run-scalpel-report }}
       run-integration: ${{ steps.decide.outputs.run-integration }}
       run-extras: ${{ steps.decide.outputs.run-extras }}
+      run-examples: ${{ steps.decide.outputs.run-examples }}
       run-sdk: ${{ steps.decide.outputs.run-sdk }}
       run-cli: ${{ steps.decide.outputs.run-cli }}
       run-ard-conformance: ${{ steps.decide.outputs.run-ard-conformance }}
@@ -147,6 +150,9 @@ jobs:
               - 'operator/**'
             console-plugin:
               - 'console-plugin/**'
+            examples:
+              - 'examples/**'
+              - '.github/scripts/discover-examples.sh'
             ci:
               - '.github/workflows/**'
             ci-operator:
@@ -190,7 +196,7 @@ jobs:
             # to draft (the orchestrator strips them, but that races with this).
             if [ "$IS_DRAFT" = "true" ]; then
               echo "lifecycle-ready=skip" >> "$GITHUB_OUTPUT"
-              for out in run-build run-unit-tests run-scalpel-report run-integration run-extras run-sdk run-cli run-ard-conformance run-agent-quickstart run-operator run-console-plugin run-go-sdk-freshness run-docs; do
+              for out in run-build run-unit-tests run-scalpel-report run-integration run-extras run-examples run-sdk run-cli run-ard-conformance run-agent-quickstart run-operator run-console-plugin run-go-sdk-freshness run-docs; do
                 echo "$out=false" >> "$GITHUB_OUTPUT"
               done
               echo "scalpel-enabled=false" >> "$GITHUB_OUTPUT"
@@ -228,6 +234,7 @@ jobs:
           AGENT_QUICKSTART='${{ steps.filter.outputs.agent-quickstart }}'
           OPERATOR='${{ steps.filter.outputs.operator }}'
           CONSOLE_PLUGIN='${{ steps.filter.outputs.console-plugin }}'
+          EXAMPLES='${{ steps.filter.outputs.examples }}'
           GO_SDK_GEN='${{ steps.filter.outputs.go-sdk-gen }}'
           CI='${{ steps.filter.outputs.ci }}'
           CI_OPERATOR='${{ steps.filter.outputs.ci-operator }}'
@@ -252,15 +259,18 @@ jobs:
           IS_PUSH=$( [ "$EVENT" = "push" ] && echo true || echo false )
 
           echo "lifecycle-ready=$run_tests" >> "$GITHUB_OUTPUT"
-          # ARD and the agent quickstart feed run-build: their jobs need the image even
-          # when only their seed data, scripts or compose file changed.
-          decide run-build       "$run_tests" "$IS_PUSH" "$JAVA" "$UI" "$SDK" "$CLI" "$CI" "$ARD" "$AGENT_QUICKSTART"
+          # ARD, the agent quickstart and the examples feed run-build: their jobs need the
+          # image even when only their seed data, scripts or compose files changed.
+          decide run-build       "$run_tests" "$IS_PUSH" "$JAVA" "$UI" "$SDK" "$CLI" "$CI" "$ARD" "$AGENT_QUICKSTART" "$EXAMPLES"
           decide run-unit-tests  "$run_tests" "$IS_PUSH" "$JAVA" "$CI"
           # Report only when java sources changed: .github-only PRs trip
           # scalpel.disableTriggers and would produce an empty report.
           decide run-scalpel-report "$run_tests" "$JAVA"
           decide run-integration "$run_tests" "$IS_PUSH" "$INTEGRATION" "$CI"
           decide run-extras      "$run_tests" "$IS_PUSH" "$JAVA" "$UI" "$CI"
+          # Every runnable example against this commit's images (verify-examples.yaml): a
+          # server or UI change can break an example as surely as editing the example can.
+          decide run-examples    "$run_tests" "$IS_PUSH" "$JAVA" "$UI" "$EXAMPLES" "$CI"
           decide run-sdk         "$run_tests" "$IS_PUSH" "$SDK" "$JAVA" "$CI"
           decide run-cli         "$run_tests" "$CLI"
           decide run-ard-conformance "$run_tests" "$ARD"
@@ -298,6 +308,7 @@ jobs:
             "run-scalpel-report": "${{ steps.decide.outputs.run-scalpel-report }}",
             "run-integration": "${{ steps.decide.outputs.run-integration }}",
             "run-extras": "${{ steps.decide.outputs.run-extras }}",
+            "run-examples": "${{ steps.decide.outputs.run-examples }}",
             "run-sdk": "${{ steps.decide.outputs.run-sdk }}",
             "run-cli": "${{ steps.decide.outputs.run-cli }}",
             "run-operator": "${{ steps.decide.outputs.run-operator }}",
@@ -317,6 +328,7 @@ jobs:
             "go-sdk-gen": "${{ steps.filter.outputs.go-sdk-gen }}",
             "operator": "${{ steps.filter.outputs.operator }}",
             "console-plugin": "${{ steps.filter.outputs.console-plugin }}",
+            "examples": "${{ steps.filter.outputs.examples }}",
             "docs": "${{ steps.filter.outputs.docs }}",
             "ci": "${{ steps.filter.outputs.ci }}"
           }

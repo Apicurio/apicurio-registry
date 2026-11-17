@@ -26,7 +26,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-You can specify `VALIDITY`, `COMPATIBILITY`, and `INTEGRITY` rule types to govern content evolution in {registry}. These rule types apply to both global rules and artifact-specific rules.
+You can specify `VALIDITY`, `COMPATIBILITY`, and `INTEGRITY` rule types to govern content evolution in {registry}. These rule types apply to global rules, group-specific rules, and artifact-specific rules.
 
 .{registry} content rule types
 [%header,cols=2*]
@@ -174,7 +174,7 @@ The `SYNTAX_ONLY` level checks only that the content is well-formed JSON.
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-When you add or update an artifact, {registry} applies rules to check the validity, compatibility, or integrity of the artifact content. Configured artifact-specific rules override the equivalent configured global rules, as shown in the following table.
+When you add or update an artifact, {registry} applies rules to check the validity, compatibility, or integrity of the artifact content. For each rule type, configured artifact-specific rules override the equivalent configured group-specific rules, which override the equivalent configured global rules. The following table shows this for artifact-specific and global rules; a group-specific rule takes the place of the global rule for the artifacts in its group.
 
 .{registry} content rule precedence
 [%header,cols=4*]

@@ -5,6 +5,9 @@ import com.google.protobuf.DynamicMessage;
 import io.api.sample.TableNotification;
 import io.apicurio.registry.AbstractClientFacadeTestBase;
 import io.apicurio.registry.resolver.client.RegistryClientFacade;
+import io.apicurio.registry.resolver.client.RegistryClientFacadeImpl;
+import io.apicurio.registry.resolver.strategy.NamespaceGroupReferenceNamingStrategy;
+import io.apicurio.registry.rest.client.models.ArtifactReference;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.CreateVersion;
@@ -20,6 +23,7 @@ import io.apicurio.registry.support.TestCmmn;
 import io.apicurio.registry.test.PersonProtos;
 import io.apicurio.registry.test.UserEventProtos;
 import io.apicurio.registry.types.ContentTypes;
+import io.apicurio.registry.utils.tests.TestUtils;
 import io.confluent.kafka.schemaregistry.SchemaProvider;
 import io.confluent.kafka.schemaregistry.avro.AvroSchemaProvider;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
@@ -37,6 +41,7 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -129,6 +134,37 @@ public class ProtobufSerdeTest extends AbstractClientFacadeTestBase {
             byte[] data = serializer.serialize("test", TableNotification.newBuilder().build());
             deserializer.deserialize("test", data);
 
+        }
+    }
+
+    @Test
+    public void testProtobufReferencesRegisteredInPackageGroup() {
+        String group = TestUtils.generateGroupId();
+        try (Serializer<TableNotification> serializer = new ProtobufKafkaSerializer<>(
+                new RegistryClientFacadeImpl(isolatedClientV3))) {
+            Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class);
+            config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
+            config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, group);
+            config.put(SerdeConfig.REFERENCE_NAMING_STRATEGY, NamespaceGroupReferenceNamingStrategy.class);
+            serializer.configure(config, false);
+            serializer.serialize("notifications", TableNotification.newBuilder().build());
+        }
+
+        List<ArtifactReference> refs = isolatedClientV3.groups()
+                .byGroupId(group).artifacts().byArtifactId("notifications").versions()
+                .byVersionExpression("branch=latest").references().get();
+        assertEquals(List.of(
+                "google/protobuf/timestamp.proto -> google.protobuf/google/protobuf/timestamp.proto",
+                "sample/table_info.proto -> sample/sample/table_info.proto",
+                "sample/table_notification_type.proto -> sample/sample/table_notification_type.proto"),
+                refs.stream().map(r -> r.getName() + " -> " + r.getGroupId() + "/" + r.getArtifactId())
+                        .sorted().toList());
+        for (ArtifactReference r : refs) {
+            String latest = isolatedClientV3.groups().byGroupId(r.getGroupId()).artifacts()
+                    .byArtifactId(r.getArtifactId()).versions().byVersionExpression("branch=latest").get()
+                    .getVersion();
+            assertEquals(latest, r.getVersion(), r.getName());
         }
     }
 

@@ -68,7 +68,7 @@ schema.registry.url=http://my-registry:8080/apis/ccompat/v7
 |Global and subject-level compatibility configuration. Supports `GET`, `PUT`, and `DELETE` operations, including `defaultToGlobal` parameter for subject config. The `PUT` response includes `compatibility` and `normalize` fields.
 
 |*Mode API*
-|Global and subject-level mode management (`READWRITE`, `READONLY`, `READONLY_OVERRIDE`, `IMPORT`). Supports `force` parameter for mode changes.
+|Global and subject-level mode management (`READWRITE`, `READONLY`, `READONLY_OVERRIDE`, `IMPORT`). Supports `force` parameter for mode changes. {registry} stores and returns the mode but does not currently enforce it: writes succeed in `READONLY` mode. To block writes, enable the storage read-only mode (`apicurio.storage.read-only.enabled`).
 
 |*Contexts API*
 |Returns the default context for Confluent client compatibility.
@@ -413,6 +413,7 @@ props.put("schema.registry.url", "http://apicurio-registry:8080/apis/ccompat/v7"
 .Additional resources
 * xref:migrating-schemas-using-confluent-export-utility_{context}[]
 * {registry-rest-api}
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/confluent-compatibility[Confluent compatibility example]: Confluent clients and tools against {registry}, with self-checks.
 * link:https://docs.confluent.io/platform/current/schema-registry/develop/api.html[Confluent Schema Registry API Reference]
 * link:https://docs.confluent.io/platform/current/schema-registry/fundamentals/data-contracts.html[Confluent Data Contracts Documentation]
 * link:https://docs.confluent.io/platform/current/schema-registry/schema-linking-cp.html[Confluent Schema Linking Documentation]

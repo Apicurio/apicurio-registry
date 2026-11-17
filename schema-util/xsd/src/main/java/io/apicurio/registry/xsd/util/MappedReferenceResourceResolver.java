@@ -134,6 +134,7 @@ public class MappedReferenceResourceResolver implements LSResourceResolver {
 
         @Override
         public void setCharacterStream(Reader r) {
+            // No-op: this input is read-only, values are fixed at construction.
         }
 
         @Override
@@ -143,6 +144,7 @@ public class MappedReferenceResourceResolver implements LSResourceResolver {
 
         @Override
         public void setByteStream(InputStream s) {
+            // No-op: this input is read-only, values are fixed at construction.
         }
 
         @Override
@@ -182,6 +184,7 @@ public class MappedReferenceResourceResolver implements LSResourceResolver {
 
         @Override
         public void setBaseURI(String s) {
+            // No-op: this input is read-only, values are fixed at construction.
         }
 
         @Override
@@ -191,6 +194,7 @@ public class MappedReferenceResourceResolver implements LSResourceResolver {
 
         @Override
         public void setEncoding(String s) {
+            // No-op: this input is read-only, values are fixed at construction.
         }
 
         @Override
@@ -200,6 +204,7 @@ public class MappedReferenceResourceResolver implements LSResourceResolver {
 
         @Override
         public void setCertifiedText(boolean b) {
+            // No-op: this input is read-only, values are fixed at construction.
         }
     }
 }

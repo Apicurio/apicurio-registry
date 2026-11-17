@@ -37,6 +37,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -185,19 +186,19 @@ class HttpClientServiceTest {
 
     @Test
     void testHttp200DoesNotThrow() {
-        httpClientService.post(baseUrl + "/ok200", "{}", Object.class);
+        assertDoesNotThrow(() -> httpClientService.post(baseUrl + "/ok200", "{}", Object.class));
     }
 
     @Test
     void testHttp201DoesNotThrow() {
         // 201 Created is a valid success code — must not trigger retries or throw.
-        httpClientService.post(baseUrl + "/created201", "{}", Object.class);
+        assertDoesNotThrow(() -> httpClientService.post(baseUrl + "/created201", "{}", Object.class));
     }
 
     @Test
     void testHttp202DoesNotThrow() {
         // 202 Accepted is the standard CloudEvents webhook acknowledgment.
-        httpClientService.post(baseUrl + "/accepted202", "{}", Object.class);
+        assertDoesNotThrow(() -> httpClientService.post(baseUrl + "/accepted202", "{}", Object.class));
     }
 
     @Test

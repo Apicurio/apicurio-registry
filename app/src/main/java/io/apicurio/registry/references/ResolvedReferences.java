@@ -324,18 +324,7 @@ public final class ResolvedReferences {
             }
             int targetColour = colour.getOrDefault(target, 0);
             if (targetColour == 1) {
-                List<GAV> cycle = new ArrayList<>();
-                boolean onCycle = false;
-                for (GAV onPath : path) {
-                    if (onPath.equals(target)) {
-                        onCycle = true;
-                    }
-                    if (onCycle) {
-                        cycle.add(onPath);
-                    }
-                }
-                cycle.add(target);
-                return Optional.of(cycle);
+                return Optional.of(cycleEndingAt(path, target));
             } else if (targetColour == 0) {
                 colour.put(target, 1);
                 path.addLast(target);
@@ -343,5 +332,20 @@ public final class ResolvedReferences {
             }
         }
         return Optional.empty();
+    }
+
+    private static List<GAV> cycleEndingAt(Deque<GAV> path, GAV target) {
+        List<GAV> cycle = new ArrayList<>();
+        boolean onCycle = false;
+        for (GAV onPath : path) {
+            if (onPath.equals(target)) {
+                onCycle = true;
+            }
+            if (onCycle) {
+                cycle.add(onPath);
+            }
+        }
+        cycle.add(target);
+        return cycle;
     }
 }

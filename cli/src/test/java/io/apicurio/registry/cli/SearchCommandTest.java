@@ -16,6 +16,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import static io.apicurio.registry.cli.common.CliException.VALIDATION_ERROR_RETURN_CODE;
 import static io.apicurio.registry.cli.utils.Mapper.MAPPER;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -33,9 +34,11 @@ public class SearchCommandTest extends AbstractCLITest {
         final Path tempFile = Files.createTempFile("search-test", ".json");
         Files.writeString(tempFile, "{\"type\": \"string\"}");
         try {
-            executeAndAssertSuccess("artifact", "create", "-g", TEST_GROUP,
+            assertThat(cmd.execute("artifact", "create", "-g", TEST_GROUP,
                     "--type", "JSON", "--file", tempFile.toString(),
-                    "-l", "env=test", TEST_ARTIFACT);
+                    "-l", "env=test", TEST_ARTIFACT))
+                    .as(withCliOutput("Artifact creation should succeed"))
+                    .isZero();
         } finally {
             Files.deleteIfExists(tempFile);
         }
@@ -127,13 +130,17 @@ public class SearchCommandTest extends AbstractCLITest {
     @Test
     @Order(8)
     public void testSearchGroupsInvalidOrderBy() {
-        executeAndAssertFailure("search", "groups", "--order-by", "INVALID");
+        assertThat(cmd.execute("search", "groups", "--order-by", "INVALID"))
+                .as(withCliOutput("Command should fail with the expected exit code"))
+                .isEqualTo(VALIDATION_ERROR_RETURN_CODE);
     }
 
     @Test
     @Order(9)
     public void testSearchGroupsInvalidOrder() {
-        executeAndAssertFailure("search", "groups", "--order", "INVALID");
+        assertThat(cmd.execute("search", "groups", "--order", "INVALID"))
+                .as(withCliOutput("Command should fail with the expected exit code"))
+                .isEqualTo(VALIDATION_ERROR_RETURN_CODE);
     }
 
     @Test
@@ -329,13 +336,17 @@ public class SearchCommandTest extends AbstractCLITest {
     @Test
     @Order(25)
     public void testSearchArtifactsInvalidLabel() {
-        executeAndAssertFailure("search", "artifacts", "-l", ":foo");
+        assertThat(cmd.execute("search", "artifacts", "-l", ":foo"))
+                .as(withCliOutput("Command should fail with the expected exit code"))
+                .isEqualTo(VALIDATION_ERROR_RETURN_CODE);
     }
 
     @Test
     @Order(26)
     public void testSearchVersionsInvalidState() {
-        executeAndAssertFailure("search", "versions", "--state", "INVALID");
+        assertThat(cmd.execute("search", "versions", "--state", "INVALID"))
+                .as(withCliOutput("Command should fail with the expected exit code"))
+                .isEqualTo(VALIDATION_ERROR_RETURN_CODE);
     }
 
     // -- Search by content --
@@ -402,7 +413,9 @@ public class SearchCommandTest extends AbstractCLITest {
     @Test
     @Order(30)
     public void testSearchByContentMissingFile() {
-        executeAndAssertFailure("search", "content");
+        assertThat(cmd.execute("search", "content"))
+                .as(withCliOutput("Command should fail with the expected exit code"))
+                .isEqualTo(VALIDATION_ERROR_RETURN_CODE);
     }
 
     @Test
@@ -429,7 +442,9 @@ public class SearchCommandTest extends AbstractCLITest {
         final Path tempFile = Files.createTempFile("search-content", ".json");
         Files.writeString(tempFile, "{\"type\": \"string\"}");
         try {
-            executeAndAssertFailure("search", "content", "-f", tempFile.toString(), "--canonical");
+            assertThat(cmd.execute("search", "content", "-f", tempFile.toString(), "--canonical"))
+                    .as(withCliOutput("Command should fail with the expected exit code"))
+                    .isEqualTo(VALIDATION_ERROR_RETURN_CODE);
         } finally {
             Files.deleteIfExists(tempFile);
         }

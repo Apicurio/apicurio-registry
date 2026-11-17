@@ -1,6 +1,7 @@
 # ADR-0004: AI Catalog & ARD Convergence
 
-- **Status:** Proposed.
+- **Status:** Accepted. Steps 1, 2 and 4 are implemented; Step 3 stays deferred. Part of the agent
+  registry ([ADR-0014](0014-agent-registry.md)).
 - **Decision date:** 2026-08-22; amended 2026-09-02 for ARD v0.91 (see [History](#history)).
 - **Author:** Apicurio Registry maintainers.
 - **Tracking:** [#6991 — AI Agent Registry (MCP & A2A Support)](https://github.com/Apicurio/apicurio-registry/issues/6991).
@@ -66,7 +67,7 @@ tools registered in Apicurio without Apicurio-specific integration.
 8. **No `representativeQueries` support**: ARD's own publishing guide and every published reference
    implementation (Hugging Face, Ora) treat this field (2–5 sample natural-language queries per
    entry) as the primary discovery signal for semantic search. Neither the `AiCatalogEntry` schema
-   nor the entry-building code populates it. Not fixed yet (Step 4).
+   nor the entry-building code populated it. **Fixed** for Agent Cards with skill examples (Step 4).
 9. **Wrong well-known path per ARD v0.91**: see [ARD v0.91 changes](#ard-v091-changes).
 
 ## Decision
@@ -127,10 +128,11 @@ mirrored under `/apis/registry/v3/well-known/ard/*`):
 
 ### Step 4 — `representativeQueries`
 
-Add an optional `representativeQueries` (2–5 strings) field to the `AiCatalogEntry` schema and
+Add an optional `representativeQueries` (up to 5 strings) field to the `AiCatalogEntry` schema and
 populate it for `AGENT_CARD` entries from the Agent Card's `skills[].examples` (A2A already carries
-example utterances per skill) and, where absent, a generated fallback from
-`displayName`/`description`. Not populated for `MCP_TOOL` entries in the first pass (no equivalent
+example utterances per skill). When no skill has examples, the field is omitted: the generated
+fallback from `displayName`/`description` first planned here is **deferred**, because fabricated
+queries would mislead semantic search more than a missing field. Not populated for `MCP_TOOL` entries in the first pass (no equivalent
 source field exists yet in the MCP Tool artifact schema; separate follow-up). This directly improves
 both conformance-tool scoring (§D.2 flags a missing/undersized `representativeQueries` as a warning)
 and real semantic-search relevance in any ARD registry that crawls Apicurio's catalog.
@@ -188,13 +190,12 @@ All properties follow `.claude/rules/config-properties.md` (`apicurio.*` prefix,
 
 ## Limitations and open work
 
-1. `representativeQueries` is not populated (Step 4).
+1. `representativeQueries` is populated only from skill examples; Agent Cards without examples, and
+   MCP tool entries, have none (Step 4).
 2. ARD search scores are a constant `100`; relevance ranking depends on #7230.
 3. Only `federation: none` is implemented; other values are accepted but ignored.
 4. No Trust Manifest support and no catalog importer (Step 3).
 5. No recorded run of the official ARD conformance CLI.
-6. The ADR is still **Proposed**; it must be accepted or superseded by the planned agent registry
-   umbrella ADR.
 
 ## Alternatives
 
@@ -223,9 +224,10 @@ All properties follow `.claude/rules/config-properties.md` (`apicurio.*` prefix,
 
 ## Example and verification
 
-- **Example:** none yet that exercises the catalog or ARD API;
-  [`examples/a2a-real-world-integration`](../examples/a2a-real-world-integration/) covers the
-  underlying A2A agent cards. A runnable agent registry example is planned.
+- **Example:** [`examples/agent-registry`](../examples/agent-registry/), Part 6: the catalog at
+  both well-known paths (the same entries), the self-describing `application/ai-registry+json`
+  entry, `representativeQueries` from skill examples, ARD search and explore, and visibility per user
+  (Part 10). CI runs it.
 - **User documentation:**
   [`assembly-ai-catalog-ard.adoc`](../docs/modules/ROOT/pages/getting-started/assembly-ai-catalog-ard.adoc).
 
@@ -257,3 +259,4 @@ All properties follow `.claude/rules/config-properties.md` (`apicurio.*` prefix,
 | 2026-08-22 | First version: Steps 1–3 |
 | 2026-09-02 amendment | ARD v0.91: serve both well-known paths; JSON-LD framing noted; self-describing entry fixed; MCP search tool moved into Step 2; Step 4 added |
 | This ADR reformatted to [the ADR template](TEMPLATE.md) | Structure only; no change to the decisions |
+| 2026-11-16 | Accepted: Steps 1, 2 (including the MCP ARD search tool) and 4 implemented, verified by `examples/agent-registry`; Step 3 deferred; umbrella record in [ADR-0014](0014-agent-registry.md) |

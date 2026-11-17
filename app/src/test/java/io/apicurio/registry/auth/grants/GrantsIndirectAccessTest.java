@@ -176,6 +176,9 @@ public class GrantsIndirectAccessTest extends AbstractResourceTestBase {
         bob().get(content + "?references=DEREFERENCE").then().statusCode(403);
         bob().get(content + "?canonical=true").then().statusCode(403);
         bob().get("/registry/v3/ids/globalIds/" + globalId + "?references=DEREFERENCE").then().statusCode(403);
+        bob().get("/registry/v3/ids/contentIds/" + contentId + "?references=DEREFERENCE").then().statusCode(403);
+        bob().get("/registry/v3/ids/contentIds/" + contentId).then().statusCode(200)
+                .body(not(containsString("CONFIDENTIAL-MARKER")));
         bob().get("/registry/v2/groups/" + GROUP + "/artifacts/public-wrapper?dereference=true")
                 .then().statusCode(403);
         bob().get("/ccompat/v7/schemas/ids/" + contentId + "?format=resolved").then().statusCode(403);
@@ -184,6 +187,8 @@ public class GrantsIndirectAccessTest extends AbstractResourceTestBase {
 
         // The admin can dereference it: the denial comes from the grants, not from the content
         alice().get(content + "?references=DEREFERENCE").then().statusCode(200)
+                .body(containsString("CONFIDENTIAL-MARKER"));
+        alice().get("/registry/v3/ids/contentIds/" + contentId + "?references=DEREFERENCE").then().statusCode(200)
                 .body(containsString("CONFIDENTIAL-MARKER"));
     }
 

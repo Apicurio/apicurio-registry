@@ -58,6 +58,8 @@ import static io.apicurio.registry.util.YAMLObjectMapper.YAML_MAPPER;
 @ApplicationScoped
 public class EmbeddedSchemaService implements ArtifactVersionWriteHook {
 
+    private static final String INPUT_FIELD = "input";
+
     @Inject
     Logger log;
 
@@ -94,7 +96,7 @@ public class EmbeddedSchemaService implements ArtifactVersionWriteHook {
     List<String> embeddedSchemaArtifactIds(String artifactType, String artifactId, TypedContent content) {
         List<String> fields;
         if (ArtifactType.MODEL_SCHEMA.equals(artifactType)) {
-            fields = List.of("input", "output");
+            fields = List.of(INPUT_FIELD, "output");
         } else if (ArtifactType.PROMPT_TEMPLATE.equals(artifactType)) {
             fields = List.of("outputSchema");
         } else {
@@ -113,7 +115,7 @@ public class EmbeddedSchemaService implements ArtifactVersionWriteHook {
         List<String> ids = new ArrayList<>();
         for (String field : fields) {
             if (root.has(field) && root.get(field).isObject() && hasSchemaProperties(root.get(field))) {
-                ids.add(artifactId + ("input".equals(field) ? "-input-schema" : "-output-schema"));
+                ids.add(artifactId + (INPUT_FIELD.equals(field) ? "-input-schema" : "-output-schema"));
             }
         }
         return ids;
@@ -135,7 +137,7 @@ public class EmbeddedSchemaService implements ArtifactVersionWriteHook {
             PlanContext ctx = new PlanContext(storage, groupId, artifactId, owner);
 
             List<FieldPlan> fieldPlans = new ArrayList<>();
-            planField(ctx, rootObj, "input", "input-schema", "Input schema for " + artifactId, fieldPlans);
+            planField(ctx, rootObj, INPUT_FIELD, "input-schema", "Input schema for " + artifactId, fieldPlans);
             planField(ctx, rootObj, "output", "output-schema", "Output schema for " + artifactId, fieldPlans);
 
             if (fieldPlans.isEmpty()) {

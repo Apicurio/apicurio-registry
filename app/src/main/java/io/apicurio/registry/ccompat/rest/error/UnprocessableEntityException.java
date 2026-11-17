@@ -15,6 +15,6 @@ public class UnprocessableEntityException extends RegistryException {
     }
 
     public UnprocessableEntityException(Throwable cause) {
-        super(cause);
+        super(cause.getMessage(), cause);
     }
 }

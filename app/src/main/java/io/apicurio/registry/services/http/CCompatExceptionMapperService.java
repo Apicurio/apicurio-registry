@@ -102,7 +102,13 @@ public class CCompatExceptionMapperService implements ExceptionMapperService {
         }
 
         Response.ResponseBuilder builder;
-        if (response != null) {
+        if (response != null && !response.hasEntity()) {
+            // Confluent clients expect every error to carry an {"error_code", "message"} body.
+            Error error = new Error();
+            error.setErrorCode(code);
+            error.setMessage(t.getMessage());
+            builder = Response.fromResponse(response).entity(error);
+        } else if (response != null) {
             builder = Response.fromResponse(response);
         } else {
             Error error = toError(t);

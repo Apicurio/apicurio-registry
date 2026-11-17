@@ -12,6 +12,9 @@ services:
       # Enable Registry features that affect caching:
       APICURIO_AUTH_ANONYMOUS_READ_ACCESS_ENABLED: "true"
       APICURIO_REST_MUTABILITY_ARTIFACT_VERSION_CONTENT_ENABLED: "true"
+      # Let demo.sh delete what it creates, and show what deletes mean for cached content
+      APICURIO_REST_DELETION_ARTIFACT_ENABLED: "true"
+      APICURIO_REST_DELETION_ARTIFACT_VERSION_ENABLED: "true"
       # Logging
       LOG_LEVEL: "INFO"
       QUARKUS_LOG_CATEGORY__IO_APICURIO__LEVEL: "DEBUG"
@@ -19,8 +22,8 @@ services:
       QUARKUS_HTTP_CORS: "true"
       QUARKUS_HTTP_CORS_ORIGINS: "*"
     ports:
-      - "8080:8080"  # Direct access to registry (bypass cache)
-      - "9000:9000"  # Management interface (health, metrics)
+      - "${REGISTRY_PORT:-8080}:8080"  # Direct access to registry (bypass cache)
+      - "${MANAGEMENT_PORT:-9000}:9000"  # Management interface (health, metrics)
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:9000/health/live" ]
       interval: 10s
@@ -35,8 +38,8 @@ services:
     volumes:
       - ./varnish/default.vcl:/etc/varnish/default.vcl:ro
     ports:
-      - "8081:8081"    # Cached access to registry
-      - "6080:6080"  # Varnish admin interface
+      - "${VARNISH_PORT:-8081}:8081"    # Cached access to registry
+      - "${VARNISH_ADMIN_PORT:-6080}:6080"  # Varnish admin interface
     environment:
       VARNISH_SIZE: 256M
     entrypoint: [ ]
@@ -73,10 +76,78 @@ services:
       # Connect to Varnish (cached endpoint) for better performance
       REGISTRY_API_URL: http://localhost:8081/apis/registry/v3
     ports:
-      - "8888:8080"  # UI web interface
+      - "${UI_PORT:-8888}:8080"  # UI web interface
     depends_on:
       varnish:
         condition: service_healthy
+
+  # ------------------------------------------------------------------------------------- cluster
+  # Profile "cluster": two registry replicas sharing a KafkaSQL journal, behind one Varnish that
+  # sends each request to the next replica (varnish/cluster.vcl). ETags must agree across replicas.
+  kafka:
+    image: apache/kafka:3.8.1
+    container_name: caching-kafka
+    profiles: [cluster]
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --list > /dev/null"]
+      interval: 5s
+      timeout: 10s
+      retries: 30
+
+  registry-a: &registry-cluster
+    image: ${REGISTRY_IMAGE:-quay.io/apicurio/apicurio-registry:latest-snapshot}
+    container_name: caching-registry-a
+    profiles: [cluster]
+    environment:
+      # The production profile: opaque (hashed) ETags, as in a real deployment
+      QUARKUS_PROFILE: "prod"
+      APICURIO_HTTP_CACHING_ENABLED: "true"
+      APICURIO_STORAGE_KIND: kafkasql
+      APICURIO_KAFKASQL_BOOTSTRAP_SERVERS: kafka:9092
+      APICURIO_REST_MUTABILITY_ARTIFACT_VERSION_CONTENT_ENABLED: "true"
+      # Short, so demo.sh can show a moderately cacheable entry expiring (default 30 seconds)
+      APICURIO_HTTP_CACHING_MODERATE_CACHEABILITY_MAX_AGE_SECONDS: "5"
+    ports:
+      - "${REGISTRY_A_PORT:-8082}:8080"
+    depends_on:
+      kafka: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9000/health/ready > /dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+
+  # Started after the first one has created the topics (#11079)
+  registry-b:
+    <<: *registry-cluster
+    container_name: caching-registry-b
+    ports:
+      - "${REGISTRY_B_PORT:-8083}:8080"
+    depends_on:
+      registry-a: {condition: service_healthy}
+
+  varnish-cluster:
+    container_name: caching-varnish-cluster
+    image: varnish:7.4
+    profiles: [cluster]
+    volumes:
+      - ./varnish/cluster.vcl:/etc/varnish/default.vcl:ro
+    ports:
+      - "${VARNISH_CLUSTER_PORT:-8084}:8081"
+    command: ["varnishd", "-F", "-f", "/etc/varnish/default.vcl", "-a", "http=:8081,HTTP", "-s", "malloc,128M"]
+    depends_on:
+      registry-b: {condition: service_healthy}
 
 networks:
   default:

@@ -241,7 +241,7 @@ NOTE: `REGISTRY_FEATURE_READ_ONLY` only hides these actions in the web console. 
 |Yes
 |===
 
-Settings that can be changed at runtime are set with `PUT /apis/registry/v3/admin/config/properties/{name}`. They are stored in the database, so every replica applies them within `apicurio.config.refresh.every` (default `1m`).
+Settings that can be changed at runtime are set with `PUT /apis/registry/v3/admin/config/properties/\{name}`. They are stored in the database, so every replica applies them within `apicurio.config.refresh.every` (default `1m`).
 
 [role="_additional-resources"]
 .Additional resources

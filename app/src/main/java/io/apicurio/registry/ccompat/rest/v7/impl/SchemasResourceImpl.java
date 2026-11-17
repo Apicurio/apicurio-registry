@@ -11,6 +11,7 @@ import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
+import io.apicurio.registry.rest.ParameterValidationUtils;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
@@ -145,7 +146,7 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
         }
 
         // Handle pagination
-        int effectiveOffset = offset != null ? offset.intValue() : 0;
+        int effectiveOffset = offset != null ? ParameterValidationUtils.normalizeOffset(offset) : 0;
         int effectiveLimit = (limit != null && limit.intValue() > 0) ? limit.intValue()
                 : cconfig.maxSubjects.get();
 

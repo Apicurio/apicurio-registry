@@ -94,8 +94,8 @@ Confluent deletes in two stages; Apicurio uses version states:
 | `DELETE ...?permanent=true` | the version is deleted; only after a soft delete (`40407` otherwise) |
 | `DELETE /subjects/{s}` then `?permanent=true` | every version disabled, then the artifact deleted |
 
-A second soft delete returns `40406`. The HTTP status of `40405`, `40406` and `40407` is `409`, where
-Confluent returns `404` ([#11125](https://github.com/Apicurio/apicurio-registry/issues/11125)).
+A second soft delete returns `40406`. As in Confluent, the HTTP status of the soft-delete errors
+(`40404` to `40407`) is `404`.
 
 ## Step 6: Errors
 
@@ -137,5 +137,4 @@ Errors have Confluent's shape and codes: `40401` subject not found, `40402` vers
 |---|---|
 | `Subject 'x' not found` for an artifact you can see in the UI | It is not in the `default` group: send `X-Registry-GroupId`, or enable group-concat |
 | Incompatible schemas are accepted | Configure a compatibility level: `PUT /config` or `PUT /config/{subject}` |
-| A client expects `404` for a soft-delete error | Known difference (#11125): check `error_code` instead |
 | `READONLY` does not block writes | Known issue (#11124): use `apicurio.storage.read-only.enabled` |

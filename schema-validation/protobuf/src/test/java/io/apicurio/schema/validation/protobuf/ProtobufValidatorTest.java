@@ -25,6 +25,23 @@ import static org.junit.jupiter.api.Assertions.*;
 public class ProtobufValidatorTest {
 
     @Test
+    public void testGetSchemaFromDataWithDereferenceFlag() {
+        MessageExample messageExample = MessageExample.newBuilder().setKey("k").setValue("v").build();
+        ProtobufSchemaParser<MessageExample> parser = new ProtobufSchemaParser<>();
+        Record<MessageExample> record = new SchemaValidationRecord<>(messageExample, null);
+
+        ParsedSchema<ProtobufSchema> expected = parser.getSchemaFromData(record);
+        for (boolean dereference : new boolean[] { false, true }) {
+            ParsedSchema<ProtobufSchema> actual = parser.getSchemaFromData(record, dereference);
+            assertNotNull(actual);
+            assertEquals(expected.getSchemaReferences().size(), actual.getSchemaReferences().size());
+            assertEquals(new String(expected.getRawSchema()), new String(actual.getRawSchema()));
+            assertEquals(messageExample.getDescriptorForType().getFile().getName(),
+                    actual.getParsedSchema().getFileDescriptor().getName());
+        }
+    }
+
+    @Test
     public void testValidMessage() {
         ProtobufValidator validator = new ProtobufValidator();
 

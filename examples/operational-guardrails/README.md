@@ -46,9 +46,11 @@ Override the ports with `REGISTRY_PORT` and `REGISTRY_B_PORT`.
 
 - **Known issues**, shown or described:
   - [#11218](https://github.com/Apicurio/apicurio-registry/issues/11218): the artifact and version
-    count limits are kept per replica, so a cluster holds more than the limit.
+    count limits check counters that can be stale, so a cluster can hold more than the limit.
   - [#11219](https://github.com/Apicurio/apicurio-registry/issues/11219):
     `max-requests-per-second` is accepted but not enforced; rate-limit in your gateway.
+  - [#11222](https://github.com/Apicurio/apicurio-registry/issues/11222): the deletion switches are
+    not checked by the Confluent-compatible API.
 - **Local only:** no authentication, default passwords.
 
 ## Learn more

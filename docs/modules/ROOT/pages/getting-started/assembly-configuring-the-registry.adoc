@@ -225,7 +225,7 @@ NOTE: `REGISTRY_FEATURE_READ_ONLY` only hides these actions in the web console. 
 |Changed at runtime
 
 |`apicurio.limits.config.*`, for example `max-artifacts`, `max-versions-per-artifact`, `max-schema-size.bytes`, `max-artifact-labels`, `max-label-size.bytes`, `max-name-length`, `max-description-length`
-|Refuses a create or update that would exceed the limit with HTTP 409 and a message that names the limit. Reads are never limited. The default, `-1`, means no limit. The artifact and version counts are kept by each replica, so in a deployment with several replicas each one allows up to the limit.
+|Refuses a create or metadata update that would exceed the limit with HTTP 409 and a message that names the limit. Reads are never limited, and neither are imports or edits of draft version content. The default, `-1`, means no limit. The artifact and version counts are checked against counters that each replica reloads from storage every 30 seconds (`apicurio.storage.metrics.cache.check-period.ms`), so they are approximate: with several replicas, or concurrent requests, the registry can hold more than the limit.
 |No
 
 |`apicurio.disable.apis`
@@ -233,11 +233,11 @@ NOTE: `REGISTRY_FEATURE_READ_ONLY` only hides these actions in the web console. 
 |No
 
 |`apicurio.rest.deletion.group.enabled`, `apicurio.rest.deletion.artifact.enabled`, `apicurio.rest.deletion.artifact-version.enabled`
-|Deleting groups, artifacts, or versions. Off by default: a delete gets HTTP 405.
+|Deleting groups, artifacts, or versions through the v2 and v3 REST APIs. Off by default: a delete gets HTTP 405. The Confluent-compatible API does not check these settings.
 |Yes
 
 |`apicurio.storage.read-only.enabled`
-|Refuses every write with HTTP 409. Reads work, and the web console shows the registry as read-only. Configuration changes are still accepted, so read-only mode can be switched off through the API.
+|Refuses every write from clients with HTTP 409, including other configuration changes. Reads work, and the web console shows the registry as read-only. The one exception is `apicurio.storage.read-only.enabled` itself, so read-only mode can be switched off through the API. Usage telemetry, when enabled, keeps recording.
 |Yes
 |===
 

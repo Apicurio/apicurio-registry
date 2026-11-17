@@ -39,6 +39,9 @@ services:
       # Runtime settings (read-only mode, the deletion switches) live in the database; each replica
       # re-reads them this often (default 1m)
       APICURIO_CONFIG_REFRESH_EVERY: 5s
+      # Count limits use counters that are reloaded from the database when they expire (default 30 s);
+      # long here, so demo.sh's step 5 is not affected by a reload in the middle
+      APICURIO_STORAGE_METRICS_CACHE_CHECK_PERIOD_MS: "600000"
       # Disabled APIs: regular expressions matched against the request path (404)
       APICURIO_DISABLE_APIS: "/apis/ccompat/.*,/apis/registry/v2/.*"
     ports:

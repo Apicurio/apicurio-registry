@@ -94,25 +94,29 @@ set_property "$A" apicurio.rest.deletion.artifact.enabled false > /dev/null
 # ------------------------------------------------------------------------------ step 4
 part "Step 4: read-only mode (apicurio.storage.read-only.enabled)"
 check "switched on at runtime" 204 "$(set_property "$A" apicurio.storage.read-only.enabled true)"
-check "writes are refused (409), reads still work" "409 200" \
-  "$(code POST "$A$V3/groups" '{"groupId": "blocked"}') $(code GET "$A$V3/groups/team/artifacts/orders")"
+check "writes are refused (409, read-only), reads still work" "409 yes 200" \
+  "$(call POST "$A$V3/groups" '{"groupId": "blocked"}' | awk '{print $1, (tolower($0) ~ /read-only/ ? "yes" : "no")}') $(code GET "$A$V3/groups/team/artifacts/orders")"
+check "other settings cannot be changed meanwhile; only read-only mode itself" 409 \
+  "$(set_property "$A" apicurio.rest.deletion.artifact.enabled true)"
 check "the console is told why" "true storage" \
   "$(curl -s "$A$V3/system/uiConfig" | jq -r '"\(.features.readOnly) \(.features.readOnlyReason)"')"
-check "the other replica follows" 409 "$(eventually 30 409 code POST "$B$V3/groups" '{"groupId": "blocked-b"}')"
-check "  and can switch it off again: configuration is not data" 204 "$(set_property "$B" apicurio.storage.read-only.enabled false)"
+# A new group each attempt, so a 409 can only be read-only mode, never "already exists"
+read_only_b() { call POST "$B$V3/groups" "{\"groupId\": \"probe-$RANDOM$RANDOM\"}" | grep -c 'read-only' || true; }
+check "the other replica follows (409, read-only)" 1 "$(eventually 30 1 read_only_b)"
+check "  and can switch it off again" 204 "$(set_property "$B" apicurio.storage.read-only.enabled false)"
 check "writes work again on both" "200 200" \
   "$(eventually 30 200 code POST "$A$V3/groups" '{"groupId": "allowed-a"}') $(eventually 30 200 code POST "$B$V3/groups" '{"groupId": "allowed-b"}')"
 
 # ------------------------------------------------------------------------------ step 5
 part "Step 5: limits and replicas"
-# The artifact counters are kept in each replica's memory, so each replica allows up to the limit
-# (#11218)
+# The count limits use counters in each replica's memory, loaded from the database when they expire
+# (here every 10 minutes), and updated only with that replica's own writes (#11218)
 for i in 1 2 3 4 5 6; do
   code POST "$A$V3/groups/fill/artifacts" "$(artifact "a$i")" > /dev/null
   code POST "$B$V3/groups/fill/artifacts" "$(artifact "b$i")" > /dev/null
 done
 total=$(curl -s "$A$V3/search/artifacts?limit=100" | jq .count)
-check "two replicas together hold more than max-artifacts (6): the limit is per replica today (#11218)" yes \
+check "two replicas together hold more than max-artifacts (6): each checks a stale count (#11218)" yes \
   "$([ "$total" -gt 6 ] && echo yes || echo "no ($total)")"
 echo "  info  $total artifacts with max-artifacts=6"
 check "  each replica refuses once its own count reaches the limit" "409 409" \

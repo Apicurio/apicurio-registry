@@ -4,7 +4,8 @@
 - **Decision date:** 2026-11-17.
 - **Author:** Apicurio Registry maintainers.
 - **Tracking:** [#11218](https://github.com/Apicurio/apicurio-registry/issues/11218),
-  [#11219](https://github.com/Apicurio/apicurio-registry/issues/11219).
+  [#11219](https://github.com/Apicurio/apicurio-registry/issues/11219),
+  [#11222](https://github.com/Apicurio/apicurio-registry/issues/11222).
 - **Scope:** The settings that bound what clients can do, independently of who they are: usage
   limits, disabled API paths, the switches for destructive and mutating operations, and read-only
   mode. Not covered: authentication and authorization ([ADR-0009](0009-authentication.md),
@@ -23,8 +24,10 @@ answer *what* anyone may do, and must apply to every API and storage variant.
 
 1. **Limits are a storage decorator.** `RegistryStorageLimitsEnforcer` checks creates and metadata
    updates against `apicurio.limits.config.*` before delegating, so every API (v3, v2, Confluent,
-   MCP) is bound by them. A refusal is `409` with a message that names the limit. Every limit
-   defaults to `-1` (none); limits are read at startup.
+   MCP) is bound by them for those operations. A refusal is `409` with a message that names the
+   limit. Every limit defaults to `-1` (none); limits are read at startup. The enforcer only checks
+   the operations it overrides: imports and edits of draft version content
+   (`updateArtifactVersionContent`) are not limited.
 2. **Disabled APIs are a servlet filter.** `apicurio.disable.apis` is a list of regular expressions
    matched against the request path by `RegistryApplicationServletFilter`; a match is `404`, as if
    the path did not exist. A servlet filter (not JAX-RS) so it can also turn off non-JAX-RS paths
@@ -32,11 +35,15 @@ answer *what* anyone may do, and must apply to every API and storage variant.
 3. **Destructive and mutating operations are opt-in and dynamic.** Deleting groups, artifacts and
    versions (`apicurio.rest.deletion.*`, `405` when off), editing version content
    (`apicurio.rest.mutability.artifact-version-content.enabled`) and draft production mode are off by
-   default and are runtime settings.
+   default and are runtime settings. The deletion switches are checked in the v2 and v3 REST
+   resources only: the Confluent-compatible API deletes subjects without consulting them
+   ([#11222](https://github.com/Apicurio/apicurio-registry/issues/11222)).
 4. **Read-only mode is a storage decorator and dynamic.** `apicurio.storage.read-only.enabled`
    (`ReadOnlyRegistryStorageDecorator`) refuses every write with `409` on every API, keeps reads, and
-   tells the console (`readOnly`, `readOnlyReason: storage`). Configuration writes are not storage
-   writes, so it can be switched off through the API.
+   tells the console (`readOnly`, `readOnlyReason: storage`). The one write it allows is setting
+   `apicurio.storage.read-only.enabled` itself, so it can be switched off through the API; other
+   configuration changes are refused. Usage telemetry recording and retention
+   ([ADR-0003](0003-usage-telemetry.md)) continue: read-only stops client changes, not every write.
 5. **Runtime settings live in storage.** A runtime setting (`@Dynamic`) is changed with
    `PUT /admin/config/properties/{name}`, stored with the data, and re-read by every replica every
    `apicurio.config.refresh.every` (1 minute).
@@ -57,10 +64,10 @@ thing wanted, and they must reach every replica without redeploying.
 | Guardrail | Applies to | Refusal | Changed |
 |---|---|---|---|
 | Size and length limits (schema size, name, description, labels, label size, properties) | The request | 409 | Restart |
-| Count limits (`max-artifacts`, `max-total-schemas`, `max-versions-per-artifact`) | Counters per replica, refreshed from storage every 30 s | 409 | Restart |
+| Count limits (`max-artifacts`, `max-total-schemas`, `max-versions-per-artifact`) | Counters in each replica's memory, reloaded from storage when they expire (30 s) and otherwise updated only by that replica's writes | 409 | Restart |
 | Disabled APIs | The request path | 404 | Restart |
-| Deletion switches | Delete endpoints | 405 | Runtime |
-| Read-only mode | Every storage write | 409 | Runtime |
+| Deletion switches | v2 and v3 delete endpoints (not the Confluent API) | 405 | Runtime |
+| Read-only mode | Every storage write from a client (not the read-only switch, not usage telemetry) | 409 | Runtime |
 
 ## Configuration
 
@@ -71,7 +78,7 @@ thing wanted, and they must reach every replica without redeploying.
 | `apicurio.limits.config.max-artifact-labels`, `max-label-size.bytes`, `max-property-key-size.bytes`, `max-property-value-size.bytes`, `max-artifact-properties` | `-1` | Label limits |
 | `apicurio.limits.config.max-name-length`, `max-description-length` | `-1` | Metadata limits |
 | `apicurio.limits.config.max-requests-per-second` | `-1` | Accepted, not enforced ([#11219](https://github.com/Apicurio/apicurio-registry/issues/11219)) |
-| `apicurio.storage.metrics.cache.check-period.ms` | `30000` | How often count limits are re-read from storage |
+| `apicurio.storage.metrics.cache.check-period.ms` | `30000` | How long a count-limit counter is used before it is reloaded from storage |
 | `apicurio.disable.apis` | none | Path regular expressions answered with 404 |
 | `apicurio.rest.deletion.group.enabled`, `.artifact.enabled`, `.artifact-version.enabled` | `false` | Deletes (runtime) |
 | `apicurio.rest.mutability.artifact-version-content.enabled` | `false` | Editing draft content (runtime) |
@@ -90,13 +97,16 @@ thing wanted, and they must reach every replica without redeploying.
 
 ## Limitations and open work
 
-1. Count limits are per replica, and check-then-act: a cluster can hold up to N times the limit
-   ([#11218](https://github.com/Apicurio/apicurio-registry/issues/11218)).
-2. `max-requests-per-second` does nothing
+1. Count limits check counters that can be stale (another replica's writes are seen only after a
+   reload) and are check-then-act, so concurrent requests on one or several replicas can exceed the
+   limit ([#11218](https://github.com/Apicurio/apicurio-registry/issues/11218)).
+2. Imports and draft content edits are not limited; the deletion switches do not cover the
+   Confluent-compatible API ([#11222](https://github.com/Apicurio/apicurio-registry/issues/11222)).
+3. `max-requests-per-second` does nothing
    ([#11219](https://github.com/Apicurio/apicurio-registry/issues/11219)).
-3. Limits are global: there are no per-group or per-team quotas.
-4. Runtime settings reach other replicas only after the refresh period.
-5. The console's own read-only setting (`REGISTRY_FEATURE_READ_ONLY`) only hides actions; it is not a
+4. Limits are global: there are no per-group or per-team quotas.
+5. Runtime settings reach other replicas only after the refresh period.
+6. The console's own read-only setting (`REGISTRY_FEATURE_READ_ONLY`) only hides actions; it is not a
    guardrail.
 
 ## Alternatives
@@ -111,9 +121,10 @@ thing wanted, and they must reach every replica without redeploying.
 
 ## Consequences
 
-- **Benefits:** bounds that hold for every API and storage variant; destructive operations off by
-  default; writes frozen in seconds, without a restart.
-- **Costs:** count limits are approximate in a cluster; limits and disabled APIs need a restart.
+- **Benefits:** bounds on creates and updates from every API and storage variant; destructive
+  operations off by default on the native API; client writes frozen in seconds, without a restart.
+- **Costs:** count limits are approximate; some paths are not covered (imports, draft edits, Confluent
+  deletes); limits and disabled APIs need a restart.
 
 ## Example and verification
 

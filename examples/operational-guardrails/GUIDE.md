@@ -81,8 +81,9 @@ through replica A and deletes through replica B.
 `apicurio.storage.read-only.enabled` refuses every write with `409`, on every API, while reads keep
 working; the console is told (`readOnly: true`, reason `storage`) and hides its write actions. It is a
 runtime setting too: switch it on before a migration or a restore, and off afterwards. `demo.sh`
-switches it on through A, checks that B follows, and switches it off through B: configuration
-changes are still accepted in read-only mode.
+switches it on through A, checks that other settings cannot be changed meanwhile, that B follows,
+and switches it off through B: the read-only switch itself is the one write it allows. Usage
+telemetry, if enabled, keeps recording: read-only stops client changes, not every write.
 
 Two other things are called read-only and are different: the console setting
 `REGISTRY_FEATURE_READ_ONLY` only hides buttons, and the GitOps and KubernetesOps storages are
@@ -91,12 +92,17 @@ read-only by nature (see [storage-variants](../storage-variants/)).
 ## Step 5: Limits and replicas
 
 The artifact and version counts behind `max-artifacts`, `max-total-schemas` and
-`max-versions-per-artifact` are counters in each replica's memory, refreshed from the database every
-30 seconds. Each replica counts its own writes, so two replicas together can hold up to twice the
-limit: `demo.sh` creates artifacts through both replicas and ends with more than 6
-([#11218](https://github.com/Apicurio/apicurio-registry/issues/11218)). Treat these limits as a
-safety net per replica, not a quota. The size and length limits are exact: they check the request
-itself.
+`max-versions-per-artifact` are counters in each replica's memory: loaded from the database when they
+expire (30 seconds by default, 10 minutes in this example so the demonstration is repeatable), and in
+between updated only with that replica's own writes. A replica does not see the other's writes until
+its counter reloads, so `demo.sh` creates artifacts through both replicas and ends with more than 6
+([#11218](https://github.com/Apicurio/apicurio-registry/issues/11218)); concurrent requests on one
+replica can overshoot too. Treat these limits as approximate. The size and length limits are exact:
+they check the request itself.
+
+Not every path is limited: imports and edits of draft content are not, and the deletion switches are
+not checked by the Confluent-compatible API
+([#11222](https://github.com/Apicurio/apicurio-registry/issues/11222)).
 
 `apicurio.limits.config.max-requests-per-second` is not shown: it is accepted but nothing enforces it
 ([#11219](https://github.com/Apicurio/apicurio-registry/issues/11219)). Rate-limit in your gateway.

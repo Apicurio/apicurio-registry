@@ -343,6 +343,10 @@ public class SqlGroupRepository {
                     throw new RuntimeException("Sort by " + orderBy.name() + " not supported.");
             }
             orderByQuery.append(" ").append(orderDirection.name());
+            // groupId last, so groups created at the same time page in the same order every time
+            if (orderBy != OrderBy.groupId) {
+                orderByQuery.append(", g.groupId ").append(orderDirection.name());
+            }
 
             // Build queries
             String groupsQuerySql = sqlStatements.selectTableTemplate("*", "groups", "g", where.toString(),

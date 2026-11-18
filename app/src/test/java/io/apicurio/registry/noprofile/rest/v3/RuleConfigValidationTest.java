@@ -43,4 +43,39 @@ public class RuleConfigValidationTest extends AbstractResourceTestBase {
         given().when().contentType(CT_JSON).body(BOGUS_COMPATIBILITY).post("/registry/v3/admin/rules").then()
                 .statusCode(400);
     }
+
+    @Test
+    public void testInvalidGovernanceLevelIsRejected() throws Exception {
+        String group = GROUP + "-governance";
+        String artifactId = "invalid-governance-level";
+        createArtifact(group, artifactId, ArtifactType.JSON, "{\"type\":\"object\"}",
+                ContentTypes.APPLICATION_JSON);
+
+        // Artifact rule: an invalid level is rejected on create and update, and the stored level is kept
+        given().when().contentType(CT_JSON).body("{\"ruleType\":\"GOVERNANCE\",\"config\":\"STRICT\"}")
+                .pathParam("groupId", group).pathParam("artifactId", artifactId)
+                .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules").then().statusCode(400);
+        given().when().contentType(CT_JSON).body("{\"ruleType\":\"GOVERNANCE\",\"config\":\"BASIC\"}")
+                .pathParam("groupId", group).pathParam("artifactId", artifactId)
+                .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules").then().statusCode(204);
+        given().when().contentType(CT_JSON).body("{\"config\":\"STRICT\"}").pathParam("groupId", group)
+                .pathParam("artifactId", artifactId)
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules/GOVERNANCE").then()
+                .statusCode(400);
+        given().when().pathParam("groupId", group).pathParam("artifactId", artifactId)
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules/GOVERNANCE").then()
+                .statusCode(200).body("config", equalTo("BASIC"));
+
+        // Group rule
+        given().when().contentType(CT_JSON).body("{\"ruleType\":\"GOVERNANCE\",\"config\":\"FULL\"}")
+                .pathParam("groupId", group).post("/registry/v3/groups/{groupId}/rules").then().statusCode(204);
+        given().when().contentType(CT_JSON).body("{\"config\":\"STRICT\"}").pathParam("groupId", group)
+                .put("/registry/v3/groups/{groupId}/rules/GOVERNANCE").then().statusCode(400);
+        given().when().pathParam("groupId", group).get("/registry/v3/groups/{groupId}/rules/GOVERNANCE").then()
+                .statusCode(200).body("config", equalTo("FULL"));
+
+        // Global rule: rejected, so nothing is stored that would affect other tests
+        given().when().contentType(CT_JSON).body("{\"ruleType\":\"GOVERNANCE\",\"config\":\"STRICT\"}")
+                .post("/registry/v3/admin/rules").then().statusCode(400);
+    }
 }

@@ -36,22 +36,6 @@ public class MySQLSqlStatements extends CommonSqlStatements {
         return error.getMessage().contains("foreign key constraint fails");
     }
 
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#getNextSequenceValue()
-     */
-    @Override
-    public String getNextSequenceValue() {
-        return "INSERT INTO sequences (seqName, seqValue) VALUES (?, 1) ON DUPLICATE KEY UPDATE seqValue = seqValue + 1";
-    }
-
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#resetSequenceValue()
-     */
-    @Override
-    public String resetSequenceValue() {
-        return "INSERT INTO sequences (seqName, seqValue) VALUES (?, ?) ON DUPLICATE KEY UPDATE seqValue = ?";
-    }
-
     @Override
     public String upsertBranch() {
         return """

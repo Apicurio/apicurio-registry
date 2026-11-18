@@ -50,32 +50,6 @@ public class H2SqlStatements extends CommonSqlStatements {
         return "SELECT COUNT(*) AS count FROM information_schema.tables WHERE table_schema = ? AND table_name = 'APICURIO'";
     }
 
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#getNextSequenceValue()
-     */
-    @Override
-    public String getNextSequenceValue() {
-        throw new RuntimeException("Not applicable when using H2 as the database kind.");
-    }
-
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#resetSequenceValue()
-     */
-    @Override
-    public String resetSequenceValue() {
-        throw new RuntimeException("Not applicable when using H2 as the database kind.");
-    }
-
-    @Override
-    public String insertSequenceValue() {
-        throw new RuntimeException("Not applicable when using H2 as the database kind.");
-    }
-
-    @Override
-    public String selectCurrentSequenceValue() {
-        throw new RuntimeException("Not applicable when using H2 as the database kind.");
-    }
-
     @Override
     public String createDataSnapshot() {
         return "SCRIPT TO ?";

@@ -1309,16 +1309,6 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     @Override
-    public String insertSequenceValue() {
-        return "INSERT INTO sequences (seqName, seqValue) VALUES (?, ?)";
-    }
-
-    @Override
-    public String selectCurrentSequenceValue() {
-        return "SELECT seqValue FROM sequences WHERE seqName = ? ";
-    }
-
-    @Override
     public String insertVersionComment() {
         return "INSERT INTO version_comments (commentId, globalId, owner, createdOn, cvalue) VALUES (?, ?, ?, ?, ?)";
     }

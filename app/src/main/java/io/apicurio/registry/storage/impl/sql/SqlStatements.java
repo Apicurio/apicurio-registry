@@ -546,18 +546,6 @@ public interface SqlStatements {
     public String selectMaxVersionOrderForUpdate();
 
     /*
-     * The next few statements support globalId and contentId management.
-     */
-
-    public String getNextSequenceValue();
-
-    public String selectCurrentSequenceValue();
-
-    public String resetSequenceValue();
-
-    public String insertSequenceValue();
-
-    /*
      * The next few statements support exporting data from the DB.
      */
 

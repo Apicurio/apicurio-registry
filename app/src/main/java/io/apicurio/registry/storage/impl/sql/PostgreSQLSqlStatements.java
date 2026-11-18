@@ -41,22 +41,6 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
         return error.getMessage().contains("violates foreign key constraint");
     }
 
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#getNextSequenceValue()
-     */
-    @Override
-    public String getNextSequenceValue() {
-        return "INSERT INTO sequences (seqName, seqValue) VALUES (?, 1) ON CONFLICT (seqName) DO UPDATE SET seqValue = sequences.seqValue + 1 RETURNING seqValue";
-    }
-
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#resetSequenceValue()
-     */
-    @Override
-    public String resetSequenceValue() {
-        return "INSERT INTO sequences (seqName, seqValue) VALUES (?, ?) ON CONFLICT (seqName) DO UPDATE SET seqValue = ?";
-    }
-
     @Override
     public String upsertBranch() {
         return """

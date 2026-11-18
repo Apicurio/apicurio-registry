@@ -64,42 +64,6 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#getNextSequenceValue()
-     */
-    @Override
-    public String getNextSequenceValue() {
-        return """
-                MERGE INTO sequences AS target
-                USING (VALUES  (?)) AS source (seqName)
-                ON (target.seqName = source.seqName)
-                WHEN MATCHED THEN
-                UPDATE SET seqValue = target.seqValue + 1
-                WHEN NOT MATCHED THEN
-                INSERT (seqName, seqValue)
-                VALUES (source.seqName, 1)
-                OUTPUT INSERTED.seqValue;
-                """;
-    }
-
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#resetSequenceValue()
-     */
-    @Override
-    public String resetSequenceValue() {
-        return """
-                MERGE INTO sequences AS target
-                USING (VALUES (?, ?)) AS source (seqName, seqValue)
-                ON (target.seqName = source.seqName)
-                WHEN MATCHED THEN
-                UPDATE SET seqValue = ?
-                WHEN NOT MATCHED THEN
-                INSERT (seqName, seqValue)
-                VALUES (source.seqName, source.seqValue)
-                OUTPUT INSERTED.seqValue;
-                """;
-    }
-
-    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactIds()
      */
     @Override

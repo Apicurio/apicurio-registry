@@ -85,8 +85,15 @@ if [ -z "${SKIP_KAFKA:-}" ] && [ ! -d target/classes/io ]; then
 fi
 json DELETE "$R/groups/orders" > /dev/null
 json DELETE "$R/admin/contracts/ruleset" > /dev/null
-docker compose exec -T kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
+docker compose exec -T kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:29092 \
   --delete --topic orders > /dev/null 2>&1 || true
+# Kafka deletes a topic asynchronously: wait until it is gone, or step 9 would write to the old one
+deadline=$((SECONDS + 60))
+while docker compose exec -T kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:29092 --list 2> /dev/null \
+  | grep -qx orders; do
+  [ "$SECONDS" -ge "$deadline" ] && { fail "the orders topic is deleted"; break; }
+  sleep 1
+done
 ok "the example data is reset"
 
 # ------------------------------------------------------------------------------ step 2

@@ -1,5 +1,6 @@
 package io.apicurio.registry.serde.jsonschema;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
@@ -100,5 +101,20 @@ class JsonSchemaDeserializerRuleRecordTest {
         JsonNode unvalidated = JsonSchemaDeserializerRuleRecordTest.<JsonNode>deserializer(false)
                 .fromRuleRecord(withoutCurrency, v2(), original);
         assertEquals(original, unvalidated);
+    }
+
+    @Test
+    void explicitNullsSurviveWithTheConfiguredMapper() throws Exception {
+        // configure() sets up a mapper that leaves nulls out when serializing (NON_NULL)
+        JsonSchemaDeserializer<JsonNode> deserializer = new JsonSchemaDeserializer<>(null, false);
+        deserializer.setObjectMapper(new ObjectMapper().setSerializationInclusion(JsonInclude.Include.NON_NULL));
+        JsonNode original = mapper.readTree("{\"orderId\":\"A1\",\"note\":null,\"meta\":{\"tag\":null}}");
+
+        Map<String, Object> map = deserializer.toRuleRecord(original);
+        assertTrue(map.containsKey("note"));
+        assertTrue(((Map<?, ?>) map.get("meta")).containsKey("tag"));
+
+        JsonNode result = deserializer.fromRuleRecord(map, v2(), original);
+        assertEquals(original, result);
     }
 }

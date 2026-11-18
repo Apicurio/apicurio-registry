@@ -24,6 +24,7 @@ import java.util.Map;
 public class JsonSchemaDeserializer<T> extends AbstractDeserializer<JsonSchema, T> {
 
     private ObjectMapper mapper;
+    private volatile ObjectMapper ruleRecordMapper;
     private Boolean validationEnabled;
     private final JsonSchemaParser<T> parser = new JsonSchemaParser<>();
 
@@ -86,6 +87,7 @@ public class JsonSchemaDeserializer<T> extends AbstractDeserializer<JsonSchema, 
 
     public void setObjectMapper(ObjectMapper objectMapper) {
         this.mapper = objectMapper;
+        this.ruleRecordMapper = null;
     }
 
     public void setSpecificReturnClass(Class<T> specificReturnClass) {
@@ -101,8 +103,21 @@ public class JsonSchemaDeserializer<T> extends AbstractDeserializer<JsonSchema, 
         if (data == null) {
             return Map.of();
         }
-        return mapper.convertValue(data, new TypeReference<Map<String, Object>>() {
+        return ruleRecordMapper().convertValue(data, new TypeReference<Map<String, Object>>() {
         });
+    }
+
+    /**
+     * The configured mapper, but keeping explicit nulls: the configured one may leave them out
+     * ({@code NON_NULL}), which would drop nullable fields from the rule record and from its result.
+     */
+    private ObjectMapper ruleRecordMapper() {
+        ObjectMapper copy = ruleRecordMapper;
+        if (copy == null) {
+            copy = mapper.copy().setSerializationInclusion(JsonInclude.Include.ALWAYS);
+            ruleRecordMapper = copy;
+        }
+        return copy;
     }
 
     @Override
@@ -117,7 +132,7 @@ public class JsonSchemaDeserializer<T> extends AbstractDeserializer<JsonSchema, 
     @SuppressWarnings("unchecked")
     @Override
     protected T fromRuleRecord(Map<String, Object> record, ParsedSchema<JsonSchema> targetSchema, T original) {
-        JsonNode node = mapper.valueToTree(record);
+        JsonNode node = ruleRecordMapper().valueToTree(record);
         try {
             if (isValidationEnabled()) {
                 JsonSchemaValidationUtil.validateDataWithSchema(targetSchema, node);

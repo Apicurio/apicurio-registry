@@ -159,4 +159,70 @@ class AvroRuleRecordConverterTest {
         e = assertThrows(AvroRuntimeException.class, () -> AvroRuleRecordConverter.fromMap(badEnum, v1));
         assertEquals("field 'status': String does not match Avro type enum", e.getMessage());
     }
+
+    private static Schema parse(String json) {
+        return new Schema.Parser().parse(json);
+    }
+
+    @Test
+    void integersAreConvertedExactlyOrRejected() {
+        Schema schema = parse("{\"type\":\"record\",\"name\":\"N\",\"fields\":["
+                + "{\"name\":\"i\",\"type\":\"int\"},{\"name\":\"l\",\"type\":\"long\"}]}");
+        GenericRecord ok = AvroRuleRecordConverter.fromMap(Map.of("i", 5.0, "l", (double) (1L << 52)), schema);
+        assertEquals(5, ok.get("i"));
+        assertEquals(1L << 52, ok.get("l"));
+        // Too large for a long (would saturate to Long.MAX_VALUE), too large for an int, fractional
+        for (Map<String, Object> bad : List.<Map<String, Object>>of(Map.of("i", 1, "l", 1e20),
+                Map.of("i", 3_000_000_000L, "l", 1L), Map.of("i", 1, "l", 2.5))) {
+            assertThrows(AvroRuntimeException.class, () -> AvroRuleRecordConverter.fromMap(bad, schema),
+                    bad.toString());
+        }
+    }
+
+    @Test
+    void unionKeepsTheBranchThatRepresentsTheValueExactly() {
+        Schema schema = parse("{\"type\":\"record\",\"name\":\"U\",\"fields\":[{\"name\":\"v\",\"type\":["
+                + "{\"type\":\"record\",\"name\":\"A\",\"fields\":[{\"name\":\"id\",\"type\":\"string\"}]},"
+                + "{\"type\":\"record\",\"name\":\"B\",\"fields\":[{\"name\":\"id\",\"type\":\"string\"},"
+                + "{\"name\":\"detail\",\"type\":\"string\"}]}]}]}");
+        GenericRecord b = new GenericData.Record(schema.getField("v").schema().getTypes().get(1));
+        b.put("id", "1");
+        b.put("detail", "kept");
+        GenericRecord original = new GenericData.Record(schema);
+        original.put("v", b);
+
+        GenericRecord result = AvroRuleRecordConverter.fromMap(AvroRuleRecordConverter.toMap(original), schema);
+        GenericRecord v = (GenericRecord) result.get("v");
+        assertEquals("B", v.getSchema().getName());
+        assertEquals("kept", v.get("detail").toString());
+    }
+
+    @Test
+    void unionValueMatchingSeveralRecordBranchesIsRejected() {
+        Schema schema = parse("{\"type\":\"record\",\"name\":\"U\",\"fields\":[{\"name\":\"v\",\"type\":["
+                + "{\"type\":\"record\",\"name\":\"A\",\"fields\":[{\"name\":\"id\",\"type\":\"string\"}]},"
+                + "{\"type\":\"record\",\"name\":\"C\",\"fields\":[{\"name\":\"id\",\"type\":\"string\"}]}]}]}");
+        AvroRuntimeException e = assertThrows(AvroRuntimeException.class,
+                () -> AvroRuleRecordConverter.fromMap(Map.of("v", Map.of("id", "1")), schema));
+        assertTrue(e.getMessage().contains("several union branches"), e.getMessage());
+    }
+
+    @Test
+    void unionPrefersTheBranchWithoutPrecisionLoss() {
+        Schema schema = parse("{\"type\":\"record\",\"name\":\"F\",\"fields\":"
+                + "[{\"name\":\"x\",\"type\":[\"float\",\"double\"]}]}");
+        assertEquals(0.1d, AvroRuleRecordConverter.fromMap(Map.of("x", 0.1d), schema).get("x"));
+        assertEquals(0.5f, AvroRuleRecordConverter.fromMap(Map.of("x", 0.5d), schema).get("x"));
+    }
+
+    @Test
+    void bytesRejectCharactersThatAreNotBytes() {
+        Schema schema = parse("{\"type\":\"record\",\"name\":\"Bt\",\"fields\":"
+                + "[{\"name\":\"b\",\"type\":\"bytes\"}]}");
+        assertEquals(ByteBuffer.wrap(new byte[] {(byte) 0xE9}),
+                AvroRuleRecordConverter.fromMap(Map.of("b", "\u00e9"), schema).get("b"));
+        AvroRuntimeException e = assertThrows(AvroRuntimeException.class,
+                () -> AvroRuleRecordConverter.fromMap(Map.of("b", "\u20ac"), schema));
+        assertTrue(e.getMessage().contains("U+20AC"), e.getMessage());
+    }
 }

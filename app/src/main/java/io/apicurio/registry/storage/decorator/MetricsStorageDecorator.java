@@ -83,7 +83,14 @@ public class MetricsStorageDecorator extends RegistryStorageDecoratorBase implem
 
     public List<String> deleteArtifact(String groupId, String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
-        String type = delegate.getArtifactMetaData(groupId, artifactId).getArtifactType();
+        // The type is only an attribute of the counter: a lookup that fails (on a KafkaSQL replica
+        // that has not consumed the creation yet, for example) must not fail the delete itself
+        String type = null;
+        try {
+            type = delegate.getArtifactMetaData(groupId, artifactId).getArtifactType();
+        } catch (ArtifactNotFoundException e) {
+            // recorded with an unknown type
+        }
         List<String> result = delegate.deleteArtifact(groupId, artifactId);
         metrics.recordArtifactDeleted(groupId, type);
         return result;

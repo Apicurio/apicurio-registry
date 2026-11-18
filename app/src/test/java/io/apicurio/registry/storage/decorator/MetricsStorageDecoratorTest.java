@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -109,8 +110,18 @@ class MetricsStorageDecoratorTest {
     }
 
     @Test
+    void aFailedTypeLookupDoesNotFailTheDelete() {
+        // A KafkaSQL replica may not have consumed the creation yet; the delete still goes ahead
+        when(delegate.getArtifactMetaData("g", "a")).thenThrow(new ArtifactNotFoundException("g", "a"));
+        when(delegate.deleteArtifact("g", "a")).thenReturn(List.of("1"));
+        assertEquals(List.of("1"), decorator.deleteArtifact("g", "a"));
+        verify(metrics).recordArtifactDeleted("g", null);
+    }
+
+    @Test
     void failedWritesAreNotCounted() {
         when(delegate.getArtifactMetaData(eq("g"), eq("missing"))).thenThrow(new ArtifactNotFoundException("g", "missing"));
+        when(delegate.deleteArtifact(eq("g"), eq("missing"))).thenThrow(new ArtifactNotFoundException("g", "missing"));
         assertThrows(ArtifactNotFoundException.class, () -> decorator.deleteArtifact("g", "missing"));
         verifyNoInteractions(metrics);
     }

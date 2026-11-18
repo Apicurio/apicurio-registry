@@ -71,7 +71,6 @@ docker compose up -d   # or ./build.sh first, when the example has one
 |---|---|---|---|
 | [agent-registry](agent-registry/) | Agent cards, MCP tools, model schemas and prompt templates; discovery and rendering | [0014](../adr/0014-agent-registry.md), [0004](../adr/0004-ai-catalog-ard-convergence.md) | [Agent registry](../docs/modules/ROOT/pages/getting-started/assembly-agent-registry-quickstart.adoc) |
 | [mcp-keycloak](mcp-keycloak/) | The registry's MCP server against a Keycloak-secured registry. *Not checked yet* | | [MCP server](../docs/modules/ROOT/pages/getting-started/assembly-mcp-server-integration.adoc) |
-| [a2a-real-world-integration](a2a-real-world-integration/) | Agents chaining context over A2A, with prompts and schemas in the registry. *Not checked yet* | | [A2A](../docs/modules/ROOT/pages/getting-started/assembly-a2a-features.adoc) |
 
 ## Other
 

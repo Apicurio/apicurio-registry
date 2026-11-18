@@ -114,9 +114,7 @@ in the operator documentation).
   its `apicurio.registry.url` is the Registry's base URL, without `/apis/registry/...`.
 - **Known issues:** a consumer that reads the schema reference from headers (the CDC consumer) gets
   no `serde.deserialize` span, and `serde.resolve_schema` is never emitted
-  ([#11265](https://github.com/Apicurio/apicurio-registry/issues/11265)); the
-  `apicurio_artifacts_created` metric counts only v3 creations, so Debezium's are missing
-  ([#11264](https://github.com/Apicurio/apicurio-registry/issues/11264)).
+  ([#11265](https://github.com/Apicurio/apicurio-registry/issues/11265)).
 - **Other ports:** see [Using other ports](GUIDE.md#using-other-ports).
 - **Local build:** the example uses the `latest-snapshot` registry image. To run a locally built
   registry, build it (`./mvnw install -pl distro/docker -am -DskipTests`), build

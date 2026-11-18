@@ -233,10 +233,17 @@ metrics_ready() { curl -s "$METRICS" | grep '^otel_apicurio_artifacts_created_to
 deadline=$((SECONDS + 60))
 until metrics_ready || [ "$SECONDS" -ge "$deadline" ]; do sleep 2; done
 metrics=$(curl -s "$METRICS")
-# Only artifacts created through the v3 API are counted: here greetings-value, not Debezium's (v2)
-created=$(grep -E '^otel_apicurio_artifacts_created_total\{.*apicurio_registry_artifact_type="AVRO".*job="apicurio-registry"' <<< "$metrics" \
-  | awk '{s += $NF} END {print (s >= 1) ? "yes" : "no"}')
-expect "the Registry exported its artifacts-created counter" yes "$created"
+# Every creation is counted, whichever API it came through: greetings-value (v3, the producer's
+# serializer) and Debezium's schemas (v2). The counter starts with the Registry, so it covers at
+# least the AVRO artifacts that exist now
+# The Collector receives the counter every 5 seconds: poll until it has caught up
+avro_counted() { curl -s "$METRICS" | grep -E '^otel_apicurio_artifacts_created_total\{.*apicurio_registry_artifact_type="AVRO".*job="apicurio-registry"' \
+  | awk '{s += $NF} END {print s + 0}'; }
+avro_existing() { curl -s "$V3/search/artifacts?artifactType=AVRO&limit=1" | jq .count; }
+covered() { local c e; c=$(avro_counted); e=$(avro_existing); [ "$e" -ge 2 ] && [ "$c" -ge "$e" ] && echo yes || echo "no ($c counted, $e exist)"; }
+deadline=$((SECONDS + 60))
+until [ "$(covered)" = yes ] || [ "$SECONDS" -ge "$deadline" ]; do sleep 2; done
+expect "the artifacts-created counter covers every AVRO artifact, v2 and v3" yes "$(covered)"
 requests=$(grep -E '^otel_http_server_request_duration_seconds_count\{.*http_route="/apis/registry/v3/groups/\{groupId\}/artifacts".*job="apicurio-registry"' <<< "$metrics" \
   | awk '{s += $NF} END {print (s >= 1) ? "yes" : "no"}')
 expect "the Registry exported HTTP server metrics per route" yes "$requests"

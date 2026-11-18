@@ -196,7 +196,10 @@ public abstract class AbstractResource {
             if (ex.getRuleType() == RuleType.VALIDITY) {
                 throw new UnprocessableEntityException(ex);
             } else {
-                throw new ConflictException(ex);
+                String subject = cconfig.groupConcatEnabled ? toSubjectWithGroupConcat(groupId, artifactId)
+                        : artifactId;
+                throw new ConflictException("Schema being registered is incompatible with an earlier schema"
+                        + " for subject \"" + subject + "\", details: " + ex.getMessage(), ex);
             }
         }
         return res;

@@ -1,11 +1,14 @@
 package io.apicurio.registry.noprofile.rest;
 
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
+import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -27,6 +30,10 @@ import static org.hamcrest.Matchers.equalTo;
 public class ServerSideDereferenceTest extends AbstractResourceTestBase {
 
     private static final String GROUP = "ServerSideDereferenceTest";
+
+    @Inject
+    @Current
+    RegistryStorage storage;
 
     /**
      * Test that server-side dereferencing works for REST API v3 with OpenAPI artifacts.
@@ -134,6 +141,31 @@ public class ServerSideDereferenceTest extends AbstractResourceTestBase {
                 .body("paths.widgets.get.responses.200.content.json.schema.items.$ref",
                         equalTo("#/components/schemas/Widget"))
                 .body("components.schemas.Widget.title", equalTo("Root Type for Widget"));
+    }
+
+    @Test
+    public void testV3ServerSideDereference_ContentIdAndHash() throws Exception {
+        createArtifact(GROUP, "testV3ContentId/ReferencedTypes", ArtifactType.OPENAPI,
+                resourceToString("openapi-referenced-types.json"), ContentTypes.APPLICATION_JSON);
+        List<ArtifactReference> refs = Collections.singletonList(ArtifactReference.builder()
+                .name("./referenced-types.json#/components/schemas/Widget").groupId(GROUP)
+                .artifactId("testV3ContentId/ReferencedTypes").version("1").build());
+        var metadata = createArtifactWithReferences(GROUP, "testV3ContentId/WithExternalRef",
+                ArtifactType.OPENAPI, resourceToString("openapi-with-external-ref.json"),
+                ContentTypes.APPLICATION_JSON, refs);
+        long contentId = metadata.getVersion().getContentId();
+        String contentHash = storage.getContentById(contentId).getContentHash();
+
+        // The server default (DEREFERENCE) applies without a references parameter...
+        for (String path : List.of("/registry/v3/ids/contentIds/" + contentId,
+                "/registry/v3/ids/contentHashes/" + contentHash)) {
+            given().when().get(path).then().statusCode(200)
+                    .body("components.schemas.Widget.title", equalTo("Root Type for Widget"));
+            // ...and an explicit parameter overrides it.
+            given().when().queryParam("references", "PRESERVE").get(path).then().statusCode(200)
+                    .body("paths.widgets.get.responses.200.content.json.schema.items.$ref",
+                            equalTo("./referenced-types.json#/components/schemas/Widget"));
+        }
     }
 
     /**

@@ -8,13 +8,17 @@ import java.util.Optional;
  */
 public enum XmlReferenceKind {
 
-    XSD_IMPORT(XmlReferenceKind.XSD_NS, "import", "schemaLocation"),
-    XSD_INCLUDE(XmlReferenceKind.XSD_NS, "include", "schemaLocation"),
-    XSD_REDEFINE(XmlReferenceKind.XSD_NS, "redefine", "schemaLocation"),
-    XSD_OVERRIDE(XmlReferenceKind.XSD_NS, "override", "schemaLocation"),
-    WSDL11_IMPORT(XmlReferenceKind.WSDL11_NS, "import", "location"),
-    WSDL20_IMPORT(XmlReferenceKind.WSDL20_NS, "import", "location"),
-    WSDL20_INCLUDE(XmlReferenceKind.WSDL20_NS, "include", "location");
+    XSD_IMPORT(XmlReferenceKind.XSD_NS, XmlReferenceKind.IMPORT, XmlReferenceKind.SCHEMA_LOCATION),
+    XSD_INCLUDE(XmlReferenceKind.XSD_NS, "include", XmlReferenceKind.SCHEMA_LOCATION),
+    XSD_REDEFINE(XmlReferenceKind.XSD_NS, "redefine", XmlReferenceKind.SCHEMA_LOCATION),
+    XSD_OVERRIDE(XmlReferenceKind.XSD_NS, "override", XmlReferenceKind.SCHEMA_LOCATION),
+    WSDL11_IMPORT(XmlReferenceKind.WSDL11_NS, XmlReferenceKind.IMPORT, XmlReferenceKind.LOCATION),
+    WSDL20_IMPORT(XmlReferenceKind.WSDL20_NS, XmlReferenceKind.IMPORT, XmlReferenceKind.LOCATION),
+    WSDL20_INCLUDE(XmlReferenceKind.WSDL20_NS, "include", XmlReferenceKind.LOCATION);
+
+    private static final String IMPORT = "import";
+    private static final String SCHEMA_LOCATION = "schemaLocation";
+    private static final String LOCATION = "location";
 
     public static final String XSD_NS = "http://www.w3.org/2001/XMLSchema";
     public static final String WSDL11_NS = "http://schemas.xmlsoap.org/wsdl/";

@@ -19,6 +19,8 @@ import java.util.List;
  */
 public class McpServerStructuredContentExtractor implements StructuredContentExtractor {
 
+    private static final String TRANSPORT = "transport";
+
     private static final Logger log = LoggerFactory.getLogger(McpServerStructuredContentExtractor.class);
 
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -47,11 +49,11 @@ public class McpServerStructuredContentExtractor implements StructuredContentExt
         for (JsonNode pkg : packages) {
             addTextual(pkg, "registryType", "packageRegistry", elements);
             addTextual(pkg, "identifier", "package", elements);
-            JsonNode transport = pkg.path("transport");
+            JsonNode transport = pkg.path(TRANSPORT);
             if (transport.isTextual()) {
-                elements.add(new StructuredElement("transport", transport.asText()));
+                elements.add(new StructuredElement(TRANSPORT, transport.asText()));
             } else {
-                addTextual(transport, "type", "transport", elements);
+                addTextual(transport, "type", TRANSPORT, elements);
             }
         }
     }
@@ -62,7 +64,7 @@ public class McpServerStructuredContentExtractor implements StructuredContentExt
             return;
         }
         for (JsonNode remote : remotes) {
-            addTextual(remote, "type", "transport", elements);
+            addTextual(remote, "type", TRANSPORT, elements);
             addTextual(remote, "url", "remote", elements);
         }
     }

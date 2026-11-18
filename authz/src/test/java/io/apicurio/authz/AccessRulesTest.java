@@ -21,6 +21,7 @@ import io.kroxylicious.proxy.authentication.User;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -293,8 +294,8 @@ class AccessRulesTest {
                         + "allow R with name = \"r\" to READ A with name = \"x\";\n" + end,
                 "// a comment\n" + header
                         + "allow User with name * to READ Artifact with name *;\n" + end)) {
-            AccessRules.parse(valid);
-            kroxyliciousAuthorizer(valid);
+            assertDoesNotThrow(() -> AccessRules.parse(valid), valid);
+            assertDoesNotThrow(() -> kroxyliciousAuthorizer(valid), valid);
         }
     }
 

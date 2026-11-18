@@ -30,6 +30,7 @@ class AbstractAccessControllerOwnerCheckTest {
 
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.AdminOrOwner)
     public void groupAndArtifactMethod(String groupId) {
+        // Intentionally empty: only the @Authorized annotation is inspected.
     }
 
     @Test

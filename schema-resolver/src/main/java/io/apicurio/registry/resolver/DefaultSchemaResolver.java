@@ -1,5 +1,6 @@
 package io.apicurio.registry.resolver;
 
+import io.apicurio.registry.resolver.cache.AutoCreateKey;
 import io.apicurio.registry.resolver.cache.ContentWithReferences;
 import io.apicurio.registry.resolver.client.RegistryArtifactReference;
 import io.apicurio.registry.resolver.client.RegistryClientFacade;
@@ -195,12 +196,9 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         final List<SchemaLookupResult<S>> referencesLookup = new ArrayList<>();
 
         for (ParsedSchema<S> referencedSchema : parsedSchema.getSchemaReferences()) {
-
+            ArtifactReference reference = resolveReferenceArtifactReference(data, referencedSchema);
             List<SchemaLookupResult<S>> nestedReferences = handleArtifactReferences(data, referencedSchema);
-
-            referencesLookup.add(handleAutoCreateArtifact(referencedSchema,
-                    resolveArtifactReference(data, referencedSchema, true, referencedSchema.referenceName()),
-                    nestedReferences));
+            referencesLookup.add(handleAutoCreateArtifact(referencedSchema, reference, nestedReferences));
         }
         return referencesLookup;
     }
@@ -322,14 +320,20 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
                 .map(SchemaLookupResult::toArtifactReference)
                 .collect(Collectors.toSet());
 
-        var key = ContentWithReferences.builder()
+        var content = ContentWithReferences.builder()
                 .content(rawSchemaString)
                 .references(references)
                 .build();
+        // A null group is the default group. ArtifactReference.builder() already normalizes it; doing it again here
+        // keeps the cache key identical to the coordinates registered below for any other ArtifactReference.
+        String groupId = artifactReference.getGroupId() == null ? "default" : artifactReference.getGroupId();
+        // Key by the target coordinates too: identical content written under other coordinates (e.g. another
+        // topic) must still be registered there (#11053).
+        var key = new AutoCreateKey(content, groupId, artifactReference.getArtifactId(),
+                artifactReference.getVersion());
 
-        return schemaCache.getByContent(key, contentKey -> {
+        return schemaCache.getByAutoCreateKey(key, autoCreateKey -> {
             String artifactType = schemaParser.artifactType();
-            String groupId = artifactReference.getGroupId() == null ? "default" : artifactReference.getGroupId();
             String artifactId = artifactReference.getArtifactId();
             String version = artifactReference.getVersion();
             String autoCreate = this.autoCreateBehavior;

@@ -1,0 +1,2 @@
+{"type": "record", "name": "Money", "namespace": "com.example.common",
+ "fields": [{"name": "amount", "type": "double"}, {"name": "currency", "type": "string"}]}

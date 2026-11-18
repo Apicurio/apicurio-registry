@@ -39,6 +39,8 @@ import static java.util.Objects.requireNonNull;
  */
 public final class JsonSchemaDocumentValidator {
 
+    private static final String SCHEMA_KEYWORD = "$schema";
+
     /**
      * The base IRI of a schema without an absolute {@code $id}. A document it refers to by a relative
      * reference is requested from the caller by that relative reference, without this prefix.
@@ -110,7 +112,7 @@ public final class JsonSchemaDocumentValidator {
      */
     public static DraftDetector networkntDraftDetector(VersionFlag whenAbsent) {
         requireNonNull(whenAbsent, "whenAbsent");
-        return schema -> schema.has("$schema")
+        return schema -> schema.has(SCHEMA_KEYWORD)
                 ? SpecVersionDetector.detectOptionalVersion(schema, false)
                 : Optional.of(whenAbsent);
     }
@@ -142,7 +144,7 @@ public final class JsonSchemaDocumentValidator {
         var draft = draftOf(schema);
         if (draft.isEmpty()) {
             return List.of(new RuleViolation("Unsupported JSON Schema dialect '"
-                    + schema.path("$schema").asText() + "'", "/$schema"));
+                    + schema.path(SCHEMA_KEYWORD).asText() + "'", "/$schema"));
         }
 
         var violations = new ArrayList<RuleViolation>();
@@ -182,7 +184,7 @@ public final class JsonSchemaDocumentValidator {
         // declared explicitly rather than left for the library to look up.
         var root = schema;
         if (schema instanceof ObjectNode objectNode) {
-            root = objectNode.deepCopy().put("$schema", draft.getId());
+            root = objectNode.deepCopy().put(SCHEMA_KEYWORD, draft.getId());
         }
 
         try {

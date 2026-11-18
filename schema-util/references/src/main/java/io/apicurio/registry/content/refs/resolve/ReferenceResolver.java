@@ -97,29 +97,11 @@ public final class ReferenceResolver {
                 planned.add(new PlannedReference(fullReference, hit.get().existing()));
             } else if (hit.isPresent()) {
                 SchemaSource target = hit.get().source().source();
-                if (stack.contains(target)) {
-                    List<String> cycle = new ArrayList<>();
-                    boolean inCycle = false;
-                    for (SchemaSource onStack : stack) {
-                        inCycle = inCycle || onStack == target;
-                        if (inCycle) {
-                            cycle.add(onStack.location());
-                        }
-                    }
-                    cycle.add(target.location());
-                    throw new ReferenceCycleException(cycle);
-                }
+                failOnCycle(target);
                 planned.add(new PlannedReference(fullReference,
                         visit(target, ref.getResource(), artifact.artifactType(), artifact.coordinates())));
             } else {
-                Optional<ExistingArtifact> byUrl = options.urlResolver().flatMap(r -> r.resolve(fullReference));
-                if (byUrl.isPresent()) {
-                    planned.add(new PlannedReference(fullReference, byUrl.get()));
-                } else if (isAbsoluteUri(fullReference)) {
-                    warnings.add("Skipping external reference not managed by Apicurio Registry: " + fullReference);
-                } else {
-                    unresolved.add(new UnresolvedReference(source.location(), fullReference));
-                }
+                resolveUnindexed(source, fullReference, planned);
             }
         }
         artifact.setReferences(planned);
@@ -127,6 +109,32 @@ public final class ReferenceResolver {
         memo.put(source, artifact);
         output.add(artifact);
         return artifact;
+    }
+
+    private void failOnCycle(SchemaSource target) {
+        if (stack.contains(target)) {
+            List<String> cycle = new ArrayList<>();
+            boolean inCycle = false;
+            for (SchemaSource onStack : stack) {
+                inCycle = inCycle || onStack == target;
+                if (inCycle) {
+                    cycle.add(onStack.location());
+                }
+            }
+            cycle.add(target.location());
+            throw new ReferenceCycleException(cycle);
+        }
+    }
+
+    private void resolveUnindexed(SchemaSource source, String fullReference, List<PlannedReference> planned) {
+        Optional<ExistingArtifact> byUrl = options.urlResolver().flatMap(r -> r.resolve(fullReference));
+        if (byUrl.isPresent()) {
+            planned.add(new PlannedReference(fullReference, byUrl.get()));
+        } else if (isAbsoluteUri(fullReference)) {
+            warnings.add("Skipping external reference not managed by Apicurio Registry: " + fullReference);
+        } else {
+            unresolved.add(new UnresolvedReference(source.location(), fullReference));
+        }
     }
 
     private PlannedArtifact create(SchemaSource source, String resource, String parentType,

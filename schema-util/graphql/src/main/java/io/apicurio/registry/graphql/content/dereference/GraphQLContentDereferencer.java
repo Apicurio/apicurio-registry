@@ -7,7 +7,6 @@ import io.apicurio.registry.graphql.content.GraphQLImportLines;
 import io.apicurio.registry.graphql.content.GraphQLImportLines.BlockStringTracker;
 
 import java.util.Map;
-import java.util.regex.Matcher;
 
 /**
  * Reference handling for GraphQL SDL content that uses the <code>#import</code> leading-comment
@@ -43,9 +42,9 @@ public class GraphQLContentDereferencer implements ContentDereferencer {
         for (String line : GraphQLImportLines.splitLines(original)) {
             boolean insideBlockString = blockStringTracker.consume(line);
             if (!insideBlockString) {
-                Matcher matcher = GraphQLImportLines.IMPORT_LINE.matcher(line);
-                if (matcher.matches() && !GraphQLImportLines.isNamedImport(matcher)) {
-                    TypedContent resolved = resolvedReferences.get(matcher.group(2));
+                GraphQLImportLines.ImportLine importLine = GraphQLImportLines.parse(line);
+                if (importLine != null && !importLine.named()) {
+                    TypedContent resolved = resolvedReferences.get(importLine.file());
                     if (resolved != null) {
                         result.append(resolved.getContent().content()).append('\n');
                         changed = true;
@@ -79,11 +78,11 @@ public class GraphQLContentDereferencer implements ContentDereferencer {
         for (String line : GraphQLImportLines.splitLines(original)) {
             boolean insideBlockString = blockStringTracker.consume(line);
             if (!insideBlockString) {
-                Matcher matcher = GraphQLImportLines.IMPORT_LINE.matcher(line);
-                if (matcher.matches()) {
-                    String url = resolvedReferenceUrls.get(matcher.group(2));
+                GraphQLImportLines.ImportLine importLine = GraphQLImportLines.parse(line);
+                if (importLine != null) {
+                    String url = resolvedReferenceUrls.get(importLine.file());
                     if (url != null) {
-                        result.append(matcher.group(1)).append(url).append(matcher.group(3)).append('\n');
+                        result.append(importLine.prefix()).append(url).append(importLine.suffix()).append('\n');
                         changed = true;
                         continue;
                     }

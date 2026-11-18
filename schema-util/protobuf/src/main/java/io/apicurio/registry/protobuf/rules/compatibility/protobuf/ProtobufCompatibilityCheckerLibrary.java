@@ -273,34 +273,37 @@ public class ProtobufCompatibilityCheckerLibrary {
                     FieldElement afterFE = afterMap.get(beforeKV.getKey());
 
                     if (afterFE != null) {
-
-                        String beforeType = normalizeType(fileBefore, beforeKV.getValue().getType(),
-                                entry.getKey());
-                        String afterType = normalizeType(fileAfter, afterFE.getType(), entry.getKey());
-
-                        if (!Objects.equals(beforeType, afterType)) {
-                            issues.add(ProtobufDifference.from(String.format(
-                                    "Field type changed, message %s , before: %s , after %s", entry.getKey(),
-                                    beforeKV.getValue().getType(), afterFE.getType())));
-                        }
-
-                        if (!Objects.equals(beforeKV.getValue().getLabel(), afterFE.getLabel())
-                                && !(beforeType != null && beforeType.startsWith("map<")
-                                        && beforeType.equals(afterType))) {
-                            // A label difference is benign when both sides resolved to the same
-                            // map<K, V> type: one side renders the map field with map syntax (no
-                            // label) while the other uses the desugared descriptor representation
-                            // (REPEATED label on the synthetic map entry type).
-                            issues.add(ProtobufDifference.from(String.format(
-                                    "Field label changed, message %s , before: %s , after %s", entry.getKey(),
-                                    beforeKV.getValue().getLabel(), afterFE.getLabel())));
-                        }
+                        checkFieldTypeAndLabel(entry.getKey(), beforeKV.getValue(), afterFE, issues);
                     }
                 }
             }
         }
 
         return issues;
+    }
+
+    private void checkFieldTypeAndLabel(String messageName, FieldElement beforeFE, FieldElement afterFE,
+            List<ProtobufDifference> issues) {
+        String beforeType = normalizeType(fileBefore, beforeFE.getType(), messageName);
+        String afterType = normalizeType(fileAfter, afterFE.getType(), messageName);
+
+        if (!Objects.equals(beforeType, afterType)) {
+            issues.add(ProtobufDifference.from(String.format(
+                    "Field type changed, message %s , before: %s , after %s", messageName,
+                    beforeFE.getType(), afterFE.getType())));
+        }
+
+        if (!Objects.equals(beforeFE.getLabel(), afterFE.getLabel())
+                && !(beforeType != null && beforeType.startsWith("map<")
+                        && beforeType.equals(afterType))) {
+            // A label difference is benign when both sides resolved to the same
+            // map<K, V> type: one side renders the map field with map syntax (no
+            // label) while the other uses the desugared descriptor representation
+            // (REPEATED label on the synthetic map entry type).
+            issues.add(ProtobufDifference.from(String.format(
+                    "Field label changed, message %s , before: %s , after %s", messageName,
+                    beforeFE.getLabel(), afterFE.getLabel())));
+        }
     }
 
     /**
@@ -328,20 +331,9 @@ public class ProtobufCompatibilityCheckerLibrary {
         // "option map_entry = true") is the desugared descriptor representation of a map field.
         // Resolve it to the equivalent map<K, V> type so that it compares equal to the same
         // field rendered with map syntax on the other side.
-        Map<String, String> entryTypes = file.getMapEntryTypes().get(messageContext);
-        if (entryTypes != null) {
-            // The field's type may be simple ("DataEntry"), qualified
-            // ("OrderChanged.DataEntry"), or fully qualified (".test.OrderChanged.DataEntry");
-            // the entry message's simple name is always its last component.
-            String simpleName = type.startsWith(".") ? type.substring(1) : type;
-            int lastDot = simpleName.lastIndexOf('.');
-            if (lastDot >= 0) {
-                simpleName = simpleName.substring(lastDot + 1);
-            }
-            String mapType = entryTypes.get(simpleName);
-            if (mapType != null) {
-                return normalizeMapType(file, mapType, messageContext);
-            }
+        String mapType = findMapEntryType(file, type, messageContext);
+        if (mapType != null) {
+            return normalizeMapType(file, mapType, messageContext);
         }
 
         // If already fully qualified (starts with .), return it as-is
@@ -371,21 +363,9 @@ public class ProtobufCompatibilityCheckerLibrary {
         //   2. ParentOne.NestedType
         //   3. NestedType (top-level)
 
-        if (messageContext != null && !messageContext.isEmpty()) {
-            // Split the message context into scopes (e.g., "ParentOne.ParentTwo" -> ["ParentOne", "ParentTwo"])
-            String[] scopes = messageContext.split("\\.");
-
-            // Iterate from innermost scope outward through parent scopes
-            for (int i = scopes.length; i > 0; i--) {
-                // Build the candidate path by joining the first i scopes
-                String scopePath = String.join(".", java.util.Arrays.copyOfRange(scopes, 0, i));
-                String candidate = scopePath + "." + type;
-
-                if (typeExistsInFile(file, candidate)) {
-                    // Found the type in this scope
-                    return buildFullyQualifiedName(file, candidate);
-                }
-            }
+        String scoped = resolveInEnclosingScopes(file, type, messageContext);
+        if (scoped != null) {
+            return scoped;
         }
 
         // Check if it's a top-level type in the same file
@@ -402,6 +382,51 @@ public class ProtobufCompatibilityCheckerLibrary {
         // the same file) are already handled by the scope-iteration loop above, which walks the
         // messageContext chain outward before reaching this fallback.
         return buildFullyQualifiedName(file, type);
+    }
+
+    /**
+     * Returns the {@code map<K, V>} type of the synthetic map entry message referenced by
+     * {@code type} within {@code messageContext}, or {@code null} if it is not a map entry type.
+     */
+    private static String findMapEntryType(ProtobufFile file, String type, String messageContext) {
+        Map<String, String> entryTypes = file.getMapEntryTypes().get(messageContext);
+        if (entryTypes == null) {
+            return null;
+        }
+        // The field's type may be simple ("DataEntry"), qualified
+        // ("OrderChanged.DataEntry"), or fully qualified (".test.OrderChanged.DataEntry");
+        // the entry message's simple name is always its last component.
+        String simpleName = type.startsWith(".") ? type.substring(1) : type;
+        int lastDot = simpleName.lastIndexOf('.');
+        if (lastDot >= 0) {
+            simpleName = simpleName.substring(lastDot + 1);
+        }
+        return entryTypes.get(simpleName);
+    }
+
+    /**
+     * Resolves {@code type} against the scopes of {@code messageContext}, innermost first.
+     *
+     * @return the fully qualified name, or {@code null} if not found in any enclosing scope
+     */
+    private String resolveInEnclosingScopes(ProtobufFile file, String type, String messageContext) {
+        if (messageContext != null && !messageContext.isEmpty()) {
+            // Split the message context into scopes (e.g., "ParentOne.ParentTwo" -> ["ParentOne", "ParentTwo"])
+            String[] scopes = messageContext.split("\\.");
+
+            // Iterate from innermost scope outward through parent scopes
+            for (int i = scopes.length; i > 0; i--) {
+                // Build the candidate path by joining the first i scopes
+                String scopePath = String.join(".", java.util.Arrays.copyOfRange(scopes, 0, i));
+                String candidate = scopePath + "." + type;
+
+                if (typeExistsInFile(file, candidate)) {
+                    // Found the type in this scope
+                    return buildFullyQualifiedName(file, candidate);
+                }
+            }
+        }
+        return null;
     }
 
     /**

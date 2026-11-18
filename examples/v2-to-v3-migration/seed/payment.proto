@@ -1,0 +1,9 @@
+syntax = "proto3";
+package com.example.payments;
+
+import "money.proto";
+
+message Payment {
+  string id = 1;
+  com.example.common.Money amount = 2;
+}

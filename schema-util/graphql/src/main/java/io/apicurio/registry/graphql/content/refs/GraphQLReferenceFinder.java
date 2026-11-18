@@ -8,7 +8,6 @@ import io.apicurio.registry.graphql.content.GraphQLImportLines.BlockStringTracke
 
 import java.util.LinkedHashSet;
 import java.util.Set;
-import java.util.regex.Matcher;
 
 /**
  * Finds external references in GraphQL SDL content.
@@ -50,9 +49,9 @@ public class GraphQLReferenceFinder implements ReferenceFinder {
             if (insideBlockString) {
                 continue;
             }
-            Matcher matcher = GraphQLImportLines.IMPORT_LINE.matcher(line);
-            if (matcher.matches()) {
-                refs.add(new ExternalReference(matcher.group(2)));
+            GraphQLImportLines.ImportLine importLine = GraphQLImportLines.parse(line);
+            if (importLine != null) {
+                refs.add(new ExternalReference(importLine.file()));
             }
         }
         return refs;

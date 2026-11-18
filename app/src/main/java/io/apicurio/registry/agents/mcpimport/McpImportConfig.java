@@ -46,6 +46,14 @@ public class McpImportConfig {
     @Info(category = CATEGORY_MCP, description = "Maximum number of tools an MCP server may list for an import. An import from a server listing more is refused", availableSince = "3.4.0")
     int toolsMaxSize;
 
+    @ConfigProperty(name = "apicurio.mcp-import.total-timeout.seconds", defaultValue = "60")
+    @Info(category = CATEGORY_MCP, description = "Maximum time, in seconds, for listing the tools of an MCP server during an import, across all requests. It is checked between requests, so a listing can exceed it by at most one request timeout", availableSince = "3.4.0")
+    int totalTimeoutSeconds;
+
+    @ConfigProperty(name = "apicurio.mcp-import.tools.max-total-size", defaultValue = "10485760")
+    @Info(category = CATEGORY_MCP, description = "Maximum total size, in bytes, of the tool definitions an MCP server may list for an import, across all pages", availableSince = "3.4.0")
+    long toolsMaxTotalSize;
+
     public boolean isEnabled() {
         return enabled;
     }
@@ -72,5 +80,13 @@ public class McpImportConfig {
 
     public int getToolsMaxSize() {
         return toolsMaxSize;
+    }
+
+    public int getTotalTimeoutSeconds() {
+        return totalTimeoutSeconds;
+    }
+
+    public long getToolsMaxTotalSize() {
+        return toolsMaxTotalSize;
     }
 }

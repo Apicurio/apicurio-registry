@@ -30,6 +30,7 @@ class AuthorizedInterceptorReadParityTest {
 
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public void readOperation() {
+        // Intentionally empty: only the @Authorized annotation is inspected.
     }
 
     private enum Caller { ANONYMOUS, NO_ROLE, READONLY, DEVELOPER, ADMIN_ROLE, PROXY_USER }

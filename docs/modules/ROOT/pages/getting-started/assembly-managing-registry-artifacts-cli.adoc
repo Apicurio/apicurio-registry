@@ -773,7 +773,7 @@ You can validate the content of a Git revision before merging a change. Validati
 .Prerequisites
 * Your CLI context points to an instance of {registry} that uses GitOps storage.
 * The server has `apicurio.gitops.validate.enabled=true`.
-* The repository ID is configured on the server, and the server can fetch the Git revision.
+* The repository ID is configured on the server, and the GitOps sync container runs next to the server. The sync container fetches the Git revision.
 * You have administrator access when authorization is enabled.
 
 .Procedure
@@ -784,7 +784,7 @@ You can validate the content of a Git revision before merging a change. Validati
 $ acr gitops validate --repo primary --ref refs/heads/proposed-schemas --timeout 300
 ----
 +
-Replace `primary` with the configured repository ID. The CLI waits for the validation task to finish and displays its result, resource counts, and errors. The default timeout is 300 seconds.
+Replace `primary` with the ID of a repository configured on the server. The ID defaults to the repository directory name from `apicurio.gitops.repo.dir` or `apicurio.gitops.repos.N.dir`. `apicurio.gitops.repo.dir` defaults to `default`. The GitOps sync container matches the repository ID against the directory name. The server rejects an unconfigured repository ID with an HTTP `400` response that lists the configured IDs. The CLI waits for the validation task to finish and displays its result, resource counts, and errors. The default timeout is 300 seconds.
 . Optional: Use JSON output to process the validation result in a pipeline:
 +
 [source,bash]
@@ -808,7 +808,7 @@ By default, the CLI attempts to delete the task when it finishes waiting, includ
 ifndef::service-registry-downstream[]
 [role="_additional-resources"]
 .Additional resources
-* xref:getting-started/assembly-configuring-gitops-storage.adoc[]
+* xref:getting-started/assembly-configuring-gitops-storage.adoc#validating-gitops-changes_{context}[]
 endif::[]
 
 
@@ -839,7 +839,7 @@ The GitOps commands support waiting for results, JSON output, and validation tas
 
 | `validate`
 | `--repo`
-| Required repository ID from the server configuration, not a repository URL.
+| Required repository ID from the server configuration, not a repository URL. The server rejects an unconfigured repository ID with an HTTP `400` response.
 
 | `validate`
 | `--ref`

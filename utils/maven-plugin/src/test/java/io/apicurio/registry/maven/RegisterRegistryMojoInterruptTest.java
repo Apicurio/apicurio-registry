@@ -110,6 +110,7 @@ public class RegisterRegistryMojoInterruptTest {
 
         @Override
         public void enableBackingStore(BackingStoreFactory backingStoreFactory) {
+            // No-op: not needed by this test stub.
         }
 
         @Override
@@ -155,6 +156,7 @@ public class RegisterRegistryMojoInterruptTest {
 
         @Override
         public void setBaseUrl(String baseUrl) {
+            // No-op: not needed by this test stub.
         }
 
         @Override

@@ -4,7 +4,9 @@ import io.apicurio.registry.resolver.DefaultSchemaResolver;
 import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.resolver.data.Metadata;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
+import io.apicurio.registry.resolver.strategy.DefaultReferenceNamingStrategy;
 import io.apicurio.registry.resolver.strategy.DynamicArtifactReferenceResolverStrategy;
+import io.apicurio.registry.resolver.strategy.ReferenceNamingStrategy;
 import io.vertx.core.Vertx;
 
 import java.net.URI;
@@ -44,6 +46,17 @@ public class SchemaResolverConfig extends AbstractConfig {
      * ArtifactResolverStrategy
      */
     public static final String ARTIFACT_RESOLVER_STRATEGY_DEFAULT = DynamicArtifactReferenceResolverStrategy.class
+            .getName();
+
+    /**
+     * Fully qualified Java class name of a {@link ReferenceNamingStrategy}, or a Class or instance of one. It
+     * decides the group and artifact ID under which serializers auto-register schemas referenced by another
+     * schema. The reference name stored on the parent is never changed.
+     */
+    public static final String REFERENCE_NAMING_STRATEGY = "apicurio.registry.reference-naming-strategy";
+
+    /** Keeps the coordinates used before reference naming strategies existed. */
+    public static final String REFERENCE_NAMING_STRATEGY_DEFAULT = DefaultReferenceNamingStrategy.class
             .getName();
 
     /**
@@ -502,6 +515,13 @@ public class SchemaResolverConfig extends AbstractConfig {
         return getObject(ARTIFACT_RESOLVER_STRATEGY);
     }
 
+    /**
+     * @return the configured reference naming strategy (class name, Class, or instance)
+     */
+    public Object getReferenceNamingStrategy() {
+        return getObject(REFERENCE_NAMING_STRATEGY);
+    }
+
     public boolean autoRegisterArtifact() {
         // Should be non-null, a default value is defined
         return getBoolean(AUTO_REGISTER_ARTIFACT);
@@ -754,6 +774,7 @@ public class SchemaResolverConfig extends AbstractConfig {
     private static final Map<String, Object> DEFAULTS = Map.ofEntries(
             entry(CANONICALIZE, CANONICALIZE_DEFAULT),
             entry(ARTIFACT_RESOLVER_STRATEGY, ARTIFACT_RESOLVER_STRATEGY_DEFAULT),
+            entry(REFERENCE_NAMING_STRATEGY, REFERENCE_NAMING_STRATEGY_DEFAULT),
             entry(AUTO_REGISTER_ARTIFACT, AUTO_REGISTER_ARTIFACT_DEFAULT),
             entry(AUTO_REGISTER_ARTIFACT_IF_EXISTS, AUTO_REGISTER_ARTIFACT_IF_EXISTS_DEFAULT),
             entry(CACHE_LATEST, CACHE_LATEST_DEFAULT),

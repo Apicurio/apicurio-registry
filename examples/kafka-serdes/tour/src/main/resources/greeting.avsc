@@ -1,0 +1,2 @@
+{"type": "record", "name": "Greeting", "namespace": "com.example.greetings",
+ "fields": [{"name": "message", "type": "string"}, {"name": "time", "type": "long"}]}

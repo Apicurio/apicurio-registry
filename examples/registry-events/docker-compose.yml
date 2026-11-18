@@ -1,0 +1,131 @@
+# Registry events example: the events Apicurio Registry publishes to Kafka, from two storage variants,
+# one Compose profile each. demo.sh starts one profile at a time, checks it, and removes it.
+#
+#   postgresql  SQL storage: the registry writes each event to an outbox table in the same
+#               transaction as the change; Debezium (Kafka Connect) captures it into Kafka
+#   kafkasql    KafkaSQL storage: the registry publishes each event to a Kafka topic itself
+#
+# For local demonstration only: default passwords, no TLS, single-node Kafka.
+# Host ports: 8081 and 8082 (registries), 8083 (Kafka Connect); override with REGISTRY_PORT,
+# REGISTRY_B_PORT and CONNECT_PORT.
+x-registry-image: &registry-image ${REGISTRY_IMAGE:-apicurio/apicurio-registry:latest-snapshot}
+x-registry-health: &registry-health
+  test: ["CMD-SHELL", "curl -sf http://localhost:9000/health/ready > /dev/null"]
+  interval: 5s
+  timeout: 5s
+  retries: 60
+x-kafka: &kafka
+  image: apache/kafka:3.8.1
+  container_name: events-kafka
+  environment:
+    KAFKA_NODE_ID: 1
+    KAFKA_PROCESS_ROLES: broker,controller
+    KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+    KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+    KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+    KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+    KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+    KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+    KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+  healthcheck:
+    test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --list > /dev/null"]
+    interval: 5s
+    timeout: 10s
+    retries: 30
+
+services:
+  # ------------------------------------------------------------------------------------ postgresql
+  kafka-pg:
+    <<: *kafka
+    hostname: kafka
+    profiles: [postgresql]
+
+  postgres:
+    image: postgres:15
+    container_name: events-postgres
+    profiles: [postgresql]
+    # Debezium reads the write-ahead log: logical decoding must be on
+    command: ["postgres", "-c", "wal_level=logical"]
+    environment:
+      POSTGRES_DB: registry
+      POSTGRES_USER: registry
+      POSTGRES_PASSWORD: registry
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U registry -d registry"]
+      interval: 3s
+      retries: 30
+
+  registry-pg:
+    image: *registry-image
+    container_name: events-registry-pg
+    profiles: [postgresql]
+    environment:
+      # Events are written to the outbox table on PostgreSQL and SQL Server (not H2 or MySQL)
+      APICURIO_STORAGE_KIND: sql
+      APICURIO_STORAGE_SQL_KIND: postgresql
+      APICURIO_DATASOURCE_URL: jdbc:postgresql://postgres:5432/registry
+      APICURIO_DATASOURCE_USERNAME: registry
+      APICURIO_DATASOURCE_PASSWORD: registry
+      APICURIO_REST_DELETION_GROUP_ENABLED: "true"
+      APICURIO_REST_DELETION_ARTIFACT_ENABLED: "true"
+      APICURIO_REST_DELETION_ARTIFACT_VERSION_ENABLED: "true"
+    ports: ["${REGISTRY_PORT:-8081}:8080"]
+    depends_on:
+      postgres: {condition: service_healthy}
+    healthcheck: *registry-health
+
+  # Kafka Connect with the Debezium PostgreSQL connector; demo.sh registers
+  # connect/outbox-connector.json, which routes outbox rows to the topic outbox.event.registry-events
+  connect:
+    image: quay.io/debezium/connect:2.7.3.Final
+    container_name: events-connect
+    profiles: [postgresql]
+    environment:
+      BOOTSTRAP_SERVERS: kafka:9092
+      GROUP_ID: registry-events
+      CONFIG_STORAGE_TOPIC: connect-configs
+      OFFSET_STORAGE_TOPIC: connect-offsets
+      STATUS_STORAGE_TOPIC: connect-status
+      CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      STATUS_STORAGE_REPLICATION_FACTOR: 1
+    ports: ["${CONNECT_PORT:-8083}:8083"]
+    depends_on:
+      kafka-pg: {condition: service_healthy}
+      postgres: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8083/connectors > /dev/null"]
+      interval: 5s
+      retries: 40
+
+  # -------------------------------------------------------------------------------------- kafkasql
+  kafka-ks:
+    <<: *kafka
+    hostname: kafka
+    profiles: [kafkasql]
+
+  registry-ks-a: &registry-ks
+    image: *registry-image
+    container_name: events-registry-ks-a
+    profiles: [kafkasql]
+    environment:
+      # Events go to registry-events (apicurio.events.kafka.topic), published by the replica that
+      # handled the request
+      APICURIO_STORAGE_KIND: kafkasql
+      APICURIO_KAFKASQL_BOOTSTRAP_SERVERS: kafka:9092
+      APICURIO_REST_DELETION_GROUP_ENABLED: "true"
+      APICURIO_REST_DELETION_ARTIFACT_ENABLED: "true"
+      APICURIO_REST_DELETION_ARTIFACT_VERSION_ENABLED: "true"
+    ports: ["${REGISTRY_PORT:-8081}:8080"]
+    depends_on:
+      kafka-ks: {condition: service_healthy}
+    healthcheck: *registry-health
+
+  # A second replica: started after the first creates the topics (#11079)
+  registry-ks-b:
+    <<: *registry-ks
+    container_name: events-registry-ks-b
+    ports: ["${REGISTRY_B_PORT:-8082}:8080"]
+    depends_on:
+      registry-ks-a: {condition: service_healthy}

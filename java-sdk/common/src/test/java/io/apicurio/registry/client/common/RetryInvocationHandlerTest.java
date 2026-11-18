@@ -360,6 +360,7 @@ class RetryInvocationHandlerTest {
 
         @Override
         public void enableBackingStore(@Nullable BackingStoreFactory backingStoreFactory) {
+            // No-op: not needed by this test stub.
         }
 
         @Nonnull
@@ -422,6 +423,7 @@ class RetryInvocationHandlerTest {
 
         @Override
         public void setBaseUrl(@Nonnull String baseUrl) {
+            // No-op: not needed by this test stub.
         }
 
         @Nonnull

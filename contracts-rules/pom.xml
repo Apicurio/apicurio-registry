@@ -39,13 +39,13 @@
     <dependency>
       <groupId>org.projectnessie.cel</groupId>
       <artifactId>cel-standalone</artifactId>
-      <version>0.8.0</version>
+      <version>${cel-standalone.version}</version>
     </dependency>
 
     <dependency>
       <groupId>com.dashjoin</groupId>
       <artifactId>jsonata</artifactId>
-      <version>0.9.10</version>
+      <version>0.9.11</version>
     </dependency>
 
     <dependency>

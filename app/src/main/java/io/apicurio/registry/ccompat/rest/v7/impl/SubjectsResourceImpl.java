@@ -25,6 +25,7 @@ import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.rest.MethodMetadata;
+import io.apicurio.registry.rest.ParameterValidationUtils;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.OrderBy;
@@ -52,6 +53,7 @@ import java.math.BigInteger;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -94,7 +96,7 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
             filters.add(SearchFilter.ofState(VersionState.DISABLED).negated());
         }
         // Handle pagination
-        int effectiveOffset = offset != null ? offset.intValue() : 0;
+        int effectiveOffset = offset != null ? ParameterValidationUtils.normalizeOffset(offset) : 0;
         int effectiveLimit = (limit != null && limit.intValue() > 0) ? limit.intValue()
                 : cconfig.maxSubjects.get();
 
@@ -129,37 +131,9 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
                     StoredArtifactVersionDto storedArtifact = storage.getArtifactVersionContent(
                             ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), amd.getVersion());
 
-                    // Apply default format if configured and no format was explicitly provided
-                    String effectiveFormat = format;
-                    if (effectiveFormat == null || effectiveFormat.isBlank()) {
-                        java.util.Optional<String> configuredDefault = restConfig.getDefaultReferenceHandling();
-                        if (configuredDefault.isPresent() && !configuredDefault.orElseThrow().trim().isEmpty()
-                                && "DEREFERENCE".equals(configuredDefault.orElseThrow())) {
-                            // Apply RESOLVED format for Avro and Protobuf when DEREFERENCE is configured
-                            if (ArtifactType.AVRO.equals(amd.getArtifactType())
-                                    || ArtifactType.PROTOBUF.equals(amd.getArtifactType())) {
-                                effectiveFormat = "RESOLVED";
-                            }
-                        }
-                    }
-
-                    // Apply format transformation if requested
-                    if (effectiveFormat != null && !effectiveFormat.trim().isEmpty()) {
-                        Map<String, TypedContent> resolvedReferences = resolveReferenceDtos(
-                                storedArtifact.getReferences());
-                        ContentHandle formattedContent = formatService.applyFormat(
-                                storedArtifact.getContent(), amd.getArtifactType(), effectiveFormat,
-                                resolvedReferences);
-
-                        StoredArtifactVersionDto formattedArtifact = StoredArtifactVersionDto.builder()
-                                .globalId(storedArtifact.getGlobalId()).version(storedArtifact.getVersion())
-                                .versionOrder(storedArtifact.getVersionOrder())
-                                .contentId(storedArtifact.getContentId()).content(formattedContent)
-                                .references(storedArtifact.getReferences()).build();
-                        return converter.convert(ga.getRawArtifactId(), formattedArtifact);
-                    }
-
-                    return converter.convert(ga.getRawArtifactId(), storedArtifact);
+                    String effectiveFormat = resolveEffectiveFormat(format, amd.getArtifactType());
+                    return converter.convert(ga.getRawArtifactId(),
+                            applyFormat(storedArtifact, amd.getArtifactType(), effectiveFormat));
                 }
                 else {
                     throw new SchemaNotFoundException(
@@ -207,7 +181,8 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
             // The artifact exist, it's in DISABLED state but the delete request is set to not permanent,
             // throw ex.
             throw new SubjectSoftDeletedException(
-                    String.format("Subject %s is in soft deleted state.", ga.getRawArtifactId()));
+                    String.format("Subject '%s' was soft deleted.Set permanent=true to delete permanently",
+                            subject));
         }
     }
 
@@ -387,7 +362,8 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
             if (avmd.getState().equals(VersionState.ENABLED)
                     || avmd.getState().equals(VersionState.DEPRECATED)) {
                 throw new SchemaNotSoftDeletedException(String.format(
-                        "Subject %s version %s must be soft deleted first", artifactId, versionString));
+                        "Subject '%s' Version %s was not deleted first before being permanently deleted",
+                        artifactId, versionString));
             }
             else if (avmd.getState().equals(VersionState.DISABLED)) {
                 storage.deleteArtifactVersion(groupId, artifactId, version);
@@ -395,7 +371,9 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
         }
         else {
             if (avmd.getState().equals(VersionState.DISABLED)) {
-                throw new SchemaSoftDeletedException("Schema is already soft deleted");
+                throw new SchemaSoftDeletedException(String.format(
+                        "Subject '%s' Version %s was soft deleted.Set permanent=true to delete permanently",
+                        artifactId, versionString));
             }
             else {
                 storage.updateArtifactVersionState(groupId, artifactId, version, VersionState.DISABLED,
@@ -537,38 +515,10 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
                     StoredArtifactVersionDto storedArtifact = storage.getArtifactVersionContent(groupId,
                             artifactId, amd.getVersion());
 
-                    // Apply default format if configured and no format was explicitly provided
-                    String effectiveFormat = format;
-                    if (effectiveFormat == null || effectiveFormat.isBlank()) {
-                        java.util.Optional<String> configuredDefault = restConfig.getDefaultReferenceHandling();
-                        if (configuredDefault.isPresent() && !configuredDefault.orElseThrow().trim().isEmpty()
-                                && "DEREFERENCE".equals(configuredDefault.orElseThrow())) {
-                            // Apply RESOLVED format for Avro and Protobuf when DEREFERENCE is configured
-                            if (ArtifactType.AVRO.equals(amd.getArtifactType())
-                                    || ArtifactType.PROTOBUF.equals(amd.getArtifactType())) {
-                                effectiveFormat = "RESOLVED";
-                            }
-                        }
-                    }
-
-                    // Apply format transformation if requested
-                    if (effectiveFormat != null && !effectiveFormat.trim().isEmpty()) {
-                        Map<String, TypedContent> resolvedReferences = resolveReferenceDtos(
-                                storedArtifact.getReferences());
-                        ContentHandle formattedContent = formatService.applyFormat(
-                                storedArtifact.getContent(), amd.getArtifactType(), effectiveFormat,
-                                resolvedReferences);
-
-                        // Create a new StoredArtifactVersionDto with the formatted content
-                        StoredArtifactVersionDto formattedArtifact = StoredArtifactVersionDto.builder()
-                                .globalId(storedArtifact.getGlobalId()).version(storedArtifact.getVersion())
-                                .versionOrder(storedArtifact.getVersionOrder())
-                                .contentId(storedArtifact.getContentId()).content(formattedContent)
-                                .references(storedArtifact.getReferences()).build();
-                        return converter.convert(artifactId, formattedArtifact, amd.getArtifactType());
-                    }
-
-                    return converter.convert(artifactId, storedArtifact, amd.getArtifactType());
+                    String effectiveFormat = resolveEffectiveFormat(format, amd.getArtifactType());
+                    return converter.convert(artifactId,
+                            applyFormat(storedArtifact, amd.getArtifactType(), effectiveFormat),
+                            amd.getArtifactType());
                 } else {
                     throw new VersionNotFoundException(groupId, artifactId, version);
                 }
@@ -578,10 +528,49 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
         }
     }
 
+    /**
+     * Applies the default format if configured and no format was explicitly provided.
+     */
+    private String resolveEffectiveFormat(String format, String artifactType) {
+        String effectiveFormat = format;
+        if (effectiveFormat == null || effectiveFormat.isBlank()) {
+            Optional<String> configuredDefault = restConfig.getDefaultReferenceHandling();
+            if (configuredDefault.isPresent() && !configuredDefault.orElseThrow().trim().isEmpty()
+                    && "DEREFERENCE".equals(configuredDefault.orElseThrow())) {
+                // Apply RESOLVED format for Avro and Protobuf when DEREFERENCE is configured
+                if (ArtifactType.AVRO.equals(artifactType) || ArtifactType.PROTOBUF.equals(artifactType)) {
+                    effectiveFormat = "RESOLVED";
+                }
+            }
+        }
+        return effectiveFormat;
+    }
+
+    /**
+     * Applies the format transformation if requested, otherwise returns the stored artifact unchanged.
+     */
+    private StoredArtifactVersionDto applyFormat(StoredArtifactVersionDto storedArtifact, String artifactType,
+            String effectiveFormat) {
+        if (effectiveFormat != null && !effectiveFormat.trim().isEmpty()) {
+            Map<String, TypedContent> resolvedReferences = resolveReferenceDtos(storedArtifact.getReferences());
+            ContentHandle formattedContent = formatService.applyFormat(storedArtifact.getContent(), artifactType,
+                    effectiveFormat, resolvedReferences);
+
+            // Create a new StoredArtifactVersionDto with the formatted content
+            return StoredArtifactVersionDto.builder()
+                    .globalId(storedArtifact.getGlobalId()).version(storedArtifact.getVersion())
+                    .versionOrder(storedArtifact.getVersionOrder())
+                    .contentId(storedArtifact.getContentId()).content(formattedContent)
+                    .references(storedArtifact.getReferences()).build();
+        }
+        return storedArtifact;
+    }
+
     private List<BigInteger> deleteSubjectPermanent(String groupId, String artifactId) {
         if (isArtifactActive(artifactId, groupId)) {
             throw new SubjectNotSoftDeletedException(
-                    String.format("Subject %s must be soft deleted first", artifactId));
+                    String.format("Subject '%s' was not deleted first before being permanently deleted",
+                            artifactId));
         } else {
             // Collect versionOrder values before deleting — metadata is gone after deleteArtifact.
             Set<SearchFilter> filters = new HashSet<>();

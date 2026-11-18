@@ -32,7 +32,7 @@ expensive to run per-PR; see the workflow file for details) as a matrix job acro
 - `src/main/java/.../kafka/KafkaLoadGenerator.java` - a Kafka producer/consumer using
   `apicurio-registry-avro-serde-kafka`, so schema registration/lookup happens transparently as
   part of producing/consuming records, the same way a real Kafka application would use the
-  registry (see `examples/simple-avro` for the non-perf-test equivalent).
+  registry (see `examples/kafka-serdes` for the non-perf-test equivalent).
 - `src/main/java/.../PerfTestRunner.java` - the Job entry point: runs both of the above
   concurrently and exits non-zero if either fails.
 - `k8s/` - manifests for both scenarios' throwaway, single-run cluster topologies (see

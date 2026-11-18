@@ -196,21 +196,22 @@ public class DefaultRegistryStorageTest extends AbstractRegistryStorageTest {
             Future<Long> holder = executor.submit(() -> handles.withHandleNoException(handle -> {
                 long id = sequences.nextGlobalIdRaw(handle);
                 allocated.countDown();
-                Assertions.assertTrue(release.await(30, TimeUnit.SECONDS));
+                Assertions.assertTrue(release.await(30, TimeUnit.SECONDS), "release latch timed out");
                 return id;
             }));
-            Assertions.assertTrue(allocated.await(30, TimeUnit.SECONDS));
+            Assertions.assertTrue(allocated.await(30, TimeUnit.SECONDS), "holder never allocated an ID");
 
             Future<Long> other = executor.submit(sequences::nextGlobalId);
+            // Upper bound on a call that should return immediately; a timeout means it blocked.
             long otherId = other.get(5, TimeUnit.SECONDS);
 
             release.countDown();
             long heldId = holder.get(30, TimeUnit.SECONDS);
-            Assertions.assertNotEquals(heldId, otherId);
+            Assertions.assertNotEquals(heldId, otherId, "concurrent allocations returned the same ID");
         } finally {
             release.countDown();
             executor.shutdownNow();
-            Assertions.assertTrue(executor.awaitTermination(30, TimeUnit.SECONDS));
+            executor.awaitTermination(30, TimeUnit.SECONDS);
         }
     }
 
@@ -225,7 +226,8 @@ public class DefaultRegistryStorageTest extends AbstractRegistryStorageTest {
             rolledBack[0] = sequences.nextGlobalIdRaw(handle);
             throw new IllegalStateException("force rollback");
         }));
-        Assertions.assertTrue(sequences.nextGlobalId() > rolledBack[0]);
+        long next = sequences.nextGlobalId();
+        Assertions.assertTrue(next > rolledBack[0], "expected > " + rolledBack[0] + " but was " + next);
     }
 
     /**
@@ -242,7 +244,7 @@ public class DefaultRegistryStorageTest extends AbstractRegistryStorageTest {
             List<Future<List<Long>>> futures = new ArrayList<>();
             for (int t = 0; t < threads; t++) {
                 futures.add(executor.submit(() -> {
-                    Assertions.assertTrue(start.await(30, TimeUnit.SECONDS));
+                    Assertions.assertTrue(start.await(30, TimeUnit.SECONDS), "start latch timed out");
                     List<Long> ids = new ArrayList<>();
                     for (int i = 0; i < perThread; i++) {
                         ids.add(sequences.nextGlobalId());
@@ -257,10 +259,10 @@ public class DefaultRegistryStorageTest extends AbstractRegistryStorageTest {
             for (Future<List<Long>> future : futures) {
                 all.addAll(future.get(60, TimeUnit.SECONDS));
             }
-            Assertions.assertEquals(threads * perThread * 3, all.size());
+            Assertions.assertEquals(threads * perThread * 3, all.size(), "duplicate IDs were allocated");
         } finally {
             executor.shutdownNow();
-            Assertions.assertTrue(executor.awaitTermination(30, TimeUnit.SECONDS));
+            executor.awaitTermination(30, TimeUnit.SECONDS);
         }
     }
 
@@ -286,7 +288,9 @@ public class DefaultRegistryStorageTest extends AbstractRegistryStorageTest {
                 "expected > " + importedGlobalId + " but was " + afterReset);
 
         storage.resetGlobalId();
-        Assertions.assertTrue(sequences.nextGlobalId() > afterReset);
+        long afterSecondReset = sequences.nextGlobalId();
+        Assertions.assertTrue(afterSecondReset > afterReset,
+                "expected > " + afterReset + " but was " + afterSecondReset);
     }
 
     private ArtifactVersionMetaDataDto createFirstVersion(String groupId, String artifactId) {
@@ -337,18 +341,56 @@ public class DefaultRegistryStorageTest extends AbstractRegistryStorageTest {
      * IDs present in the data tables.
      */
     @Test
-    public void testNativeSequencesUpgraderSeedsAboveLegacyValues() throws Exception {
+    public void testNativeSequencesUpgraderSeedsAboveLegacyValues() {
         Assumptions.assumeFalse("h2".equals(sqlStatements.dbType()), "H2 keeps in-memory counters");
         SqlSequenceRepository sequences = sequences();
         long legacyGlobalId = sequences.nextGlobalId() + 5000;
         long legacyContentId = sequences.nextContentId() + 5000;
         long legacyCommentId = sequences.nextCommentId() + 5000;
 
+        runNativeSequencesUpgrader(legacyGlobalId, legacyContentId, legacyCommentId);
+
+        assertGreater(legacyGlobalId, sequences.nextGlobalId());
+        assertGreater(legacyContentId, sequences.nextContentId());
+        assertGreater(legacyCommentId, sequences.nextCommentId());
+    }
+
+    /**
+     * When the data tables hold IDs above the legacy sequences-table value (e.g. after an
+     * ID-preserving import), the 115 upgrader seeds the native sequence above the table maximum.
+     */
+    @Test
+    public void testNativeSequencesUpgraderSeedsAboveTableMaxWhenLegacyIsLower() {
+        Assumptions.assumeFalse("h2".equals(sqlStatements.dbType()), "H2 keeps in-memory counters");
+        SqlSequenceRepository sequences = sequences();
+        ArtifactVersionMetaDataDto first = createFirstVersion(TestUtils.generateGroupId(),
+                TestUtils.generateArtifactId());
+        long legacyGlobalId = sequences.nextGlobalId();
+        long importedGlobalId = legacyGlobalId + 10000;
+        ArtifactVersionEntity imported = duplicateOf(first, "2");
+        imported.globalId = importedGlobalId;
+        imported.versionOrder = first.getVersionOrder() + 1;
+        storage.importArtifactVersion(imported);
+
+        runNativeSequencesUpgrader(legacyGlobalId, sequences.nextContentId(), sequences.nextCommentId());
+
+        assertGreater(importedGlobalId, sequences.nextGlobalId());
+    }
+
+    private static void assertGreater(long floor, long actual) {
+        Assertions.assertTrue(actual > floor, "expected > " + floor + " but was " + actual);
+    }
+
+    /**
+     * Recreates the legacy sequences table with the given values, runs the 115 upgrader against
+     * it, and drops the table again.
+     */
+    private void runNativeSequencesUpgrader(long globalId, long contentId, long commentId) {
         execute("CREATE TABLE sequences (seqName VARCHAR(32) NOT NULL PRIMARY KEY, seqValue BIGINT NOT NULL)");
         try {
-            execute("INSERT INTO sequences (seqName, seqValue) VALUES ('globalId', " + legacyGlobalId + ")");
-            execute("INSERT INTO sequences (seqName, seqValue) VALUES ('contentId', " + legacyContentId + ")");
-            execute("INSERT INTO sequences (seqName, seqValue) VALUES ('commentId', " + legacyCommentId + ")");
+            execute("INSERT INTO sequences (seqName, seqValue) VALUES ('globalId', " + globalId + ")");
+            execute("INSERT INTO sequences (seqName, seqValue) VALUES ('contentId', " + contentId + ")");
+            execute("INSERT INTO sequences (seqName, seqValue) VALUES ('commentId', " + commentId + ")");
 
             String className = sqlStatements.databaseUpgrade(114, 115).stream()
                     .filter(s -> s.startsWith("UPGRADER:"))
@@ -358,10 +400,6 @@ public class DefaultRegistryStorageTest extends AbstractRegistryStorageTest {
                 ((IDbUpgrader) Class.forName(className).getConstructor().newInstance()).upgrade(handle);
                 return null;
             });
-
-            Assertions.assertTrue(sequences.nextGlobalId() > legacyGlobalId);
-            Assertions.assertTrue(sequences.nextContentId() > legacyContentId);
-            Assertions.assertTrue(sequences.nextCommentId() > legacyCommentId);
         } finally {
             execute("DROP TABLE sequences");
         }
@@ -381,7 +419,6 @@ public class DefaultRegistryStorageTest extends AbstractRegistryStorageTest {
         });
     }
 
-
     /**
      * Pruning leaves exactly one ticket row per MySQL sequence and numbering continues after it.
      */
@@ -389,16 +426,24 @@ public class DefaultRegistryStorageTest extends AbstractRegistryStorageTest {
     public void testPruneSequenceTicketsKeepsNewestRow() {
         Assumptions.assumeTrue("mysql".equals(sqlStatements.dbType()), "Ticket tables are MySQL-only");
         SqlSequenceRepository sequences = sequences();
-        long last = 0;
+        long lastGlobalId = 0;
+        long lastContentId = 0;
+        long lastCommentId = 0;
         for (int i = 0; i < 20; i++) {
-            last = sequences.nextGlobalId();
+            lastGlobalId = sequences.nextGlobalId();
+            lastContentId = sequences.nextContentId();
+            lastCommentId = sequences.nextCommentId();
         }
         sequences.pruneSequenceTickets();
 
-        long rows = handles.withHandleNoException(handle -> {
-            return handle.createQuery("SELECT COUNT(*) FROM globalid_seq").mapTo(Long.class).one();
-        });
-        Assertions.assertEquals(1L, rows);
-        Assertions.assertTrue(sequences.nextGlobalId() > last);
+        for (String table : List.of("globalid_seq", "contentid_seq", "commentid_seq")) {
+            long rows = handles.withHandleNoException(handle -> {
+                return handle.createQuery("SELECT COUNT(*) FROM " + table).mapTo(Long.class).one();
+            });
+            Assertions.assertEquals(1L, rows, table + " should keep exactly one ticket row");
+        }
+        assertGreater(lastGlobalId, sequences.nextGlobalId());
+        assertGreater(lastContentId, sequences.nextContentId());
+        assertGreater(lastCommentId, sequences.nextCommentId());
     }
 }

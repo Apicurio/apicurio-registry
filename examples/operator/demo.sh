@@ -108,10 +108,8 @@ check "the CR becomes Ready" True "$(eventually 300 True ready demo-memory)"
 check "the operator created the app and the console" "registry-app-deployment registry-ui-deployment" "$(names demo-memory deploy)"
 check "  their services" "registry-app-service registry-ui-service" "$(names demo-memory svc)"
 check "  and network policies" "registry-app-networkpolicy registry-ui-networkpolicy" "$(names demo-memory networkpolicy)"
-check "no PodDisruptionBudget for the single app pod" "" "$(names demo-memory pdb | tr ' ' '\n' | grep app || true)"
-# The console gets one with a single pod, which blocks node drains (#11233)
-check "  but one for the single console pod, allowing 0 disruptions (should not exist, #11233)" "registry-ui-poddisruptionbudget 0" \
-  "$($K -n demo-memory get pdb registry-ui-poddisruptionbudget -o jsonpath='{.metadata.name} {.status.disruptionsAllowed}' 2> /dev/null)"
+# A budget for a single pod would allow no disruption, and block node drains
+check "no PodDisruptionBudget for the single app and console pods" "" "$(names demo-memory pdb)"
 check "the deployments belong to the CR (deleted with it)" ApicurioRegistry3 \
   "$($K -n demo-memory get deploy registry-app-deployment -o jsonpath='{.metadata.ownerReferences[0].kind}')"
 forward demo-memory svc/registry-app-service || fail "port-forward to registry-app-service"

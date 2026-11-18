@@ -45,7 +45,7 @@ for each CR:
 | Deployment, Service, and NetworkPolicy. An Ingress when `spec.app.ingress.host` is set. A PodDisruptionBudget when there is more than one replica, or autoscaling can go above one. A HorizontalPodAutoscaler when autoscaling is enabled.
 
 | *{registry-ui}*
-| Deployment, Service, NetworkPolicy, and PodDisruptionBudget. An Ingress when `spec.ui.ingress.host` is set. A HorizontalPodAutoscaler when autoscaling is enabled.
+| Deployment, Service, and NetworkPolicy. An Ingress when `spec.ui.ingress.host` is set. A PodDisruptionBudget when there is more than one replica, or autoscaling can go above one. A HorizontalPodAutoscaler when autoscaling is enabled.
 |===
 
 NetworkPolicies and PodDisruptionBudgets can be disabled per component with `networkPolicy.enabled: false` and `podDisruptionBudget.enabled: false`.

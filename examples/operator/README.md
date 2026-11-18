@@ -40,8 +40,6 @@ from this checkout; `REGISTRY_IMAGE` and `REGISTRY_UI_IMAGE` select the registry
 
 ## Notes
 
-- **Known issue:** the console's PodDisruptionBudget is created with one replica and blocks node
-  drains ([#11233](https://github.com/Apicurio/apicurio-registry/issues/11233)).
 - To install a released operator instead, use `operator/install/install.yaml` (or OperatorHub) and
   skip `build.sh`; the CRs are the same.
 - **Local only:** demo databases without volumes, plain HTTP, no authentication.

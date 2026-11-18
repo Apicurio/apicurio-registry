@@ -78,8 +78,7 @@ hand-written cleanup.
 | CR | Creates (in the CR's namespace) |
 |---|---|
 | `spec: {}` | `registry-app-deployment`, `registry-ui-deployment`, a Service and a NetworkPolicy for each |
-| `app.replicas` > 1 (or autoscaling above one) | A PodDisruptionBudget for the app |
-| (always, unless disabled) | A PodDisruptionBudget for the console, even with one replica ([#11233](https://github.com/Apicurio/apicurio-registry/issues/11233)) |
+| `replicas` > 1 (or autoscaling above one) | A PodDisruptionBudget for that component (app or console) |
 | `ingress.host` | An Ingress for that component |
 | `autoscaling` | A HorizontalPodAutoscaler |
 | `storage.type: kubernetesops` | A ServiceAccount, Role and RoleBinding to read ConfigMaps |
@@ -113,9 +112,7 @@ hand-written cleanup.
    (`apicurio-registry-operator-v3.4.0-snapshot`), which Kubernetes warns about (dots in a name).
 4. The install file pulls the operator image every time (`imagePullPolicy: Always`), which needs a
    change for images loaded into a local cluster.
-5. The console's PodDisruptionBudget is created even with one replica, so it blocks node drains
-   ([#11233](https://github.com/Apicurio/apicurio-registry/issues/11233)).
-6. Federation peers are not part of the CR yet
+5. Federation peers are not part of the CR yet
    ([#8578](https://github.com/Apicurio/apicurio-registry/issues/8578)).
 
 ## Alternatives

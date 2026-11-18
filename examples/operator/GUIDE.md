@@ -63,10 +63,9 @@ the deployments are available:
 kubectl get apicurioregistry3 registry -o jsonpath='{.status.conditions}'
 ```
 
-With a single app pod there is no PodDisruptionBudget for the app; the console gets one anyway, which
-allows no disruption and so blocks `kubectl drain` on its node
-([#11233](https://github.com/Apicurio/apicurio-registry/issues/11233)). Disable it with
-`spec.ui.podDisruptionBudget.enabled: false` until that is fixed.
+With a single pod there is no PodDisruptionBudget, for the app or the console: a budget for one pod
+would allow no disruption at all, and block `kubectl drain` on its node. Step 4 shows one, with two
+replicas.
 
 Everything it creates is **owned** by the CR (an owner reference), so deleting the CR deletes it.
 With no storage, the registry keeps its data in memory.

@@ -924,7 +924,7 @@ spec:
 |Not set
 |===
 
-The autoscaling configuration is available on both `spec.app.autoscaling` and `spec.ui.autoscaling`. If you set both `replicas` and `autoscaling` on a component, the {operator} reports a validation error condition and ignores the `replicas` field. The {operator} also manages a PodDisruptionBudget when autoscaling is enabled with `maxReplicas` greater than 1.
+The autoscaling configuration is available on both `spec.app.autoscaling` and `spec.ui.autoscaling`. If you set both `replicas` and `autoscaling` on a component, the {operator} reports a validation error condition and ignores the `replicas` field. The {operator} also manages a PodDisruptionBudget when autoscaling is enabled and can go above one pod: `maxReplicas` greater than 1 (`maxReplicas` defaults to `minReplicas`).
 
 // ref-configuring-poddisruptionbudget
 [id="configuring-poddisruptionbudget_{context}"]
@@ -933,7 +933,7 @@ The autoscaling configuration is available on both `spec.app.autoscaling` and `s
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-The operator creates PodDisruptionBudget resources by default. To manage PodDisruptionBudget manually, disable the operator-managed PodDisruptionBudget.
+The operator creates a PodDisruptionBudget for the {registry} application and for the web console when that component can have more than one pod: with autoscaling enabled, a `maxReplicas` above one (it defaults to `minReplicas`); otherwise, more than one replica. A budget for a single pod would allow no voluntary disruption, and block node drains. To manage PodDisruptionBudget manually, disable the operator-managed PodDisruptionBudget.
 
 [source,yaml]
 ----

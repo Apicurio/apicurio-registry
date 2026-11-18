@@ -22,6 +22,16 @@ class StorageErrorMessagesTest {
     }
 
     @Test
+    void versionAlreadyExists() {
+        assertEquals("An artifact version '1' for artifact ID 'a' in group 'default' already exists.",
+                new VersionAlreadyExistsException(null, "a", "1").getMessage());
+        assertEquals("An artifact version '1' for artifact ID 'a' in group 'default' already exists.",
+                new VersionAlreadyExistsException(GroupId.DEFAULT.getRawGroupId(), "a", "1").getMessage());
+        assertEquals("An artifact version '1' for artifact ID 'a' in group 'orders' already exists.",
+                new VersionAlreadyExistsException("orders", "a", "1").getMessage());
+    }
+
+    @Test
     void otherGroupsAreUnchanged() {
         assertEquals("No artifact with ID 'a' in group 'orders' was found.",
                 new ArtifactNotFoundException("orders", "a").getMessage());

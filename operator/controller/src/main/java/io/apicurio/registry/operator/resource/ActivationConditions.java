@@ -74,18 +74,22 @@ public class ActivationConditions {
 
     /**
      * Whether a component gets a PodDisruptionBudget: when it is enabled (the default) and the
-     * component can have more than one pod, from {@code replicas} or from autoscaling. With a single
-     * pod, a budget would allow no disruption at all and block node drains.
+     * component can have more than one pod. With autoscaling enabled, that is the autoscaler's maximum
+     * ({@code maxReplicas}, which defaults to {@code minReplicas}, which defaults to 1, as in
+     * {@link ResourceFactory}), and the static {@code replicas} is ignored; otherwise it is
+     * {@code replicas}. With a single pod, a budget would allow no disruption and block node drains.
      */
     public static boolean isPodDisruptionBudgetManaged(ComponentSpec component) {
         Optional<ComponentSpec> spec = ofNullable(component);
         boolean isEnabled = spec.map(ComponentSpec::getPodDisruptionBudget).map(PodDisruptionSpec::getEnabled)
                 .orElse(Boolean.TRUE);
-        int numReplicas = spec.map(ComponentSpec::getReplicas).orElse(1);
-        boolean autoscalingCanScaleAboveOne = spec.map(ComponentSpec::getAutoscaling)
-                .filter(a -> Boolean.TRUE.equals(a.getEnabled()))
-                .map(AutoscalingSpec::getMaxReplicas).map(max -> max > 1).orElse(false);
-        return isEnabled && (numReplicas > 1 || autoscalingCanScaleAboveOne);
+        Optional<AutoscalingSpec> autoscaling = spec.map(ComponentSpec::getAutoscaling)
+                .filter(a -> Boolean.TRUE.equals(a.getEnabled()));
+        int maxPods = autoscaling.isPresent()
+                ? autoscaling.map(AutoscalingSpec::getMaxReplicas)
+                        .orElse(autoscaling.map(AutoscalingSpec::getMinReplicas).orElse(1))
+                : spec.map(ComponentSpec::getReplicas).orElse(1);
+        return isEnabled && maxPods > 1;
     }
 
     public static class AppPodDisruptionBudgetActivationCondition

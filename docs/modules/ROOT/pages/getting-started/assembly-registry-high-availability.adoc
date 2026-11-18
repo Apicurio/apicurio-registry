@@ -609,7 +609,7 @@ use `scheme: HTTPS`. The {operator} handles this automatically.
 . If you are using the {operator}, confirm that no manual changes are required: it automatically configures the
 correct probe ports for operator-managed deployments.
 
-[id="ha-rolling-updates-native-id-sequences_{context}"]
+[id="ha-upgrade-native-id-sequences_{context}"]
 == Upgrading SQL storage to native ID sequences
 
 :_mod-docs-content-type: CONCEPT
@@ -633,6 +633,8 @@ Database privileges::
 creates the new objects. If {registry} connects at runtime with a different, less privileged user, grant the
 following privileges:
 +
+* PostgreSQL: `USAGE`, `SELECT`, and `UPDATE` on the three ID sequences. {registry} calls `nextval`, reads
+`last_value`, and calls `setval` when it resets the sequences.
 * SQL Server: `UPDATE` on the three ID sequences.
 * MySQL: `INSERT`, `DELETE`, and `SELECT` on the ID ticket tables. {registry} prunes consumed ticket rows
 hourly.

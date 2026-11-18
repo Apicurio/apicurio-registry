@@ -322,7 +322,7 @@ Content types: `application/x-yaml`, `application/json`, `text/x-prompt-template
 
 [role="_additional-resources"]
 .Additional resources
-* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/llm-artifact-types[LLM artifact types example]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/agent-registry[agent registry example]
 * link:https://github.com/carlesarnal/apicurio-registry-support-chat[Apicurio Registry Support Chat]
 
 

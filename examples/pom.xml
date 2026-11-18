@@ -32,13 +32,11 @@
 
   <modules>
     <module>registry-clients/java-sdk</module>
-    <module>docker-compose</module>
     <module>mtls-minikube/client</module>
     <module>maven-plugin-tls-credentials</module>
     <module>tools/kafkasql-topic-import</module>
     <module>otel-tracing</module>
     <module>debezium-otel-tracing</module>
-    <module>kafka-order-processing</module>
     <module>camel-quarkus-kafka</module>
     <module>a2a-real-world-integration</module>
     <module>odcs-data-contracts</module>

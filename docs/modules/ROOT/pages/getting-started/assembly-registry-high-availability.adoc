@@ -609,6 +609,42 @@ use `scheme: HTTPS`. The {operator} handles this automatically.
 . If you are using the {operator}, confirm that no manual changes are required: it automatically configures the
 correct probe ports for operator-managed deployments.
 
+[id="ha-rolling-updates-native-id-sequences_{context}"]
+== Upgrading SQL storage to native ID sequences
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+Database schema version 115 replaces the row-locked `sequences` table, which allocated global IDs, content
+IDs, and comment IDs, with native database sequences on PostgreSQL and SQL Server, and with `AUTO_INCREMENT`
+ticket tables on MySQL. {registry} applies this schema upgrade automatically on startup. H2 and KafkaSQL
+storage are not affected.
+
+Rolling updates::
+The schema upgrade deliberately drops the `sequences` table so that older replicas cannot allocate duplicate
+IDs. As a result, replicas running a release earlier than schema version 115 fail write requests as soon as
+any upgraded replica has migrated the schema. Read requests are unaffected. Complete the rollout promptly.
+
+Database version requirements::
+SQL Server 2017 or later is required, because {registry} reads `sys.sequences.last_used_value`.
+
+Database privileges::
+{registry} does not run any DDL at runtime for ID allocation. The database user that runs the schema upgrade
+creates the new objects. If {registry} connects at runtime with a different, less privileged user, grant the
+following privileges:
++
+* SQL Server: `UPDATE` on the three ID sequences.
+* MySQL: `INSERT`, `DELETE`, and `SELECT` on the ID ticket tables. {registry} prunes consumed ticket rows
+hourly.
+
+ID ordering::
+A `globalId` value is unique, but under concurrent writes it no longer strictly follows commit order. To
+determine the newest version of an artifact, use the version order rather than comparing `globalId` values.
+
+Imports that preserve IDs::
+Run imports that preserve existing IDs while no other writes are in progress. On PostgreSQL, resetting the
+sequences while other clients allocate IDs has a small window in which an ID can be issued twice.
+
 [id="ha-backup-restore_{context}"]
 == Backup and restore procedures
 

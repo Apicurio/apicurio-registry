@@ -32,7 +32,7 @@ non-obvious line.
 - **Two commands to run it:** `docker compose up -d` then `./demo.sh`. Success is the literal line
   `All checks passed.`
 - **`demo.sh` checks behaviour, not just reachability.** Assert exact status codes and exact values,
-  including the failure cases (409 on a rule violation, 403 on a denial). Each check prints one
+  including the failure cases (400 on a rule violation, 403 on a denial). Each check prints one
   `ok`/`FAIL` line. It must be safe to run twice. CI runs it, so it must not need a browser or input.
 - **One idea per guide step.** Show the API command, its expected output, then the same thing in the
   UI when the UI shows it. End with Clean up, Presenter notes, Troubleshooting and Using other ports.

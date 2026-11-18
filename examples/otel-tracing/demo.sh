@@ -162,13 +162,23 @@ expect "  the recorded exception" java.lang.RuntimeException \
   "$(span_value "$tid" greeting-producer process-invalid-greeting '.events | map(select(. == "java.lang.RuntimeException")) | first // "none"')"
 
 echo "4. Debezium CDC: one trace from the order service, through Debezium and the Registry, to the CDC consumer:"
+# With snapshot.mode=no_data, Debezium captures only what is committed after it starts streaming:
+# wait until its replication slot is active
+slot_active() { docker compose exec -T postgres psql -U orderuser -d orders -tAc \
+  "select active from pg_replication_slots where slot_name = 'orders_slot'" 2> /dev/null | tr -d '[:space:]'; }
+deadline=$((SECONDS + 180))
+until [ "$(slot_active)" = t ]; do
+  [ "$SECONDS" -ge "$deadline" ] && { fail "Debezium is streaming (replication slot orders_slot active)"; break; }
+  sleep 2
+done
+[ "$(slot_active)" = t ] && ok "Debezium is streaming (replication slot orders_slot active)"
 read -r tid sid < <(new_trace)
 response=$(curl -s -X POST -H "traceparent: 00-$tid-$sid-01" -H 'Content-Type: application/json' \
   -d '{"customerName": "Demo", "product": "Widget", "quantity": 2, "price": 9.99}' "$ORDERS/orders")
 expect "POST /orders returns the caller's trace ID" "$tid" "$(jq -r .traceId <<< "$response")"
 order_id=$(jq -r .id <<< "$response")
 fetch_trace "$tid" 'any(.op == "debezium-cdc-orders") and any(.op == "process-cdc-event") and any(.svc == "cdc-consumer" and .op == "GET /apis/registry/v3/ids/globalIds/{globalId}")
-  and any(.op == "GET /apis/registry/v3/ids/globalIds/{globalId}")'
+  and any(.svc == "apicurio-registry" and .op == "GET /apis/registry/v3/ids/globalIds/{globalId}")'
 check_span "order service: REST endpoint" "$tid" order-service "POST /orders" "$sid"
 check_span "order service: the insert, whose context is stored in the row" "$tid" order-service create-order-entity \
   "$(span_value "$tid" order-service "POST /orders" .id)"

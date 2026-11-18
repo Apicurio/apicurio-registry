@@ -311,6 +311,51 @@ jobs:
           path: /tmp/external-load-results
           retention-days: 90
 
+      # Agent registry scale baseline (#11093): discovery latency and MCP import throughput at a
+      # stated artifact count, against the same registry, after every other run, so its
+      # seeded artifacts do not affect the runs compared with a baseline. The numbers are
+      # evidence for the agent registry graduation plan (#10294), not thresholds, so a failure here
+      # is reported without failing the workflow.
+      - name: Run the agent scale baseline Job
+        id: agent-baseline
+        if: always()
+        continue-on-error: true
+        working-directory: perf-tests/k8s
+        run: |
+          sed -e "s|\${PERF_TEST_IMAGE}|$PERF_TEST_IMAGE|" common/agent-perf-job.yaml | kubectl -n default apply -f -
+          # Same polling as the main run: wait for the exit-code marker, then copy results out.
+          for _ in $(seq 1 180); do
+            POD=$(kubectl -n default get pods -l job-name=agent-perf-test-runner -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
+            if [ -n "$POD" ] && kubectl -n default exec "$POD" -- test -f /results/exit-code 2>/dev/null; then
+              break
+            fi
+            sleep 10
+          done
+          mkdir -p /tmp/agent-perf-results
+          kubectl -n default logs job/agent-perf-test-runner --tail=-1 > /tmp/agent-perf-results/agent-perf-test-runner.log || true
+          kubectl -n default cp "$POD:/results" /tmp/agent-perf-results || true
+          kubectl -n default delete -f common/agent-perf-job.yaml --ignore-not-found || true
+          test "$(cat /tmp/agent-perf-results/exit-code 2>/dev/null || echo 1)" = "0"
+
+      - name: Summarize the agent scale baseline
+        if: always()
+        run: |
+          STATS_FILE=$(find /tmp/agent-perf-results -path '*/js/stats.js' 2>/dev/null | head -1)
+          if [ -n "$STATS_FILE" ]; then
+            python3 perf-tests/scripts/summarize-agent-baseline.py "$STATS_FILE" "${{ matrix.storage }}"
+          else
+            echo "Agent scale baseline: no Gatling js/stats.js found under /tmp/agent-perf-results." | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload the agent scale baseline results
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: agent-perf-results-${{ matrix.storage }}-${{ github.sha }}
+          path: /tmp/agent-perf-results
+          if-no-files-found: ignore
+          retention-days: 90
+
   notify:
     name: Notify on failure
     needs: perf-test

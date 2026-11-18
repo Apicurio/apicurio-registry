@@ -529,6 +529,18 @@ call POST $ORDER/contract/migrate '{"fromVersion":"1","toVersion":"2","record":{
 }
 ```
 
+**In a consumer.** A Kafka consumer on version 2 can ask the deserializer to do the same with
+`apicurio.registry.serde.contract-rules.migration.enabled=true` and
+`apicurio.registry.serde.contract-rules.migration.target-version=2`:
+
+```bash
+../../mvnw -q exec:java -Dexec.args=migrate
+```
+
+Today the deserializer runs the rule but discards its result, so the record of step 9 arrives
+without `currency` ([#11246](https://github.com/Apicurio/apicurio-registry/issues/11246));
+`demo.sh` checks that, and will expect `USD` once it is fixed.
+
 Migrating from 1 to 3 would apply version 2's rules, then version 3's. Migration rules at the
 artifact or global level are not used for migration.
 

@@ -38,7 +38,7 @@ eventually() {
 
 wait_for() {
   local deadline=$((SECONDS + ${WAIT_TIMEOUT:-180}))
-  until curl -sf "$2" > /dev/null; do
+  until curl -sf --max-time 5 "$2" > /dev/null; do
     if [ "$SECONDS" -ge "$deadline" ]; then
       echo "Timed out waiting for $1 at $2" >&2
       [ "$1" = "the Camel application" ] && tail -40 "$APP_LOG" >&2
@@ -70,13 +70,19 @@ check "the example data is reset (artifact deleted, topic greetings recreated)" 
 part "Step 2: start the Camel application"
 mkdir -p target
 # The timer fires once a second after start-up (greeting for Alice), then every GREETING_PERIOD ms
-java -Dquarkus.http.port="${APP_PORT:-8090}" -Dgreeting.period="${GREETING_PERIOD:-3600000}" \
-  -Dcamel.component.kafka.brokers="localhost:${KAFKA_PORT:-9092}" \
-  "-Dcamel.component.kafka.additional-properties[apicurio.registry.url]=$R" \
-  -jar target/quarkus-app/quarkus-run.jar > "$APP_LOG" 2>&1 &
-app_pid=$!
-trap 'kill "$app_pid" 2> /dev/null || true; wait "$app_pid" 2> /dev/null || true' EXIT
-wait_for "the Camel application" "$APP/greetings/received"
+app_pid=""
+stop_app() { if [ -n "$app_pid" ]; then kill "$app_pid" 2> /dev/null || true; wait "$app_pid" 2> /dev/null || true; app_pid=""; fi; }
+start_app() {
+  java -Dquarkus.http.port="${APP_PORT:-8090}" -Dgreeting.period="${GREETING_PERIOD:-3600000}" \
+    -Dcamel.component.kafka.brokers="localhost:${KAFKA_PORT:-9092}" \
+    "-Dcamel.component.kafka.additional-properties[apicurio.registry.url]=$R" \
+    -jar target/quarkus-app/quarkus-run.jar >> "$APP_LOG" 2>&1 &
+  app_pid=$!
+  wait_for "the Camel application" "$APP/greetings/received"
+}
+trap stop_app EXIT
+: > "$APP_LOG"
+start_app
 ok "the application answers on $APP"
 
 part "Step 3: the timer route's first greeting"
@@ -117,6 +123,11 @@ check "a new required field (no default) is refused by the COMPATIBILITY rule" "
   "$(version schemas/greeting-v2-incompatible.avsc)"
 check "a new field with a default is accepted as version 2" 200 "$(version schemas/greeting-v2.avsc)"
 check "  the artifact now has versions 1 and 2" "1 2" "$(json "$ARTIFACT/versions" | jq -r '[.versions[].version] | join(" ")')"
+# The serializer caches the schema it resolved for Ada; restart the application so that Grace's
+# record goes through schema resolution again, now that version 2 exists
+stop_app
+start_app
+ok "restarted the application (empty serializer cache; same topic and artifact)"
 check "POST /greetings/send?name=Grace&message=Again" 204 "$(send Grace Again)"
 check "the consumer still reads it" "Grace Again" "$(eventually 30 "Grace Again" received Grace)"
 check "the producer still writes version 1's content ID: FIND_OR_CREATE_VERSION found its schema" "0 $content_id" \

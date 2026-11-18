@@ -114,9 +114,12 @@ Kubernetes-specific parts are covered elsewhere:
   ([source](../../docs/modules/ROOT/pages/getting-started/assembly-deploying-registry-operator.adoc)),
   the operator's [HTTPS templates](../../operator/docs/modules/ROOT/examples/templates/https/)
   (edge and passthrough, with cert-manager) and the [operator example](../operator/).
-- **Mutual TLS:** add the proxy of [`mtls-proxy/nginx.conf`](mtls-proxy/nginx.conf) as a sidecar
-  with `spec.app.podTemplateSpec`, mount the certificates from a Secret, and bind the registry to
-  the pod's loopback interface (`QUARKUS_HTTP_HOST=127.0.0.1`) so only the sidecar reaches it.
+- **Mutual TLS:** run an nginx sidecar with `spec.app.podTemplateSpec`, configured like
+  [`mtls-proxy/nginx.conf`](mtls-proxy/nginx.conf) but adapted to a shared pod network: the sidecar
+  listens on the Service's HTTPS port, and the registry listens on a different port bound to
+  loopback (for example `QUARKUS_HTTP_HOST=127.0.0.1` and `QUARKUS_HTTP_SSL_PORT=8444`), so only the
+  sidecar reaches it. Point the upstream at `https://127.0.0.1:8444`, with `proxy_ssl_name` set to a
+  name in the registry's certificate when it verifies it. Mount the certificates from a Secret.
 - **Client certificates for applications:** a Secret mounted into the client pod; the client
   settings are the same as above.
 
@@ -131,8 +134,8 @@ Kubernetes-specific parts are covered elsewhere:
   With a number (`QUARKUS_TLS_KEY_STORE_PEM_0_CERT`, as `quarkus.tls.key-store.pem.0.cert` is often
   written), the setting is ignored and the registry starts without HTTPS. As a system property
   (`JAVA_OPTS_APPEND=-Dquarkus.tls.key-store.pem.0.cert=...`), `0` works.
-- **Client errors:** a proxy's HTML error surfaces in the SDK without its status code, and a wrong
-  password as an `ApiException` with no body ([#11261](https://github.com/Apicurio/apicurio-registry/issues/11261)).
+- **Client errors:** the Maven plugin reports a proxy's HTML error without its status code, and the
+  SDK reports a wrong password as an `ApiException` with no body ([#11261](https://github.com/Apicurio/apicurio-registry/issues/11261)).
 - **Paths in the serdes:** the serdes refuse a store path with a `..` element (`Path traversal
   detected`), even an absolute one; use normalized paths ([#11260](https://github.com/Apicurio/apicurio-registry/issues/11260)).
 - **Local only:** the CA is generated on your machine and its key is deleted, but the store password

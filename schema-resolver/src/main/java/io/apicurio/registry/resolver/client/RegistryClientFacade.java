@@ -59,6 +59,16 @@ public interface RegistryClientFacade {
         return getSchemaByContentHash(contentHash);
     }
 
+    /**
+     * Whether {@link #getSchemaByContentId(Long, boolean)} and {@link #getSchemaByContentHash(String, boolean)}
+     * can return dereferenced content.
+     *
+     * @return true if dereferenced content lookups are supported
+     */
+    default boolean supportsDereferencedContentLookups() {
+        return false;
+    }
+
     /*
      * Methods to get the references of a Schema by various identifiers.
      */

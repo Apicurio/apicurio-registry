@@ -138,6 +138,14 @@ public class RegistryClientFacadeImpl implements RegistryClientFacade {
      * {@inheritDoc}
      */
     @Override
+    public boolean supportsDereferencedContentLookups() {
+        return true;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public String getSchemaByContentHash(String contentHash, boolean dereferenced) {
         InputStream rawSchema = client.ids().contentHashes().byContentHash(contentHash).get(config -> {
             if (dereferenced) {

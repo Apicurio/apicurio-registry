@@ -30,6 +30,14 @@ public class GroupId {
             ? DEFAULT_RAW_GROUP_ID : rawGroupId;
     }
 
+    /**
+     * The group ID as users see it: {@code default} for the default group (stored as {@code null} or
+     * as the internal default ID), otherwise the ID itself. Never throws, so it is safe in messages.
+     */
+    public static String displayName(String rawGroupId) {
+        return rawGroupId == null || DEFAULT_RAW_GROUP_ID.equals(rawGroupId) ? DEFAULT_STRING : rawGroupId;
+    }
+
     public boolean isDefaultGroup() {
         return DEFAULT.getRawGroupId().equals(rawGroupId);
     }

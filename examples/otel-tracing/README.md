@@ -1,542 +1,136 @@
-# OpenTelemetry Distributed Tracing Example
+# OpenTelemetry tracing
 
-This example demonstrates end-to-end distributed tracing across a complete stack incorporating Kafka (using Strimzi images) and Apicurio Registry. Traces flow from message producers through consumers and schema validation operations, allowing you to visualize the complete request flow in Jaeger.
+A complete, local example of Apicurio Registry's OpenTelemetry support, and of following one request
+through the Registry across two common data paths:
 
-## Architecture
+- **Kafka serdes:** a REST call to the **greeting producer** serializes an Avro message (the serializer
+  registers its schema in the Registry) and sends it to Kafka; the **greeting consumer** reads it.
+  One trace covers the producer, the Registry and the consumer.
+- **Debezium CDC:** a REST call to the **order service** inserts a row in PostgreSQL; **Debezium
+  Server** captures it, registers its Avro schema in the Registry and sends it to Kafka; the **CDC
+  consumer** reads it and looks the schema up in the Registry. One trace covers the order service,
+  Debezium, the Registry and the CDC consumer.
+- **Apicurio Registry** traces its own REST API and storage layer, and exports metrics, through
+  the **OpenTelemetry Collector** to **Jaeger**.
 
-```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│  Quarkus        │────▶│     Kafka       │────▶│    Quarkus      │
-│  Producer       │     │   (Strimzi)     │     │    Consumer     │
-└────────┬────────┘     └─────────────────┘     └────────┬────────┘
-         │                                               │
-         │              ┌─────────────────┐              │
-         └─────────────▶│   Apicurio      │◀─────────────┘
-                        │   Registry      │
-                        │  (OTel enabled) │
-                        └────────┬────────┘
-                                 │
-                        ┌────────▼────────┐
-                        │   OpenTelemetry │
-                        │   Collector     │
-                        └────────┬────────┘
-                                 │
-                        ┌────────▼────────┐
-                        │     Jaeger      │
-                        │  (Visualization)│
-                        └─────────────────┘
-```
+`demo.sh` does not only start things: it reads every trace back from Jaeger's query API and checks
+which services' spans it contains and how they are linked.
 
-## Components
+**New to this? Follow the [step-by-step guide](GUIDE.md).** It walks through every trace, with
+commands, expected output and what to look for in the Jaeger UI, in about 20 minutes.
 
-- **Jaeger**: Distributed tracing backend for visualization
-- **OpenTelemetry Collector**: Collects, processes, and exports telemetry data
-- **Kafka**: Message broker (using Strimzi images)
-- **PostgreSQL**: Database for Apicurio Registry
-- **Apicurio Registry**: Schema registry with OpenTelemetry enabled
-- **Producer Application**: Quarkus application that produces Avro messages
-- **Consumer Application**: Quarkus application that consumes Avro messages
+## Quick start
 
-## Prerequisites
-
-- Docker and Docker Compose (for local deployment)
-- Kubernetes cluster with Strimzi operator (for K8s deployment)
-- Java 21 and Maven (for building applications)
-
-## Quick Start with Docker Compose
-
-### 1. Build the applications
-
-First, build the producer and consumer applications:
+Requires Docker (or Podman) with Compose v2, `curl`, `jq`, `openssl`, and JDK 21 or later for the
+first build.
 
 ```bash
-cd examples/otel-tracing
-
-# Build producer
-cd producer
-mvn clean package -DskipTests
-cd ..
-
-# Build consumer
-cd consumer
-mvn clean package -DskipTests
-cd ..
+./build.sh               # builds the Java applications from this checkout (a few minutes the first time)
+docker compose up -d     # builds their images and starts everything
+./demo.sh                # sends requests through both paths and checks their traces in Jaeger
 ```
 
-### 2. Start the infrastructure
-
-Start all services using Docker Compose:
-
-```bash
-docker compose up -d
-```
-
-Wait for all services to be healthy:
-
-```bash
-docker compose ps
-```
-
-### 3. Access the services
-
-- **Jaeger UI**: http://localhost:16686
-- **Apicurio Registry**: http://localhost:8083
-- **Producer API**: http://localhost:8084
-- **Consumer API**: http://localhost:8085
-
-### 4. Generate traces
-
-Send a greeting message:
-
-```bash
-curl -X POST "http://localhost:8084/greetings?name=World"
-```
-
-Consume a greeting message:
-
-```bash
-curl "http://localhost:8085/consumer/greetings"
-```
-
-### 5. View traces in Jaeger
-
-Open http://localhost:16686 in your browser and:
-
-1. Select service: `greeting-producer`, `greeting-consumer`, or `apicurio-registry`
-2. Click "Find Traces"
-3. Click on a trace to see the complete flow
-
-### 6. Stop the environment
-
-```bash
-docker compose down -v
-```
-
-## Verifying the Setup Works
-
-This section provides comprehensive verification steps to ensure distributed tracing is working correctly.
-
-### Verification Scripts
-
-The `scripts/` directory contains ready-to-use verification scripts:
-
-| Script | Description |
-|--------|-------------|
-| `scripts/smoke-test.sh` | Quick health check and basic message test |
-| `scripts/verify-tracing.sh` | Comprehensive tracing verification |
-| `scripts/test-scenarios.sh` | Test different tracing scenarios |
-
-### Quick Smoke Test
-
-```bash
-# Run the quick smoke test
-./scripts/smoke-test.sh
-```
-
-This script checks service health and sends a test message. Expected output includes `traceId` fields (32-character hex strings).
-
-### Comprehensive Verification
-
-```bash
-# Run full verification with Jaeger checks
-./scripts/verify-tracing.sh
-
-# Verbose mode for debugging
-./scripts/verify-tracing.sh --verbose
-
-# Skip Jaeger verification (if Jaeger not accessible)
-./scripts/verify-tracing.sh --skip-jaeger
-```
-
-The verification script checks:
-- Service health (Registry, Producer, Consumer)
-- Producer trace generation
-- Consumer background consumer status
-- Message consumption and trace correlation
-- Jaeger trace indexing
-- Error tracing
-
-### Testing Different Scenarios
-
-Run individual or all test scenarios:
-
-```bash
-# Run all scenarios
-./scripts/test-scenarios.sh all
-
-
-# Or run specific scenarios:
-./scripts/test-scenarios.sh basic      # Basic message flow
-./scripts/test-scenarios.sh batch      # Batch operations
-./scripts/test-scenarios.sh detailed   # Custom spans and events
-./scripts/test-scenarios.sh error      # Error tracing
-```
-
-### Manual Testing
-
-You can also test manually using curl:
-
-```bash
-# Basic message flow
-curl -X POST "http://localhost:8084/greetings?name=Alice"
-curl "http://localhost:8085/consumer/greetings"
-
-# Batch operations
-curl -X POST "http://localhost:8084/greetings/batch?baseName=User&count=10"
-curl "http://localhost:8085/consumer/greetings/batch?count=5"
-
-# Detailed tracing with custom spans
-curl -X POST "http://localhost:8084/greetings/detailed?name=Bob&priority=high"
-curl -X POST "http://localhost:8085/consumer/greetings/process"
-
-# Error tracing
-curl -X POST "http://localhost:8084/greetings/invalid?errorType=validation"
-```
-
-### Observability Endpoints
-
-| Endpoint | Description |
-|----------|-------------|
-| `GET /greetings/health` | Producer health check |
-| `GET /greetings/trace-info` | Current trace context info |
-| `GET /consumer/health` | Consumer health with queue stats |
-| `GET /consumer/stats` | Detailed consumer statistics |
-| `GET /consumer/trace-info` | Current trace context info |
-
-### What to Look for in Jaeger
-
-1. **Service Discovery**: All three services should appear in the Service dropdown:
-   - `greeting-producer`
-   - `greeting-consumer`
-   - `apicurio-registry`
-
-2. **Trace Structure**: A complete trace should show:
-   - HTTP request span (producer REST endpoint)
-   - Custom `create-greeting` span
-   - Kafka producer span
-   - Kafka consumer span (in background consumer)
-   - `process-greeting-message` span with Kafka metadata
-
-3. **Span Attributes**: Look for:
-   - `kafka.topic`, `kafka.partition`, `kafka.offset`
-   - `greeting.recipient`, `greeting.source`
-   - `error.type` (on error spans)
-
-4. **Events**: Spans should contain events like:
-   - `greeting-created`
-   - `greeting-sent-to-kafka`
-   - `message-stored`
-   - `validation-completed`
-
-5. **Error Traces**: Error spans show:
-   - Red color indicating error status
-   - Exception details in span logs
-   - `error.handled` event attributes
-
-## Kubernetes Deployment
-
-### Prerequisites
-
-- Kubernetes cluster (Minikube, Kind, or cloud provider)
-- [Strimzi Operator](https://strimzi.io/) installed
-- kubectl configured
-
-### 1. Install Strimzi (if not already installed)
-
-```bash
-kubectl create namespace strimzi
-kubectl apply -f 'https://strimzi.io/install/latest?namespace=strimzi' -n strimzi
-```
-
-### 2. Build and push container images
-
-```bash
-# Build producer image
-cd producer
-docker build -t your-registry/otel-tracing-producer:latest .
-docker push your-registry/otel-tracing-producer:latest
-cd ..
-
-# Build consumer image
-cd consumer
-docker build -t your-registry/otel-tracing-consumer:latest .
-docker push your-registry/otel-tracing-consumer:latest
-cd ..
-```
-
-### 3. Update image references
-
-Edit `k8s/producer.yaml` and `k8s/consumer.yaml` to use your container registry.
-
-### 4. Deploy with Kustomize
-
-```bash
-kubectl apply -k k8s/
-```
-
-### 5. Wait for deployments
-
-```bash
-kubectl get pods -n otel-tracing-demo -w
-```
-
-### 6. Access services
-
-```bash
-# Port-forward Jaeger UI
-kubectl port-forward -n otel-tracing-demo svc/jaeger 16686:16686
-
-# Port-forward Producer API
-kubectl port-forward -n otel-tracing-demo svc/greeting-producer 8081:8080
-```
-
-### 7. Generate and view traces
-
-Same as Docker Compose steps 4-5.
-
-### 8. Cleanup
-
-```bash
-kubectl delete -k k8s/
-```
-
-## Trace Propagation Patterns
-
-### Automatic Context Propagation
-
-The OpenTelemetry instrumentation for Kafka automatically:
-
-1. **Producer side**: Injects trace context (trace ID, span ID) into Kafka message headers
-2. **Consumer side**: Extracts trace context from Kafka message headers and creates child spans
-
-This creates a continuous trace across service boundaries.
-
-### Registry Correlation
-
-When the producer or consumer communicates with Apicurio Registry:
-
-1. The HTTP client instrumentation propagates trace context in HTTP headers
-2. Registry operations (schema registration, lookup) appear as child spans
-3. Schema caching is visible in trace timing (first call slower, subsequent calls faster)
-
-### Custom Spans
-
-Both applications demonstrate multiple approaches to creating custom spans:
-
-#### Using @WithSpan Annotation (Declarative)
-
-```java
-@WithSpan("create-greeting")
-private Greeting createGreeting(
-        @SpanAttribute("greeting.recipient") String name,
-        @SpanAttribute("greeting.trace_id") String traceId) {
-
-    Span.current().setAttribute("greeting.source", "greeting-producer");
-    Span.current().addEvent("greeting-object-created");
-    // Business logic here
-    return greeting;
-}
-```
-
-#### Using Tracer API (Programmatic)
-
-```java
-Span processSpan = tracer.spanBuilder("process-detailed-greeting")
-        .setSpanKind(SpanKind.INTERNAL)
-        .setAttribute("greeting.recipient", name)
-        .setAttribute("greeting.priority", priority)
-        .startSpan();
-
-try (Scope scope = processSpan.makeCurrent()) {
-    processSpan.addEvent("validation-started");
-    // Business logic here
-    processSpan.addEvent("validation-completed");
-    processSpan.setStatus(StatusCode.OK);
-} finally {
-    processSpan.end();
-}
-```
-
-## Sampling Strategies
-
-The example uses `parentbased_always_on` sampling, which means:
-
-- All traces are sampled (100% sampling rate)
-- Child spans inherit the sampling decision from parent spans
-
-For production environments, consider:
-
-- **ratio**: Sample a percentage of traces (e.g., 10%)
-- **parentbased_traceidratio**: Ratio-based with parent inheritance
-- **always_off**: Disable tracing entirely
-
-Configure via environment variable:
-
-```yaml
-QUARKUS_OTEL_TRACES_SAMPLER: "parentbased_traceidratio"
-QUARKUS_OTEL_TRACES_SAMPLER_ARG: "0.1"  # 10% sampling
-```
-
-## Error Scenario Tracing
-
-The producer includes a dedicated error endpoint for demonstrating error tracing:
-
-```bash
-# Test different error types
-curl -X POST "http://localhost:8084/greetings/invalid?errorType=validation"
-curl -X POST "http://localhost:8084/greetings/invalid?errorType=schema"
-curl -X POST "http://localhost:8084/greetings/invalid?errorType=kafka"
-```
-
-Error handling with trace context:
-
-```java
-// Create a child span for the failed operation
-Span errorSpan = tracer.spanBuilder("process-invalid-greeting")
-        .setSpanKind(SpanKind.INTERNAL)
-        .setAttribute("error.type", errorType)
-        .startSpan();
-
-try (Scope scope = errorSpan.makeCurrent()) {
-    // Record the exception in the span
-    errorSpan.recordException(exception);
-    errorSpan.setStatus(StatusCode.ERROR, errorMessage);
-    errorSpan.addEvent("error-handled", Attributes.builder()
-            .put("error.handled", true)
-            .put("error.recovery.action", "returned-error-response")
-            .build());
-} finally {
-    errorSpan.end();
-}
-```
-
-In Jaeger, error traces appear with:
-- Red color indicating error status
-- Exception stack traces in span logs
-- Custom error attributes and events
-
-## Configuration Reference
-
-### OpenTelemetry Properties
-
-Apicurio Registry is built with all OpenTelemetry signals enabled (traces, metrics, logs), but the OTel SDK is disabled by default at runtime. Enable OTel by setting `QUARKUS_OTEL_SDK_DISABLED=false`.
-
-| Property | Description | Default |
-|----------|-------------|---------|
-| `quarkus.otel.sdk.disabled` | Disable/enable OTel SDK at runtime | `true` |
-| `quarkus.otel.service.name` | Service name in traces | Application name |
-| `quarkus.otel.exporter.otlp.endpoint` | OTLP collector endpoint | `http://localhost:4317` |
-| `quarkus.otel.exporter.otlp.protocol` | OTLP protocol (grpc or http/protobuf) | `grpc` |
-| `quarkus.otel.traces.sampler.arg` | Sampler ratio (0.0 to 1.0) | `0.1` |
-
-**Note:** Signal properties (`traces.enabled`, `metrics.enabled`, `logs.enabled`) are BUILD-TIME properties and cannot be changed at runtime. Use `quarkus.otel.sdk.disabled` for runtime control.
-
-**Note:** Kafka instrumentation is automatic when using `quarkus-opentelemetry` with `quarkus-kafka-client`.
-
-### Apicurio Registry Properties
-
-| Property | Description |
-|----------|-------------|
-| `apicurio.registry.url` | Registry API endpoint |
-| `apicurio.registry.auto-register` | Auto-register schemas |
-| `apicurio.registry.artifact-resolver-strategy` | Strategy for artifact resolution |
-
-## Troubleshooting
-
-### No traces appearing in Jaeger
-
-1. Check OTel Collector logs: `docker compose logs otel-collector`
-2. Verify OTLP endpoint configuration
-3. Ensure `QUARKUS_OTEL_SDK_DISABLED=false` is set for Apicurio Registry
-
-### Schema registration failures
-
-1. Check Apicurio Registry is running: `curl http://localhost:8083/health`
-2. Verify Registry URL in application configuration
-3. Check network connectivity between services
-
-### Kafka connection issues
-
-1. Verify Kafka is running: `docker compose ps kafka`
-2. Check bootstrap servers configuration
-3. Ensure topic exists (auto-created on first message)
-
-### Missing trace context in consumer
-
-1. Ensure both `quarkus-opentelemetry` and `quarkus-kafka-client` dependencies are present
-2. Check Kafka message headers for trace context
-3. Verify OTel is enabled in both producer and consumer (check application.properties has `quarkus.otel.traces.enabled=true`)
-
-## Files Structure
-
-```
-otel-tracing/
-├── docker-compose.yml           # Docker Compose configuration
-├── otel-collector-config.yaml   # OTel Collector configuration
-├── pom.xml                      # Parent POM
-├── README.md                    # This file
-├── scripts/                     # Verification and test scripts
-│   ├── smoke-test.sh            # Quick health check and basic test
-│   ├── verify-tracing.sh        # Comprehensive tracing verification
-│   └── test-scenarios.sh        # Test different tracing scenarios
-├── producer/                    # Producer application
-│   ├── pom.xml
-│   ├── Dockerfile
-│   └── src/main/
-│       ├── avro/greeting.avsc   # Avro schema
-│       ├── java/.../producer/
-│       │   ├── GreetingProducer.java    # Kafka producer with OTel wrapping
-│       │   └── GreetingResource.java    # REST endpoints with custom spans
-│       └── resources/application.properties
-├── consumer/                    # Consumer application
-│   ├── pom.xml
-│   ├── Dockerfile
-│   └── src/main/
-│       ├── avro/greeting.avsc   # Avro schema (copy from producer)
-│       ├── java/.../consumer/
-│       │   ├── GreetingConsumer.java      # Kafka consumer factory
-│       │   ├── GreetingMessageStore.java  # Background consumer with tracing
-│       │   └── ConsumerResource.java      # REST endpoints with statistics
-│       └── resources/application.properties
-└── k8s/                         # Kubernetes manifests
-    ├── kustomization.yaml
-    ├── namespace.yaml
-    ├── jaeger.yaml
-    ├── otel-collector.yaml
-    ├── kafka.yaml
-    ├── registry.yaml
-    ├── producer.yaml
-    └── consumer.yaml
-```
-
-## API Reference
-
-### Producer Endpoints
-
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/greetings?name=X` | Send a greeting message |
-| POST | `/greetings/batch?baseName=X&count=N` | Send multiple greetings |
-| POST | `/greetings/detailed?name=X&priority=Y` | Send with detailed span attributes |
-| POST | `/greetings/invalid?errorType=X` | Simulate errors (validation/schema/kafka) |
-| GET | `/greetings/health` | Health check |
-| GET | `/greetings/trace-info` | Current trace context |
-
-### Consumer Endpoints
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/consumer/greetings` | Consume a single greeting |
-| GET | `/consumer/greetings/batch?count=N` | Consume multiple greetings |
-| POST | `/consumer/greetings/process` | Consume and process with business logic spans |
-| GET | `/consumer/stats` | Consumer statistics (received, processed, queue size) |
-| GET | `/consumer/health` | Health check with consumer status |
-| GET | `/consumer/trace-info` | Current trace context |
-
-## Related Documentation
-
-- [Apicurio Registry Documentation](https://www.apicur.io/registry/docs/)
-- [OpenTelemetry Documentation](https://opentelemetry.io/docs/)
-- [Quarkus OpenTelemetry Guide](https://quarkus.io/guides/opentelemetry)
-- [Strimzi Documentation](https://strimzi.io/documentation/)
-- [Jaeger Documentation](https://www.jaegertracing.io/docs/)
+`demo.sh` prints one line per check and ends with `All checks passed.` (it exits non-zero if a check
+fails). Then open Jaeger at <http://localhost:16686>.
+
+Stop and remove everything with `docker compose down -v`.
+
+## What demo.sh checks
+
+1. **The Registry's own spans.** A request with a `traceparent` header produces a server span named
+   after the route, in the caller's trace, with `apicurio.registry.path.*` attributes and storage
+   spans under it; a failed lookup (404) has an error storage span with the exception.
+2. **Kafka serdes, one trace:** `POST /greetings` (producer) → `create-greeting` → `greetings publish` →
+   `serde.serialize` (the serializer's own span) → `POST` to the Registry →
+   `POST /apis/registry/v3/groups/{groupId}/artifacts` (Registry, with storage spans) and, in the
+   same trace, `greetings process` (consumer, child of the publish span) → `process-greeting-message`.
+3. **Errors on spans:** a failed operation has status `ERROR`, attributes and the recorded exception.
+4. **Debezium CDC, one trace:** `POST /orders` → `create-order-entity`, whose context the order
+   service stores in the row; Debezium's `debezium-cdc-orders` span and the CDC consumer's
+   `process-cdc-event` span both continue it, and the consumer's schema lookup
+   (`GET /apis/registry/v3/ids/globalIds/{globalId}`) appears as a child in the Registry. Debezium's
+   schema registration is in the trace of the first order it captures. An update
+   (`PUT /orders/{id}/status`) gets a trace of its own the same way.
+5. **One backend for everything:** Jaeger knows all six services, and the Collector exposes the
+   Registry's metrics (artifacts created, HTTP requests per route) in Prometheus format.
+
+## Services
+
+| Service                 | URL                    | Purpose                                                 |
+|-------------------------|------------------------|---------------------------------------------------------|
+| Jaeger                  | http://localhost:16686 | Trace UI and query API                                  |
+| Apicurio Registry API   | http://localhost:8081  | Schema registry, OpenTelemetry enabled, SQL storage     |
+| Greeting producer       | http://localhost:8084  | `POST /greetings?name=...` sends an Avro greeting       |
+| Greeting consumer       | http://localhost:8085  | `GET /consumer/greetings/batch` returns what it read    |
+| Order service           | http://localhost:8086  | `POST /orders`, `PUT /orders/{id}/status`               |
+| CDC consumer            | http://localhost:8087  | `GET /cdc/events/batch` returns the change events       |
+| OpenTelemetry Collector | http://localhost:8889  | `/metrics`: the metrics it received, Prometheus format  |
+
+Kafka, PostgreSQL and Debezium Server are only reachable inside the Compose network.
+
+## Files
+
+| File | Purpose |
+|------|---------|
+| [`GUIDE.md`](GUIDE.md) | Step-by-step walkthrough, presenter notes and troubleshooting |
+| [`docker-compose.yml`](docker-compose.yml) | The services; the Registry's OpenTelemetry configuration is in its `environment` |
+| [`otel-collector-config.yaml`](otel-collector-config.yaml) | Collector pipelines: traces to Jaeger, metrics to Prometheus format |
+| [`build.sh`](build.sh) | Builds the Java applications from this checkout |
+| [`demo.sh`](demo.sh) | Sends the requests and checks the traces |
+| [`producer/`](producer), [`consumer/`](consumer) | Quarkus apps with the Avro serdes, wrapped with the OpenTelemetry Kafka instrumentation |
+| [`order-service/`](order-service) | Quarkus app that stores each request's trace context in the `tracingspancontext` column |
+| [`debezium-server/`](debezium-server) | Debezium Server image (OpenTelemetry Java agent plus the SMT) and its configuration |
+| [`debezium-converter/`](debezium-converter) | `OtelActivateTracingSpan`, the SMT that continues the order's trace in Debezium |
+| [`cdc-consumer/`](cdc-consumer) | Quarkus app that reads the change events and continues the order's trace from the row |
+| [`init-db.sql`](init-db.sql) | The `orders` table and the Registry's database |
+
+## Configuration
+
+The Registry is built with OpenTelemetry, but the SDK is off by default. This example turns it on with:
+
+| Variable | Value | Why |
+|---|---|---|
+| `QUARKUS_OTEL_SDK_DISABLED` | `false` | Enables traces, metrics and logs export (the signals themselves are build-time settings, already on) |
+| `QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT` | `http://otel-collector:4317` | Where to export (OTLP over gRPC, the default protocol) |
+| `QUARKUS_OTEL_TRACES_SAMPLER_ARG` | `1.0` | The default sampler, `parentbased_traceidratio`, keeps 10% of the traces that start in the Registry; requests with a sampled `traceparent` are always kept |
+| `QUARKUS_OTEL_METRIC_EXPORT_INTERVAL` | `5s` | The default is 60s |
+
+The service name defaults to `apicurio-registry` (`quarkus.otel.service.name`). With the operator,
+set the same through `spec.app.otel` (see *Configuring Registry observability with OpenTelemetry*
+in the operator documentation).
+
+## Notes
+
+- **How the trace crosses Debezium.** Debezium does not read trace context from the database, so the
+  order service stores it (W3C `traceparent`) in the `tracingspancontext` column. The example's SMT
+  reads it, starts the `debezium-cdc-orders` span and keeps it current while Debezium converts the
+  record, so the OpenTelemetry Java agent puts Debezium's calls to the Registry in that trace. The
+  CDC consumer reads the column too. Debezium's Kafka sink sends the record later, on another
+  thread, so its `publish` span and the consumer's Kafka `process` span form a separate trace.
+- **Consumer-side lookups are in their own trace.** Deserialization (`serde.deserialize`, and the
+  schema lookup on a cache miss) runs inside `poll()`, before the record's trace context is
+  extracted, so it is not part of the producer's trace.
+- **Debezium uses the Registry's v2 API.** Debezium Server bundles the Apicurio Registry 2.6 serdes;
+  its `apicurio.registry.url` is the Registry's base URL, without `/apis/registry/...`.
+- **Known issues:** a consumer that reads the schema reference from headers (the CDC consumer) gets
+  no `serde.deserialize` span, and `serde.resolve_schema` is never emitted
+  ([#11265](https://github.com/Apicurio/apicurio-registry/issues/11265)); the
+  `apicurio_artifacts_created` metric counts only v3 creations, so Debezium's are missing
+  ([#11264](https://github.com/Apicurio/apicurio-registry/issues/11264)).
+- **Other ports:** see [Using other ports](GUIDE.md#using-other-ports).
+- **Local build:** the example uses the `latest-snapshot` registry image. To run a locally built
+  registry, build it (`./mvnw install -pl distro/docker -am -DskipTests`), build
+  `distro/docker/target/docker/Dockerfile.jvm` as an image, and start the example with
+  `REGISTRY_IMAGE=<that image> docker compose up -d`.
+- **Local only:** 100% sampling, a single-node Kafka broker without security, database passwords in
+  the Compose file, Jaeger's in-memory storage.
+
+## Learn more
+
+- *Registry observability with OpenTelemetry* in the Registry documentation
+  ([source](../../docs/modules/ROOT/pages/getting-started/assembly-configuring-the-registry.adoc)).
+- *Configuring Registry observability with OpenTelemetry* in the operator documentation
+  ([source](../../operator/docs/modules/ROOT/partials/proc-registry-observability-otel.adoc)).
+- [ADR-0007](../../adr/0007-kafka-serdes.md): the Kafka serdes, whose `serde.serialize` and
+  `serde.deserialize` spans appear here.
+- [Debezium distributed tracing](https://debezium.io/documentation/reference/stable/integrations/tracing.html).

@@ -589,7 +589,7 @@ The following table compares the advantages and limitations of this approach:
 | Weaker isolation than separate instances
 
 | Faster tenant provisioning (create a group, not a deployment)
-| No separate storage, configuration, rules, or limits per tenant
+| No separate storage, instance configuration, or limits per tenant (content rules can still be set per group or artifact)
 
 | Single deployment to monitor and upgrade
 | A bug or outage affects all tenants

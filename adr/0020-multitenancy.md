@@ -40,8 +40,9 @@ storage.
    tenant is possible. Storage, Kafka topics, identity provider and resources are per tenant.
 3. **Lightweight isolation is groups plus authorization, in one instance.** A tenant is a set of
    groups. Owner-only authorization keeps other tenants from changing them; per-resource
-   authorization keeps them from reading them, and filters search, counts and pagination. Global
-   settings (rules, limits, storage, identity provider) are shared.
+   authorization keeps them from reading them, and filters search, counts and pagination. Content
+   rules can differ per tenant, because group and artifact rules take precedence over global ones;
+   instance configuration, limits, storage and the identity provider are shared.
 4. **The in-instance tenant is deferred to #10667.** A first-class tenant (a named owner of groups,
    with its own configuration and limits) needs the tenant's definition, the isolation boundary in
    search, the per-tenant configuration surface, and a storage change across all four variants. It
@@ -56,7 +57,8 @@ storage.
 | Data | Separate storage | Shared storage, separate groups |
 | Reads by other tenants | Impossible | Denied by per-resource rules (not by owner-only alone) |
 | Writes by other tenants | Impossible | Denied by owner-only or per-resource rules |
-| Configuration, rules, limits | Per tenant | Global |
+| Content rules (validity, compatibility) | Per tenant | Per group or artifact, over global defaults |
+| Instance configuration, limits | Per tenant | Global |
 | Identity provider | Per tenant | Shared |
 | Failure, upgrade, scaling | Per tenant | Shared |
 | Cost | A stack per tenant (about 600m CPU and 768Mi memory minimum) | One stack |
@@ -64,7 +66,7 @@ storage.
 
 ## Limitations and open work
 
-1. Shared-instance tenants have no per-tenant configuration, quotas or metering (#10667).
+1. Shared-instance tenants have no per-tenant instance configuration, quotas or metering (#10667).
 2. With KafkaSQL on a shared Kafka cluster, every instance needs its own journal and snapshots
    topics; the defaults are the same for all instances.
 3. Moving a tenant between the two models is an export and import of its groups
@@ -92,7 +94,8 @@ storage.
   `ApicurioRegistry3` CRs in separate namespaces; the operator's `MultiNamespaceSmokeITTest`,
   `MultitenancyPatternBITTest` and `RestrictedNamespaceITTest` cover the patterns.
 - **Groups and authorization:** [`examples/per-resource-authorization`](../examples/per-resource-authorization/)
-  shows teams that cannot read or find each other's groups.
+  shows access rules that decide, per user and group, what can be read and written, and search
+  results filtered by them; a tenant boundary is rules that grant each tenant only its own groups.
 - **User documentation:** [implementing multitenancy](../docs/modules/ROOT/pages/getting-started/assembly-implementing-multitenancy.adoc),
   [per-resource authorization](../docs/modules/ROOT/pages/getting-started/assembly-configuring-resource-authorization.adoc).
 

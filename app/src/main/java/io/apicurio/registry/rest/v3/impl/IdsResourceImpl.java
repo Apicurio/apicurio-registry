@@ -93,17 +93,6 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
 
         final var artifactCell = cellWithLoader(() -> storage.getArtifactVersionContent(globalId));
 
-        caching(
-                EntityIdContentCacheStrategy.builder()
-                        .entityId(globalId)
-                        .references(references)
-                        .referenceTreeContentIds(() -> recursivelyResolveReferenceContentIds(artifactCell.get(),
-                                ref -> storage.getArtifactVersionContent(ref.getGroupId(), ref.getArtifactId(), ref.getVersion())
-                        ))
-                        .returnArtifactType(returnArtifactType)
-                        .build()
-        ).prepare();
-
         ArtifactVersionMetaDataDto metaData = storage.getArtifactVersionMetaData(globalId);
         if (VersionState.DISABLED.equals(metaData.getState())
                 || (VersionState.DRAFT.equals(metaData.getState())) && !restConfig.isDraftProductionModeEnabled()) {
@@ -118,6 +107,19 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
         TypedContent contentToReturn = TypedContent.create(artifactCell.get().getContent(), artifactCell.get().getContentType());
         contentToReturn = handleContentReferences(references, metaData.getArtifactType(), contentToReturn,
                 artifactCell.get().getReferences());
+
+        // After the references are checked, so that a matching ETag cannot answer 304 to a caller who may not
+        // read them
+        caching(
+                EntityIdContentCacheStrategy.builder()
+                        .entityId(globalId)
+                        .references(references)
+                        .referenceTreeContentIds(() -> recursivelyResolveReferenceContentIds(artifactCell.get(),
+                                ref -> storage.getArtifactVersionContent(ref.getGroupId(), ref.getArtifactId(), ref.getVersion())
+                        ))
+                        .returnArtifactType(returnArtifactType)
+                        .build()
+        ).prepare();
 
         String ext = ContentTypes.getFileExtension(contentToReturn.getContentType());
         String filename = globalId + ext;
@@ -173,6 +175,12 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
     private Response contentResponse(Object entityId, ContentWrapperDto dto, HandleReferencesType references,
             String fileBaseName) {
         boolean preserve = references == HandleReferencesType.PRESERVE;
+        TypedContent content = TypedContent.create(dto.getContent(), dto.getContentType());
+        if (!preserve) {
+            content = handleContentReferences(references, dto.getArtifactType(), content, dto.getReferences());
+        }
+        // After the references are checked, so that a matching ETag cannot answer 304 to a caller who may not
+        // read them
         caching(EntityIdContentCacheStrategy.builder()
                 .entityId(entityId)
                 // PRESERVE (explicit or by default) returns the same bytes, so it keeps the ETag it always had.
@@ -182,10 +190,6 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
                                 ref.getVersion())))
                 .build()).prepare();
 
-        TypedContent content = TypedContent.create(dto.getContent(), dto.getContentType());
-        if (!preserve) {
-            content = handleContentReferences(references, dto.getArtifactType(), content, dto.getReferences());
-        }
         String filename = fileBaseName + ContentTypes.getFileExtension(content.getContentType());
         return Response.ok(content.getContent(), content.getContentType())
                 .header(HttpHeaders.CONTENT_DISPOSITION, buildContentDisposition(filename))

@@ -59,8 +59,7 @@ follow each example's README quick start.
 | [registry-events](registry-events/) | Change events from SQL storage (an outbox table) and from KafkaSQL, and CloudEvents | [0011](../adr/0011-registry-events.md) | [Events](../docs/modules/ROOT/pages/getting-started/assembly-registry-events.adoc) |
 | [usage-telemetry-demo](usage-telemetry-demo/) | Which schemas clients use, and which are safe to retire | [0003](../adr/0003-usage-telemetry.md) | [Usage telemetry](../docs/modules/ROOT/pages/getting-started/assembly-usage-telemetry.adoc) |
 | [v2-to-v3-migration](v2-to-v3-migration/) | Exporting from 2.6 and importing into 3.x with IDs kept; backup and restore within 3.x | [0012](../adr/0012-import-export-and-migration.md) | [Migrating](../docs/modules/ROOT/pages/getting-started/assembly-migrating-registry-v2-v3.adoc) |
-| [otel-tracing](otel-tracing/) | OpenTelemetry traces from producers through the registry to consumers. *Not checked yet* | | |
-| [debezium-otel-tracing](debezium-otel-tracing/) | Traces across Debezium change data capture. *Not checked yet* | | |
+| [otel-tracing](otel-tracing/) | One OpenTelemetry trace from Kafka producers and Debezium change data capture, through the registry, to consumers, checked in Jaeger | [0007](../adr/0007-kafka-serdes.md) | [Configuration](../docs/modules/ROOT/pages/getting-started/assembly-configuring-the-registry.adoc) |
 
 ## AI agents
 

@@ -35,7 +35,6 @@
     <module>tls/clients</module>
     <module>tools/kafkasql-topic-import</module>
     <module>otel-tracing</module>
-    <module>debezium-otel-tracing</module>
     <module>camel-quarkus-kafka</module>
     <module>odcs-data-contracts</module>
     <module>custom-artifact-types</module>

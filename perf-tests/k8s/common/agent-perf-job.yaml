@@ -1,0 +1,76 @@
+# Agent registry scale baseline (#11093): runs AgentDiscoverySimulation against the same registry
+# as perf-job.yaml, after it. See AgentDiscoverySimulation for what is measured.
+#
+# The perf-test container also serves the MCP server the registry imports tools from; this Service
+# gives it the stable name that the registry's apicurio.mcp-import.allowed-hosts lists (see
+# registry-cr.yaml).
+apiVersion: v1
+kind: Service
+metadata:
+  name: perf-mcp
+spec:
+  selector:
+    app: agent-perf-test-runner
+  ports:
+    - name: mcp
+      port: 8099
+      targetPort: 8099
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: agent-perf-test-runner
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app: agent-perf-test-runner
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: agent-perf-test-runner
+          image: "${PERF_TEST_IMAGE}"
+          ports:
+            - containerPort: 8099
+          env:
+            - name: PERF_SIMULATION
+              value: "agent-discovery"
+            - name: REGISTRY_URL
+              value: "http://perf-test-app-service.default.svc:8080/apis/registry/v3"
+            - name: AUTH_TOKEN_ENDPOINT
+              value: "http://keycloak.default.svc:8080/realms/registry/protocol/openid-connect/token"
+            - name: AUTH_CLIENT_ID
+              value: "registry-api"
+            - name: AUTH_CLIENT_SECRET
+              value: "perf-test-secret"
+            - name: PERF_USERS
+              value: "20"
+            - name: PERF_DURATION_SECONDS
+              value: "120"
+            - name: PERF_AGENT_SEED
+              value: "1000"
+            - name: PERF_TOOL_SEED
+              value: "1000"
+            - name: PERF_IMPORT_TOOLS
+              value: "500"
+            - name: PERF_IMPORT_RUNS
+              value: "10"
+            - name: PERF_MCP_URL
+              value: "http://perf-mcp.default.svc:8099/mcp"
+          # Same pattern as perf-job.yaml: the container stays up after the run so the workflow can
+          # copy /results out, and records the exit code in /results/exit-code.
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              java -Dgatling.resultsFolder=/results/gatling -jar /opt/perf-tests/perf-tests.jar
+              status=$?
+              echo "$status" > /results/exit-code
+              sleep 300
+              exit "$status"
+          volumeMounts:
+            - name: results
+              mountPath: /results
+      volumes:
+        - name: results
+          emptyDir: {}

@@ -64,7 +64,7 @@ public class KafkaSqlContractMetadataJournalTest extends AbstractResourceTestBas
         String prefix = ContractLabels.contractPrefix("probe");
 
         assertOperationIsJournaled(
-                () -> kafkaSqlRegistryStorage.transitionContractStatus(null, artifactId, "DRAFT",
+                () -> kafkaSqlRegistryStorage.transitionContractStatus(null, artifactId, null,
                         "STABLE", prefix, "2026-01-01"),
                 TransitionContractStatus6Message.class.getSimpleName());
     }

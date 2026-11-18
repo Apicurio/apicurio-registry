@@ -252,9 +252,8 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
     }
 
     private SchemaLookupResult<S> resolveSchemaDereferenced(long globalId) {
-        String rawSchema = this.clientFacade.getSchemaByGlobalId(globalId, true);
-
-        byte[] schema = rawSchema.getBytes(StandardCharsets.UTF_8);
+        // Read as bytes: a dereferenced Protobuf schema is a binary descriptor
+        byte[] schema = this.clientFacade.getSchemaBytesByGlobalId(globalId, true);
         S parsed = schemaParser.parseSchema(schema, Collections.emptyMap());
 
         ParsedSchemaImpl<S> ps = new ParsedSchemaImpl<S>().setParsedSchema(parsed).setRawSchema(schema);

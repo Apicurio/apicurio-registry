@@ -1,5 +1,6 @@
 package io.apicurio.registry.resolver.client;
 
+import java.nio.charset.StandardCharsets;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 
 import java.util.List;
@@ -26,6 +27,19 @@ public interface RegistryClientFacade {
     String getSchemaByGlobalId(long globalId, boolean dereferenced);
     String getSchemaByGAV(String groupId, String artifactId, String version);
     String getSchemaByContentHash(String contentHash);
+
+    /**
+     * Gets a schema by global ID as the raw bytes returned by the registry. Use it instead of
+     * {@link #getSchemaByGlobalId(long, boolean)} when the content may be binary: a dereferenced
+     * Protobuf schema is a binary {@code FileDescriptorProto}, which is corrupted when read as text.
+     *
+     * @param globalId the global ID
+     * @param dereferenced whether to ask the registry to dereference the schema
+     * @return the schema content
+     */
+    default byte[] getSchemaBytesByGlobalId(long globalId, boolean dereferenced) {
+        return getSchemaByGlobalId(globalId, dereferenced).getBytes(StandardCharsets.UTF_8);
+    }
 
     /**
      * Gets a schema by content ID, optionally dereferenced (all references inlined).

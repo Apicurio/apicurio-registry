@@ -40,13 +40,21 @@ public class RegistryClientFacadeImpl_v2 implements RegistryClientFacade {
 
     @Override
     public String getSchemaByGlobalId(long globalId, boolean dereferenced) {
-        InputStream rawSchema = client.ids().globalIds().byGlobalId(globalId).get(config -> {
+        return IoUtil.toString(fetchSchemaByGlobalId(globalId, dereferenced));
+    }
+
+    @Override
+    public byte[] getSchemaBytesByGlobalId(long globalId, boolean dereferenced) {
+        return IoUtil.toBytes(fetchSchemaByGlobalId(globalId, dereferenced));
+    }
+
+    private InputStream fetchSchemaByGlobalId(long globalId, boolean dereferenced) {
+        return client.ids().globalIds().byGlobalId(globalId).get(config -> {
             assert config.queryParameters != null;
             if (dereferenced) {
                 config.queryParameters.dereference = true;
             }
         });
-        return IoUtil.toString(rawSchema);
     }
 
     @Override

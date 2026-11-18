@@ -51,8 +51,8 @@ registry minor version.
   - [#11151](https://github.com/Apicurio/apicurio-registry/issues/11151): webhook `headers` are not
     sent, and the ContentAccepter webhook must return a bare boolean, not the contract's
     `{"accepted": ...}`.
-  - [#11152](https://github.com/Apicurio/apicurio-registry/issues/11152): with the webhook down,
-    `VALIDITY` lets invalid content in, and the compatibility error exposes the exception.
+- With the webhook down, the rules that use it reject the change with a generic message, after about
+  10 seconds of retries.
 - **Local only:** no authentication, no TLS.
 
 ## Learn more

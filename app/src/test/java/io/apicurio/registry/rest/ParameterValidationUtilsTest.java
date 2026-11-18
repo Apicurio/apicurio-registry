@@ -1,10 +1,13 @@
 package io.apicurio.registry.rest;
 
+import io.apicurio.registry.types.RuleType;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigInteger;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * Unit tests for the pagination normalization helpers in {@link ParameterValidationUtils}.
@@ -66,4 +69,25 @@ class ParameterValidationUtilsTest {
         assertEquals(Integer.MAX_VALUE, ParameterValidationUtils.normalizeLimitUnbounded(overflow));
     }
 
+
+    @Test
+    void validateRuleConfigAcceptsKnownLevels() {
+        assertDoesNotThrow(() -> ParameterValidationUtils.validateRuleConfig(RuleType.COMPATIBILITY, "BACKWARD"));
+        assertDoesNotThrow(() -> ParameterValidationUtils.validateRuleConfig(RuleType.VALIDITY, "SYNTAX_ONLY"));
+        assertDoesNotThrow(() -> ParameterValidationUtils.validateRuleConfig(RuleType.INTEGRITY,
+                "REFS_EXIST, NO_DUPLICATES"));
+    }
+
+    @Test
+    void validateRuleConfigRejectsUnknownLevels() {
+        InvalidParameterValueException e = assertThrows(InvalidParameterValueException.class,
+                () -> ParameterValidationUtils.validateRuleConfig(RuleType.COMPATIBILITY, "BOGUS"));
+        assertEquals(true, e.getMessage().contains("'BOGUS'"));
+        assertThrows(InvalidParameterValueException.class,
+                () -> ParameterValidationUtils.validateRuleConfig(RuleType.VALIDITY, "BOGUS"));
+        assertThrows(InvalidParameterValueException.class,
+                () -> ParameterValidationUtils.validateRuleConfig(RuleType.INTEGRITY, "REFS_EXIST,BOGUS"));
+        assertThrows(InvalidParameterValueException.class,
+                () -> ParameterValidationUtils.validateRuleConfig(RuleType.COMPATIBILITY, "backward"));
+    }
 }

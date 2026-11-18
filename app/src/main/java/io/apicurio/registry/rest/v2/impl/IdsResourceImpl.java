@@ -23,7 +23,7 @@ import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.references.ReferenceResolution;
 import io.apicurio.registry.types.ArtifactMediaTypes;
-import io.apicurio.registry.types.ArtifactState;
+import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.types.ReferenceType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
@@ -79,7 +79,7 @@ public class IdsResourceImpl implements IdsResource {
     @Authorized(style = AuthorizedStyle.GlobalId, level = AuthorizedLevel.Read)
     public Response getContentByGlobalId(long globalId, Boolean dereference) {
         ArtifactVersionMetaDataDto metaData = storage.getArtifactVersionMetaData(globalId);
-        if (ArtifactState.DISABLED.equals(metaData.getState())) {
+        if (VersionState.DISABLED.equals(metaData.getState())) {
             throw new ArtifactNotFoundException(null, String.valueOf(globalId));
         }
 

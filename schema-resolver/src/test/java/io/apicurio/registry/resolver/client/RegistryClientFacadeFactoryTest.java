@@ -398,7 +398,7 @@ class RegistryClientFacadeFactoryTest {
     }
 
     @Test
-    void testBuildClientOptionsPemPathTraversalError() throws IOException {
+    void testBuildClientOptionsPemPathWithDotDotIsNormalized() throws IOException {
         Path tempDir = Files.createTempDirectory("traversal-test");
         Path tempFile = Files.createTempFile(tempDir, "client-cert", ".pem");
         Files.writeString(tempFile, "-----BEGIN CERTIFICATE-----\ninline-cert\n-----END CERTIFICATE-----");
@@ -414,14 +414,25 @@ class RegistryClientFacadeFactoryTest {
             originals.put(SchemaResolverConfig.TLS_CLIENT_KEY, keyContent);
 
             SchemaResolverConfig config = new SchemaResolverConfig(originals);
-            IllegalArgumentException ex = Assertions.assertThrows(IllegalArgumentException.class, () -> {
-                RegistryClientFacadeFactory.buildClientOptions(config, null);
-            });
-            Assertions.assertTrue(ex.getMessage().contains("Path traversal detected"), "Expected path traversal exception, but got: " + ex.getMessage());
+            // A file path from the application's configuration may contain '..', as in the SDK
+            Assertions.assertNotNull(RegistryClientFacadeFactory.buildClientOptions(config, null));
         } finally {
             Files.deleteIfExists(tempFile);
             Files.deleteIfExists(tempDir);
         }
+    }
+
+    @Test
+    void testBuildClientOptionsClasspathTraversalError() {
+        Map<String, Object> originals = new HashMap<>();
+        originals.put(SchemaResolverConfig.REGISTRY_URL, "http://localhost:8080/apis/registry/v3");
+        originals.put(SchemaResolverConfig.TLS_CLIENT_CERTIFICATE, "classpath:certs/../../secret.pem");
+        originals.put(SchemaResolverConfig.TLS_CLIENT_KEY, "-----BEGIN PRIVATE KEY-----\ninline-key\n-----END PRIVATE KEY-----");
+
+        SchemaResolverConfig config = new SchemaResolverConfig(originals);
+        IllegalArgumentException ex = Assertions.assertThrows(IllegalArgumentException.class,
+                () -> RegistryClientFacadeFactory.buildClientOptions(config, null));
+        Assertions.assertEquals("Path traversal detected: classpath:certs/../../secret.pem", ex.getMessage());
     }
 
     @Test

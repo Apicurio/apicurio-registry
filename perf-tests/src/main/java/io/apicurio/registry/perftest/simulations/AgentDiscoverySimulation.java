@@ -2,11 +2,13 @@ package io.apicurio.registry.perftest.simulations;
 
 import io.gatling.javaapi.core.ChainBuilder;
 import io.gatling.javaapi.core.ScenarioBuilder;
+import io.gatling.javaapi.core.Session;
 import io.gatling.javaapi.core.Simulation;
 import io.gatling.javaapi.http.HttpProtocolBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -16,8 +18,8 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static io.apicurio.registry.perftest.simulations.RegistryApiSimulation.CACHED_TOKEN;
 import static io.apicurio.registry.perftest.simulations.RegistryApiSimulation.REGISTRY_URL;
@@ -76,6 +78,7 @@ public class AgentDiscoverySimulation extends Simulation {
     private static final String IMPORT_GROUP = "perf-import";
 
     private static final AtomicInteger IMPORT_COUNTER = new AtomicInteger();
+    private static final AtomicLong QUERY_COUNTER = new AtomicLong();
     // Server artifacts of each run get new IDs, so a rerun against the same registry imports again
     private static final String RUN_ID = Long.toString(System.currentTimeMillis(), 36);
 
@@ -83,15 +86,8 @@ public class AgentDiscoverySimulation extends Simulation {
     HttpProtocolBuilder httpProtocol = http.baseUrl(ROOT_URL).acceptHeader("application/json")
             .userAgentHeader("apicurio-registry-perf-tests/gatling").disableCaching();
 
-    {
-        RegistryApiSimulation.startTokenRefresh();
-        seed("Agent Card", AGENT_SEED, AgentDiscoverySimulation::createAgentCard);
-        seed("MCP tool", TOOL_SEED, AgentDiscoverySimulation::createMcpTool);
-    }
-
     ScenarioBuilder discovery = scenario("Agent discovery").during(Duration.ofSeconds(DURATION_SECONDS + RAMP_SECONDS))
-            .on(exec(session -> session.set("n", ThreadLocalRandom.current().nextInt(Math.max(1, AGENT_SEED)))
-                    .set("skill", "skill-" + ThreadLocalRandom.current().nextInt(SKILLS)))
+            .on(exec(AgentDiscoverySimulation::nextQuery)
                     // Each iteration sends all three requests, so they are measured equally often
                     .exec(http("Discover agents by skill")
                             .get("/.well-known/agents?skill=#{skill}&limit=20")
@@ -126,7 +122,10 @@ public class AgentDiscoverySimulation extends Simulation {
                         .check(status().is(200)));
     }
 
-    {
+    public AgentDiscoverySimulation() {
+        RegistryApiSimulation.startTokenRefresh();
+        seed("Agent Card", AGENT_SEED, AgentDiscoverySimulation::createAgentCard);
+        seed("MCP tool", TOOL_SEED, AgentDiscoverySimulation::createMcpTool);
         setUp(discovery.injectClosed(rampConcurrentUsers(1).to(USERS).during(Duration.ofSeconds(RAMP_SECONDS)),
                 constantConcurrentUsers(USERS).during(Duration.ofSeconds(DURATION_SECONDS)))
                 .andThen(imports.injectOpen(atOnceUsers(1))))
@@ -135,8 +134,17 @@ public class AgentDiscoverySimulation extends Simulation {
                 .assertions(global().failedRequests().percent().lte(1.0));
     }
 
+    /**
+     * The agent and skill each iteration asks for. A counter rather than a random draw: every
+     * seeded agent and skill is queried in turn, and runs are reproducible.
+     */
+    private static Session nextQuery(Session session) {
+        long k = QUERY_COUNTER.getAndIncrement();
+        return session.set("n", k % Math.max(1, AGENT_SEED)).set("skill", "skill-" + (k * 7 % SKILLS));
+    }
+
     private interface Seeder {
-        void create(int index) throws Exception;
+        void create(int index) throws IOException, InterruptedException;
     }
 
     private static void seed(String what, int count, Seeder seeder) {
@@ -145,20 +153,7 @@ public class AgentDiscoverySimulation extends Simulation {
         List<Future<?>> futures = new ArrayList<>();
         for (int i = 0; i < count; i++) {
             int index = i;
-            futures.add(executor.submit(() -> {
-                // Creation is idempotent (FIND_OR_CREATE_VERSION), so a transient failure is retried
-                for (int attempt = 1;; attempt++) {
-                    try {
-                        seeder.create(index);
-                        return null;
-                    } catch (Exception e) {
-                        if (attempt == 3) {
-                            log.warn("Seeding {} {} failed: {}", what, index, e.toString());
-                            throw e;
-                        }
-                    }
-                }
-            }));
+            futures.add(executor.submit(() -> createWithRetries(what, index, seeder)));
         }
         int failed = 0;
         for (Future<?> future : futures) {
@@ -178,7 +173,23 @@ public class AgentDiscoverySimulation extends Simulation {
         log.info("Seeded {} {} artifacts.", count, what);
     }
 
-    private static void createAgentCard(int index) throws Exception {
+    /** Creation is idempotent (FIND_OR_CREATE_VERSION), so a transient failure is retried. */
+    private static Void createWithRetries(String what, int index, Seeder seeder)
+            throws IOException, InterruptedException {
+        for (int attempt = 1;; attempt++) {
+            try {
+                seeder.create(index);
+                return null;
+            } catch (IOException | IllegalStateException e) {
+                if (attempt == 3) {
+                    log.warn("Seeding {} {} failed: {}", what, index, e.toString());
+                    throw e;
+                }
+            }
+        }
+    }
+
+    private static void createAgentCard(int index) throws IOException, InterruptedException {
         int skill = index % SKILLS;
         String card = "{\"name\":\"perf-agent-" + index + "\",\"description\":\"Performance test agent " + index
                 + "\",\"version\":\"1.0.0\",\"supportedInterfaces\":[{\"url\":\"https://agents.example.com/" + index
@@ -189,13 +200,14 @@ public class AgentDiscoverySimulation extends Simulation {
         create(AGENT_GROUP, "perf-agent-" + index, "AGENT_CARD", card);
     }
 
-    private static void createMcpTool(int index) throws Exception {
+    private static void createMcpTool(int index) throws IOException, InterruptedException {
         String tool = "{\"name\":\"perf_tool_" + index + "\",\"description\":\"Performance test tool " + index
                 + "\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"query\":{\"type\":\"string\"}}}}";
         create(TOOL_GROUP, "perf-tool-" + index, "MCP_TOOL", tool);
     }
 
-    private static void create(String group, String artifactId, String type, String content) throws Exception {
+    private static void create(String group, String artifactId, String type, String content)
+            throws IOException, InterruptedException {
         String body = "{\"artifactId\":\"" + artifactId + "\",\"artifactType\":\"" + type + "\","
                 + "\"firstVersion\":{\"content\":{\"content\":" + jsonEscape(content)
                 + ",\"contentType\":\"application/json\"}}}";
@@ -209,7 +221,9 @@ public class AgentDiscoverySimulation extends Simulation {
         }
         HttpResponse<String> response = SETUP_HTTP_CLIENT.send(request.build(), HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() != 200) {
-            log.warn("Seeding {}/{} failed: HTTP {} {}", group, artifactId, response.statusCode(), response.body());
+            if (log.isWarnEnabled()) {
+                log.warn("Seeding {}/{} failed: HTTP {} {}", group, artifactId, response.statusCode(), response.body());
+            }
             throw new IllegalStateException("HTTP " + response.statusCode());
         }
     }

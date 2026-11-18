@@ -157,9 +157,9 @@ r=$(stdio_send "$(tool 3 create_group "{\"groupId\":\"$STDIO_GROUP\",\"descripti
 check "create_group succeeds"                               "$STDIO_GROUP" "$(text "$r" | jq -r .groupId)"
 r=$(stdio_send "$(tool 4 create_artifact "$(CREATE "$STDIO_GROUP" orders)")")
 check "create_artifact succeeds"                            "orders" "$(text "$r" | jq -r .artifactId)"
-# The tool's schema marks artifactType optional, but Registry requires it (#11272)
+# artifactType is a required argument: an empty artifact has no content to detect it from
 r=$(stdio_send "$(tool 6 create_artifact "{\"groupId\":\"$STDIO_GROUP\",\"artifactId\":\"untyped\"}")")
-contains "create_artifact without artifactType: Registry answers 400" "HTTP 400" "$(text "$r")"
+contains "create_artifact without artifactType: refused by the MCP server" "Missing required argument: artifactType" "$r"
 r=$(stdio_send "$(tool 5 list_artifacts "$(LIST_ARTIFACTS "$STDIO_GROUP")")")
 check "list_artifacts reads it back"                        "orders" "$(ids "$r" artifactId)"
 stdio_close

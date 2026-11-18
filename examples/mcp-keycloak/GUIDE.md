@@ -86,8 +86,9 @@ responses by `id`):
 {"id":2,"tools":0,"text":{"artifactId":"orders","owner":"admin-client"}}
 ```
 
-`create_artifact` needs `artifactType`, although the tool's schema marks it optional: without it,
-Registry answers 400.
+`create_artifact` requires `artifactType`: the artifact is created empty, so there is no content to
+detect the type from. Without it, the MCP server refuses the call (`Missing required argument:
+artifactType`).
 
 The server logged in to Registry with `APICURIO_MCP_AUTH_CLIENT_ID=admin-client` (see
 `docker-compose.yml`), so `admin-client` owns the artifact. Check it through REST:

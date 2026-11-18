@@ -30,7 +30,8 @@ check fails). It is safe to run again. It checks that:
 - **stdio, as `admin-client` (`sr-admin`):** `initialize` and `tools/list` work and list the
   registry tools; `get_server_info` reads the Registry; `create_group` and `create_artifact` create
   an artifact that the REST API then shows, owned by `admin-client`; `create_artifact` without
-  `artifactType` gets Registry's 400 (the tool's schema marks it optional, [#11272](https://github.com/Apicurio/apicurio-registry/issues/11272));
+  `artifactType` is refused by the MCP server (a required argument: an empty artifact has no content
+  to detect the type from);
 - **stdio, as `readonly-client` (`sr-readonly`):** `list_artifacts` works, `create_artifact` is a
   tool error carrying Registry's 403, and nothing is created;
 - **stdio, with a wrong client secret:** the session opens, but every tool call fails with

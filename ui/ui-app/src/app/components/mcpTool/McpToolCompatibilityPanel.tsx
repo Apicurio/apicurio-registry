@@ -1,4 +1,4 @@
-import { FunctionComponent, useEffect, useState } from "react";
+import { FunctionComponent, useEffect, useRef, useState } from "react";
 import "./McpToolCompatibilityPanel.css";
 import { Link } from "react-router";
 import {
@@ -21,6 +21,7 @@ import {
     compatibilityNotices,
     compatibilitySummary,
     compatibilityViewState,
+    shouldAcceptCompatibilityResponse,
     verdictLabel
 } from "./McpToolCompatibility.utils.ts";
 
@@ -52,13 +53,29 @@ export const McpToolCompatibilityPanel: FunctionComponent<McpToolCompatibilityPa
     const logger: LoggerService = useLoggerService();
     const appNavigation: AppNavigation = useAppNavigation();
 
+    const latestRequestIdRef = useRef(0);
+
     useEffect(() => {
+        const requestId = ++latestRequestIdRef.current;
         setLoading(true);
         setError(false);
-        mcpTools.getToolCompatibility(groupId, artifactId, version, [], FIRST_PAGE).then(setResults).catch(error => {
+        mcpTools.getToolCompatibility(groupId, artifactId, version, [], FIRST_PAGE).then(result => {
+            if (!shouldAcceptCompatibilityResponse(requestId, latestRequestIdRef.current)) {
+                return;
+            }
+            setResults(result);
+        }).catch(error => {
+            if (!shouldAcceptCompatibilityResponse(requestId, latestRequestIdRef.current)) {
+                return;
+            }
             logger.error(error);
             setError(true);
-        }).finally(() => setLoading(false));
+        }).finally(() => {
+            if (!shouldAcceptCompatibilityResponse(requestId, latestRequestIdRef.current)) {
+                return;
+            }
+            setLoading(false);
+        });
     }, [groupId, artifactId, version]);
 
     const message = (title: string, body: string) => (

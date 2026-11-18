@@ -13,6 +13,7 @@ import {
     compatibilityNotices,
     compatibilitySummary,
     compatibilityViewState,
+    shouldAcceptCompatibilityResponse,
     showCompatibleToolsTab,
     verdictLabel
 } from "./McpToolCompatibility.utils";
@@ -72,6 +73,18 @@ describe("compatibilitySummary", () => {
             .toBe("Compared with 3 other MCP tools: 1 compatible, 1 incompatible, 1 indeterminate.");
         expect(compatibilitySummary({ evaluated: 1, totals: { compatible: 1, incompatible: 0, indeterminate: 0 } }))
             .toBe("Compared with 1 other MCP tool: 1 compatible, 0 incompatible, 0 indeterminate.");
+    });
+});
+
+describe("shouldAcceptCompatibilityResponse", () => {
+    it("accepts the response for the latest request", () => {
+        expect(shouldAcceptCompatibilityResponse(1, 1)).toBe(true);
+        expect(shouldAcceptCompatibilityResponse(3, 3)).toBe(true);
+    });
+
+    it("rejects a stale response after a newer request has started", () => {
+        expect(shouldAcceptCompatibilityResponse(1, 2)).toBe(false);
+        expect(shouldAcceptCompatibilityResponse(2, 3)).toBe(false);
     });
 });
 

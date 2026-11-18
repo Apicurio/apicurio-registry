@@ -16,6 +16,7 @@ import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Parameter;
 
 import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -276,12 +277,27 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
      * class loader (otherwise Netty fails late with NoClassDefFoundError).
      */
     protected void closeVertx(Vertx vertx) {
+        // Cleanup also runs after an interrupted goal: keep waiting through interrupts, within one
+        // deadline, and restore the interrupt flag afterwards
+        CompletableFuture<Void> closed = vertx.close().toCompletionStage().toCompletableFuture();
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(VERTX_CLOSE_TIMEOUT_SECONDS);
+        boolean interrupted = Thread.interrupted();
         try {
-            vertx.close().toCompletionStage().toCompletableFuture().get(VERTX_CLOSE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        } catch (ExecutionException | TimeoutException e) {
-            getLog().warn("The HTTP client did not close cleanly: " + e);
+            while (true) {
+                try {
+                    closed.get(Math.max(0, deadline - System.nanoTime()), TimeUnit.NANOSECONDS);
+                    return;
+                } catch (InterruptedException e) {
+                    interrupted = true;
+                } catch (ExecutionException | TimeoutException e) {
+                    getLog().warn("The HTTP client did not close cleanly: " + e);
+                    return;
+                }
+            }
+        } finally {
+            if (interrupted) {
+                Thread.currentThread().interrupt();
+            }
         }
     }
 

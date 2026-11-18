@@ -198,7 +198,7 @@ NOTE: The Kafka client SerDes expose the same proxy settings as configuration pr
 
 **TLS configuration**
 
-For a registry served over HTTPS with certificates that the default Java trust store does not trust, configure a trust store with the `trustStoreJks`, `trustStorePkcs12`, or `trustStorePem` method. Methods for client certificates (mutual TLS), including `keystoreJks` and `keystorePkcs12`, are also available.
+For a registry served over HTTPS with certificates that the default Java trust store does not trust, configure a trust store with the `trustStoreJks`, `trustStorePkcs12`, or `trustStorePem` method. Methods for client certificates (mutual TLS), including `keystoreJks` and `keystorePkcs12`, are also available. For a running example, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/tls[TLS example].
 
 **OpenTelemetry distributed tracing**
 

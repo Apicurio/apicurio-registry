@@ -1007,5 +1007,4 @@ These examples show how to combine TLS configuration options with different auth
 [role="_additional-resources"]
 .Additional resources
 * link:https://maven.apache.org/index.html[Apache Maven documentation]
-* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/maven-plugin-tls-credentials[maven-plugin-tls-credentials demonstration example]
-* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/mtls-minikube[mTLS Minikube demonstration example]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/tls[TLS example]: the Maven plugin registering and downloading over TLS and mutual TLS, with every trust store and key store format, and with credentials

@@ -134,13 +134,15 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
     }
 
     /**
-     * Sets the sequence to the bound value.
+     * Sets the sequence to the bound value. setval is absolute, so GREATEST keeps it from rewinding
+     * past values already issued when the statement runs.
      *
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#advanceSequenceValue(String)
      */
     @Override
     public String advanceSequenceValue(String sequenceName) {
-        return "SELECT setval('" + nativeSequenceName(sequenceName) + "', ?, true)";
+        String name = nativeSequenceName(sequenceName);
+        return "SELECT setval('" + name + "', GREATEST(?, (SELECT last_value FROM " + name + ")), true)";
     }
 
 }

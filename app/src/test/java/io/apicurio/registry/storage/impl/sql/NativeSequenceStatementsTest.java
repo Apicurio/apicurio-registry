@@ -30,7 +30,8 @@ class NativeSequenceStatementsTest {
         Assertions.assertEquals("SELECT nextval('globalid_seq')", s.nextSequenceValue("globalId"));
         Assertions.assertEquals("SELECT CASE WHEN is_called THEN last_value ELSE 0 END FROM globalid_seq",
                 s.selectSequenceLastValue("globalId"));
-        Assertions.assertEquals("SELECT setval('globalid_seq', ?, true)", s.advanceSequenceValue("globalId"));
+        Assertions.assertEquals("SELECT setval('globalid_seq', GREATEST(?, (SELECT last_value FROM globalid_seq)), "
+                + "true)", s.advanceSequenceValue("globalId"));
     }
 
     @Test

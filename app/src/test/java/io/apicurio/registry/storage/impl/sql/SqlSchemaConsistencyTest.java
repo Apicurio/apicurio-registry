@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.io.InputStream;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -84,6 +85,21 @@ class SqlSchemaConsistencyTest {
             Assertions.assertEquals(baseColumns, upgradeColumns,
                     "Upgrade DDL for dialect '" + dialect + "' at version " + PEERS_DB_VERSION
                             + " must create the peers table with the same columns as the base DDL.");
+        }
+    }
+
+    @Test
+    void testNativeSequencesUpgradeDropsLegacyTableForNonH2Dialects() {
+        for (String dialect : List.of("postgresql", "mssql", "mysql")) {
+            String base = readResource(dialect + ".ddl");
+            String upgrade = readResource("upgrades/115/" + dialect + ".upgrade.ddl");
+            Assertions.assertFalse(base.contains("CREATE TABLE sequences"), dialect);
+            for (String seq : List.of("globalid_seq", "contentid_seq", "commentid_seq")) {
+                Assertions.assertTrue(base.contains(seq), dialect + " base DDL lacks " + seq);
+                Assertions.assertTrue(upgrade.contains(seq), dialect + " upgrade lacks " + seq);
+            }
+            Assertions.assertTrue(upgrade.contains("NativeSequencesUpgrader"), dialect);
+            Assertions.assertTrue(upgrade.contains("DROP TABLE sequences"), dialect);
         }
     }
 

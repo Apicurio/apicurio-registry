@@ -19,6 +19,7 @@ import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 
@@ -329,6 +330,41 @@ public class DefaultRegistryStorageTest extends AbstractRegistryStorageTest {
             }
             return null;
         });
+    }
+
+    /**
+     * The 115 upgrader seeds the native sequences above both the legacy sequences table and the
+     * IDs present in the data tables.
+     */
+    @Test
+    public void testNativeSequencesUpgraderSeedsAboveLegacyValues() throws Exception {
+        Assumptions.assumeFalse("h2".equals(sqlStatements.dbType()), "H2 keeps in-memory counters");
+        SqlSequenceRepository sequences = sequences();
+        long legacyGlobalId = sequences.nextGlobalId() + 5000;
+        long legacyContentId = sequences.nextContentId() + 5000;
+        long legacyCommentId = sequences.nextCommentId() + 5000;
+
+        execute("CREATE TABLE sequences (seqName VARCHAR(32) NOT NULL PRIMARY KEY, seqValue BIGINT NOT NULL)");
+        try {
+            execute("INSERT INTO sequences (seqName, seqValue) VALUES ('globalId', " + legacyGlobalId + ")");
+            execute("INSERT INTO sequences (seqName, seqValue) VALUES ('contentId', " + legacyContentId + ")");
+            execute("INSERT INTO sequences (seqName, seqValue) VALUES ('commentId', " + legacyCommentId + ")");
+
+            String className = sqlStatements.databaseUpgrade(114, 115).stream()
+                    .filter(s -> s.startsWith("UPGRADER:"))
+                    .map(s -> s.substring("UPGRADER:".length()).trim())
+                    .findFirst().orElseThrow();
+            handles.withHandleNoException(handle -> {
+                ((IDbUpgrader) Class.forName(className).getConstructor().newInstance()).upgrade(handle);
+                return null;
+            });
+
+            Assertions.assertTrue(sequences.nextGlobalId() > legacyGlobalId);
+            Assertions.assertTrue(sequences.nextContentId() > legacyContentId);
+            Assertions.assertTrue(sequences.nextCommentId() > legacyCommentId);
+        } finally {
+            execute("DROP TABLE sequences");
+        }
     }
 
     private void execute(String sql) {

@@ -62,10 +62,8 @@ secret `test1`.
 
 ## Notes
 
-- **Known issues** (the guide shows each): a malformed basic header returns 500
-  ([#11043](https://github.com/Apicurio/apicurio-registry/issues/11043)); resetting a dynamic setting
-  with `DELETE` has no effect until restart ([#11044](https://github.com/Apicurio/apicurio-registry/issues/11044));
-  the SDK's `bearerToken()` needs the JDK adapter ([#11046](https://github.com/Apicurio/apicurio-registry/issues/11046)).
+- **Known issue** (the guide shows it): a malformed basic header returns 500
+  ([#11043](https://github.com/Apicurio/apicurio-registry/issues/11043)).
 - **Local only:** Keycloak in development mode over HTTP, the token issuer check relaxed, secrets in
   plain text, k3s privileged and TLS verification skipped. Do not use this configuration in
   production.

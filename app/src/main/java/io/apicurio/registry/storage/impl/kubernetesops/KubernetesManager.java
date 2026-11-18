@@ -14,14 +14,20 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class KubernetesManager extends AbstractPollingDataSourceManager<KubernetesOpsMarker> {
@@ -69,7 +75,9 @@ public class KubernetesManager extends AbstractPollingDataSourceManager<Kubernet
                 .withLabelSelector(labelSelector)
                 .list();
 
-        String currentResourceVersion = configMapList.getMetadata().getResourceVersion();
+        // The list's own resourceVersion is the cluster-wide storage revision, which advances with
+        // any write in the cluster. Only the selected ConfigMaps' own versions identify our data.
+        String currentResourceVersion = dataVersion(configMapList.getItems());
 
         if (currentResourceVersion.equals(previousResourceVersion)) {
             return PollingResult.noChanges(new KubernetesOpsMarker(sourceId, currentResourceVersion, Instant.now()));
@@ -104,6 +112,24 @@ public class KubernetesManager extends AbstractPollingDataSourceManager<Kubernet
         var marker = new KubernetesOpsMarker(sourceId, currentResourceVersion, commitTime);
         return PollingResult.withChanges(marker, files,
                 () -> previousResourceVersion = currentResourceVersion);
+    }
+
+    /**
+     * @return a version identifying the given ConfigMaps' state (names, resourceVersions and data),
+     *         changing only when one of them is added, removed, or modified
+     */
+    static String dataVersion(List<ConfigMap> configMaps) {
+        String versions = configMaps.stream()
+                .map(cm -> cm.getMetadata().getName() + "@" + cm.getMetadata().getResourceVersion() + "#"
+                        + Objects.hashCode(cm.getData()))
+                .sorted()
+                .collect(Collectors.joining(","));
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256").digest(versions.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(digest);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     private long maxCreationTimestamp(ConfigMap configMap, long maxTimestamp) {

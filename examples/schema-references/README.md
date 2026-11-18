@@ -52,9 +52,8 @@ Stop and remove everything with `docker compose down -v`.
 ## Notes
 
 - **Known issues:** deleting a referenced artifact is allowed and breaks its referrers
-  ([#11029](https://github.com/Apicurio/apicurio-registry/issues/11029)); a cycle closed by a new
-  artifact is not caught, and dereferencing a cycle fails
-  ([#11030](https://github.com/Apicurio/apicurio-registry/issues/11030)). The guide shows both.
+  ([#11029](https://github.com/Apicurio/apicurio-registry/issues/11029)); dereferencing it then
+  fails with `422`. The guide shows it.
 - **Local build of the registry:** start the example with `REGISTRY_IMAGE=<image> docker compose up -d`.
 - **Local only:** in-memory storage, no authentication, a single-node broker without security.
 

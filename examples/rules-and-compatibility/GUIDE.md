@@ -249,9 +249,7 @@ call PUT /groups/orders/artifacts/order-returned/versions/draft-1/state '{"state
   | jq -r .ruleViolation.ruleType                                                      # COMPATIBILITY: not published
 ```
 
-`order-returned` uses `BACKWARD_TRANSITIVE`. With a non-transitive rule, publishing currently
-compares the draft with itself and lets it through:
-[#11001](https://github.com/Apicurio/apicurio-registry/issues/11001).
+Publishing compares the draft with the published versions only, never with itself.
 
 **In the UI:** open **Drafts**: `draft-1` is still listed.
 

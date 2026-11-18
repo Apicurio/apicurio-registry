@@ -93,9 +93,9 @@ check "anonymous read access switched on at runtime (admin)" 204 \
      -H "$(bearer "$ADMIN")" -H 'Content-Type: application/json' -d '{"value": "true"}')"
 check "now anonymous read: 200" 200 "$(code "$REGISTRY" GET /groups)"
 check "anonymous write: still 401" 401 "$(write_group "$REGISTRY" anonymous)"
-code "$REGISTRY" PUT /admin/config/properties/apicurio.auth.anonymous-read-access.enabled \
-  -H "$(bearer "$ADMIN")" -H 'Content-Type: application/json' -d '{"value": "false"}' > /dev/null
-check "switched off again (set to false, see #11044): 401" 401 "$(code "$REGISTRY" GET /groups)"
+check "reset to its default (admin)" 204 \
+  "$(code "$REGISTRY" DELETE /admin/config/properties/apicurio.auth.anonymous-read-access.enabled -H "$(bearer "$ADMIN")")"
+check "switched off again: 401" 401 "$(code "$REGISTRY" GET /groups)"
 
 # ------------------------------------------------------------------------------ step 5
 part "Step 5: users with OIDC tokens, and their roles"

@@ -119,13 +119,7 @@ check_events() {
   check "the topic $topic holds exactly $n events (none for the dry run or the rejected version)" "$n" \
     "$(eventually 90 "$n" count "$topic")"
   all=$(events "$topic" "$n")
-  local expected=$EXPECTED
-  if [ "$current" = postgresql ]; then
-    # On SQL storage, the first version's event comes before the artifact's
-    # (https://github.com/Apicurio/apicurio-registry/issues/11097)
-    expected=$(echo "$EXPECTED" | awk 'NR==3{a=$0; next} NR==4{print; print a; next} {print}')
-  fi
-  check "the events, in order, with their keys" "$expected" \
+  check "the events, in order, with their keys" "$EXPECTED" \
     "$(jq -r '"\(.value.eventType) \(.key)"' <<< "$all")"
   check "every event has a unique id" "$n" "$(jq -r .value.id <<< "$all" | sort -u | wc -l | tr -d ' ')"
   check "ARTIFACT_VERSION_CREATED carries the coordinates" "orders order-placed 2" \

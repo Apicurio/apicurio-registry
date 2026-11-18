@@ -167,17 +167,16 @@ On a group with `INTEGRITY=FULL`:
 - duplicate names and cycles are rejected too (`NO_DUPLICATES`, `NO_CIRCULAR_REFERENCES`).
 
 Without a rule, `demo.sh` creates `a`, referencing `b` before `b` exists, then `b`, referencing `a`:
-the graph of `unchecked/a` reports `hasCycles: true`. Two issues there: the cycle rule does not
-catch a cycle that the new artifact closes, and dereferencing a cycle fails with 500
-([#11030](https://github.com/Apicurio/apicurio-registry/issues/11030)). `REFS_EXIST` prevents the
-first step, so use `FULL`.
+the graph of `unchecked/a` reports `hasCycles: true`, and dereferencing it fails with `422`, naming
+the cycle. With `NO_CIRCULAR_REFERENCES` (group `cycles`), creating `b` is rejected, because it closes
+the cycle. `REFS_EXIST` prevents the first step altogether, so use `FULL`.
 
 ## Step 10: Disabling and deleting a referenced artifact
 
 - A `DISABLED` version still resolves as a reference: disabling hides a version from normal reads,
   not from the schemas that already use it.
 - Deleting a referenced artifact is **allowed** today. The referrer still lists the reference, but
-  dereferencing it now fails (for Avro, with a 500), and so do consumers that resolve it
+  dereferencing it now fails with `422`, naming the missing reference, and so do consumers that resolve it
   ([#11029](https://github.com/Apicurio/apicurio-registry/issues/11029)). Check `refType=INBOUND`
   before deleting. The Confluent-compatible API does refuse such deletes.
 
@@ -223,7 +222,7 @@ docker compose down -v
 |---|---|
 | `build.sh failed` | It needs JDK 21 or later; run `./build.sh` to see the errors. |
 | A Maven plugin execution fails | Run it by hand: `../../mvnw -f registration io.apicurio:apicurio-registry-maven-plugin:3.4.0-SNAPSHOT:register@avro-manual -Dregistry.url=http://localhost:8081/apis/registry/v3`. |
-| `DEREFERENCE` returns 500 | A referenced artifact was deleted (#11029) or the references form a cycle (#11030). |
+| `DEREFERENCE` returns 422 | The detail names the problem: a referenced version that no longer exists (#11029), or a cycle. |
 | The serdes step times out | Kafka is not reachable on `localhost:9092`; see [Using other ports](#using-other-ports). |
 
 ## Using other ports

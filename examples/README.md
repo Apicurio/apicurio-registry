@@ -39,7 +39,7 @@ follow each example's README quick start.
 |---|---|---|---|
 | [kafka-serdes](kafka-serdes/) | Avro, Protobuf and JSON Schema serdes, strategies, Kafka Connect | [0007](../adr/0007-kafka-serdes.md) | [Serdes](../docs/modules/ROOT/pages/getting-started/assembly-configuring-kafka-client-serdes.adoc) |
 | [confluent-compatibility](confluent-compatibility/) | Confluent clients and tools against the Confluent-compatible API, and migrating from Confluent | [0001](../adr/0001-confluent-schema-registry-compatibility.md) | [Confluent compatibility](../docs/modules/ROOT/pages/getting-started/assembly-confluent-schema-registry-compatibility.adoc) |
-| [camel-quarkus-kafka](camel-quarkus-kafka/) | Camel Quarkus routes with the registry's Avro serdes. *Not checked yet* | | |
+| [camel-quarkus-kafka](camel-quarkus-kafka/) | Camel Quarkus Kafka routes with the Avro serdes: schema auto-registration, the content ID on the wire, compatible and refused schema changes | [0007](../adr/0007-kafka-serdes.md) | [Serdes](../docs/modules/ROOT/pages/getting-started/assembly-configuring-kafka-client-serdes.adoc) |
 
 ## Security
 

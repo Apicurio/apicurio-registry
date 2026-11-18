@@ -13,11 +13,9 @@ up to the same standard.
 
 Each row links the decision record (ADR) that explains the design, and the user documentation.
 
-```bash
-cd examples/<name>
-docker compose up -d   # or ./build.sh first, when the example has one
-./demo.sh
-```
+Most examples start with `docker compose up -d` and then `./demo.sh`. Some start what they need
+themselves (`operator` creates a kind cluster, `storage-variants` picks Compose profiles), so
+follow each example's README quick start.
 
 ## Clients
 

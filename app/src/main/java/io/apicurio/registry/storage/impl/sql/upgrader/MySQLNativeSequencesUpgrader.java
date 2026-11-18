@@ -17,4 +17,22 @@ public class MySQLNativeSequencesUpgrader extends NativeSequencesUpgrader {
     protected SqlStatements sqlStatements() {
         return new MySQLSqlStatements();
     }
+
+    /**
+     * @see NativeSequencesUpgrader#currentSchemaExpression()
+     */
+    @Override
+    protected String currentSchemaExpression() {
+        return "DATABASE()";
+    }
+
+    /**
+     * Best effort: the row locks are released by the implicit commit of the subsequent DROP TABLE.
+     *
+     * @see NativeSequencesUpgrader#selectLegacyValueQuery()
+     */
+    @Override
+    protected String selectLegacyValueQuery() {
+        return "SELECT seqValue FROM sequences WHERE seqName = ? FOR UPDATE";
+    }
 }

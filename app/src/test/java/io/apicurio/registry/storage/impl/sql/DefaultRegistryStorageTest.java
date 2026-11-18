@@ -392,17 +392,71 @@ public class DefaultRegistryStorageTest extends AbstractRegistryStorageTest {
             execute("INSERT INTO sequences (seqName, seqValue) VALUES ('contentId', " + contentId + ")");
             execute("INSERT INTO sequences (seqName, seqValue) VALUES ('commentId', " + commentId + ")");
 
-            String className = sqlStatements.databaseUpgrade(114, 115).stream()
-                    .filter(s -> s.startsWith("UPGRADER:"))
-                    .map(s -> s.substring("UPGRADER:".length()).trim())
-                    .findFirst().orElseThrow();
-            handles.withHandleNoException(handle -> {
-                ((IDbUpgrader) Class.forName(className).getConstructor().newInstance()).upgrade(handle);
-                return null;
-            });
+            runNativeSequencesUpgraderOnly();
         } finally {
             execute("DROP TABLE sequences");
         }
+    }
+
+    /**
+     * Runs only the 115 upgrader class (not the surrounding DDL).
+     */
+    private void runNativeSequencesUpgraderOnly() {
+        String className = sqlStatements.databaseUpgrade(114, 115).stream()
+                .filter(s -> s.startsWith("UPGRADER:"))
+                .map(s -> s.substring("UPGRADER:".length()).trim())
+                .findFirst().orElseThrow();
+        handles.withHandleNoException(handle -> {
+            ((IDbUpgrader) Class.forName(className).getConstructor().newInstance()).upgrade(handle);
+            return null;
+        });
+    }
+
+    /**
+     * A re-run after a partial failure may find the legacy sequences table already dropped; the
+     * upgrader then seeds from the data-table maximums alone.
+     */
+    @Test
+    public void testNativeSequencesUpgraderSeedsAboveTableMaxWithoutLegacyTable() {
+        Assumptions.assumeFalse("h2".equals(sqlStatements.dbType()), "H2 keeps in-memory counters");
+        SqlSequenceRepository sequences = sequences();
+        ArtifactVersionMetaDataDto first = createFirstVersion(TestUtils.generateGroupId(),
+                TestUtils.generateArtifactId());
+        long importedGlobalId = sequences.nextGlobalId() + 10000;
+        ArtifactVersionEntity imported = duplicateOf(first, "2");
+        imported.globalId = importedGlobalId;
+        imported.versionOrder = first.getVersionOrder() + 1;
+        storage.importArtifactVersion(imported);
+
+        runNativeSequencesUpgraderOnly();
+
+        assertGreater(importedGlobalId, sequences.nextGlobalId());
+    }
+
+    /**
+     * The 115 script (minus the version bump) is re-runnable against a database where its objects
+     * already exist and the legacy table is gone, as after a partially failed MySQL upgrade.
+     */
+    @Test
+    public void testNativeSequencesUpgradeScriptIsRerunnable() {
+        Assumptions.assumeFalse("h2".equals(sqlStatements.dbType()), "H2 keeps in-memory counters");
+        SqlSequenceRepository sequences = sequences();
+        long before = sequences.nextGlobalId();
+        for (int run = 0; run < 2; run++) {
+            handles.withHandleNoException(handle -> {
+                for (String statement : sqlStatements.databaseUpgrade(114, 115)) {
+                    if (statement.startsWith("UPGRADER:")) {
+                        String className = statement.substring("UPGRADER:".length()).trim();
+                        ((IDbUpgrader) Class.forName(className).getConstructor().newInstance())
+                                .upgrade(handle);
+                    } else if (!statement.startsWith("UPDATE apicurio")) {
+                        handle.createUpdate(statement).execute();
+                    }
+                }
+                return null;
+            });
+        }
+        assertGreater(before, sequences.nextGlobalId());
     }
 
     private void execute(String sql) {

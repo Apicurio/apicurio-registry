@@ -39,7 +39,7 @@ class NativeSequenceStatementsTest {
         SqlStatements s = new SQLServerSqlStatements();
         Assertions.assertEquals("SELECT NEXT VALUE FOR contentid_seq", s.nextSequenceValue("contentId"));
         Assertions.assertEquals("SELECT COALESCE(CAST(last_used_value AS BIGINT), 0) FROM sys.sequences "
-                + "WHERE name = 'contentid_seq'", s.selectSequenceLastValue("contentId"));
+                + "WHERE object_id = OBJECT_ID(N'contentid_seq')", s.selectSequenceLastValue("contentId"));
         Assertions.assertEquals("DECLARE @range_first_value SQL_VARIANT; EXEC sp_sequence_get_range "
                 + "@sequence_name = N'contentid_seq', @range_size = ?, "
                 + "@range_first_value = @range_first_value OUTPUT", s.advanceSequenceValue("contentId"));

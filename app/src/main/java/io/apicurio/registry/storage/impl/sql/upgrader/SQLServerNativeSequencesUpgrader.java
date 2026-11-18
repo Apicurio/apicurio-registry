@@ -17,4 +17,20 @@ public class SQLServerNativeSequencesUpgrader extends NativeSequencesUpgrader {
     protected SqlStatements sqlStatements() {
         return new SQLServerSqlStatements();
     }
+
+    /**
+     * @see NativeSequencesUpgrader#currentSchemaExpression()
+     */
+    @Override
+    protected String currentSchemaExpression() {
+        return "SCHEMA_NAME()";
+    }
+
+    /**
+     * @see NativeSequencesUpgrader#selectLegacyValueQuery()
+     */
+    @Override
+    protected String selectLegacyValueQuery() {
+        return "SELECT seqValue FROM sequences WITH (TABLOCKX, HOLDLOCK) WHERE seqName = ?";
+    }
 }

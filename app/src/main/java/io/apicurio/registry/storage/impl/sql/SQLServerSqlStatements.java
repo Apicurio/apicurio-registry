@@ -175,8 +175,8 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
      */
     @Override
     public String selectSequenceLastValue(String sequenceName) {
-        return "SELECT COALESCE(CAST(last_used_value AS BIGINT), 0) FROM sys.sequences WHERE name = '"
-                + nativeSequenceName(sequenceName) + "'";
+        return "SELECT COALESCE(CAST(last_used_value AS BIGINT), 0) FROM sys.sequences "
+                + "WHERE object_id = OBJECT_ID(N'" + nativeSequenceName(sequenceName) + "')";
     }
 
     /**

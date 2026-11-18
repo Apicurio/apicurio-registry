@@ -17,4 +17,20 @@ public class PostgreSQLNativeSequencesUpgrader extends NativeSequencesUpgrader {
     protected SqlStatements sqlStatements() {
         return new PostgreSQLSqlStatements();
     }
+
+    /**
+     * @see NativeSequencesUpgrader#currentSchemaExpression()
+     */
+    @Override
+    protected String currentSchemaExpression() {
+        return "current_schema()";
+    }
+
+    /**
+     * @see NativeSequencesUpgrader#lockLegacyTableStatement()
+     */
+    @Override
+    protected String lockLegacyTableStatement() {
+        return "LOCK TABLE sequences IN ACCESS EXCLUSIVE MODE";
+    }
 }

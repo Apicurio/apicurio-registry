@@ -134,8 +134,10 @@ Kubernetes-specific parts are covered elsewhere:
   With a number (`QUARKUS_TLS_KEY_STORE_PEM_0_CERT`, as `quarkus.tls.key-store.pem.0.cert` is often
   written), the setting is ignored and the registry starts without HTTPS. As a system property
   (`JAVA_OPTS_APPEND=-Dquarkus.tls.key-store.pem.0.cert=...`), `0` works.
-- **Client errors:** the Maven plugin reports a proxy's HTML error without its status code, and the
-  SDK reports a wrong password as an `ApiException` with no body ([#11261](https://github.com/Apicurio/apicurio-registry/issues/11261)).
+- **Client errors:** the Maven plugin names the HTTP status of a failure when there is one (for
+  example `(HTTP 401)`), but a proxy's HTML error page still surfaces without it, and the SDK
+  reports a wrong password as an `ApiException` with no body
+  ([#11261](https://github.com/Apicurio/apicurio-registry/issues/11261)).
 - **Local only:** the CA is generated on your machine and its key is deleted, but the store password
   (`apicurio`) and the user's password are in plain text, `registry-mtls` keeps an in-memory
   database, and the other services in the Compose project can call `registry-mtls` without the

@@ -456,7 +456,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                     throw new MojoExecutionException("Errors while registering artifacts ...");
                 }
             } finally {
-                vertx.close();
+                closeVertx(vertx);
             }
         }
     }
@@ -499,8 +499,8 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                 }
                 throw new MojoExecutionException(message, interrupt);
             }
-            getLog().error(String.format("Exception while registering artifact [%s] / [%s]", groupId,
-                    artifactId), e);
+            getLog().error(String.format("Exception while registering artifact [%s] / [%s]%s", groupId,
+                    artifactId, httpStatus(e)), e);
             return false;
         }
     }

@@ -91,7 +91,7 @@ public class DownloadRegistryMojo extends AbstractRegistryMojo {
                 throw new MojoExecutionException("Errors while downloading artifacts ...");
             }
         } finally {
-            vertx.close();
+            closeVertx(vertx);
         }
     }
 
@@ -124,7 +124,8 @@ public class DownloadRegistryMojo extends AbstractRegistryMojo {
         } catch (Exception e) {
             errorCount++;
             getLog().error(
-                    String.format("Exception while downloading artifact [%s] / [%s]", groupId, artifactId),
+                    String.format("Exception while downloading artifact [%s] / [%s]%s", groupId, artifactId,
+                            httpStatus(e)),
                     e);
         }
 

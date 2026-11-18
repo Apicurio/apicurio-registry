@@ -31,7 +31,7 @@
   </licenses>
 
   <modules>
-    <module>rest-client</module>
+    <module>registry-clients/java-sdk</module>
     <module>docker-compose</module>
     <module>mtls-minikube/client</module>
     <module>maven-plugin-tls-credentials</module>

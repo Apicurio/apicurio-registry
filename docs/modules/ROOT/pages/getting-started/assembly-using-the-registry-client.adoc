@@ -59,6 +59,7 @@ You can access the {registry} Golang SDK by adding the correct dependency to you
 * link:https://www.npmjs.com/package/@apicurio/apicurio-registry-sdk[Apicurio Registry Typescript SDK npm package]
 * link:https://pypi.org/project/apicurioregistrysdk/[Apicurio Registry Python SDK PyPI package]
 * link:https://github.com/Apicurio/apicurio-registry/tree/main/go-sdk[Apicurio Registry Golang SDK]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/registry-clients[Registry clients example]: the same scenario with every SDK and the CLI
 
 
 
@@ -125,7 +126,7 @@ When the client is created, you can use all of the operations available in the {
 
 [role="_additional-resources"]
 .Additional resources
-* https://github.com/Apicurio/apicurio-registry/tree/main/examples[Apicurio Registry REST client demonstration]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/registry-clients[Registry clients example]: the same scenario with the Java, Go, Python and TypeScript SDKs and the CLI
 * {kafka-client-serdes}
 ifndef::service-registry-downstream[]
 * xref:getting-started/assembly-using-schema-validation-library.adoc[Validating data with the {registry} schema validation library]

@@ -1,12 +1,9 @@
-module github.com/apicurio/apicurio-registry/examples/sdk/go-sdk
+module github.com/apicurio/apicurio-registry/examples/registry-clients/go-sdk
 
 go 1.25.0
 
 require (
-	// 3.0.6:
-	github.com/apicurio/apicurio-registry/go-sdk v0.0.0-20241211181742-779f0994a1de // v3.0.6
-	// 3.0.7 and later:
-	// github.com/apicurio/apicurio-registry/go-sdk/v3 v3.0.7
+	github.com/apicurio/apicurio-registry/go-sdk/v3 v3.0.0
 	github.com/microsoft/kiota-abstractions-go v1.11.1
 	github.com/microsoft/kiota-http-go v1.5.6
 )
@@ -26,3 +23,6 @@ require (
 	go.opentelemetry.io/otel/metric v1.46.0 // indirect
 	go.opentelemetry.io/otel/trace v1.46.0 // indirect
 )
+
+// Use the Go SDK of this checkout, not a released one
+replace github.com/apicurio/apicurio-registry/go-sdk/v3 => ../../../go-sdk

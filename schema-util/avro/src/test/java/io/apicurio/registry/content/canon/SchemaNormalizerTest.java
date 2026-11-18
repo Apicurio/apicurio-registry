@@ -5,12 +5,9 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.types.ContentTypes;
 import org.apache.avro.Schema;
-import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.Test;
 
-import java.io.File;
 import java.io.IOException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -1198,9 +1195,43 @@ class SchemaNormalizerTest {
     }
 
     private String getSchemaFromResource(String resourcePath) throws IOException {
-        ClassLoader classLoader = getClass().getClassLoader();
-        URL resourceURL = classLoader.getResource(resourcePath);
-        File file = new File(resourceURL.getFile());
-        return FileUtils.readFileToString(file, "UTF-8");
+        try (var inputStream = getClass().getClassLoader().getResourceAsStream(resourcePath)) {
+            if (inputStream == null) {
+                throw new IOException("Resource not found: " + resourcePath);
+            }
+            return new String(inputStream.readAllBytes(), "UTF-8");
+        }
+    }
+
+    @Test
+    void parseSchema_SchemaWithAliasesAndErrorAttribute_Preserved() {
+        // Schema with error type and aliases
+        String schemaStr = """
+                {
+                  "type": "record",
+                  "name": "ErrorRecord",
+                  "namespace": "com.example",
+                  "isError": true,
+                  "aliases": ["com.example.AliasRecord"],
+                  "fields": [
+                    {
+                      "name": "field1",
+                      "type": "string",
+                      "aliases": ["field1_alias"]
+                    }
+                  ]
+                }""";
+
+        // act
+        EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
+        TypedContent normalized = canonicalizer.canonicalize(toTypedContent(schemaStr), new HashMap<>());
+        Schema normalizedSchema = new Schema.Parser().parse(normalized.getContent().content());
+
+        // assert
+        assertEquals(true, normalizedSchema.isError());
+        assertEquals(1, normalizedSchema.getAliases().size());
+        assertEquals("com.example.AliasRecord", normalizedSchema.getAliases().iterator().next());
+        assertEquals(1, normalizedSchema.getField("field1").aliases().size());
+        assertEquals("field1_alias", normalizedSchema.getField("field1").aliases().iterator().next());
     }
 }

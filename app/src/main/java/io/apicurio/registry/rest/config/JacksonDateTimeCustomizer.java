@@ -3,12 +3,14 @@ package io.apicurio.registry.rest.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import io.apicurio.common.apps.config.Info;
-import io.quarkus.jackson.ObjectMapperCustomizer;
+import io.quarkus.jackson.JsonMapperBuilderCustomizer;
 import jakarta.annotation.PostConstruct;
 import jakarta.inject.Singleton;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.databind.cfg.DateTimeFeature;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.text.SimpleDateFormat;
 import java.util.TimeZone;
@@ -16,7 +18,7 @@ import java.util.TimeZone;
 import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_API;
 
 @Singleton
-public class JacksonDateTimeCustomizer implements ObjectMapperCustomizer {
+public class JacksonDateTimeCustomizer implements JsonMapperBuilderCustomizer {
 
     private static Logger log = LoggerFactory.getLogger(JacksonDateTimeCustomizer.class);
 
@@ -76,10 +78,19 @@ public class JacksonDateTimeCustomizer implements ObjectMapperCustomizer {
         }
     }
 
-    /**
-     * @see io.quarkus.jackson.ObjectMapperCustomizer#customize(com.fasterxml.jackson.databind.ObjectMapper)
-     */
     @Override
+    public void customize(JsonMapper.Builder mapper) {
+        try {
+            configureDateFormat(mapper, dateFormat, timezone);
+        } catch (Exception e) {
+            log.error("Error setting REST API date format.", e);
+            configureDateFormat(mapper, DEFAULT_DATE_TIME_FORMAT, DEFAULT_DATE_TIME_FORMAT_TZ);
+        }
+    }
+
+    /**
+     * Applies the same date format to a Jackson 2 mapper (see {@link LegacyJacksonObjectMapperProducer}).
+     */
     public void customize(ObjectMapper mapper) {
         try {
             configureDateFormat(mapper, dateFormat, timezone);
@@ -94,6 +105,13 @@ public class JacksonDateTimeCustomizer implements ObjectMapperCustomizer {
         df.setTimeZone(TimeZone.getTimeZone(tz));
         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         mapper.setDateFormat(df);
+    }
+
+    protected static void configureDateFormat(JsonMapper.Builder mapper, String format, String tz) {
+        SimpleDateFormat df = new SimpleDateFormat(format);
+        df.setTimeZone(TimeZone.getTimeZone(tz));
+        mapper.disable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS);
+        mapper.defaultDateFormat(df);
     }
 
 }

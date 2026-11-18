@@ -15,6 +15,8 @@
     <name>Registry :: CLI</name>
 
     <properties>
+        <!-- Quarkus 4 requires Java 21 -->
+        <maven.compiler.release>21</maven.compiler.release>
         <projectRoot>${project.basedir}/..</projectRoot>
         <!-- Native build is enabled by default. Use -DcliSkipNative to skip. -->
         <quarkus.native.enabled>true</quarkus.native.enabled>

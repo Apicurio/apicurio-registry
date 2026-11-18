@@ -102,7 +102,7 @@ final class HttpLoggingInterceptor implements Handler<HttpContext<?>> {
         var request = context.clientRequest();
         // Populated by the phase that receives a redirect response, so by the time the follow-up
         // request is sent it already holds one entry per hop taken so far.
-        var hop = context.getRedirectedLocations().size();
+        var hop = context.redirectedLocations().size();
         var out = new StringBuilder("HTTP request");
         if (hop > 0) {
             out.append(" (redirect ").append(hop).append(')');
@@ -117,7 +117,7 @@ final class HttpLoggingInterceptor implements Handler<HttpContext<?>> {
 
     private static String formatResponse(HttpContext<?> context) {
         HttpResponse<?> response = context.response();
-        var hops = context.getRedirectedLocations().size();
+        var hops = context.redirectedLocations().size();
         var out = new StringBuilder("HTTP response");
         if (hops > 0) {
             out.append(" (after ").append(hops).append(hops == 1 ? " redirect)" : " redirects)");

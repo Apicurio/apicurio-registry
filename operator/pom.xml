@@ -26,10 +26,32 @@
     <maven.compiler.release>21</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+    <!-- quarkus-operator-sdk has no Quarkus 4 release yet: the operator runs on the Quarkus 3.x
+         that quarkus-operator-sdk brings, so it needs that Quarkus' Netty 4.1, not the Netty 4.2
+         the root POM manages for Quarkus 4. -->
+    <operator.netty.version>4.1.136.Final</operator.netty.version>
   </properties>
 
   <dependencyManagement>
     <dependencies>
+
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-bom</artifactId>
+        <version>${operator.netty.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-codec-http</artifactId>
+        <version>${operator.netty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-codec-http2</artifactId>
+        <version>${operator.netty.version}</version>
+      </dependency>
 
       <dependency>
         <groupId>io.quarkiverse.operatorsdk</groupId>

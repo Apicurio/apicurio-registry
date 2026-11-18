@@ -123,7 +123,7 @@ public class SimpleTestProxy {
     }
 
     private void executeProxy(HttpClientRequest clientReq, HttpServerRequest req) {
-        clientReq.response(reqResult -> {
+        clientReq.response().onComplete(reqResult -> {
             if (reqResult.succeeded()) {
                 HttpClientResponse clientRes = reqResult.result();
                 req.response().setChunked(true);

@@ -54,7 +54,7 @@ spec:
               value: "greeting-consumer"
             - name: QUARKUS_OTEL_TRACES_SAMPLER
               value: "parentbased_always_on"
-            - name: QUARKUS_OTEL_INSTRUMENT_KAFKA
+            - name: QUARKUS_OTEL_INSTRUMENT_MESSAGING
               value: "true"
             - name: DEPLOYMENT_ENV
               value: "kubernetes"

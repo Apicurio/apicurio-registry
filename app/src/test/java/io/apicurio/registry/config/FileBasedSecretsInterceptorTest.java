@@ -284,7 +284,7 @@ public class FileBasedSecretsInterceptorTest {
         // Query using the dotted lowercase property name — EnvConfigSource's fuzzy
         // EnvName matching resolves APICURIO_DATASOURCE_PASSWORD_FILE, and our
         // interceptor reads the file and returns its contents
-        String value = config.getRawValue("apicurio.datasource.password");
+        String value = config.getConfigValue("apicurio.datasource.password").getValue();
         assertEquals("env-secret-value", value);
     }
 
@@ -309,8 +309,8 @@ public class FileBasedSecretsInterceptorTest {
                         300))
                 .build();
 
-        assertEquals("db-password-123", config.getRawValue("apicurio.datasource.password"));
-        assertEquals("db-user", config.getRawValue("apicurio.datasource.username"));
+        assertEquals("db-password-123", config.getConfigValue("apicurio.datasource.password").getValue());
+        assertEquals("db-user", config.getConfigValue("apicurio.datasource.username").getValue());
     }
 
     /**

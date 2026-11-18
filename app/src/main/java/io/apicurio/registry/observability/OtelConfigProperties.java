@@ -28,9 +28,9 @@ public class OtelConfigProperties {
     @Info(category = CATEGORY_OBSERVABILITY, description = "The protocol to use for exporting telemetry data. Valid values are `grpc` or `http/protobuf`.", availableSince = "3.1.7")
     String otelExporterOtlpProtocol;
 
-    @ConfigProperty(name = "quarkus.otel.instrument.kafka", defaultValue = "true")
-    @Info(category = CATEGORY_OBSERVABILITY, description = "Enable or disable automatic tracing instrumentation for Kafka operations. Useful for tracing in KafkaSQL storage deployments.", availableSince = "3.1.7")
-    boolean otelInstrumentKafka;
+    @ConfigProperty(name = "quarkus.otel.instrument.messaging", defaultValue = "true")
+    @Info(category = CATEGORY_OBSERVABILITY, description = "BUILD-TIME property to enable or disable automatic tracing instrumentation for messaging (Kafka) operations. Useful for tracing in KafkaSQL storage deployments.", availableSince = "3.1.7")
+    boolean otelInstrumentMessaging;
 
     @ConfigProperty(name = "quarkus.otel.logs.enabled", defaultValue = "true")
     @Info(category = CATEGORY_OBSERVABILITY, description = "BUILD-TIME property to enable log export via OpenTelemetry. When enabled along with JSON logging, trace context is automatically included in log entries. Use `quarkus.otel.sdk.disabled` to control log export at runtime.", availableSince = "3.1.7")

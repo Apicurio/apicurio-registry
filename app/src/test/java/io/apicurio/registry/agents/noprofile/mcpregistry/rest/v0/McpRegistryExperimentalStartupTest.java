@@ -3,7 +3,7 @@ package io.apicurio.registry.agents.noprofile.mcpregistry.rest.v0;
 import io.apicurio.registry.config.ExperimentalFeaturesConfig;
 import io.apicurio.registry.logging.LoggerProducer;
 import io.apicurio.registry.agents.mcpregistry.McpRegistryConfig;
-import io.quarkus.test.QuarkusUnitTest;
+import io.quarkus.test.QuarkusExtensionTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 class McpRegistryExperimentalStartupTest {
 
     @RegisterExtension
-    static final QuarkusUnitTest APP = new QuarkusUnitTest()
+    static final QuarkusExtensionTest APP = new QuarkusExtensionTest()
             .withApplicationRoot(jar -> jar.addClasses(ExperimentalFeaturesConfig.class,
                     LoggerProducer.class, McpRegistryConfig.class))
             .overrideConfigKey("quarkus.devservices.enabled", "false")

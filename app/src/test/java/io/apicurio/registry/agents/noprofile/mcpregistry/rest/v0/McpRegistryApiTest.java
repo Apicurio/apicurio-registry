@@ -16,6 +16,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -393,6 +394,22 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(409)
                 .body("error", equalTo("Version '1.0.0' of MCP server '" + name + "' already exists"))
+                .body("name", nullValue());
+    }
+
+    @Test
+    public void testSyntacticallyInvalidJsonUsesTheSpecErrorShape() {
+        String namespace = uniqueNamespace();
+        publish(namespace + "/badjson", "1.0.0", "v1");
+
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .body("{\"status\": ")
+                .patch(BASE + "/servers/" + namespace + "/badjson/versions/1.0.0/status")
+                .then()
+                .statusCode(400)
+                .body("error", startsWith("Unexpected end-of-input"))
                 .body("name", nullValue());
     }
 

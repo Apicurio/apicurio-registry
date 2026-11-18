@@ -53,6 +53,7 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -684,6 +685,24 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
                 .body(not(containsString("ContractStatusTransition.Status")))
                 .body(not(containsString("io.apicurio")))
                 .body(not(containsString("No enum constant")));
+    }
+
+    @Test
+    public void testStatusTransition_MalformedJson_Returns400ProblemDetails() throws Exception {
+        String artifactId = "testStatusTransition_MalformedJson-" + UUID.randomUUID();
+        String content = resourceToString("openapi-empty.json");
+        createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, content, ContentTypes.APPLICATION_JSON);
+
+        given().when().contentType(CT_JSON)
+                .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                .body("{status: DEPRECATED") // not valid JSON
+                .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/status")
+                .then().statusCode(400)
+                .contentType(containsString("json"))
+                .body("status", equalTo(400))
+                .body("name", equalTo("BadRequestException"))
+                .body("detail", startsWith("BadRequestException: Unexpected character"))
+                .body(not(containsString("io.apicurio")));
     }
 
     @Test

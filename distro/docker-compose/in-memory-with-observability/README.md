@@ -68,7 +68,7 @@ Apicurio Registry is built with OpenTelemetry support, but individual telemetry 
 | `QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP collector endpoint | `http://localhost:4317` |
 | `QUARKUS_OTEL_TRACES_SAMPLER` | Sampling strategy | `parentbased_traceidratio` |
 | `QUARKUS_OTEL_TRACES_SAMPLER_ARG` | Sampler ratio (0.0 to 1.0) | `0.1` |
-| `QUARKUS_LOG_CONSOLE_JSON` | Enable JSON logging with trace context | `false` |
+| `QUARKUS_LOG_CONSOLE_JSON_ENABLED` | Enable JSON logging with trace context | `false` |
 
 ### Production Recommendations
 

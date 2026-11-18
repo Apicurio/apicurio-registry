@@ -126,6 +126,10 @@ public class ContractSerdesDemo {
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, AvroKafkaDeserializer.class.getName());
         props.put("apicurio.registry.url", REGISTRY_URL);
+        // Name the artifact the records were written with, so that the deserializer can find the
+        // schema version of a record from its content ID and load that version's rules
+        props.put("apicurio.registry.artifact.group-id", "orders");
+        props.put("apicurio.registry.artifact.artifact-id", "OrderEvent");
         // Run the artifact's READ-mode contract rules after deserializing
         props.put("apicurio.registry.serde.contract-rules.enabled", "true");
         return props;

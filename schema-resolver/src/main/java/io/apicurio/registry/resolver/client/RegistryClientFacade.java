@@ -113,6 +113,24 @@ public interface RegistryClientFacade {
     RegistryVersionCoordinates getVersionCoordinatesByGAV(String groupId, String artifactId, String version);
 
     /**
+     * Gets the coordinates (group ID, artifact ID, version) of the version with the given global ID.
+     * Returns null if there is no such version, or if this facade implementation cannot look it up.
+     */
+    default RegistryVersionCoordinates getVersionCoordinatesByGlobalId(long globalId) {
+        return null;
+    }
+
+    /**
+     * Gets the coordinates of the version of the given artifact whose content has the given content ID.
+     * A content ID can be shared by several versions; the most recently created one is returned.
+     * Returns null if there is no such version, or if this facade implementation cannot look it up.
+     */
+    default RegistryVersionCoordinates getVersionCoordinatesByContentId(long contentId, String groupId,
+            String artifactId) {
+        return null;
+    }
+
+    /**
      * Access the underlying (generated) client used by the facade to access the Registry API.  For
      * example, this might return an instance of {@link io.apicurio.registry.rest.client.RegistryClient}.
      */

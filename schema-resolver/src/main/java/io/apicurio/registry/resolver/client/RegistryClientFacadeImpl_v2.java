@@ -166,6 +166,23 @@ public class RegistryClientFacadeImpl_v2 implements RegistryClientFacade {
         return RegistryVersionCoordinates.create(vmd.getGlobalId(), vmd.getContentId(), vmd.getGroupId(), vmd.getId(), vmd.getVersion());
     }
 
+    /**
+     * Not supported: the v2 API has no way to find a version by its global ID.
+     */
+    @Override
+    public RegistryVersionCoordinates getVersionCoordinatesByGlobalId(long globalId) {
+        return null;
+    }
+
+    /**
+     * Not supported: the v2 API has no way to find the versions of an artifact by content ID.
+     */
+    @Override
+    public RegistryVersionCoordinates getVersionCoordinatesByContentId(long contentId, String groupId,
+            String artifactId) {
+        return null;
+    }
+
     private static List<io.apicurio.registry.rest.client.v2.models.ArtifactReference> toClientReferences(Set<RegistryArtifactReference> references) {
         return references.stream().map(ref -> {
             io.apicurio.registry.rest.client.v2.models.ArtifactReference ar = new io.apicurio.registry.rest.client.v2.models.ArtifactReference();

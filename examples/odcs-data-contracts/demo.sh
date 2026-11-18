@@ -179,8 +179,7 @@ if [ -z "${SKIP_KAFKA:-}" ]; then
   out=$(java_demo migrate) || fail "the migrating consumer ran"
   sed 's/^/  info  /' <<< "$out"
   check "  a consumer on version 2 reads the record of step 9" "1 message(s) on topic 'orders'" "$(grep 'message(s)' <<< "$out")"
-  # The deserializer runs the UPGRADE rule but discards its result (#11246): should be "USD"
-  check "  a consumer on version 2 gets the record without currency (should be USD, #11246)" none \
+  check "  the record arrives migrated, with currency USD" USD \
     "$(grep '^consumed' <<< "$out" | head -1 | grep -oE '"currency": "[A-Z]+"' | grep -oE '[A-Z]{3}' || echo none)"
 fi
 

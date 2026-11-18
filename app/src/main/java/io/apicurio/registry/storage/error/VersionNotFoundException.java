@@ -1,6 +1,7 @@
 package io.apicurio.registry.storage.error;
 
 import io.apicurio.registry.model.GAV;
+import io.apicurio.registry.model.GroupId;
 import lombok.Getter;
 
 public class VersionNotFoundException extends NotFoundException {
@@ -51,7 +52,7 @@ public class VersionNotFoundException extends NotFoundException {
             return "No version with global ID '" + globalId + "' found.";
         } else {
             return "No version '" + version + "' found for artifact with ID '" + artifactId + "' "
-                    + "in group '" + groupId + "'.";
+                    + "in group '" + GroupId.displayName(groupId) + "'.";
         }
     }
 }

@@ -19,6 +19,7 @@ public class ValidationErrorConditionManager extends AbstractConditionManager {
     private static final String REASON_NO_ERROR = "NoError";
 
     private final Set<String> errors = new HashSet<>();
+    private Set<String> previousErrors = Set.of();
 
     ValidationErrorConditionManager() {
         resetCondition();
@@ -38,15 +39,21 @@ public class ValidationErrorConditionManager extends AbstractConditionManager {
         errors.add(error.formatted(args));
     }
 
-    /**
-     * Used for testing.
-     */
     public synchronized boolean hasErrors() {
         return !errors.isEmpty();
     }
 
+    public synchronized Set<String> getErrors() {
+        return Set.copyOf(errors);
+    }
+
+    public synchronized boolean hadPreviousError(String error) {
+        return previousErrors.contains(error);
+    }
+
     @Override
     void updateCondition(ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
+        previousErrors = Set.copyOf(errors);
         if (!errors.isEmpty()) {
             current.setStatus(ConditionStatus.TRUE);
             current.setReason(REASON_ERROR);

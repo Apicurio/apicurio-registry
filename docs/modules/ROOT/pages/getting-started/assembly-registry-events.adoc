@@ -20,10 +20,15 @@ This chapter explains the event system architecture, available event types, and 
 [role="_abstract"]
 {registry} generates structured change events as part of its normal operations. Every time the state of the registry changes, an event is emitted with details about what changed.
 
-Events follow the *outbox pattern*: they are produced as part of the same transaction that modifies the registry state, guaranteeing that events are consistent with the data. The delivery mechanism depends on which storage variant you use:
+How events are produced, and what is guaranteed, depends on the storage variant:
 
-* **SQL storage (PostgreSQL, MSSQL)**: Events are written to an `outbox` database table and consumed using Debezium Change Data Capture (CDC).
-* **KafkaSQL storage**: Events are published directly to a dedicated Kafka topic.
+* **SQL storage (PostgreSQL, MSSQL)**: Events follow the *outbox pattern*. Each event is written to an `outbox` database table in the same transaction as the change, and Debezium Change Data Capture (CDC) publishes it to Kafka. An event is published if, and only if, the change is committed, at least once, and in commit order. The exception is contract ruleset changes, whose event is written after the change's transaction. If Debezium or Kafka is unavailable, changes still succeed, and their events are published when Debezium catches up.
+* **KafkaSQL storage**: The registry replica that handled the request publishes each event to a dedicated Kafka topic, after the change is applied. This is not part of a transaction: if publishing fails, the change is kept and the event is lost. The topic has a single partition, so all events are in one order.
+* **GitOps and KubernetesOps storage**: No events are produced.
+
+Each event is a flat JSON object with the event `id`, its `eventType`, and the fields of the change. The key is the coordinates of the changed group, artifact, or version (for example `orders-order-placed-1`). Bulk deletion of a group's artifacts and imports do not produce events. Events are not CloudEvents: the payload is published as is, with no CloudEvents envelope or `ce_` headers.
+
+When an artifact is created together with its first version, two events are produced: `ARTIFACT_CREATED` and `ARTIFACT_VERSION_CREATED`. On SQL storage, `ARTIFACT_VERSION_CREATED` currently comes first.
 
 Typical use cases for registry events include:
 
@@ -32,7 +37,7 @@ CI/CD automation:: Trigger pipeline runs when a new artifact version is register
 Cache invalidation:: Notify downstream services when a schema changes.
 Event-driven architectures:: React to registry state changes in real time.
 
-NOTE: Event publishing is supported only with PostgreSQL and MSSQL when using SQL storage. MySQL and H2 do not support the outbox table. KafkaSQL supports events natively.
+NOTE: Event publishing is supported only with PostgreSQL and MSSQL when using SQL storage. With H2 and MySQL, no events are produced: MySQL has an `outbox` table, but the registry does not write to it. KafkaSQL supports events natively.
 
 Event delivery uses Kafka, with Debezium for SQL storage and direct publishing for KafkaSQL storage.
 {registry} does not currently provide an HTTP webhook subscription API or a webhook delivery service.
@@ -533,3 +538,4 @@ The following table lists event support by storage variant:
 .Additional resources
 * {registry-config-reference}
 * link:https://debezium.io/documentation/reference/stable/transformations/outbox-event-router.html[Debezium Outbox Event Router documentation]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/registry-events[Registry events example]: consumes and checks the events of a sequence of changes, with PostgreSQL and Debezium, and with KafkaSQL.

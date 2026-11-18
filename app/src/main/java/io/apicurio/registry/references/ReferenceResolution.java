@@ -90,6 +90,19 @@ public final class ReferenceResolution {
      */
     public static List<Long> recursivelyResolveReferenceContentIds(StoredArtifactVersionDto root,
             Function<ArtifactReferenceDto, StoredArtifactVersionDto> loader) {
+        return recursivelyResolveReferenceContentIds(root == null ? List.of() : root.getReferences(), loader);
+    }
+
+    /**
+     * Content IDs of every artifact version reachable from the given references, for ETags that must change
+     * when any of them changes.
+     *
+     * @param rootReferences the references of the content being returned
+     * @param loader loads a referenced artifact version
+     * @return the content IDs of the whole reference tree
+     */
+    public static List<Long> recursivelyResolveReferenceContentIds(List<ArtifactReferenceDto> rootReferences,
+            Function<ArtifactReferenceDto, StoredArtifactVersionDto> loader) {
         ReferenceLoader batchLoader = coordinates -> {
             Map<GAV, ReferenceNode> loaded = new LinkedHashMap<>();
             for (GAV coordinate : coordinates) {
@@ -104,7 +117,6 @@ public final class ReferenceResolution {
             }
             return loaded;
         };
-        List<ArtifactReferenceDto> rootReferences = root == null ? List.of() : root.getReferences();
         return ReferenceGraphWalker.walk(rootReferences, batchLoader, ReferenceResolutionConfig.maxDepth())
                 .contentIds();
     }

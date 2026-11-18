@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>io.apicurio</groupId>
+    <artifactId>apicurio-registry-examples</artifactId>
+    <version>3.4.0-SNAPSHOT</version>
+    <relativePath>../../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>apicurio-registry-examples-authentication-clients</artifactId>
+  <packaging>jar</packaging>
+  <name>Registry :: Examples :: Authentication :: Clients</name>
+
+  <properties>
+    <projectRoot>${project.basedir}/../../..</projectRoot>
+    <!-- Override on the command line: -Dregistry.url=... -Dbasic.url=... -Dtoken.endpoint=... -->
+    <registry.url>http://localhost:8081/apis/registry/v3</registry.url>
+    <basic.url>http://localhost:8082/apis/registry/v3</basic.url>
+    <token.endpoint>http://localhost:8080/realms/registry/protocol/openid-connect/token</token.endpoint>
+    <kafka.bootstrap>localhost:9092</kafka.bootstrap>
+    <protobuf.version>4.36.2</protobuf.version>
+  </properties>
+
+  <dependencies>
+    <!-- The Java SDK and the Avro serdes, built from this repository -->
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-java-sdk</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-avro-serde-kafka</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.kafka</groupId>
+      <artifactId>kafka-clients</artifactId>
+      <version>${kafka.version}</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <!-- mvn exec:java runs the clients (demo.sh does this) -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>3.1.0</version>
+        <configuration>
+          <mainClass>io.apicurio.registry.examples.authentication.Clients</mainClass>
+          <arguments>
+            <argument>${registry.url}</argument>
+            <argument>${basic.url}</argument>
+            <argument>${token.endpoint}</argument>
+            <argument>${kafka.bootstrap}</argument>
+          </arguments>
+        </configuration>
+      </plugin>
+      <!-- Not bound to the build: demo.sh runs `mvn apicurio-registry:register` with client
+           credentials (step 12). authServerUrl is the full token endpoint. -->
+      <plugin>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry-maven-plugin</artifactId>
+        <version>${project.version}</version>
+        <configuration>
+          <registryUrl>${registry.url}</registryUrl>
+          <authServerUrl>${token.endpoint}</authServerUrl>
+          <clientId>developer-client</clientId>
+          <clientSecret>test1</clientSecret>
+          <artifacts>
+            <artifact>
+              <groupId>maven</groupId>
+              <artifactId>greeting</artifactId>
+              <artifactType>AVRO</artifactType>
+              <file>${project.basedir}/src/main/resources/greeting.avsc</file>
+              <ifExists>FIND_OR_CREATE_VERSION</ifExists>
+            </artifact>
+          </artifacts>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

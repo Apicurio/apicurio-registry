@@ -113,3 +113,13 @@ Users of the secured Registry, from the shared example realm. Passwords equal th
 - **Registry restarted on its own:** the agents publish their Agent Cards only when they start. After
   recreating `registry`, run `docker compose restart summarizer translator orchestrator`.
 - **Ports in use:** the demo uses 8080, 8081, 8082, 8180, 8888, 8889 and 11020.
+
+## Learn more
+
+- *Agent registry quickstart* in the Registry documentation
+  ([source](../../docs/modules/ROOT/pages/getting-started/assembly-agent-registry-quickstart.adoc)).
+- [ADR-0014](../../adr/0014-agent-registry.md): how the agent registry is built and kept separate from
+  the core registry; [ADR-0004](../../adr/0004-ai-catalog-ard-convergence.md): AI Catalog and ARD.
+- The [Quarkus LangChain4j agent-registry-workflow sample](https://github.com/quarkiverse/quarkus-langchain4j/tree/main/samples/agent-registry-workflow),
+  which part 9 uses, and its
+  [verification record](https://github.com/quarkiverse/quarkus-langchain4j/blob/main/samples/agent-registry-workflow/VERIFICATION.md).

@@ -78,7 +78,8 @@ To rerun a single step of the tour:
 ```
 
 Steps are `avro`, `headers`, `json`, `protobuf`, `protobuf-find-latest`, `reflect`,
-`record-strategy`, `evolution`, `rules`, `custom-strategy`, `custom-resolver` and `preregistered`.
+`record-strategy`, `evolution`, `rules`, `custom-strategy`, `custom-resolver`, `preregistered` and
+`confluent`.
 Steps append to their topics, and their checks count the records from the start of the topic, so a
 step checks reliably only on the data `demo.sh` starts from. Run it after a reset:
 
@@ -132,7 +133,11 @@ docker compose exec -T kafka /opt/kafka/bin/kafka-console-consumer.sh --bootstra
 
 A magic byte `0`, then the **content ID** of the schema in 4 bytes: the same as
 `GET /groups/default/artifacts/orders-value/versions/1` returns as `contentId`. The deserializer reads
-the ID, fetches the schema once, and caches it. This is the same framing Confluent's serializers use.
+the ID, fetches the schema once, and caches it. This is the same framing Confluent's serializers use,
+and Confluent's schema ID is the content ID, so the two mix: the tour's `confluent` step writes with
+Confluent's `KafkaAvroSerializer` (through the registry's Confluent-compatible API,
+`/apis/ccompat/v7`) and reads with Apicurio's deserializer, then the other way round. For Confluent
+clients and tools on their own, see [`confluent-compatibility`](../confluent-compatibility/).
 
 Two settings change the prefix:
 
@@ -241,13 +246,13 @@ order whose `amount` is text instead of a number. The registry rejects the schem
 and nothing is written:
 
 ```
-  info  producer exception: java.lang.RuntimeException: io.apicurio.registry.rest.client.models.RuleViolationProblemDetails ...
+  info  producer exception: org.apache.kafka.common.errors.SerializationException: Registry request failed (HTTP 409) due to COMPATIBILITY rule violation: Incompatible artifact: orders-value [AVRO] ...
   info  rule violation: Incompatible artifact: orders-value [AVRO], ... reader type: STRING not compatible with writer type: DOUBLE at /fields/1/type
 ```
 
-The reason is in the cause, a `RuleViolationProblemDetails` from the Java SDK; the tour shows how to
-read it. That the exception's own message is empty is
-[#11018](https://github.com/Apicurio/apicurio-registry/issues/11018). `orders-value` still has 2
+The exception is Kafka's `SerializationException`, and its message names the violated rule. The
+full answer is in the cause, a `RuleViolationProblemDetails` from the Java SDK; the tour shows how to
+read it. `orders-value` still has 2
 versions. The [rules example](../rules-and-compatibility/) covers the rules themselves.
 
 **In the UI:** open **Explore** > `default` > `orders-value`: 2 versions, and a compatibility rule
@@ -337,8 +342,8 @@ docker compose --profile connect down -v
   - *Does every message call the registry?* No: schemas are cached by ID
     (`apicurio.registry.check-period-ms`, 30 seconds by default for lookups by name).
   - *Can Confluent clients read these messages?* Avro and JSON Schema: yes, the framing is the same,
-    through the registry's Confluent-compatible API. Protobuf needs extra settings; see the
-    configuration docs.
+    through the registry's Confluent-compatible API; the tour's `confluent` step checks Avro both ways
+    (5). Protobuf needs extra settings; see the configuration docs.
   - *What if the registry is down?* Consumers keep decoding the IDs they have seen. Producers fail
     once their cached entries expire (30 seconds) and the retries are exhausted, unless
     `apicurio.registry.fault-tolerant-refresh=true`, which keeps using the stale schema.

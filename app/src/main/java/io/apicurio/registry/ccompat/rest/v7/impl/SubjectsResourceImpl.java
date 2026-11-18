@@ -25,6 +25,7 @@ import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.rest.MethodMetadata;
+import io.apicurio.registry.rest.ParameterValidationUtils;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.OrderBy;
@@ -95,7 +96,7 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
             filters.add(SearchFilter.ofState(VersionState.DISABLED).negated());
         }
         // Handle pagination
-        int effectiveOffset = offset != null ? offset.intValue() : 0;
+        int effectiveOffset = offset != null ? ParameterValidationUtils.normalizeOffset(offset) : 0;
         int effectiveLimit = (limit != null && limit.intValue() > 0) ? limit.intValue()
                 : cconfig.maxSubjects.get();
 
@@ -180,7 +181,8 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
             // The artifact exist, it's in DISABLED state but the delete request is set to not permanent,
             // throw ex.
             throw new SubjectSoftDeletedException(
-                    String.format("Subject %s is in soft deleted state.", ga.getRawArtifactId()));
+                    String.format("Subject '%s' was soft deleted.Set permanent=true to delete permanently",
+                            subject));
         }
     }
 
@@ -360,7 +362,8 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
             if (avmd.getState().equals(VersionState.ENABLED)
                     || avmd.getState().equals(VersionState.DEPRECATED)) {
                 throw new SchemaNotSoftDeletedException(String.format(
-                        "Subject %s version %s must be soft deleted first", artifactId, versionString));
+                        "Subject '%s' Version %s was not deleted first before being permanently deleted",
+                        artifactId, versionString));
             }
             else if (avmd.getState().equals(VersionState.DISABLED)) {
                 storage.deleteArtifactVersion(groupId, artifactId, version);
@@ -368,7 +371,9 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
         }
         else {
             if (avmd.getState().equals(VersionState.DISABLED)) {
-                throw new SchemaSoftDeletedException("Schema is already soft deleted");
+                throw new SchemaSoftDeletedException(String.format(
+                        "Subject '%s' Version %s was soft deleted.Set permanent=true to delete permanently",
+                        artifactId, versionString));
             }
             else {
                 storage.updateArtifactVersionState(groupId, artifactId, version, VersionState.DISABLED,
@@ -564,7 +569,8 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
     private List<BigInteger> deleteSubjectPermanent(String groupId, String artifactId) {
         if (isArtifactActive(artifactId, groupId)) {
             throw new SubjectNotSoftDeletedException(
-                    String.format("Subject %s must be soft deleted first", artifactId));
+                    String.format("Subject '%s' was not deleted first before being permanently deleted",
+                            artifactId));
         } else {
             // Collect versionOrder values before deleting — metadata is gone after deleteArtifact.
             Set<SearchFilter> filters = new HashSet<>();

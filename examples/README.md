@@ -39,6 +39,59 @@ graphs, dereferences, rewrites and hashes references, what integrity rules and d
 Kafka serializers register nested Avro types and Protobuf imports. Its
 [step-by-step guide](schema-references/GUIDE.md) explains each step.
 
+## Authentication Example
+This example runs Keycloak and four registries with Docker Compose, each authenticating callers
+differently: OIDC tokens for users and service accounts (with roles, basic credentials exchanged for
+tokens, and the web console login), HTTP basic against users configured in the registry, identity
+from an authenticating nginx proxy, and Kubernetes service account tokens checked against a k3s
+server. The Java SDK, Kafka serializers, the Maven plugin and the CLI authenticate too. Its
+[step-by-step guide](authentication/GUIDE.md) covers every mechanism, including the rejections.
+
+## Storage Variants Example
+This example runs the same registry on every storage variant with Docker Compose profiles, with the
+same checks on each: PostgreSQL with two replicas, MySQL, SQL Server, KafkaSQL with two replicas
+sharing a journal topic, GitOps loading a git repository the demo commits to (including a broken
+commit that is reported and not applied), and KubernetesOps loading ConfigMaps from k3s. It also
+checks content and structure search with the Elasticsearch index. Its
+[step-by-step guide](storage-variants/GUIDE.md) explains how each one works and how to choose.
+
+## HTTP Caching Example
+This example puts Varnish in front of the registry and checks what is cached and for how long, ETags
+and conditional requests, what is never cached, what goes stale after a delete, and two KafkaSQL
+replicas behind one cache, then runs a per-endpoint suite. See its
+[step-by-step guide](http-caching/GUIDE.md).
+
+## Usage Telemetry Example
+This example plays several client applications fetching schema versions with a client ID, and
+checks what usage telemetry reports: per-version usage, the consumer heatmap and drift alerts,
+deprecation readiness, and the Active/Stale/Dead summary with liveness inherited through references.
+See its [step-by-step guide](usage-telemetry-demo/GUIDE.md).
+
+## Operational Guardrails Example
+This example runs two registry replicas with limits, disabled APIs, and the deletion and read-only
+switches, and checks each one: refused requests and their messages, switches changed at runtime and
+followed by the other replica, and why count limits are per replica. See its
+[step-by-step guide](operational-guardrails/GUIDE.md).
+
+## Operator Example
+This example builds the Apicurio Registry operator, runs it on a local kind cluster, and checks one
+`ApicurioRegistry3` custom resource per storage: in memory (the resources it creates and owns,
+configuration through `env`), PostgreSQL with a Secret, KafkaSQL with two replicas, and an invalid CR
+reported in its status. See its [step-by-step guide](operator/GUIDE.md).
+
+## Registry Events Example
+This example makes a fixed sequence of changes in the registry and checks the events it publishes to
+Kafka, on PostgreSQL (outbox table, Debezium outbox event router, delivery after an outage) and on
+KafkaSQL (two replicas, one total order), and converts them to CloudEvents. Its
+[step-by-step guide](registry-events/GUIDE.md) explains the guarantees of each.
+
+## v2 to v3 Migration Example
+This example seeds an Apicurio Registry 2.6 server, migrates it to 3.x with the documented export and
+import scripts, and checks that every version keeps its globalId, contentId, state, content and
+references, through the v3 API and the v2 API. It also covers the import guards, an import with new
+IDs, backup and restore within 3.x, and 3.x refusing a 2.6 KafkaSQL topic. See its
+[step-by-step guide](v2-to-v3-migration/GUIDE.md).
+
 ## Rules and Compatibility Example
 This example runs Apicurio Registry and its web console with Docker Compose and shows its content
 rules: validity, BACKWARD and FORWARD compatibility, which rule wins when rules are set globally, per
@@ -70,13 +123,12 @@ onto the schema as labels, field tags and rules, and the Kafka serializer enforc
 before records are sent. Its [step-by-step guide](odcs-data-contracts/GUIDE.md) walks through each
 feature in the REST API and the UI, and works as a script for a team demo.
 
-## Confluent Serdes Integration
-This example shows how Apicurio Registry serdes classes can be used along with Confluent serdes
-classes in a mixed application environment.  In other words, some applications can be using
-Confluent classes while other applications can be using Apicurio Registry classes - and they
-can all work together seamlessly with just a little bit of extra configuration.  This example
-is essentially the same as the Simple Avro Example, but using a Confluent serializer with an
-Apicurio Registry deserializer.
+## Confluent Compatibility Example
+This example runs Confluent's own serializers and console tools (Avro, Protobuf, JSON Schema) against
+Apicurio Registry's Confluent-compatible API, and checks the wire format and schema IDs, how subjects
+map to artifacts and groups, references, compatibility, soft and permanent deletes, errors, and the
+v7 and v8 APIs. See its [step-by-step guide](confluent-compatibility/GUIDE.md). Mixing Confluent's and
+Apicurio's serdes in one system is the `confluent` step of the Kafka Serdes Example.
 
 ## Rest Client example
 This example application demonstrates how to use the Apicurio Registry rest client to create,
@@ -134,20 +186,10 @@ summarization, and translation agents - all using real HTTP communication.
 
 See the [a2a-real-world-integration](a2a-real-world-integration/) directory for details.
 
-## Agent Registry Workflow with Quarkus LangChain4j
 
-An end-to-end sample combining Registry-backed A2A agent publication, discovery and
-summarize-to-translate delegation with MCP tool discovery and invocation. It also
-demonstrates compatibility rejection and accepted version changes.
-
-See [agent-registry-workflow](agent-registry-workflow/) for the external sample and
-run instructions. The sample is currently available as a contributor-branch preview
-in Quarkus LangChain4j.
-
-## Custom Artifact Types (Java providers)
-
-Adds a custom `MARKDOWN` artifact type to the registry with Java implementations of the artifact
-type interfaces (content accepter, validator, compatibility checker, canonicalizer), configured
-through `apicurio.artifact-types.config-file`. The providers are loaded into the
-`apicurio/apicurio-registry:VERSION-mutable` container image by re-augmenting it, so no custom
-build of the registry is needed. See the [custom-artifact-types](custom-artifact-types/) directory for details.
+## Custom Artifact Types Example
+This example adds two artifact types to the registry: `MARKDOWN`, implemented by Java classes loaded
+into the re-augmentable `-mutable` image, and `CSV`, implemented by a webhook service. It checks
+detection, `VALIDITY` and `COMPATIBILITY` rules and canonical lookups for both, what the registry
+sends to the webhook, and what happens when the webhook is down. See its
+[step-by-step guide](custom-artifact-types/GUIDE.md).

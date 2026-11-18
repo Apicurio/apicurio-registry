@@ -39,6 +39,23 @@ The A2A protocol is a standard that AI agents use to discover and communicate wi
 * `MCP_TOOL`: MCP tool definition that describes a tool, its input parameters, and its output schema
 * `MCP_SERVER`: MCP server definition that references the `MCP_TOOL` artifacts of the tools it provides
 
+// con-agent-data-and-feature-flags
+[id="agent-data-and-feature-flags_{context}"]
+== Agent data and feature flags
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+The agent features are experimental and each one has its own configuration property, such as `apicurio.a2a.enabled` or `apicurio.mcp-tools.enabled`. The flags control the feature endpoints only. They do not control how {registry} stores agent artifacts.
+
+* The AI and ML artifact types are always available. You can create, version, reference and search these artifacts through the core REST API, whether or not any agent feature is enabled.
+* When you disable a feature, its endpoints stop responding: the `/.well-known` discovery endpoints and the MCP Registry API return `404`, and importing tools from an MCP server returns `409`. {registry} does not delete, hide or change any stored artifact, version, reference or label.
+* Labels that a feature maintains, such as `apicurio.mcp-registry.*` and `apicurio.a2a.openapi-agent-card.*`, are kept when you update artifact metadata, even while the feature is disabled. The `apicurio.agent.visibility` label is a user label and is not changed.
+* Artifacts that {registry} creates for you remain ordinary artifacts. For example, the input and output schemas embedded in a `MODEL_SCHEMA` or `PROMPT_TEMPLATE` artifact are registered as separate artifacts, such as `<artifactId>-input-schema`.
+* If you enable a feature flag without setting `apicurio.features.experimental.enabled=true`, {registry} fails to start, rather than silently disabling the feature.
+
+When an experimental feature becomes supported, changes incompatibly or is removed, the release notes describe the change. Stored agent artifacts stay readable through the core REST API.
+
 ifndef::service-registry-downstream[]
 // proc-starting-the-agent-registry-quickstart
 [id="starting-agent-registry-quickstart_{context}"]

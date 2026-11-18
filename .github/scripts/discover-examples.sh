@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # Lists the examples that verify-examples.yaml runs, as a JSON matrix on stdout:
-#   [{"name": "per-resource-authorization", "timeout": 20, "build": false}, ...]
+#   [{"name": "per-resource-authorization", "timeout": 20, "build": false, "variant": "",
+#     "selfManaged": false, "releasedImages": "", "mutableImage": false, "compose": true}, ...]
+#
+# An example without a Compose file is run only when it is CI_SELF_MANAGED: demo.sh then brings its
+# own platform (for example a kind cluster), and the Compose steps are skipped.
 #
 # An example is run when examples/<name>/ has an executable demo.sh and a Compose file. Optional
 # settings come from examples/<name>/ci.env (KEY=value lines, # comments):
@@ -8,6 +12,14 @@
 #   CI_TIMEOUT_MINUTES=N   job timeout, default 20
 #   CI_NEEDS_BUILD=true    set up a JDK and the Maven cache, then run the example's build.sh, which
 #                          builds its Java parts from this checkout (snapshots are not published)
+#   CI_MATRIX=a b c        one job per value, each running demo.sh with CI_VARIANT set to it (for an
+#                          example too long for one job); the job name gets the value appended
+#   CI_SELF_MANAGED=true   demo.sh starts and stops its own containers (for an example that must
+#                          prepare something first); the runner only checks the images and cleans up
+#   CI_NEEDS_MUTABLE_IMAGE=true  load this commit's re-augmentable registry image, as
+#                          REGISTRY_MUTABLE_IMAGE (for an example that adds Java providers to it)
+#   CI_RELEASED_IMAGES=i j released Apicurio Registry images the example runs on purpose, in addition to
+#                          this commit's (a migration from an older release); exempt from the image check
 # Every other line is exported to `docker compose` and demo.sh (see verify-examples.yaml).
 #
 # Usage: .github/scripts/discover-examples.sh [examples-dir]
@@ -25,10 +37,6 @@ for demo in "$dir"/*/demo.sh; do
   for f in compose.yaml compose.yml docker-compose.yaml docker-compose.yml; do
     [ -f "$example/$f" ] && compose=$f && break
   done
-  if [ -z "$compose" ]; then
-    echo "::warning::$name has demo.sh but no Compose file; skipped" >&2
-    continue
-  fi
   if [ ! -x "$demo" ]; then
     echo "::error::$demo is not executable (git update-index --chmod=+x)" >&2
     exit 1
@@ -37,11 +45,38 @@ for demo in "$dir"/*/demo.sh; do
   enabled=true
   timeout=20
   build=false
+  matrix=""
+  managed=false
+  released=""
+  mutable=false
   if [ -f "$example/ci.env" ]; then
     value() { sed -n "s/^$1=//p" "$example/ci.env" | tail -1; }
     enabled=$(value CI_ENABLED); enabled=${enabled:-true}
     timeout=$(value CI_TIMEOUT_MINUTES); timeout=${timeout:-20}
     build=$(value CI_NEEDS_BUILD); build=${build:-false}
+    matrix=$(value CI_MATRIX)
+    managed=$(value CI_SELF_MANAGED); managed=${managed:-false}
+    released=$(value CI_RELEASED_IMAGES)
+    mutable=$(value CI_NEEDS_MUTABLE_IMAGE); mutable=${mutable:-false}
+  fi
+  if [ "$managed" != true ] && [ "$managed" != false ]; then
+    echo "::error::$name: CI_SELF_MANAGED must be true or false, got '$managed'" >&2
+    exit 1
+  fi
+  # Without a Compose file, only a self-managed example can run (demo.sh brings its own platform,
+  # for example a kind cluster)
+  if [ -z "$compose" ] && [ "$managed" != true ]; then
+    echo "::warning::$name has demo.sh but no Compose file, and is not CI_SELF_MANAGED; skipped" >&2
+    continue
+  fi
+  has_compose=$([ -n "$compose" ] && echo true || echo false)
+  if [ -n "$released" ] && ! [[ "$released" =~ ^([^ :]+:[^ ]+)( [^ :]+:[^ ]+)*$ ]]; then
+    echo "::error::$name: CI_RELEASED_IMAGES must be space-separated image:tag values, got '$released'" >&2
+    exit 1
+  fi
+  if [ "$mutable" != true ] && [ "$mutable" != false ]; then
+    echo "::error::$name: CI_NEEDS_MUTABLE_IMAGE must be true or false, got '$mutable'" >&2
+    exit 1
   fi
   if [ "$build" != true ] && [ "$build" != false ]; then
     echo "::error::$name: CI_NEEDS_BUILD must be true or false, got '$build'" >&2
@@ -59,7 +94,17 @@ for demo in "$dir"/*/demo.sh; do
     echo "$name: CI_ENABLED=false; skipped" >&2
     continue
   fi
-  entries+=("$(jq -cn --arg n "$name" --argjson t "$timeout" --argjson b "$build" '{name: $n, timeout: $t, build: $b}')")
+  if [ -n "$matrix" ] && ! [[ "$matrix" =~ ^[a-z0-9-]+( [a-z0-9-]+)*$ ]]; then
+    echo "::error::$name: CI_MATRIX must be space-separated values of [a-z0-9-], got '$matrix'" >&2
+    exit 1
+  fi
+  # One entry per CI_MATRIX value, or a single entry with no variant
+  for variant in ${matrix:-<none>}; do
+    [ "$variant" = "<none>" ] && variant=""
+    entries+=("$(jq -cn --arg n "$name" --argjson t "$timeout" --argjson b "$build" --arg v "$variant" \
+      --argjson m "$managed" --arg r "$released" --argjson mi "$mutable" --argjson c "$has_compose" \
+      '{name: $n, timeout: $t, build: $b, variant: $v, selfManaged: $m, releasedImages: $r, mutableImage: $mi, compose: $c}')")
+  done
 done
 
 if [ ${#entries[@]} -eq 0 ]; then

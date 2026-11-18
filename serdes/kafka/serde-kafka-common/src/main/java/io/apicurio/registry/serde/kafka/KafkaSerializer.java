@@ -1,5 +1,6 @@
 package io.apicurio.registry.serde.kafka;
 
+import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaLookupResult;
 import io.apicurio.registry.resolver.SchemaResolver;
@@ -12,6 +13,7 @@ import io.apicurio.registry.serde.kafka.config.BaseKafkaSerDeConfig;
 import io.apicurio.registry.serde.kafka.data.KafkaSerdeMetadata;
 import io.apicurio.registry.serde.kafka.headers.DefaultHeadersHandler;
 import io.apicurio.registry.serde.kafka.headers.HeadersHandler;
+import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Serializer;
 
@@ -57,7 +59,11 @@ public class KafkaSerializer<T, U> implements Serializer<U> {
 
     @Override
     public byte[] serialize(String topic, U data) {
-        return delegatedSerializer.serializeData(topic, data);
+        try {
+            return delegatedSerializer.serializeData(topic, data);
+        } catch (RuntimeException e) {
+            throw toSerializationException(e);
+        }
     }
 
     @Override
@@ -93,7 +99,34 @@ public class KafkaSerializer<T, U> implements Serializer<U> {
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
+        } catch (RuntimeException e) {
+            throw toSerializationException(e);
         }
+    }
+
+    private static final int MAX_CAUSE_DEPTH = 32;
+
+    /**
+     * Converts a registry API failure (for example a rule violation on auto-register) into a Kafka
+     * {@link SerializationException} whose message carries the registry's reason. Other runtime
+     * exceptions are rethrown unchanged.
+     */
+    static RuntimeException toSerializationException(RuntimeException e) {
+        if (e instanceof SerializationException) {
+            return e;
+        }
+        Throwable previous = null;
+        Throwable current = e;
+        for (int depth = 0; current != null && depth < MAX_CAUSE_DEPTH; depth++) {
+            if (current instanceof ApiException) {
+                String message = previous != null && previous.getMessage() != null ? previous.getMessage()
+                        : "Registry request failed";
+                return new SerializationException(message, e);
+            }
+            previous = current;
+            current = current.getCause();
+        }
+        return e;
     }
 
     @Override

@@ -61,9 +61,10 @@ services:
       APICURIO_MCP_REGISTRY_ENABLED: "true"
       APICURIO_UI_FEATURES_AGENTS_ENABLED: "true"
       # Importing tools from a live MCP server: only the demo's weather server may be reached,
-      # over plain HTTP inside the compose network
+      # over plain HTTP inside the compose network. localhost and the cloud metadata address are
+      # listed only to show that they are refused anyway (loopback, link-local, metadata)
       APICURIO_MCP_IMPORT_ENABLED: "true"
-      APICURIO_MCP_IMPORT_ALLOWED_HOSTS: "weather-server"
+      APICURIO_MCP_IMPORT_ALLOWED_HOSTS: "weather-server,localhost,169.254.169.254"
       APICURIO_MCP_IMPORT_INSECURE_HTTP_ENABLED: "true"
       APICURIO_REST_DELETION_GROUP_ENABLED: "true"
       APICURIO_REST_DELETION_ARTIFACT_ENABLED: "true"

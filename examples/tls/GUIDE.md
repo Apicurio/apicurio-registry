@@ -273,7 +273,7 @@ rm certs/*.pem certs/*.p12 certs/*.jks     # optional: demo.sh generates new one
 | curl exit code 35 or `Connection reset by peer` | The registry is still starting, or the request was plain HTTP to an HTTPS port |
 | The registry logs `Cannot set quarkus.http.insecure-requests without enabling SSL` | No key store was picked up: check the paths, and for PEM files use a name, not `0`, in the variable |
 | `Build time property cannot be changed at runtime: quarkus.http.ssl.client-auth` | Expected if you try `QUARKUS_HTTP_SSL_CLIENT_AUTH`: require client certificates in front of the registry |
-| The serdes fail with `Path traversal detected` | The store path has a `..` element: normalize it |
+| The serdes fail with `Path traversal detected` | A `classpath:` store location has a `..` element; file paths may have one |
 | A health check over `http://localhost:9000` fails | With TLS, the management port serves HTTPS |
 | `build.sh failed` | Needs JDK 21 or later; the log path is printed |
 

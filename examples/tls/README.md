@@ -136,8 +136,6 @@ Kubernetes-specific parts are covered elsewhere:
   (`JAVA_OPTS_APPEND=-Dquarkus.tls.key-store.pem.0.cert=...`), `0` works.
 - **Client errors:** the Maven plugin reports a proxy's HTML error without its status code, and the
   SDK reports a wrong password as an `ApiException` with no body ([#11261](https://github.com/Apicurio/apicurio-registry/issues/11261)).
-- **Paths in the serdes:** the serdes refuse a store path with a `..` element (`Path traversal
-  detected`), even an absolute one; use normalized paths ([#11260](https://github.com/Apicurio/apicurio-registry/issues/11260)).
 - **Local only:** the CA is generated on your machine and its key is deleted, but the store password
   (`apicurio`) and the user's password are in plain text, `registry-mtls` keeps an in-memory
   database, and the other services in the Compose project can call `registry-mtls` without the

@@ -216,14 +216,16 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
     }
 
     /**
-     * Skips the bound number of values.
+     * Skips the bound number of values. {@code sp_sequence_get_range} requires the
+     * {@code @range_first_value} OUTPUT parameter, so a local variable is declared to receive it.
      *
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#advanceSequenceValue(String)
      */
     @Override
     public String advanceSequenceValue(String sequenceName) {
-        return "EXEC sp_sequence_get_range @sequence_name = N'" + nativeSequenceName(sequenceName)
-                + "', @range_size = ?";
+        return "DECLARE @range_first_value SQL_VARIANT; EXEC sp_sequence_get_range @sequence_name = N'"
+                + nativeSequenceName(sequenceName)
+                + "', @range_size = ?, @range_first_value = @range_first_value OUTPUT";
     }
 
 }

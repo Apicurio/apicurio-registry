@@ -95,6 +95,17 @@ public class DisableApisFlagsTest extends AbstractResourceTestBase {
                 .post("/ccompat/v7/subjects/{subject}/versions", UUID.randomUUID().toString()).then()
                 .statusCode(404);
 
+        // A matrix parameter in any segment must not make the disabled path look different
+        for (String path : new String[] { "/ccompat;x=1/v7/subjects/{subject}/versions",
+                "/ccompat/v7;x/subjects/{subject}/versions",
+                "/ccompat/v7/subjects/{subject};x/versions" }) {
+            given().urlEncodingEnabled(false).when()
+                    .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                    .body(CCompatTestConstants.SCHEMA_SIMPLE_WRAPPED)
+                    .post(path, UUID.randomUUID().toString()).then()
+                    .statusCode(404);
+        }
+
         var req = given().when().contentType(CT_JSON).get("/ccompat/v7/subjects").then();
         if (disabledDirectAccess) {
             req.statusCode(404);

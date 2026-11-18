@@ -1,5 +1,7 @@
 package io.apicurio.registry.noprofile.serde;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.AbstractClientFacadeTestBase;
 import io.apicurio.registry.client.RegistryClientFactory;
 import io.apicurio.registry.client.common.RegistryClientOptions;
@@ -10,12 +12,16 @@ import io.apicurio.registry.serde.avro.DefaultAvroDatumProvider;
 import io.apicurio.registry.serde.avro.strategy.TopicRecordIdStrategy;
 import io.apicurio.registry.serde.avro.AvroSerdeConfig;
 import io.apicurio.registry.serde.config.SerdeConfig;
+import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaDeserializer;
+import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaSerializer;
+import io.apicurio.registry.serde.strategy.SimpleTopicIdStrategy;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.junit.jupiter.api.Assertions;
@@ -354,6 +360,118 @@ public class ContractRuleSerdeTest extends AbstractClientFacadeTestBase {
             Assertions.assertEquals("ORD-003", deserialized.get("orderId").toString());
             Assertions.assertEquals(42.0, (double) deserialized.get("totalAmount"), 0.001);
         });
+
+        serializer.close();
+        deserializer.close();
+    }
+
+    private static final String UPGRADE_RULESET = "{\"domainRules\":[],\"migrationRules\":[{"
+            + "\"name\":\"default-currency\",\"kind\":\"TRANSFORM\",\"type\":\"JSONATA\","
+            + "\"mode\":\"UPGRADE\",\"expr\":\"$merge([$, {\\\"currency\\\": \\\"USD\\\"}])\","
+            + "\"onFailure\":\"ERROR\"}]}";
+
+    private void addVersionWithUpgradeRule(String groupId, String artifactId, String schema) throws Exception {
+        String content = new ObjectMapper().writeValueAsString(schema);
+        send("POST", "/groups/" + groupId + "/artifacts/" + artifactId + "/versions",
+                "{\"version\":\"2\",\"content\":{\"content\":" + content
+                        + ",\"contentType\":\"application/json\"}}");
+        send("PUT", "/groups/" + groupId + "/artifacts/" + artifactId + "/versions/2/contract/ruleset",
+                UPGRADE_RULESET);
+    }
+
+    private Map<String, Object> migratingConsumerConfig(String groupId) {
+        Map<String, Object> config = new HashMap<>();
+        config.put(SerdeConfig.REGISTRY_URL, TestUtils.getRegistryV3ApiUrl(testPort));
+        config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
+        config.put(SerdeConfig.CONTRACT_RULES_ENABLED, "true");
+        config.put(SerdeConfig.CONTRACT_RULES_FAIL_ON_ERROR, "true");
+        config.put(SerdeConfig.CONTRACT_RULES_MIGRATION_ENABLED, "true");
+        config.put(SerdeConfig.CONTRACT_RULES_MIGRATION_TARGET_VERSION, "2");
+        return config;
+    }
+
+    @Test
+    public void testConsumerReceivesAvroRecordMigratedToTheTargetVersion() throws Exception {
+        Schema v1 = new Schema.Parser().parse(SCHEMA);
+        String schemaV2 = SCHEMA.replace("]}", ",{\"name\":\"currency\",\"type\":\"string\","
+                + "\"default\":\"EUR\"}]}");
+        String groupId = TestUtils.generateGroupId();
+        String topic = generateArtifactId();
+        String artifactId = topic + "-OrderEvent";
+        createArtifact(groupId, artifactId, ArtifactType.AVRO, SCHEMA, ContentTypes.APPLICATION_JSON);
+
+        Map<String, Object> serConfig = new HashMap<>();
+        serConfig.put(SerdeConfig.REGISTRY_URL, TestUtils.getRegistryV3ApiUrl(testPort));
+        serConfig.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
+        serConfig.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, TopicRecordIdStrategy.class.getName());
+        serConfig.put(AvroSerdeConfig.AVRO_DATUM_PROVIDER, DefaultAvroDatumProvider.class.getName());
+        Serializer<GenericData.Record> serializer = new AvroKafkaSerializer<>();
+        serializer.configure(serConfig, false);
+        GenericData.Record record = new GenericData.Record(v1);
+        record.put("orderId", "ORD-MIG");
+        record.put("totalAmount", 99.99);
+        byte[] bytes = serializer.serialize(topic, record);
+
+        addVersionWithUpgradeRule(groupId, artifactId, schemaV2);
+
+        Map<String, Object> deserConfig = migratingConsumerConfig(groupId);
+        deserConfig.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, TopicRecordIdStrategy.class.getName());
+        deserConfig.put(AvroSerdeConfig.AVRO_DATUM_PROVIDER, DefaultAvroDatumProvider.class.getName());
+        Deserializer<GenericRecord> deserializer = new AvroKafkaDeserializer<>();
+        deserializer.configure(deserConfig, false);
+
+        GenericRecord migrated = deserializer.deserialize(topic, bytes);
+        Assertions.assertEquals(new Schema.Parser().parse(schemaV2), migrated.getSchema());
+        Assertions.assertEquals("USD", migrated.get("currency").toString());
+        Assertions.assertEquals("ORD-MIG", migrated.get("orderId").toString());
+        Assertions.assertEquals(99.99, (double) migrated.get("totalAmount"), 0.0);
+
+        // Without a migration target, the record is delivered as written
+        Map<String, Object> plainConfig = new HashMap<>(deserConfig);
+        plainConfig.remove(SerdeConfig.CONTRACT_RULES_MIGRATION_TARGET_VERSION);
+        Deserializer<GenericRecord> plain = new AvroKafkaDeserializer<>();
+        plain.configure(plainConfig, false);
+        GenericRecord unmigrated = plain.deserialize(topic, bytes);
+        Assertions.assertEquals(v1, unmigrated.getSchema());
+        Assertions.assertFalse(unmigrated.hasField("currency"));
+
+        serializer.close();
+        deserializer.close();
+        plain.close();
+    }
+
+    @Test
+    public void testConsumerReceivesJsonSchemaRecordMigratedToTheTargetVersion() throws Exception {
+        String schemaV1 = "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\","
+                + "\"required\":[\"orderId\"],\"properties\":{\"orderId\":{\"type\":\"string\"},"
+                + "\"totalAmount\":{\"type\":\"number\"}}}";
+        String schemaV2 = schemaV1.replace("[\"orderId\"]", "[\"orderId\",\"currency\"]")
+                .replace("}}}", "},\"currency\":{\"type\":\"string\"}}}");
+        String groupId = TestUtils.generateGroupId();
+        String topic = generateArtifactId();
+        createArtifact(groupId, topic, ArtifactType.JSON, schemaV1, ContentTypes.APPLICATION_JSON);
+
+        Map<String, Object> serConfig = new HashMap<>();
+        serConfig.put(SerdeConfig.REGISTRY_URL, TestUtils.getRegistryV3ApiUrl(testPort));
+        serConfig.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
+        serConfig.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class.getName());
+        Serializer<JsonNode> serializer = new JsonSchemaKafkaSerializer<>();
+        serializer.configure(serConfig, false);
+        ObjectMapper mapper = new ObjectMapper();
+        byte[] bytes = serializer.serialize(topic,
+                mapper.readTree("{\"orderId\":\"ORD-MIG\",\"totalAmount\":99.99}"));
+
+        addVersionWithUpgradeRule(groupId, topic, schemaV2);
+
+        Map<String, Object> deserConfig = migratingConsumerConfig(groupId);
+        deserConfig.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class.getName());
+        Deserializer<JsonNode> deserializer = new JsonSchemaKafkaDeserializer<>();
+        deserializer.configure(deserConfig, false);
+
+        // Validated against version 2, which requires currency
+        JsonNode migrated = deserializer.deserialize(topic, bytes);
+        Assertions.assertEquals(mapper.readTree(
+                "{\"orderId\":\"ORD-MIG\",\"totalAmount\":99.99,\"currency\":\"USD\"}"), migrated);
 
         serializer.close();
         deserializer.close();

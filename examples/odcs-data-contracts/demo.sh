@@ -85,8 +85,15 @@ if [ -z "${SKIP_KAFKA:-}" ] && [ ! -d target/classes/io ]; then
 fi
 json DELETE "$R/groups/orders" > /dev/null
 json DELETE "$R/admin/contracts/ruleset" > /dev/null
-docker compose exec -T kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
+docker compose exec -T kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:29092 \
   --delete --topic orders > /dev/null 2>&1 || true
+# Kafka deletes a topic asynchronously: wait until it is gone, or step 9 would write to the old one
+deadline=$((SECONDS + 60))
+while docker compose exec -T kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:29092 --list 2> /dev/null \
+  | grep -qx orders; do
+  [ "$SECONDS" -ge "$deadline" ] && { fail "the orders topic is deleted"; break; }
+  sleep 1
+done
 ok "the example data is reset"
 
 # ------------------------------------------------------------------------------ step 2
@@ -179,8 +186,7 @@ if [ -z "${SKIP_KAFKA:-}" ]; then
   out=$(java_demo migrate) || fail "the migrating consumer ran"
   sed 's/^/  info  /' <<< "$out"
   check "  a consumer on version 2 reads the record of step 9" "1 message(s) on topic 'orders'" "$(grep 'message(s)' <<< "$out")"
-  # The deserializer runs the UPGRADE rule but discards its result (#11246): should be "USD"
-  check "  a consumer on version 2 gets the record without currency (should be USD, #11246)" none \
+  check "  the record arrives migrated, with currency USD" USD \
     "$(grep '^consumed' <<< "$out" | head -1 | grep -oE '"currency": "[A-Z]+"' | grep -oE '[A-Z]{3}' || echo none)"
 fi
 

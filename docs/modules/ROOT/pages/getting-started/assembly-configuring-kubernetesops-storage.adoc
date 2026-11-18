@@ -8,6 +8,13 @@ include::{mod-loc}shared/all-attributes.adoc[]
 [role="_abstract"]
 Configure {registry} to use Kubernetes ConfigMaps as the data source for registry artifacts. KubernetesOps storage enables Kubernetes-native management of schemas and APIs using standard tools like `kubectl`, ArgoCD, or Flux.
 
+ifdef::service-registry-downstream[]
+[IMPORTANT]
+====
+KubernetesOps storage is a Technology Preview feature. Technology Preview features are not supported with Red{nbsp}Hat production service level agreements (SLAs) and might not be functionally complete. Red{nbsp}Hat does not recommend using them in production. These features provide early access to upcoming product features, enabling customers to test functionality and provide feedback during the development process.
+====
+endif::[]
+
 == Prerequisites
 
 * You have installed {registry} on Kubernetes or OpenShift.
@@ -23,7 +30,9 @@ Configure {registry} to use Kubernetes ConfigMaps as the data source for registr
 [role="_abstract"]
 KubernetesOps storage is a read-only storage variant that loads registry data from Kubernetes ConfigMaps. It extends the proven GitOps storage pattern to use ConfigMaps instead of Git repositories, enabling Kubernetes-native workflows for managing schemas and APIs.
 
+ifndef::service-registry-downstream[]
 IMPORTANT: KubernetesOps storage is an *experimental* feature. You must enable the experimental features gate (`APICURIO_FEATURES_EXPERIMENTAL_ENABLED=true`) to use it.
+endif::[]
 
 *Architecture*
 
@@ -108,7 +117,7 @@ Configure {registry} to use KubernetesOps storage, including the required enviro
 
 |`APICURIO_FEATURES_EXPERIMENTAL_ENABLED`
 |`false`
-|*Required*. Must be set to `true` to enable KubernetesOps storage. This feature is currently experimental.
+|*Required*. Must be set to `true` to enable KubernetesOps storage.
 
 |`APICURIO_STORAGE_KIND`
 |-
@@ -149,6 +158,10 @@ Configure {registry} to use KubernetesOps storage, including the required enviro
 |`APICURIO_POLLING_STORAGE_FILE_SUFFIXES`
 |`registry,ar`
 |Comma-separated list of file suffixes that identify registry metadata files. Each suffix is combined with extensions (`.yaml`, `.yml`, `.json`) to form the full pattern. For example, suffix `registry` matches `*.registry.yaml`, `*.registry.yml`, and `*.registry.json`. Data keys that do not match a recognized suffix are treated as raw content files.
+
+|`APICURIO_POLLING_STORAGE_SOURCE_LABEL_KEY`
+|`system:source`
+|Label key that {registry} uses to tag loaded groups and artifacts with the identifier of their source. Set to an empty string to disable the label.
 |===
 
 . Example deployment configuration:

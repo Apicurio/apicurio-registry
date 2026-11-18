@@ -111,4 +111,55 @@ public class MySQLSqlStatements extends CommonSqlStatements {
     public String releaseInitLock() {
         return "SELECT RELEASE_LOCK('apicurio_init_lock')";
     }
+
+    /**
+     * Inserts a ticket row into the AUTO_INCREMENT ticket table.
+     *
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#nextSequenceValue(String)
+     */
+    @Override
+    public String nextSequenceValue(String sequenceName) {
+        return "INSERT INTO " + nativeSequenceName(sequenceName) + " () VALUES ()";
+    }
+
+    /**
+     * Reads the AUTO_INCREMENT value generated on this connection.
+     *
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectLastInsertedSequenceValue()
+     */
+    @Override
+    public String selectLastInsertedSequenceValue() {
+        return "SELECT LAST_INSERT_ID()";
+    }
+
+    /**
+     * Reads the highest ticket, or 0 if none.
+     *
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectSequenceLastValue(String)
+     */
+    @Override
+    public String selectSequenceLastValue(String sequenceName) {
+        return "SELECT COALESCE(MAX(id), 0) FROM " + nativeSequenceName(sequenceName);
+    }
+
+    /**
+     * Inserts a ticket with the bound value, advancing AUTO_INCREMENT.
+     *
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#advanceSequenceValue(String)
+     */
+    @Override
+    public String advanceSequenceValue(String sequenceName) {
+        return "INSERT IGNORE INTO " + nativeSequenceName(sequenceName) + " (id) VALUES (?)";
+    }
+
+    /**
+     * Deletes ticket rows below the bound value.
+     *
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteSequenceTicketsBelow(String)
+     */
+    @Override
+    public String deleteSequenceTicketsBelow(String sequenceName) {
+        return "DELETE FROM " + nativeSequenceName(sequenceName) + " WHERE id < ?";
+    }
+
 }

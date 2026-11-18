@@ -193,4 +193,37 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
         // Wrap in DECLARE/SELECT to return result set instead of return code
         return "DECLARE @result INT; EXEC @result = sp_releaseapplock @Resource='apicurio_init_lock', @LockOwner='Session'; SELECT @result";
     }
+
+    /**
+     * Uses the native SQL Server sequence.
+     *
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#nextSequenceValue(String)
+     */
+    @Override
+    public String nextSequenceValue(String sequenceName) {
+        return "SELECT NEXT VALUE FOR " + nativeSequenceName(sequenceName);
+    }
+
+    /**
+     * Reads the last issued value, or 0 if none.
+     *
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectSequenceLastValue(String)
+     */
+    @Override
+    public String selectSequenceLastValue(String sequenceName) {
+        return "SELECT COALESCE(CAST(last_used_value AS BIGINT), 0) FROM sys.sequences WHERE name = '"
+                + nativeSequenceName(sequenceName) + "'";
+    }
+
+    /**
+     * Skips the bound number of values.
+     *
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#advanceSequenceValue(String)
+     */
+    @Override
+    public String advanceSequenceValue(String sequenceName) {
+        return "EXEC sp_sequence_get_range @sequence_name = N'" + nativeSequenceName(sequenceName)
+                + "', @range_size = ?";
+    }
+
 }

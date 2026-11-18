@@ -121,4 +121,35 @@ public class H2SqlStatements extends CommonSqlStatements {
         // Return a no-op query that always succeeds
         return "SELECT 1";
     }
+
+    /**
+     * Not supported: H2 uses in-memory counters.
+     *
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#nextSequenceValue(String)
+     */
+    @Override
+    public String nextSequenceValue(String sequenceName) {
+        throw new UnsupportedOperationException("H2 uses in-memory sequence counters.");
+    }
+
+    /**
+     * Not supported: H2 uses in-memory counters.
+     *
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectSequenceLastValue(String)
+     */
+    @Override
+    public String selectSequenceLastValue(String sequenceName) {
+        throw new UnsupportedOperationException("H2 uses in-memory sequence counters.");
+    }
+
+    /**
+     * Not supported: H2 uses in-memory counters.
+     *
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#advanceSequenceValue(String)
+     */
+    @Override
+    public String advanceSequenceValue(String sequenceName) {
+        throw new UnsupportedOperationException("H2 uses in-memory sequence counters.");
+    }
+
 }

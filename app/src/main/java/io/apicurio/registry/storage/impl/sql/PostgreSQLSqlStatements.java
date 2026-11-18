@@ -111,4 +111,36 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
         return "SELECT CASE WHEN pg_advisory_unlock(1886352239) THEN 1 ELSE 0 END";
     }
 
+
+    /**
+     * Uses the native PostgreSQL sequence.
+     *
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#nextSequenceValue(String)
+     */
+    @Override
+    public String nextSequenceValue(String sequenceName) {
+        return "SELECT nextval('" + nativeSequenceName(sequenceName) + "')";
+    }
+
+    /**
+     * Reads the last issued value, or 0 if none.
+     *
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectSequenceLastValue(String)
+     */
+    @Override
+    public String selectSequenceLastValue(String sequenceName) {
+        return "SELECT CASE WHEN is_called THEN last_value ELSE 0 END FROM "
+                + nativeSequenceName(sequenceName);
+    }
+
+    /**
+     * Sets the sequence to the bound value.
+     *
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#advanceSequenceValue(String)
+     */
+    @Override
+    public String advanceSequenceValue(String sequenceName) {
+        return "SELECT setval('" + nativeSequenceName(sequenceName) + "', ?, true)";
+    }
+
 }

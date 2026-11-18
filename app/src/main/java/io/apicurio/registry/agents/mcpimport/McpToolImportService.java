@@ -41,6 +41,7 @@ import io.apicurio.registry.types.ContentTypes;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.modelcontextprotocol.spec.McpSchema;
+import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.BadRequestException;
@@ -56,6 +57,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
+import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
 
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_ARTIFACT_ID;
@@ -119,6 +121,13 @@ public class McpToolImportService implements McpToolImportHandler {
 
     private final JacksonMcpJsonMapper jsonMapper = new JacksonMcpJsonMapper();
 
+    private Semaphore running;
+
+    @PostConstruct
+    void init() {
+        running = new Semaphore(Math.max(0, config.getMaxConcurrent()));
+    }
+
     /**
      * Everything is checked before the MCP server is contacted: the feature, the storage, the
      * server artifact, write access to the tool group, the headers and the URL.
@@ -132,6 +141,20 @@ public class McpToolImportService implements McpToolImportHandler {
         Map<String, String> headers = validHeaders(request.getHeaders());
         boolean dryRun = Boolean.TRUE.equals(request.getDryRun());
 
+        if (!running.tryAcquire()) {
+            failure(McpImportException.Reason.BUSY);
+            throw new McpImportException(McpImportException.Reason.BUSY,
+                    "Too many MCP imports are running. Try again later.");
+        }
+        try {
+            return importTools(groupId, serverArtifactId, request, toolGroupId, headers, dryRun);
+        } finally {
+            running.release();
+        }
+    }
+
+    private McpToolImportResult importTools(String groupId, String serverArtifactId, McpToolImportRequest request,
+            String toolGroupId, Map<String, String> headers, boolean dryRun) {
         ServerTools listed = listTools(groupId, serverArtifactId, request.getUrl(), headers);
         Set<String> listedNames = checkBeforeWriting(listed.tools(), toolGroupId, serverArtifactId);
 

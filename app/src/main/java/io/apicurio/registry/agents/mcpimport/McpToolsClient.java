@@ -7,10 +7,16 @@ import io.modelcontextprotocol.client.transport.HttpClientStreamableHttpTranspor
 import io.modelcontextprotocol.json.schema.JsonSchemaValidator;
 import io.modelcontextprotocol.spec.McpSchema;
 import io.modelcontextprotocol.spec.McpTransportException;
+import io.quarkus.runtime.StartupEvent;
+import io.quarkus.tls.TlsConfiguration;
+import io.quarkus.tls.TlsConfigurationRegistry;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.net.ssl.SSLContext;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -30,7 +36,8 @@ import java.util.concurrent.TimeoutException;
  * <p>
  * Redirects are never followed, every request has a timeout and the whole listing a deadline,
  * every message and the listed tools as a whole have a size bound, and the number of tools and
- * pages is bounded. Headers from the request are added to every call
+ * pages is bounded. HTTPS connections trust the JVM's default truststore, or the TLS configuration
+ * named by {@code apicurio.mcp-import.tls-configuration.name}. Headers from the request are added to every call
  * to the server and nowhere else.
  */
 @ApplicationScoped
@@ -56,6 +63,11 @@ public class McpToolsClient {
     @Inject
     McpImportConfig config;
 
+    @Inject
+    TlsConfigurationRegistry tlsRegistry;
+
+    private volatile SSLContext sslContext;
+
     /**
      * The handshake result and every tool the server lists, in order.
      */
@@ -69,7 +81,33 @@ public class McpToolsClient {
     public ServerTools listTools(URI uri, Map<String, String> headers) {
         return listTools(uri, headers, new Limits(Duration.ofSeconds(config.getTimeoutSeconds()),
                 Duration.ofSeconds(config.getTotalTimeoutSeconds()), config.getResponseMaxSize(),
-                config.getToolsMaxSize(), config.getToolsMaxTotalSize()));
+                config.getToolsMaxSize(), config.getToolsMaxTotalSize()), sslContext);
+    }
+
+    /**
+     * Resolves the TLS configuration at startup, so a name that does not exist stops the registry
+     * instead of failing each import.
+     */
+    void resolveTls(@Observes StartupEvent event) {
+        sslContext = sslContext(tlsRegistry, config.getTlsConfigurationName().orElse(null));
+    }
+
+    /**
+     * @return the SSL context of the named TLS configuration, or null for the JVM default
+     * @throws IllegalStateException if no TLS configuration has this name
+     */
+    static SSLContext sslContext(TlsConfigurationRegistry registry, String name) {
+        if (name == null || name.isBlank()) {
+            return null;
+        }
+        TlsConfiguration tls = registry.get(name).orElseThrow(() -> new IllegalStateException(
+                "apicurio.mcp-import.tls-configuration.name is '" + name
+                        + "', but no TLS configuration has that name (quarkus.tls." + name + ".*)"));
+        try {
+            return tls.createSSLContext();
+        } catch (Exception e) {
+            throw new IllegalStateException("The TLS configuration '" + name + "' cannot be used for MCP imports", e);
+        }
     }
 
     /**
@@ -83,17 +121,28 @@ public class McpToolsClient {
     }
 
     ServerTools listTools(URI uri, Map<String, String> headers, Limits limits) {
+        return listTools(uri, headers, limits, null);
+    }
+
+    /**
+     * @param ssl for HTTPS connections, or null for the JVM default
+     */
+    ServerTools listTools(URI uri, Map<String, String> headers, Limits limits, SSLContext ssl) {
         Duration timeout = limits.timeout();
         int maxMessageSize = limits.maxMessageSize();
         int maxTools = limits.maxTools();
         long deadline = System.nanoTime() + limits.totalTimeout().toNanos();
         Map<String, String> outbound = headers == null ? Map.of() : Map.copyOf(headers);
+        HttpClient.Builder httpClient = HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_1_1)
+                .followRedirects(HttpClient.Redirect.NEVER);
+        if (ssl != null) {
+            httpClient.sslContext(ssl);
+        }
         HttpClientStreamableHttpTransport transport = HttpClientStreamableHttpTransport
                 .builder(baseUri(uri))
                 .endpoint(endpoint(uri))
-                .clientBuilder(HttpClient.newBuilder()
-                        .version(HttpClient.Version.HTTP_1_1)
-                        .followRedirects(HttpClient.Redirect.NEVER))
+                .clientBuilder(httpClient)
                 .connectTimeout(timeout)
                 .maxResponseSize(maxMessageSize)
                 .jsonMapper(jsonMapper)

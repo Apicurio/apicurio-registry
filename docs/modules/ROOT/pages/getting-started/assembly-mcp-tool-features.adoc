@@ -549,20 +549,28 @@ The registry applies the following restrictions before and while it connects to 
 * Redirects are never followed.
 * Each request times out after `apicurio.mcp-import.timeout.seconds`, and listing all the tools must finish within `apicurio.mcp-import.total-timeout.seconds`. Each message is limited to `apicurio.mcp-import.response.max-size` bytes, the listed tool definitions together to `apicurio.mcp-import.tools.max-total-size` bytes, and the number of tools to `apicurio.mcp-import.tools.max-size`.
 
-Every refused host gets the same error message, so the endpoint does not reveal which hosts exist or resolve. A refused URL returns HTTP 400. An MCP server that cannot be reached, times out, sends a response that is too large or invalid, or lists too many tools returns HTTP 502. Read-only storage, such as GitOps or KubernetesOps, returns HTTP 409 before any connection is made, as does an import when the feature is disabled.
+Every refused host gets the same error message, so the endpoint does not reveal which hosts exist or resolve. A refused URL returns HTTP 400. At most `apicurio.mcp-import.max-concurrent` imports (4 by default) run at the same time; an import started while that many are running returns HTTP 429 without contacting the MCP server. An MCP server that cannot be reached, times out, sends a response that is too large or invalid, or lists too many tools returns HTTP 502. Read-only storage, such as GitOps or KubernetesOps, returns HTTP 409 before any connection is made, as does an import when the feature is disabled.
 
 WARNING: Private network addresses, such as `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `100.64.0.0/10` and `fc00::/7`, are allowed when the allow-list permits the host. If you list `*`, any user who can write the MCP server artifact can make {registry} connect to services on its internal network. List the hostnames or CIDR ranges of your MCP servers instead.
 
 Each connection attempt is recorded in the audit log as the `mcpImportTarget` action, with the group, the artifact, the target host and port, the outcome and, on failure, the reason. The URL path and query and the request headers are not recorded, because they can contain credentials.
 
-The import trusts the certificate authorities in the JVM default trust store. To import from an MCP server whose certificate is issued by an internal certificate authority, add that authority to a trust store and point the JVM at it, for example `JAVA_OPTS_APPEND=-Djavax.net.ssl.trustStore=/path/to/truststore.p12 -Djavax.net.ssl.trustStorePassword=...`, rather than enabling `apicurio.mcp-import.insecure-http.enabled`. A trust store set this way replaces the default one for every outbound connection that uses the JVM default.
+By default, the import trusts the certificate authorities in the JVM default trust store. To import from an MCP server whose certificate is issued by an internal certificate authority, define a named TLS configuration in the Quarkus TLS registry and reference it with `apicurio.mcp-import.tls-configuration.name`, rather than enabling `apicurio.mcp-import.insecure-http.enabled`. It applies to MCP imports only. For example:
+
+[source,properties]
+----
+quarkus.tls.mcp-import.trust-store.pem.certs=/deployments/certs/internal-ca.pem
+apicurio.mcp-import.tls-configuration.name=mcp-import
+----
+
+When `apicurio.mcp-import.tls-configuration.name` names a TLS configuration that does not exist, the registry does not start.
 
 NOTE: The HTTP client resolves the host again when it connects, so a host whose DNS answer changes between the check and the connection (DNS rebinding) is not detected. To limit this, allow hostnames whose DNS you control, or CIDR ranges.
 
 The registry records the following Micrometer counters. They have no URL, host, or header values as tags, and dry runs are not counted in `apicurio.mcp.import.tools`.
 
 * `apicurio.mcp.import.tools`, tagged `result` (`created`, `new-version`, `unchanged`, `rejected`, `removed`).
-* `apicurio.mcp.import.failures`, tagged `reason` (`host-denied`, `timeout`, `oversize`, `too-many-tools`, `protocol`).
+* `apicurio.mcp.import.failures`, tagged `reason` (`host-denied`, `timeout`, `oversize`, `busy`, `too-many-tools`, `protocol`).
 
 // ref-mcp-automatic-label-extraction
 [id="mcp-automatic-label-extraction_{context}"]

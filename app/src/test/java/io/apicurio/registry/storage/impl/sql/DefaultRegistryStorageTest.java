@@ -381,4 +381,24 @@ public class DefaultRegistryStorageTest extends AbstractRegistryStorageTest {
         });
     }
 
+
+    /**
+     * Pruning leaves exactly one ticket row per MySQL sequence and numbering continues after it.
+     */
+    @Test
+    public void testPruneSequenceTicketsKeepsNewestRow() {
+        Assumptions.assumeTrue("mysql".equals(sqlStatements.dbType()), "Ticket tables are MySQL-only");
+        SqlSequenceRepository sequences = sequences();
+        long last = 0;
+        for (int i = 0; i < 20; i++) {
+            last = sequences.nextGlobalId();
+        }
+        sequences.pruneSequenceTickets();
+
+        long rows = handles.withHandleNoException(handle -> {
+            return handle.createQuery("SELECT COUNT(*) FROM globalid_seq").mapTo(Long.class).one();
+        });
+        Assertions.assertEquals(1L, rows);
+        Assertions.assertTrue(sequences.nextGlobalId() > last);
+    }
 }

@@ -1835,6 +1835,15 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         downloadRepository.deleteAllExpiredDownloads();
     }
 
+    /**
+     * Removes consumed MySQL sequence ticket rows. No-op for other databases or before initialization.
+     */
+    public void pruneSequenceTickets() {
+        if (sequenceRepository != null) {
+            sequenceRepository.pruneSequenceTickets();
+        }
+    }
+
     @Override
     public void deleteAllOrphanedContent() throws RegistryStorageException {
 

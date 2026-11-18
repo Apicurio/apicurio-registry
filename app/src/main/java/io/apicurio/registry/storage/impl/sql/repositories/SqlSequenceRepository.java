@@ -6,6 +6,7 @@ import io.apicurio.registry.storage.impl.sql.jdb.Handle;
 import org.slf4j.Logger;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
@@ -178,6 +179,21 @@ public class SqlSequenceRepository {
                 .mapTo(Long.class)
                 .findOne();
         return maxIdTable.orElse(1L);
+    }
+
+    /**
+     * Removes consumed MySQL ticket rows, keeping the newest one per sequence. Runs in its own
+     * transaction; never call it from inside a write transaction. No-op on other databases.
+     */
+    public void pruneSequenceTickets() {
+        if (isH2()) {
+            return;
+        }
+        handles.withHandleNoException(handle -> {
+            for (String sequenceName : List.of(GLOBAL_ID_SEQUENCE, CONTENT_ID_SEQUENCE, COMMENT_ID_SEQUENCE)) {
+                operations.pruneTickets(handle, sequenceName);
+            }
+        });
     }
 
     private boolean isH2() {

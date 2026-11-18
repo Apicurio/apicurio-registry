@@ -10,11 +10,13 @@ import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.HandleReferencesType;
 import io.apicurio.registry.rest.client.models.IfArtifactExists;
+import io.apicurio.registry.rest.client.models.SearchedVersion;
 import io.apicurio.registry.rest.client.models.SortOrder;
 import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.rest.client.models.VersionSearchResults;
 import io.apicurio.registry.rest.client.models.VersionSortBy;
+import io.apicurio.registry.rest.client.search.versions.VersionsRequestBuilder;
 import io.apicurio.registry.resolver.DefaultSchemaResolver;
 import io.apicurio.registry.utils.IoUtil;
 
@@ -22,6 +24,7 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.Set;
 
@@ -225,6 +228,37 @@ public class RegistryClientFacadeImpl implements RegistryClientFacade {
 
         VersionMetaData vmd = client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(version).get();
         return RegistryVersionCoordinates.create(vmd.getGlobalId(), vmd.getContentId(), vmd.getGroupId(), vmd.getArtifactId(), vmd.getVersion());
+    }
+
+    @Override
+    public RegistryVersionCoordinates getVersionCoordinatesByGlobalId(long globalId) {
+        return searchVersion(params -> params.globalId = globalId);
+    }
+
+    @Override
+    public RegistryVersionCoordinates getVersionCoordinatesByContentId(long contentId, String groupId,
+            String artifactId) {
+        return searchVersion(params -> {
+            params.contentId = contentId;
+            params.groupId = groupId == null ? DEFAULT_GROUP : groupId;
+            params.artifactId = artifactId;
+        });
+    }
+
+    private RegistryVersionCoordinates searchVersion(
+            Consumer<VersionsRequestBuilder.GetQueryParameters> filter) {
+        VersionSearchResults results = client.search().versions().get(config -> {
+            filter.accept(config.queryParameters);
+            config.queryParameters.orderby = VersionSortBy.GlobalId;
+            config.queryParameters.order = SortOrder.Desc;
+            config.queryParameters.limit = 1;
+        });
+        if (results == null || results.getVersions() == null || results.getVersions().isEmpty()) {
+            return null;
+        }
+        SearchedVersion v = results.getVersions().get(0);
+        return RegistryVersionCoordinates.create(v.getGlobalId(), v.getContentId(), v.getGroupId(),
+                v.getArtifactId(), v.getVersion());
     }
 
     @Override

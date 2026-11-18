@@ -127,6 +127,87 @@ public class ContractRuleSerdeTest extends AbstractClientFacadeTestBase {
     }
 
     @Test
+    public void testFacadeFindsVersionCoordinatesByGlobalIdAndContentId() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = generateArtifactId();
+        var created = createArtifact(groupId, artifactId, ArtifactType.AVRO, SCHEMA, ContentTypes.APPLICATION_JSON);
+        long globalId = created.getVersion().getGlobalId();
+        long contentId = created.getVersion().getContentId();
+        RegistryClientFacadeImpl facade = new RegistryClientFacadeImpl(isolatedClientV3);
+
+        var byGlobalId = facade.getVersionCoordinatesByGlobalId(globalId);
+        Assertions.assertEquals(groupId, byGlobalId.getGroupId());
+        Assertions.assertEquals(artifactId, byGlobalId.getArtifactId());
+        Assertions.assertEquals("1", byGlobalId.getVersion());
+        Assertions.assertEquals(contentId, byGlobalId.getContentId());
+
+        var byContentId = facade.getVersionCoordinatesByContentId(contentId, groupId, artifactId);
+        Assertions.assertEquals("1", byContentId.getVersion());
+        Assertions.assertEquals(globalId, byContentId.getGlobalId());
+
+        Assertions.assertNull(facade.getVersionCoordinatesByGlobalId(Long.MAX_VALUE));
+        Assertions.assertNull(facade.getVersionCoordinatesByContentId(contentId, groupId, "other-artifact"));
+    }
+
+    private void assertConsumerRejectsRecordWrittenWith(String idOption) throws Exception {
+        Schema schema = new Schema.Parser().parse(SCHEMA);
+        String groupId = TestUtils.generateGroupId();
+        String topic = generateArtifactId();
+        String artifactId = topic + "-OrderEvent";
+        createArtifact(groupId, artifactId, ArtifactType.AVRO, SCHEMA, ContentTypes.APPLICATION_JSON);
+        setContractRuleset(groupId, artifactId,
+                "{\"domainRules\":[{\"name\":\"positive-amount\",\"kind\":\"CONDITION\",\"type\":\"CEL\","
+                        + "\"mode\":\"READ\",\"expr\":\"totalAmount > 0\",\"onFailure\":\"ERROR\"}],"
+                        + "\"migrationRules\":[]}");
+
+        // The producer does not check contract rules, so it writes the invalid record
+        Map<String, Object> serConfig = new HashMap<>();
+        serConfig.put(SerdeConfig.REGISTRY_URL, TestUtils.getRegistryV3ApiUrl(testPort));
+        serConfig.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
+        serConfig.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, TopicRecordIdStrategy.class.getName());
+        serConfig.put(AvroSerdeConfig.AVRO_DATUM_PROVIDER, DefaultAvroDatumProvider.class.getName());
+        serConfig.put(SerdeConfig.USE_ID, idOption);
+        Serializer<GenericData.Record> serializer = new AvroKafkaSerializer<>();
+        serializer.configure(serConfig, false);
+
+        Map<String, Object> deserConfig = new HashMap<>(serConfig);
+        deserConfig.put(SerdeConfig.CONTRACT_RULES_ENABLED, "true");
+        deserConfig.put(SerdeConfig.CONTRACT_RULES_FAIL_ON_ERROR, "true");
+        Deserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>();
+        deserializer.configure(deserConfig, false);
+
+        GenericData.Record invalid = new GenericData.Record(schema);
+        invalid.put("orderId", "ORD-READ");
+        invalid.put("totalAmount", -5.0);
+        GenericData.Record valid = new GenericData.Record(schema);
+        valid.put("orderId", "ORD-READ");
+        valid.put("totalAmount", 5.0);
+
+        byte[] invalidBytes = serializer.serialize(topic, invalid);
+        RuntimeException ex = Assertions.assertThrows(RuntimeException.class,
+                () -> deserializer.deserialize(topic, invalidBytes));
+        Assertions.assertTrue(ex.getMessage().startsWith("Contract rule validation failed (READ)"),
+                ex.getMessage());
+        Assertions.assertTrue(ex.getMessage().contains("positive-amount"), ex.getMessage());
+
+        GenericData.Record read = deserializer.deserialize(topic, serializer.serialize(topic, valid));
+        Assertions.assertEquals(5.0, (double) read.get("totalAmount"), 0.001);
+
+        serializer.close();
+        deserializer.close();
+    }
+
+    @Test
+    public void testReadRulesApplyToRecordsWrittenWithContentId() throws Exception {
+        assertConsumerRejectsRecordWrittenWith("contentId");
+    }
+
+    @Test
+    public void testReadRulesApplyToRecordsWrittenWithGlobalId() throws Exception {
+        assertConsumerRejectsRecordWrittenWith("globalId");
+    }
+
+    @Test
     public void testContractRulesPassDuringSerialization() throws Exception {
         Schema schema = new Schema.Parser().parse(SCHEMA);
         String groupId = TestUtils.generateGroupId();
@@ -236,6 +317,8 @@ public class ContractRuleSerdeTest extends AbstractClientFacadeTestBase {
 
         Map<String, Object> deserConfig = new HashMap<>();
         deserConfig.put(SerdeConfig.REGISTRY_URL, TestUtils.getRegistryV3ApiUrl(testPort));
+        deserConfig.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
+        deserConfig.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, TopicRecordIdStrategy.class.getName());
         deserConfig.put(AvroSerdeConfig.AVRO_DATUM_PROVIDER, DefaultAvroDatumProvider.class.getName());
         deserConfig.put(SerdeConfig.CONTRACT_RULES_ENABLED, "true");
         deserConfig.put(SerdeConfig.CONTRACT_RULES_FAIL_ON_ERROR, "true");

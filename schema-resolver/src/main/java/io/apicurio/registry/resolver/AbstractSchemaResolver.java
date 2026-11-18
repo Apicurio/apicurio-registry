@@ -182,6 +182,14 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         return artifactReference;
     }
 
+    @Override
+    public ArtifactReference resolveArtifactReference(Record<T> data, ParsedSchema<S> parsedSchema) {
+        if (artifactResolverStrategy == null) {
+            return null;
+        }
+        return resolveArtifactReference(data, parsedSchema, false, null);
+    }
+
     protected String resolveArtifactId(String artifactId, boolean isReference, String referenceArtifactId) {
         if (isReference) {
             return referenceArtifactId;

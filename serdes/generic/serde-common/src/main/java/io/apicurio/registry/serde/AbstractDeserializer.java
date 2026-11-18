@@ -16,6 +16,8 @@ import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.serde.config.SerdeConfig;
 import io.apicurio.registry.serde.config.SerdeDeserializerConfig;
+import io.apicurio.registry.serde.data.SerdeMetadata;
+import io.apicurio.registry.serde.data.SerdeRecord;
 import io.apicurio.registry.serde.fallback.DefaultFallbackArtifactProvider;
 import io.apicurio.registry.serde.fallback.FallbackArtifactProvider;
 import io.apicurio.registry.serde.tracing.SerDesAttributes;
@@ -55,6 +57,7 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
     private RuleExecutionEngine ruleEngine;
     private ContractRulesetCache rulesetCache;
     private ContractRuleLoader ruleLoader;
+    private ContractRuleCoordinatesResolver coordinatesResolver;
 
     public AbstractDeserializer() {
         this.baseSerde = new BaseSerde<>();
@@ -102,6 +105,7 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
             }
             rulesetCache = new ContractRulesetCache(ttl);
             ruleLoader = new ContractRuleLoader(rulesetCache, baseSerde::getClientFacade);
+            coordinatesResolver = new ContractRuleCoordinatesResolver(baseSerde::getClientFacade);
             Object migEnabled = config.originals().get(SerdeConfig.CONTRACT_RULES_MIGRATION_ENABLED);
             if (migEnabled != null) {
                 migrationEnabled = Boolean.parseBoolean(migEnabled.toString());
@@ -151,7 +155,7 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
             U result = readData(schema.getParsedSchema(), buffer, start, length);
 
             if (contractRulesEnabled) {
-                executeContractRulesForRead(schema, result);
+                executeContractRulesForRead(topic, artifactReference, schema, result);
             }
 
             return result;
@@ -182,7 +186,7 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
             U result = readData(schema.getParsedSchema(), buffer, start, length);
 
             if (contractRulesEnabled) {
-                executeContractRulesForRead(schema, result);
+                executeContractRulesForRead(topic, artifactReference, schema, result);
             }
 
             return result;
@@ -266,13 +270,21 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
     }
 
     @SuppressWarnings("unchecked")
-    private void executeContractRulesForRead(SchemaLookupResult<T> schema, U data) {
+    private void executeContractRulesForRead(String topic, ArtifactReference recordReference,
+            SchemaLookupResult<T> schema, U data) {
         try {
-            var ref = schema.toArtifactReference();
-            if (ref.getArtifactId() == null || ref.getArtifactId().isEmpty()) {
+            var resolved = coordinatesResolver.resolve(readReference(recordReference, schema),
+                    () -> baseSerde.getSchemaResolver().resolveArtifactReference(
+                            new SerdeRecord<>(new SerdeMetadata(topic, baseSerde.isKey()), data),
+                            schema.getParsedSchema()));
+            if (resolved.isEmpty()) {
+                if (contractRulesFailOnError) {
+                    throw new IllegalStateException("Consumer-side contract rules cannot be applied: the schema "
+                            + "version of the record could not be determined (" + describe(recordReference) + ")");
+                }
                 return;
             }
-
+            var ref = resolved.get();
             // Domain rule validation
             List<RuleDefinition> rules = ruleLoader.domainRules(ref.getGroupId(), ref.getArtifactId(),
                     ref.getVersion());
@@ -294,6 +306,35 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
             }
             LOG.warning("Contract rule execution failed: " + e.getMessage());
         }
+    }
+
+    /**
+     * The coordinates of the schema if the resolver knows them, otherwise the IDs the record was read with.
+     */
+    private static ArtifactReference readReference(ArtifactReference recordReference,
+            SchemaLookupResult<?> schema) {
+        if (schema.getArtifactId() != null && !schema.getArtifactId().isEmpty()) {
+            return schema.toArtifactReference();
+        }
+        Long globalId = recordReference != null ? recordReference.getGlobalId() : null;
+        Long contentId = recordReference != null ? recordReference.getContentId() : null;
+        return ArtifactReference.builder()
+                .globalId(globalId != null ? globalId : schema.getGlobalId())
+                .contentId(contentId != null ? contentId : schema.getContentId())
+                .build();
+    }
+
+    private static String describe(ArtifactReference reference) {
+        if (reference == null) {
+            return "no schema reference";
+        }
+        if (reference.getGlobalId() != null) {
+            return "global ID " + reference.getGlobalId();
+        }
+        if (reference.getContentId() != null) {
+            return "content ID " + reference.getContentId();
+        }
+        return "no global ID or content ID";
     }
 
     private void validateReadRules(List<RuleDefinition> rules, U data) {

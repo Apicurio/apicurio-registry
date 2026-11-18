@@ -415,9 +415,41 @@ class RegistryClientFacadeFactoryTest {
 
             SchemaResolverConfig config = new SchemaResolverConfig(originals);
             // A file path from the application's configuration may contain '..', as in the SDK
-            Assertions.assertNotNull(RegistryClientFacadeFactory.buildClientOptions(config, null));
+            RegistryClientOptions options = RegistryClientFacadeFactory.buildClientOptions(config, null);
+            Assertions.assertEquals(KeyStoreType.PEM, options.getKeyStoreType());
+            Assertions.assertEquals("-----BEGIN CERTIFICATE-----\ninline-cert\n-----END CERTIFICATE-----",
+                    options.getPemClientCertContent());
+            Assertions.assertEquals(keyContent, options.getPemClientKeyContent());
         } finally {
             Files.deleteIfExists(tempFile);
+            Files.deleteIfExists(tempDir);
+        }
+    }
+
+    @Test
+    void testBuildClientOptionsPemFilesWithDotDotAreNormalized() throws IOException {
+        Path tempDir = Files.createTempDirectory("traversal-files-test");
+        Path certFile = Files.createTempFile(tempDir, "client-cert", ".pem");
+        Path keyFile = Files.createTempFile(tempDir, "client-key", ".pem");
+        Files.writeString(certFile, "-----BEGIN CERTIFICATE-----\nfile-cert\n-----END CERTIFICATE-----");
+        Files.writeString(keyFile, "-----BEGIN PRIVATE KEY-----\nfile-key\n-----END PRIVATE KEY-----");
+        // Through a directory that does not exist: the operating system could not open this as given
+        String certPath = tempDir.resolve("nonexistent-subdir").resolve("..").resolve(certFile.getFileName()).toString();
+        String keyPath = tempDir.resolve("nonexistent-subdir").resolve("..").resolve(keyFile.getFileName()).toString();
+        try {
+            Map<String, Object> originals = new HashMap<>();
+            originals.put(SchemaResolverConfig.REGISTRY_URL, "http://localhost:8080/apis/registry/v3");
+            originals.put(SchemaResolverConfig.TLS_CLIENT_CERTIFICATE, certPath);
+            originals.put(SchemaResolverConfig.TLS_CLIENT_KEY, keyPath);
+
+            RegistryClientOptions options = RegistryClientFacadeFactory.buildClientOptions(
+                    new SchemaResolverConfig(originals), null);
+            Assertions.assertEquals(KeyStoreType.PEM, options.getKeyStoreType());
+            Assertions.assertEquals(certFile.toString(), options.getPemClientCertPath());
+            Assertions.assertEquals(keyFile.toString(), options.getPemClientKeyPath());
+        } finally {
+            Files.deleteIfExists(certFile);
+            Files.deleteIfExists(keyFile);
             Files.deleteIfExists(tempDir);
         }
     }

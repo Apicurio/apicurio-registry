@@ -294,7 +294,9 @@ public class RegistryClientFacadeFactory {
                 throw new IllegalArgumentException("Failed to load classpath resource: " + pathStr, e);
             }
         }
-        return pathStr;
+        // Every caller passes a file location; the TLS libraries open it as given, and the operating
+        // system cannot resolve '..' through a directory that does not exist
+        return Paths.get(pathStr).normalize().toString();
     }
 
     private static Path createSecureTempDirectory() throws IOException {

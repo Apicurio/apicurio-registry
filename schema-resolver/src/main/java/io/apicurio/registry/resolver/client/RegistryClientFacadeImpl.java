@@ -25,6 +25,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.Set;
 
@@ -40,6 +41,8 @@ import static io.apicurio.registry.rest.client.models.VersionState.DISABLED;
 public class RegistryClientFacadeImpl implements RegistryClientFacade {
 
     private static final String DEFAULT_GROUP = "default";
+
+    private static final int VERSION_SEARCH_PAGE_SIZE = 50;
 
     private static final Logger LOG = LoggerFactory.getLogger(RegistryClientFacadeImpl.class);
     private static final String CLIENT_ID_HEADER = "X-Registry-Client-Id";
@@ -232,33 +235,53 @@ public class RegistryClientFacadeImpl implements RegistryClientFacade {
 
     @Override
     public RegistryVersionCoordinates getVersionCoordinatesByGlobalId(long globalId) {
-        return searchVersion(params -> params.globalId = globalId);
+        return searchVersion(params -> params.globalId = globalId, v -> v.getGlobalId() == globalId);
     }
 
     @Override
     public RegistryVersionCoordinates getVersionCoordinatesByContentId(long contentId, String groupId,
             String artifactId) {
+        String group = groupId == null ? DEFAULT_GROUP : groupId;
+        // The search treats '*' in group and artifact filters as a wildcard, while IDs may contain it:
+        // keep only exact matches
         return searchVersion(params -> {
             params.contentId = contentId;
-            params.groupId = groupId == null ? DEFAULT_GROUP : groupId;
+            params.groupId = group;
             params.artifactId = artifactId;
-        });
+        }, v -> group.equals(v.getGroupId() == null ? DEFAULT_GROUP : v.getGroupId())
+                && artifactId.equals(v.getArtifactId()));
     }
 
+    /**
+     * The newest version (by global ID) among the search results that matches {@code exact}, reading the
+     * results page by page.
+     */
     private RegistryVersionCoordinates searchVersion(
-            Consumer<VersionsRequestBuilder.GetQueryParameters> filter) {
-        VersionSearchResults results = client.search().versions().get(config -> {
-            filter.accept(config.queryParameters);
-            config.queryParameters.orderby = VersionSortBy.GlobalId;
-            config.queryParameters.order = SortOrder.Desc;
-            config.queryParameters.limit = 1;
-        });
-        if (results == null || results.getVersions() == null || results.getVersions().isEmpty()) {
-            return null;
+            Consumer<VersionsRequestBuilder.GetQueryParameters> filter, Predicate<SearchedVersion> exact) {
+        int offset = 0;
+        while (true) {
+            int pageOffset = offset;
+            VersionSearchResults results = client.search().versions().get(config -> {
+                filter.accept(config.queryParameters);
+                config.queryParameters.orderby = VersionSortBy.GlobalId;
+                config.queryParameters.order = SortOrder.Desc;
+                config.queryParameters.offset = pageOffset;
+                config.queryParameters.limit = VERSION_SEARCH_PAGE_SIZE;
+            });
+            if (results == null || results.getVersions() == null || results.getVersions().isEmpty()) {
+                return null;
+            }
+            for (SearchedVersion v : results.getVersions()) {
+                if (exact.test(v)) {
+                    return RegistryVersionCoordinates.create(v.getGlobalId(), v.getContentId(),
+                            v.getGroupId(), v.getArtifactId(), v.getVersion());
+                }
+            }
+            offset += results.getVersions().size();
+            if (results.getVersions().size() < VERSION_SEARCH_PAGE_SIZE) {
+                return null;
+            }
         }
-        SearchedVersion v = results.getVersions().get(0);
-        return RegistryVersionCoordinates.create(v.getGlobalId(), v.getContentId(), v.getGroupId(),
-                v.getArtifactId(), v.getVersion());
     }
 
     @Override

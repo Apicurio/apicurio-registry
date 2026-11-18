@@ -149,6 +149,22 @@ public class ContractRuleSerdeTest extends AbstractClientFacadeTestBase {
         Assertions.assertNull(facade.getVersionCoordinatesByContentId(contentId, groupId, "other-artifact"));
     }
 
+    @Test
+    public void testContentIdLookupMatchesTheArtifactIdExactly() throws Exception {
+        // '*' is a wildcard in search filters but a legal character in artifact IDs
+        String groupId = TestUtils.generateGroupId();
+        String base = generateArtifactId();
+        var wild = createArtifact(groupId, base + "*", ArtifactType.AVRO, SCHEMA, ContentTypes.APPLICATION_JSON);
+        var newer = createArtifact(groupId, base + "-prod", ArtifactType.AVRO, SCHEMA, ContentTypes.APPLICATION_JSON);
+        long contentId = wild.getVersion().getContentId();
+        Assertions.assertEquals(contentId, newer.getVersion().getContentId());
+
+        RegistryClientFacadeImpl facade = new RegistryClientFacadeImpl(isolatedClientV3);
+        var found = facade.getVersionCoordinatesByContentId(contentId, groupId, base + "*");
+        Assertions.assertEquals(base + "*", found.getArtifactId());
+        Assertions.assertEquals(wild.getVersion().getGlobalId(), found.getGlobalId());
+    }
+
     private void assertConsumerRejectsRecordWrittenWith(String idOption) throws Exception {
         Schema schema = new Schema.Parser().parse(SCHEMA);
         String groupId = TestUtils.generateGroupId();

@@ -24,6 +24,7 @@ import io.apicurio.registry.serde.tracing.SerDesAttributes;
 import io.apicurio.registry.serde.tracing.SerDesTracer;
 
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -105,7 +106,8 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
             }
             rulesetCache = new ContractRulesetCache(ttl);
             ruleLoader = new ContractRuleLoader(rulesetCache, baseSerde::getClientFacade);
-            coordinatesResolver = new ContractRuleCoordinatesResolver(baseSerde::getClientFacade);
+            coordinatesResolver = new ContractRuleCoordinatesResolver(baseSerde::getClientFacade,
+                    Duration.ofSeconds(ttl));
             Object migEnabled = config.originals().get(SerdeConfig.CONTRACT_RULES_MIGRATION_ENABLED);
             if (migEnabled != null) {
                 migrationEnabled = Boolean.parseBoolean(migEnabled.toString());
@@ -309,12 +311,18 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
     }
 
     /**
-     * The coordinates of the schema if the resolver knows them, otherwise the IDs the record was read with.
+     * The coordinates of the schema if the resolver knows them; otherwise the coordinates the record
+     * carries (headers can give group, artifact and version with a content hash); otherwise the IDs the
+     * record was read with.
      */
     private static ArtifactReference readReference(ArtifactReference recordReference,
             SchemaLookupResult<?> schema) {
         if (schema.getArtifactId() != null && !schema.getArtifactId().isEmpty()) {
             return schema.toArtifactReference();
+        }
+        if (recordReference != null && recordReference.getArtifactId() != null
+                && !recordReference.getArtifactId().isEmpty() && recordReference.getVersion() != null) {
+            return recordReference;
         }
         Long globalId = recordReference != null ? recordReference.getGlobalId() : null;
         Long contentId = recordReference != null ? recordReference.getContentId() : null;

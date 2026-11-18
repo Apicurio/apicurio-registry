@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Proxy;
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -53,8 +54,8 @@ class ConsumerContractRuleCoordinatesTest {
                         calls.add(name + List.of(args));
                     }
                     return switch (name) {
-                        case "getSchemaByContentId", "getSchemaByGlobalId" -> "{}";
-                        case "getReferencesByContentId", "getReferencesByGlobalId" -> List.of();
+                        case "getSchemaByContentId", "getSchemaByGlobalId", "getSchemaByContentHash" -> "{}";
+                        case "getReferencesByContentId", "getReferencesByGlobalId", "getReferencesByContentHash" -> List.of();
                         case "getVersionCoordinatesByGlobalId", "getVersionCoordinatesByContentId" -> coordinates;
                         case "getGlobalContractRuleset", "getVersionContractRuleset" -> null;
                         case "getContractRuleset" -> args[1].equals(TOPIC + "-value") ? readRule() : null;
@@ -206,7 +207,7 @@ class ConsumerContractRuleCoordinatesTest {
 
     @Test
     void testResolverUsesCoordinatesAlreadyKnownWithoutLookup() {
-        ContractRuleCoordinatesResolver resolver = new ContractRuleCoordinatesResolver(this::facade);
+        ContractRuleCoordinatesResolver resolver = new ContractRuleCoordinatesResolver(this::facade, Duration.ofMinutes(1));
         ArtifactReference known = ArtifactReference.builder().groupId("g").artifactId("a").version("1").build();
 
         assertSame(known, resolver.resolve(known, () -> null).orElseThrow());
@@ -215,10 +216,43 @@ class ConsumerContractRuleCoordinatesTest {
 
     @Test
     void testResolverSkipsContentIdWhenTheStrategyNamesNoArtifact() {
-        ContractRuleCoordinatesResolver resolver = new ContractRuleCoordinatesResolver(this::facade);
+        ContractRuleCoordinatesResolver resolver = new ContractRuleCoordinatesResolver(this::facade, Duration.ofMinutes(1));
 
         assertTrue(resolver.resolve(ArtifactReference.builder().contentId(CONTENT_ID).build(),
                 () -> null).isEmpty());
+        assertEquals(List.of(), calls);
+    }
+
+    @Test
+    void testCoordinatesAreLookedUpAgainAfterTheTtl() {
+        long[] now = {0};
+        ContractRuleCoordinatesResolver resolver = new ContractRuleCoordinatesResolver(this::facade,
+                Duration.ofSeconds(10), () -> now[0]);
+        ArtifactReference record = ArtifactReference.builder().globalId(GLOBAL_ID).build();
+
+        assertEquals("3", resolver.resolve(record, () -> null).orElseThrow().getVersion());
+        now[0] = Duration.ofSeconds(9).toNanos();
+        assertEquals("3", resolver.resolve(record, () -> null).orElseThrow().getVersion());
+        assertEquals(1, calls.size());
+
+        // A newer version reusing the content is found once the cached choice expires
+        coordinates = RegistryVersionCoordinates.create(GLOBAL_ID, CONTENT_ID, "default", TOPIC + "-value", "4");
+        now[0] = Duration.ofSeconds(11).toNanos();
+        assertEquals("4", resolver.resolve(record, () -> null).orElseThrow().getVersion());
+        assertEquals(2, calls.size());
+    }
+
+    @Test
+    void testHeaderCoordinatesAreUsedWhenTheSchemaHasNone() {
+        // Headers can carry group, artifact and version (with a content hash): no lookup is needed
+        Map<String, Object> bad = order(-5);
+        MapDeserializer d = deserializer(bad, false, true);
+        ArtifactReference fromHeaders = ArtifactReference.builder().contentHash("abc")
+                .groupId("default").artifactId(TOPIC + "-value").version("3").build();
+        RuntimeException e = assertThrows(RuntimeException.class,
+                () -> d.readData(TOPIC, new byte[] {1}, fromHeaders));
+        assertTrue(e.getMessage().startsWith("Contract rule validation failed (READ)"), e.getMessage());
+        assertTrue(e.getMessage().contains("positive-amount"), e.getMessage());
         assertEquals(List.of(), calls);
     }
 }

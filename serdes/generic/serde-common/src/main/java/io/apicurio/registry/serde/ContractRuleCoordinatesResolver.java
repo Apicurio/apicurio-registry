@@ -4,8 +4,10 @@ import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.resolver.client.RegistryVersionCoordinates;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 
+import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import java.util.logging.Logger;
 
@@ -19,8 +21,9 @@ import java.util.logging.Logger;
  * artifact resolver strategy, as the serializer does, and the registry is asked for the version of that
  * artifact with that content.</li>
  * </ul>
- * Results, including "not found", are cached per ID, so that the registry is asked once per ID and the
- * warning for a record without coordinates is logged once per ID.
+ * Results, including "not found", are cached per ID for the contract-rules cache TTL, so that the registry
+ * is asked once per ID and period (a newer version may later reuse the same content) and the warning for a
+ * record without coordinates is logged once per ID and period.
  */
 class ContractRuleCoordinatesResolver {
 
@@ -29,13 +32,31 @@ class ContractRuleCoordinatesResolver {
     private record ContentKey(long contentId, String groupId, String artifactId) {
     }
 
-    private final Supplier<RegistryClientFacade> facadeSupplier;
-    private final ConcurrentHashMap<Long, Optional<ArtifactReference>> byGlobalId = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<ContentKey, Optional<ArtifactReference>> byContentId =
-            new ConcurrentHashMap<>();
+    private record Entry(Optional<ArtifactReference> value, long expiresAt) {
+    }
 
-    ContractRuleCoordinatesResolver(Supplier<RegistryClientFacade> facadeSupplier) {
+    private final Supplier<RegistryClientFacade> facadeSupplier;
+    private final long ttlNanos;
+    private final LongSupplier clock;
+    private final ConcurrentHashMap<Long, Entry> byGlobalId = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<ContentKey, Entry> byContentId = new ConcurrentHashMap<>();
+
+    ContractRuleCoordinatesResolver(Supplier<RegistryClientFacade> facadeSupplier, Duration ttl) {
+        this(facadeSupplier, ttl, System::nanoTime);
+    }
+
+    ContractRuleCoordinatesResolver(Supplier<RegistryClientFacade> facadeSupplier, Duration ttl,
+            LongSupplier clock) {
         this.facadeSupplier = facadeSupplier;
+        this.ttlNanos = ttl.toNanos();
+        this.clock = clock;
+    }
+
+    private <K> Optional<ArtifactReference> cached(ConcurrentHashMap<K, Entry> cache, K key,
+            Supplier<Optional<ArtifactReference>> lookup) {
+        long now = clock.getAsLong();
+        return cache.compute(key, (k, entry) -> entry != null && now - entry.expiresAt() < 0
+                ? entry : new Entry(lookup.get(), now + ttlNanos)).value();
     }
 
     /**
@@ -51,8 +72,8 @@ class ContractRuleCoordinatesResolver {
         }
         Long globalId = positive(reference.getGlobalId());
         if (globalId != null) {
-            return byGlobalId.computeIfAbsent(globalId, id -> found(
-                    facade().getVersionCoordinatesByGlobalId(id), "global ID " + id));
+            return cached(byGlobalId, globalId, () -> found(
+                    facade().getVersionCoordinatesByGlobalId(globalId), "global ID " + globalId));
         }
         Long contentId = positive(reference.getContentId());
         if (contentId != null) {
@@ -63,9 +84,9 @@ class ContractRuleCoordinatesResolver {
                 return Optional.empty();
             }
             ContentKey key = new ContentKey(contentId, artifact.getGroupId(), artifact.getArtifactId());
-            return byContentId.computeIfAbsent(key, k -> found(
-                    facade().getVersionCoordinatesByContentId(k.contentId(), k.groupId(), k.artifactId()),
-                    "content ID " + k.contentId() + " in artifact " + k.groupId() + "/" + k.artifactId()));
+            return cached(byContentId, key, () -> found(
+                    facade().getVersionCoordinatesByContentId(key.contentId(), key.groupId(), key.artifactId()),
+                    "content ID " + key.contentId() + " in artifact " + key.groupId() + "/" + key.artifactId()));
         }
         LOG.warning("Consumer-side contract rules are skipped for a record without a global ID, "
                 + "content ID or artifact coordinates");

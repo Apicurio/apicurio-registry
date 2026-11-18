@@ -1,6 +1,7 @@
 package io.apicurio.registry.storage.impl.sql;
 
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.noprofile.storage.AbstractRegistryStorageTest;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.cdi.Current;
@@ -11,6 +12,7 @@ import io.apicurio.registry.storage.impl.sql.upgrader.DuplicateVersionOrderUpgra
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.VersionState;
+import io.apicurio.registry.utils.impexp.v3.ArtifactEntity;
 import io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
@@ -116,6 +118,51 @@ public class DefaultRegistryStorageTest extends AbstractRegistryStorageTest {
             }
             execute("UPDATE apicurio SET propValue = '" + currentVersion + "' WHERE propName = 'db_version'");
         }
+    }
+
+    /**
+     * The newest version with a given content is the one with the highest versionOrder. globalId
+     * is not a creation-order signal (imports preserve arbitrary IDs, and native sequences do not
+     * follow commit order), so the newest version is given the lower globalId here.
+     */
+    @Test
+    public void testVersionByContentPrefersHighestVersionOrder() {
+        // A throwaway artifact provides a contentId for OPENAPI_CONTENT.
+        ArtifactVersionMetaDataDto source = createFirstVersion(TestUtils.generateGroupId(),
+                TestUtils.generateArtifactId());
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = TestUtils.generateArtifactId();
+        long now = System.currentTimeMillis();
+        storage.importArtifact(ArtifactEntity.builder().groupId(groupId).artifactId(artifactId)
+                .artifactType(ArtifactType.OPENAPI).owner("test").createdOn(now).modifiedBy("test")
+                .modifiedOn(now).build());
+
+        long lowerGlobalId = storage.nextGlobalId();
+        long higherGlobalId = storage.nextGlobalId();
+        ArtifactVersionEntity oldest = duplicateOf(source, "1");
+        oldest.groupId = groupId;
+        oldest.artifactId = artifactId;
+        oldest.versionOrder = 1;
+        oldest.globalId = higherGlobalId;
+        storage.importArtifactVersion(oldest);
+        ArtifactVersionEntity newest = duplicateOf(source, "2");
+        newest.groupId = groupId;
+        newest.artifactId = artifactId;
+        newest.versionOrder = 2;
+        newest.globalId = lowerGlobalId;
+        storage.importArtifactVersion(newest);
+
+        TypedContent content = TypedContent.create(ContentHandle.create(OPENAPI_CONTENT),
+                ContentTypes.APPLICATION_JSON);
+        ArtifactVersionMetaDataDto byHash = storage.getArtifactVersionMetaDataByContent(groupId,
+                artifactId, false, content, Collections.emptyList());
+        ArtifactVersionMetaDataDto byCanonicalHash = storage.getArtifactVersionMetaDataByContent(groupId,
+                artifactId, true, content, Collections.emptyList());
+
+        Assertions.assertEquals("2", byHash.getVersion());
+        Assertions.assertEquals(lowerGlobalId, byHash.getGlobalId());
+        Assertions.assertEquals("2", byCanonicalHash.getVersion());
+        Assertions.assertEquals(lowerGlobalId, byCanonicalHash.getGlobalId());
     }
 
     private ArtifactVersionMetaDataDto createFirstVersion(String groupId, String artifactId) {

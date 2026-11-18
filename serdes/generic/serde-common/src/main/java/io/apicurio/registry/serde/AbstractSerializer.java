@@ -156,8 +156,8 @@ public abstract class AbstractSerializer<T, U> implements AutoCloseable {
                     DefaultSchemaResolver.currentOperation.set("SERIALIZE");
                     try {
                         SerdeMetadata resolverMetadata = new SerdeMetadata(topic, baseSerde.isKey());
-                        schema = baseSerde.getSchemaResolver()
-                                .resolveSchema(new SerdeRecord<>(resolverMetadata, data));
+                        schema = tracer.traceSchemaResolve(topic, "serialize", resolveSpan -> baseSerde
+                                .getSchemaResolver().resolveSchema(new SerdeRecord<>(resolverMetadata, data)));
                     } finally {
                         DefaultSchemaResolver.currentOperation.remove();
                     }

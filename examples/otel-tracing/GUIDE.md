@@ -112,6 +112,7 @@ greeting-producer  POST /greetings
 greeting-producer  create-greeting
 greeting-producer  greetings publish
 greeting-producer  serde.serialize
+greeting-producer  serde.resolve_schema
 greeting-producer  POST
 apicurio-registry  POST /apis/registry/v3/groups/{groupId}/artifacts
 greeting-consumer  greetings process
@@ -119,7 +120,8 @@ greeting-consumer  process-greeting-message
 ```
 
 In Jaeger, the trace reads top to bottom: the REST call, the `@WithSpan` method `create-greeting`,
-the Kafka `publish` span, the serializer's own `serde.serialize` span, its HTTP call to the
+the Kafka `publish` span, the serializer's own `serde.serialize` span, its schema lookup
+(`serde.resolve_schema`, only when the schema is not cached yet), the lookup's HTTP call to the
 Registry, and the Registry's handling of it, with storage spans. The consumer's `process` span is a
 child of the producer's `publish` span: the Kafka instrumentation (`KafkaTelemetry.wrap`) carried
 the context in the record headers.

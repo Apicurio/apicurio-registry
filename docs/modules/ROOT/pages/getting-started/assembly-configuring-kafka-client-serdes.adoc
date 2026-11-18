@@ -232,6 +232,8 @@ When {registry} is served over HTTPS with certificates that the default Java tru
 |`true`
 |===
 
+For a running example of a producer and a consumer that call {registry} over mutual TLS, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/tls[TLS example].
+
 The following example configures a producer with a PKCS12 trust store:
 
 [source,properties]

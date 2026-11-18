@@ -22,7 +22,6 @@ follow each example's README quick start.
 | Example | What it shows | ADR | Docs |
 |---|---|---|---|
 | [registry-clients](registry-clients/) | One scenario with the Java, Go, Python and TypeScript SDKs and the CLI | | [SDKs](../docs/modules/ROOT/pages/getting-started/assembly-using-the-registry-client.adoc), [CLI](../docs/modules/ROOT/pages/getting-started/assembly-managing-registry-artifacts-cli.adoc) |
-| [maven-plugin-tls-credentials](maven-plugin-tls-credentials/) | The Maven plugin against a registry with TLS and credentials. *Not checked yet* | | [Maven plugin](../docs/modules/ROOT/pages/getting-started/assembly-managing-registry-artifacts-maven.adoc) |
 
 ## Schemas and governance
 
@@ -47,7 +46,7 @@ follow each example's README quick start.
 |---|---|---|---|
 | [authentication](authentication/) | OIDC, HTTP basic, an authenticating proxy and Kubernetes tokens, from the Java SDK, serdes, Maven plugin and CLI | [0009](../adr/0009-authentication.md) | [Security](../docs/modules/ROOT/pages/getting-started/assembly-configuring-registry-security.adoc) |
 | [per-resource-authorization](per-resource-authorization/) | Access rules per group and artifact, filtered search | [0005](../adr/0005-per-resource-authorization.md) | [Per-resource authorization](../docs/modules/ROOT/pages/getting-started/assembly-configuring-resource-authorization.adoc) |
-| [mtls-minikube](mtls-minikube/) | Mutual TLS on Kubernetes. *Not checked yet* | | |
+| [tls](tls/) | HTTPS, mutual TLS through a proxy, and the Java SDK, Kafka serdes and Maven plugin with PKCS12, JKS and PEM stores, including the refusals | [0009](../adr/0009-authentication.md) | [Maven plugin](../docs/modules/ROOT/pages/getting-started/assembly-managing-registry-artifacts-maven.adoc), [SDK](../docs/modules/ROOT/pages/getting-started/assembly-using-the-registry-client.adoc), [serdes](../docs/modules/ROOT/pages/getting-started/assembly-configuring-kafka-client-serdes.adoc) |
 
 ## Deploying and operating
 

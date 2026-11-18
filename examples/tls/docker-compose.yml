@@ -1,0 +1,99 @@
+# TLS example: two registries served over HTTPS with certificates from certs/ (run
+# ./certs/generate-certs.sh first; demo.sh does it), and Kafka for the serializers. See README.md.
+#
+#   registry       HTTPS, PKCS12 key store; plain HTTP redirected to HTTPS; HTTP basic credentials
+#   registry-mtls  HTTPS only (plain HTTP off), PEM certificate; published only through mtls-proxy
+#   mtls-proxy     nginx: requires a client certificate signed by the example CA (mutual TLS)
+#
+# For local demonstration only: the CA is generated on your machine, the store password is in plain
+# text, and the users' passwords are in this file.
+#
+# Host ports default to 8443 (registry, HTTPS), 8080 (registry, plain HTTP: redirects), 9443
+# (mtls-proxy) and 9092 (Kafka); override them with REGISTRY_PORT, REGISTRY_HTTP_PORT, MTLS_PORT and
+# KAFKA_PORT.
+x-registry-image: &registry-image ${REGISTRY_IMAGE:-apicurio/apicurio-registry:latest-snapshot}
+x-registry-health: &registry-health
+  # With TLS on, the management port (9000) serves HTTPS too, with the same certificate
+  test: ["CMD-SHELL", "curl -sf --cacert /certs/ca-cert.pem https://localhost:9000/health/ready > /dev/null"]
+  interval: 5s
+  timeout: 5s
+  retries: 40
+
+services:
+  registry:
+    image: *registry-image
+    container_name: apicurio-registry-tls
+    environment:
+      # The server certificate and key, as a PKCS12 key store (Quarkus TLS registry, default
+      # configuration; the operator's spec.app.tls sets the same two properties)
+      QUARKUS_TLS_KEY_STORE_P12_PATH: /certs/server-keystore.p12
+      QUARKUS_TLS_KEY_STORE_P12_PASSWORD: apicurio
+      # Plain HTTP (8080) answers with a redirect to HTTPS (8443). The redirect names the container's
+      # HTTPS port, 8443, whatever REGISTRY_PORT is
+      QUARKUS_HTTP_INSECURE_REQUESTS: redirect
+      # Credentials over TLS: HTTP basic against users configured here (as in ../authentication)
+      QUARKUS_HTTP_AUTH_BASIC: "true"
+      QUARKUS_SECURITY_USERS_EMBEDDED_PLAIN_TEXT: "true"
+      QUARKUS_SECURITY_USERS_EMBEDDED_USERS_DEVELOPER: "developer"
+      QUARKUS_SECURITY_USERS_EMBEDDED_ROLES_DEVELOPER: "sr-developer"
+      APICURIO_AUTH_ROLE_BASED_AUTHORIZATION: "true"
+      # Let demo.sh delete the groups it creates
+      APICURIO_REST_DELETION_GROUP_ENABLED: "true"
+    volumes:
+      - ./certs:/certs:ro,z
+    ports:
+      - "${REGISTRY_PORT:-8443}:8443"
+      - "${REGISTRY_HTTP_PORT:-8080}:8080"
+    healthcheck: *registry-health
+
+  registry-mtls:
+    image: *registry-image
+    container_name: apicurio-registry-mtls-tls
+    # No published ports: from the host, the only way in is through mtls-proxy. (Other services in
+    # this Compose project could still call it directly; in production, restrict who can reach the
+    # registry, for example with the NetworkPolicy the operator creates)
+    environment:
+      # The server certificate and key as PEM files. The key of the PEM pair ("server") is any name
+      # but a number: QUARKUS_TLS_KEY_STORE_PEM_0_CERT is ignored (see README.md)
+      QUARKUS_TLS_KEY_STORE_PEM_SERVER_CERT: /certs/server-cert.pem
+      QUARKUS_TLS_KEY_STORE_PEM_SERVER_KEY: /certs/server-key.pem
+      # HTTPS only: nothing listens on 8080
+      QUARKUS_HTTP_INSECURE_REQUESTS: disabled
+      # Let demo.sh and the clients delete what they create
+      APICURIO_REST_DELETION_GROUP_ENABLED: "true"
+      APICURIO_REST_DELETION_ARTIFACT_ENABLED: "true"
+    volumes:
+      - ./certs:/certs:ro,z
+    healthcheck: *registry-health
+
+  mtls-proxy:
+    image: nginx:1.27-alpine
+    container_name: mtls-proxy-tls
+    volumes:
+      - ./mtls-proxy/nginx.conf:/etc/nginx/conf.d/default.conf:ro,z
+      - ./certs:/certs:ro,z
+    ports:
+      - "${MTLS_PORT:-9443}:8443"
+    depends_on:
+      registry-mtls:
+        condition: service_healthy
+
+  # Kafka, for the serializers (step 9); the brokers are plain, only the registry calls use TLS
+  kafka:
+    image: apache/kafka:3.8.1
+    container_name: kafka-tls
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: HOST://:9092,INTERNAL://:29092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: HOST://localhost:${KAFKA_PORT:-9092},INTERNAL://localhost:29092
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,HOST:PLAINTEXT,INTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    ports:
+      - "${KAFKA_PORT:-9092}:9092"

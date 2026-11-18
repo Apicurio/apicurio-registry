@@ -41,7 +41,8 @@ Stop and remove everything with `docker compose down -v`.
    after the route, in the caller's trace, with `apicurio.registry.path.*` attributes and storage
    spans under it; a failed lookup (404) has an error storage span with the exception.
 2. **Kafka serdes, one trace:** `POST /greetings` (producer) → `create-greeting` → `greetings publish` →
-   `serde.serialize` (the serializer's own span) → `POST` to the Registry →
+   `serde.serialize` (the serializer's own span) → `serde.resolve_schema` (the schema lookup) → `POST`
+   to the Registry →
    `POST /apis/registry/v3/groups/{groupId}/artifacts` (Registry, with storage spans) and, in the
    same trace, `greetings process` (consumer, child of the publish span) → `process-greeting-message`.
 3. **Errors on spans:** a failed operation has status `ERROR`, attributes and the recorded exception.
@@ -112,9 +113,6 @@ in the operator documentation).
   extracted, so it is not part of the producer's trace.
 - **Debezium uses the Registry's v2 API.** Debezium Server bundles the Apicurio Registry 2.6 serdes;
   its `apicurio.registry.url` is the Registry's base URL, without `/apis/registry/...`.
-- **Known issues:** a consumer that reads the schema reference from headers (the CDC consumer) gets
-  no `serde.deserialize` span, and `serde.resolve_schema` is never emitted
-  ([#11265](https://github.com/Apicurio/apicurio-registry/issues/11265)).
 - **Other ports:** see [Using other ports](GUIDE.md#using-other-ports).
 - **Local build:** the example uses the `latest-snapshot` registry image. To run a locally built
   registry, build it (`./mvnw install -pl distro/docker -am -DskipTests`), build

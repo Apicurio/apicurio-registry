@@ -126,7 +126,10 @@ publish_id=$(span_value "$tid" greeting-producer "greetings publish" .id)
 check_span "producer: the serializer's own span (serdes tracing)" "$tid" greeting-producer serde.serialize "$publish_id"
 expect "  its topic attribute" greetings "$(span_value "$tid" greeting-producer serde.serialize '.tags["messaging.destination.name"]')"
 serialize_id=$(span_value "$tid" greeting-producer serde.serialize .id)
-check_span "producer: HTTP call to the Registry (schema registration)" "$tid" greeting-producer POST "$serialize_id"
+# A schema that is not cached yet is looked up (here: registered) in a span of its own
+check_span "producer: the schema lookup's span, under the serializer's" "$tid" greeting-producer serde.resolve_schema "$serialize_id"
+resolve_id=$(span_value "$tid" greeting-producer serde.resolve_schema .id)
+check_span "producer: HTTP call to the Registry (schema registration)" "$tid" greeting-producer POST "$resolve_id"
 client_id=$(span_value "$tid" greeting-producer POST .id)
 route="POST /apis/registry/v3/groups/{groupId}/artifacts"
 check_span "registry: the registration request, child of that call" "$tid" apicurio-registry "$route" "$client_id"
@@ -224,6 +227,13 @@ publish=$(curl -s "$JAEGER/api/traces?service=debezium-server&operation=dbserver
   | jq -r '.data[0] | .processes as $p | [.spans[] | "\($p[.processID].serviceName):\(.operationName)"] | sort | join(",")')
 expect "debezium's Kafka publish span is in a separate trace (today's behaviour)" \
   "cdc-consumer:dbserver1.public.orders process,debezium-server:dbserver1.public.orders publish" "$publish"
+# The CDC consumer reads the schema reference from the record headers: its deserialization is traced
+# too, with a schema-lookup span under it when the lookup misses the cache
+cdc_deserialize=$(curl -s "$JAEGER/api/traces?service=cdc-consumer&operation=serde.deserialize&limit=20&lookback=1h" \
+  | jq -r '[.data[].spans[] | select(.operationName == "serde.deserialize") | .tags[] | select(.key == "messaging.destination.name") | .value] | first // "none"')
+expect "cdc consumer: the header-based deserialization has its span" dbserver1.public.orders "$cdc_deserialize"
+cdc_resolve=$(curl -s "$JAEGER/api/traces?service=cdc-consumer&operation=serde.resolve_schema&limit=1&lookback=1h" | jq '.data | length')
+expect "  and its first schema lookup a serde.resolve_schema span" yes "$([ "$cdc_resolve" -ge 1 ] && echo yes || echo no)"
 
 echo "5. Every service reports to the same backend, and the Collector exposes the metrics:"
 expect "Jaeger knows all six services" "apicurio-registry,cdc-consumer,debezium-server,greeting-consumer,greeting-producer,order-service" \

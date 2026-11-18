@@ -160,14 +160,33 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
 
     protected abstract U readData(ParsedSchema<T> schema, ByteBuffer buffer, int start, int length);
 
+    /**
+     * Deserializes a payload without an ID prefix, whose schema is given by {@code artifactReference}
+     * (from the record headers, for example). Traced and checked against contract rules exactly as
+     * {@link #deserializeData(String, byte[])} is.
+     */
     public U readData(String topic, byte[] data, ArtifactReference artifactReference) {
-        SchemaLookupResult<T> schema = resolve(topic, data, artifactReference);
+        return tracer.traceDeserialize(topic, span -> {
+            span.setAttribute(SerDesAttributes.DATA_SIZE, (long) data.length);
 
-        ByteBuffer buffer = ByteBuffer.wrap(data);
-        int length = buffer.limit();
-        int start = buffer.position();
+            SchemaCacheKey cacheKey = getCacheKey(artifactReference);
+            boolean cacheHit = cacheKey != null && fastPathCache.containsKey(cacheKey);
 
-        return readData(schema.getParsedSchema(), buffer, start, length);
+            SchemaLookupResult<T> schema = resolve(topic, data, artifactReference);
+            SerDesTracer.setSchemaAttributes(span, schema, cacheHit);
+
+            ByteBuffer buffer = ByteBuffer.wrap(data);
+            int length = buffer.limit();
+            int start = buffer.position();
+
+            U result = readData(schema.getParsedSchema(), buffer, start, length);
+
+            if (contractRulesEnabled) {
+                executeContractRulesForRead(schema, result);
+            }
+
+            return result;
+        });
     }
 
     protected SchemaLookupResult<T> resolve(String topic, byte[] data, ArtifactReference artifactReference) {
@@ -191,7 +210,8 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
 
         // Slow path: full resolution
         try {
-            SchemaLookupResult<T> result = baseSerde.getSchemaResolver().resolveSchemaByArtifactReference(artifactReference);
+            SchemaLookupResult<T> result = tracer.traceSchemaResolve(topic, "deserialize",
+                    span -> baseSerde.getSchemaResolver().resolveSchemaByArtifactReference(artifactReference));
             // Cache the result if we have a valid cache key
             if (cacheKey != null) {
                 fastPathCache.put(cacheKey, result);

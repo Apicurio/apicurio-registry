@@ -71,7 +71,10 @@ The registry uses in-memory storage and no authentication, so there is nothing e
 `demo.sh` registers the Avro schema [`schemas/order-event-v1.avsc`](schemas/order-event-v1.avsc) as
 artifact `orders/OrderEvent`, version `1`, submits the contract
 [`contracts/orders-contract.yaml`](contracts/orders-contract.yaml) to group `orders`, then checks
-what the registry made of it. It ends with:
+what the registry made of it. It then runs every step of this guide as a check (the Java steps
+build the example first; `SKIP_KAFKA=1` skips them), and finally restores this starting point:
+version 1 and the contract, nothing else. `SETUP_ONLY=1 ./demo.sh` only creates the starting
+point. It ends with:
 
 ```
 All checks passed.

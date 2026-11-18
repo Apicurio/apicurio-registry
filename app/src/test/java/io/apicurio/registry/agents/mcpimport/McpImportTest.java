@@ -27,11 +27,14 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import java.math.BigDecimal;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
@@ -67,6 +70,9 @@ public class McpImportTest extends AbstractResourceTestBase {
 
     @Inject
     MeterRegistry meterRegistry;
+
+    @Inject
+    McpImportConfig importConfig;
 
     @Inject
     MockAuditLogService auditLogService;
@@ -440,16 +446,22 @@ public class McpImportTest extends AbstractResourceTestBase {
 
     @Test
     void importOverTheConcurrencyLimitIsRefused() throws Exception {
-        // The profile allows one import at a time; the first is held at the MCP server until released.
+        // Fill every permit with an import held at the MCP server until released. The limit is read
+        // from the configuration: the profiles of the subclasses set it differently.
+        int limit = importConfig.getMaxConcurrent();
         mcp.tools(McpTestServer.tool("search", "string"));
         CompletableFuture<Void> release = new CompletableFuture<>();
         mcp.release = release;
         int before = mcp.requests.get();
         double busy = count(McpToolImportService.METRIC_FAILURES, "reason", "busy");
-        CompletableFuture<Integer> first = CompletableFuture.supplyAsync(
-                () -> importTools().extract().statusCode());
+        ExecutorService executor = Executors.newFixedThreadPool(limit);
+        List<CompletableFuture<Integer>> held = new ArrayList<>();
         try {
-            await().atMost(Duration.ofSeconds(10)).until(() -> mcp.requests.get() > before);
+            for (int i = 0; i < limit; i++) {
+                held.add(CompletableFuture.supplyAsync(() -> importTools().extract().statusCode(), executor));
+            }
+            // Each import takes its permit before it contacts the MCP server.
+            await().atMost(Duration.ofSeconds(10)).until(() -> mcp.requests.get() >= before + limit);
             int inFlight = mcp.requests.get();
 
             importTools().statusCode(429)
@@ -460,8 +472,11 @@ public class McpImportTest extends AbstractResourceTestBase {
         } finally {
             mcp.release = null;
             release.complete(null);
+            executor.shutdown();
         }
-        assertEquals(200, first.get(30, TimeUnit.SECONDS));
+        for (CompletableFuture<Integer> importing : held) {
+            assertEquals(200, importing.get(30, TimeUnit.SECONDS));
+        }
         importTools().statusCode(200);
     }
 

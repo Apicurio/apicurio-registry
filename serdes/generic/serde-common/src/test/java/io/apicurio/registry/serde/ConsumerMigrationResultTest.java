@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Proxy;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -42,6 +43,10 @@ class ConsumerMigrationResultTest {
     private final List<String> calls = new ArrayList<>();
     private ContractRuleSet v2Ruleset = upgradeRule("$merge([$, {\"currency\": \"USD\"}])");
 
+    private static String schemaFor(Object globalId) {
+        return globalId.equals(TARGET_GLOBAL_ID) ? "schema-v2" : "schema-v1";
+    }
+
     private RegistryClientFacade facade() {
         return (RegistryClientFacade) Proxy.newProxyInstance(getClass().getClassLoader(),
                 new Class<?>[]{RegistryClientFacade.class}, (proxy, method, args) -> {
@@ -50,7 +55,8 @@ class ConsumerMigrationResultTest {
                         calls.add(name + List.of(args));
                     }
                     return switch (name) {
-                        case "getSchemaByGlobalId" -> args[0].equals(TARGET_GLOBAL_ID) ? "schema-v2" : "schema-v1";
+                        case "getSchemaByGlobalId" -> schemaFor(args[0]);
+                        case "getSchemaBytesByGlobalId" -> schemaFor(args[0]).getBytes(StandardCharsets.UTF_8);
                         case "getReferencesByGlobalId" -> List.of();
                         case "getVersionCoordinatesByGlobalId" -> RegistryVersionCoordinates.create(GLOBAL_ID, 7L,
                                 "default", ARTIFACT, "1");

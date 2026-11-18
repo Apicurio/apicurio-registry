@@ -33,7 +33,7 @@ public class Client {
     @Inject
     CredentialStore credentialStore;
 
-    // HTTP client hardening for the auto-update download flow.
+    // HTTP client hardening for the auto-update download flow and registry calls.
     private static final int CONNECT_TIMEOUT_MILLIS = 30_000;
     private static final int IDLE_TIMEOUT_SECONDS = 120;
     private static final int MAX_REDIRECTS = 5;
@@ -76,7 +76,7 @@ public class Client {
         }
     }
 
-    private RegistryClient createRegistryClient(final boolean logHttp) {
+    RegistryClientOptions createRegistryClientOptions(final boolean logHttp) {
         requireCurrentContext();
         var currentContext = config.read();
         try {
@@ -85,16 +85,21 @@ public class Client {
                 uri = uri.resolve("/apis/registry/v3");
             }
             final var options = RegistryClientOptions.create(uri.toString(), vertx);
+            options.requestTimeout(CONNECT_TIMEOUT_MILLIS, TimeUnit.SECONDS.toMillis(IDLE_TIMEOUT_SECONDS));
             if (logHttp) {
                 options.enableHttpLogging();
             }
             final var context = currentContext.getContext().get(currentContext.getCurrentContext());
             configureAuth(options, context, currentContext.getCurrentContext());
-            return RegistryClientFactory.create(options);
+            return options;
         } catch (Exception ex) {
             throw new CliException("Could not create Registry client: " + ex.getMessage(),
                     APPLICATION_ERROR_RETURN_CODE);
         }
+    }
+
+    private RegistryClient createRegistryClient(final boolean logHttp) {
+        return RegistryClientFactory.create(createRegistryClientOptions(logHttp));
     }
 
     public HttpClient getHttpClient() {

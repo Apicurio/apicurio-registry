@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Lists the examples that verify-examples.yaml runs, as a JSON matrix on stdout:
 #   [{"name": "per-resource-authorization", "timeout": 20, "build": false, "variant": "",
-#     "selfManaged": false, "releasedImages": "", "mutableImage": false, "compose": true}, ...]
+#     "selfManaged": false, "releasedImages": "", "mutableImage": false, "compose": true,
+#     "toolchains": ""}, ...]
 #
 # An example without a Compose file is run only when it is CI_SELF_MANAGED: demo.sh then brings its
 # own platform (for example a kind cluster), and the Compose steps are skipped.
@@ -20,6 +21,8 @@
 #                          REGISTRY_MUTABLE_IMAGE (for an example that adds Java providers to it)
 #   CI_RELEASED_IMAGES=i j released Apicurio Registry images the example runs on purpose, in addition to
 #                          this commit's (a migration from an older release); exempt from the image check
+#   CI_TOOLCHAINS=go node python  set up these toolchains besides the JDK (for an example with clients
+#                          in other languages); each value is one of go, node, python
 # Every other line is exported to `docker compose` and demo.sh (see verify-examples.yaml).
 #
 # Usage: .github/scripts/discover-examples.sh [examples-dir]
@@ -49,6 +52,7 @@ for demo in "$dir"/*/demo.sh; do
   managed=false
   released=""
   mutable=false
+  toolchains=""
   if [ -f "$example/ci.env" ]; then
     value() { sed -n "s/^$1=//p" "$example/ci.env" | tail -1; }
     enabled=$(value CI_ENABLED); enabled=${enabled:-true}
@@ -58,6 +62,7 @@ for demo in "$dir"/*/demo.sh; do
     managed=$(value CI_SELF_MANAGED); managed=${managed:-false}
     released=$(value CI_RELEASED_IMAGES)
     mutable=$(value CI_NEEDS_MUTABLE_IMAGE); mutable=${mutable:-false}
+    toolchains=$(value CI_TOOLCHAINS)
   fi
   if [ "$managed" != true ] && [ "$managed" != false ]; then
     echo "::error::$name: CI_SELF_MANAGED must be true or false, got '$managed'" >&2
@@ -76,6 +81,10 @@ for demo in "$dir"/*/demo.sh; do
   fi
   if [ "$mutable" != true ] && [ "$mutable" != false ]; then
     echo "::error::$name: CI_NEEDS_MUTABLE_IMAGE must be true or false, got '$mutable'" >&2
+    exit 1
+  fi
+  if [ -n "$toolchains" ] && ! [[ "$toolchains" =~ ^(go|node|python)( (go|node|python))*$ ]]; then
+    echo "::error::$name: CI_TOOLCHAINS must be space-separated values of go, node and python, got '$toolchains'" >&2
     exit 1
   fi
   if [ "$build" != true ] && [ "$build" != false ]; then
@@ -103,7 +112,8 @@ for demo in "$dir"/*/demo.sh; do
     [ "$variant" = "<none>" ] && variant=""
     entries+=("$(jq -cn --arg n "$name" --argjson t "$timeout" --argjson b "$build" --arg v "$variant" \
       --argjson m "$managed" --arg r "$released" --argjson mi "$mutable" --argjson c "$has_compose" \
-      '{name: $n, timeout: $t, build: $b, variant: $v, selfManaged: $m, releasedImages: $r, mutableImage: $mi, compose: $c}')")
+      --arg tc "$toolchains" \
+      '{name: $n, timeout: $t, build: $b, variant: $v, selfManaged: $m, releasedImages: $r, mutableImage: $mi, compose: $c, toolchains: $tc}')")
   done
 done
 

@@ -16,6 +16,7 @@ name: Examples
 # Optional per-example settings live in examples/<name>/ci.env; see examples/TEMPLATE.md. With
 # CI_NEEDS_BUILD=true the job also sets up a JDK and the Maven cache and runs the example's
 # build.sh, so demo.sh can run Java clients built from this commit (snapshots are not published).
+# CI_TOOLCHAINS also sets up Go, Node.js or Python, for an example with clients in those languages.
 
 on:
   workflow_call:
@@ -117,6 +118,26 @@ jobs:
       - name: Restore Maven cache
         if: matrix.example.build
         uses: ./.github/actions/setup-maven-cache
+
+      # CI_TOOLCHAINS: clients in other languages (versions as in verify-sdk.yaml)
+      - name: Set up Go
+        if: contains(matrix.example.toolchains, 'go')
+        uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7
+        with:
+          go-version: '1.27.4'
+          cache: false
+
+      - name: Set up Node
+        if: contains(matrix.example.toolchains, 'node')
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '24.22.3'
+
+      - name: Set up Python
+        if: contains(matrix.example.toolchains, 'python')
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: '3.15.2'
 
       - name: Build the example's Java parts (build.sh)
         if: matrix.example.build

@@ -92,6 +92,13 @@ references, through the v3 API and the v2 API. It also covers the import guards,
 IDs, backup and restore within 3.x, and 3.x refusing a 2.6 KafkaSQL topic. See its
 [step-by-step guide](v2-to-v3-migration/GUIDE.md).
 
+## Registry Clients Example
+This example runs one scenario with every client of the registry, built from this repository: the
+Java, Go, Python and TypeScript SDKs and the CLI. Each creates an Avro schema, adds a compatibility
+rule, evolves the schema, has an incompatible change rejected, reads, searches and deletes it, and
+the demo checks that every client reports the same results. Its
+[step-by-step guide](registry-clients/GUIDE.md) shows each step in every client.
+
 ## Rules and Compatibility Example
 This example runs Apicurio Registry and its web console with Docker Compose and shows its content
 rules: validity, BACKWARD and FORWARD compatibility, which rule wins when rules are set globally, per
@@ -129,12 +136,6 @@ Apicurio Registry's Confluent-compatible API, and checks the wire format and sch
 map to artifacts and groups, references, compatibility, soft and permanent deletes, errors, and the
 v7 and v8 APIs. See its [step-by-step guide](confluent-compatibility/GUIDE.md). Mixing Confluent's and
 Apicurio's serdes in one system is the `confluent` step of the Kafka Serdes Example.
-
-## Rest Client example
-This example application demonstrates how to use the Apicurio Registry rest client to create,
-delete, or fetch schemas. This example contains two basic java application, one showing how to
-improve the logs by logging all the request and response headers and a basic example on how to
-use the client.
 
 ## LLM/AI Model Schema Artifact Types
 This example demonstrates the built-in AI/ML artifact types for managing LLM schemas and prompt templates:

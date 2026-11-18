@@ -204,7 +204,8 @@ The Registry exports metrics through the same Collector, which exposes them in P
 curl -s http://localhost:8889/metrics | grep -E '^otel_apicurio_|^otel_http_server_request_duration_seconds_count.*apicurio-registry' | head
 ```
 
-`otel_apicurio_artifacts_created_total` counts the artifacts created through the v3 API.
+`otel_apicurio_artifacts_created_total` counts the artifacts created through any API: here the
+producer's schema (v3) and Debezium's (v2).
 
 ## Step 8: Clean up
 

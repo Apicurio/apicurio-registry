@@ -33,7 +33,6 @@ import io.apicurio.registry.references.auto.ReferenceMatch;
 import io.apicurio.registry.references.auto.ReferenceMatcher;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.logging.audit.Audited;
-import io.apicurio.registry.metrics.OTelMetricsProvider;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.model.BranchId;
@@ -160,9 +159,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
     @Inject
     Instance<McpToolImportHandler> mcpToolImportHandler;
-
-    @Inject
-    OTelMetricsProvider otelMetrics;
 
     @Inject
     ArtifactTypeUtilProviderFactory factory;
@@ -673,15 +669,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
         ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
 
-        String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
-        String artifactType = null;
-        try {
-            artifactType = storage.getArtifactMetaData(rawGroupId, artifactId).getArtifactType();
-        } catch (ArtifactNotFoundException e) {
-            // Artifact may already be gone; proceed with delete and record with null type
-        }
-        storage.deleteArtifact(rawGroupId, artifactId);
-        otelMetrics.recordArtifactDeleted(rawGroupId, artifactType);
+        storage.deleteArtifact(new GroupId(groupId).getRawGroupIdWithNull(), artifactId);
     }
 
     /**
@@ -1612,7 +1600,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                     firstVersion, firstVersionContent, firstVersionMetaData,
                     firstVersionBranches, firstVersionIsDraft, dryRun != null && dryRun, owner);
 
-            recordArtifactCreated(groupId, artifactType, dryRun, storageResult, afterPublish);
+            if (isNotDryRun(dryRun)) {
+                afterPublish.forEach(Runnable::run);
+            }
 
             // Now return both the artifact metadata and (if available) the version metadata
             CreateArtifactResponse rval = CreateArtifactResponse.builder()
@@ -1679,18 +1669,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                     throw new BadRequestException(EMPTY_CONTENT_ERROR_MESSAGE);
                 }
             }
-        }
-    }
-
-    private void recordArtifactCreated(String groupId, String artifactType, Boolean dryRun,
-            Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> storageResult, List<Runnable> afterPublish) {
-        if (isNotDryRun(dryRun)) {
-            String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
-            otelMetrics.recordArtifactCreated(rawGroupId, artifactType);
-            if (storageResult.getRight() != null) {
-                otelMetrics.recordVersionCreated(rawGroupId, artifactType);
-            }
-            afterPublish.forEach(Runnable::run);
         }
     }
 
@@ -1810,7 +1788,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 contentDto, metaDataDto, data.getBranches(), isDraft, dryRun != null && dryRun, owner);
 
         if (isNotDryRun(dryRun)) {
-            otelMetrics.recordVersionCreated(new GroupId(groupId).getRawGroupIdWithNull(), artifactType);
             afterPublish.forEach(Runnable::run);
         }
 
@@ -2151,7 +2128,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 artifactType, contentDto, metaData, branches, isDraftVersion, dryRun != null && dryRun, owner);
 
         if (isNotDryRun(dryRun)) {
-            otelMetrics.recordVersionCreated(new GroupId(groupId).getRawGroupIdWithNull(), artifactType);
             afterPublish.forEach(Runnable::run);
         }
 

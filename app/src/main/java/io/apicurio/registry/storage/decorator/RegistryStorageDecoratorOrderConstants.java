@@ -12,4 +12,5 @@ public interface RegistryStorageDecoratorOrderConstants {
     int CONFIG_CACHE_DECORATOR = 40;
     int EVENT_SOURCED_DECORATOR = 50;
     int SEARCH_INDEX_EVENT_DECORATOR = 60;
+    int METRICS_DECORATOR = 70;
 }

@@ -68,7 +68,7 @@ follow each example's README quick start.
 | Example | What it shows | ADR | Docs |
 |---|---|---|---|
 | [agent-registry](agent-registry/) | Agent cards, MCP tools, model schemas and prompt templates; discovery and rendering | [0014](../adr/0014-agent-registry.md), [0004](../adr/0004-ai-catalog-ard-convergence.md) | [Agent registry](../docs/modules/ROOT/pages/getting-started/assembly-agent-registry-quickstart.adoc) |
-| [mcp-keycloak](mcp-keycloak/) | The registry's MCP server against a Keycloak-secured registry. *Not checked yet* | | [MCP server](../docs/modules/ROOT/pages/getting-started/assembly-mcp-server-integration.adoc) |
+| [mcp-keycloak](mcp-keycloak/) | The registry's MCP server against a Keycloak-secured registry, over stdio (service-account login) and HTTP (caller's token forwarded); checks tools, writes and role enforcement in both modes | [0014](../adr/0014-agent-registry.md), [0009](../adr/0009-authentication.md) | [MCP server](../docs/modules/ROOT/pages/getting-started/assembly-mcp-server-integration.adoc) |
 
 ## Other
 

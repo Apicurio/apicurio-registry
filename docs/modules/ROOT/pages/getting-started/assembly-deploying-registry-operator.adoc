@@ -933,7 +933,7 @@ The autoscaling configuration is available on both `spec.app.autoscaling` and `s
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-The operator creates PodDisruptionBudget resources by default. To manage PodDisruptionBudget manually, disable the operator-managed PodDisruptionBudget.
+The operator creates a PodDisruptionBudget for the {registry} application and for the web console when that component can have more than one pod: more than one replica, or autoscaling with `maxReplicas` above one. A budget for a single pod would allow no voluntary disruption, and block node drains. To manage PodDisruptionBudget manually, disable the operator-managed PodDisruptionBudget.
 
 [source,yaml]
 ----

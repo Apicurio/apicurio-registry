@@ -41,6 +41,8 @@ import io.javaoperatorsdk.operator.api.reconciler.Context;
 import io.javaoperatorsdk.operator.api.reconciler.dependent.DependentResource;
 import io.javaoperatorsdk.operator.processing.dependent.workflow.Condition;
 
+import java.util.Optional;
+
 import static io.apicurio.registry.operator.utils.Utils.isBlank;
 import static java.util.Optional.ofNullable;
 
@@ -70,22 +72,29 @@ public class ActivationConditions {
         }
     }
 
+    /**
+     * Whether a component gets a PodDisruptionBudget: when it is enabled (the default) and the
+     * component can have more than one pod, from {@code replicas} or from autoscaling. With a single
+     * pod, a budget would allow no disruption at all and block node drains.
+     */
+    public static boolean isPodDisruptionBudgetManaged(ComponentSpec component) {
+        Optional<ComponentSpec> spec = ofNullable(component);
+        boolean isEnabled = spec.map(ComponentSpec::getPodDisruptionBudget).map(PodDisruptionSpec::getEnabled)
+                .orElse(Boolean.TRUE);
+        int numReplicas = spec.map(ComponentSpec::getReplicas).orElse(1);
+        boolean autoscalingCanScaleAboveOne = spec.map(ComponentSpec::getAutoscaling)
+                .filter(a -> Boolean.TRUE.equals(a.getEnabled()))
+                .map(AutoscalingSpec::getMaxReplicas).map(max -> max > 1).orElse(false);
+        return isEnabled && (numReplicas > 1 || autoscalingCanScaleAboveOne);
+    }
+
     public static class AppPodDisruptionBudgetActivationCondition
             implements Condition<PodDisruptionBudget, ApicurioRegistry3> {
         @Override
         public boolean isMet(DependentResource<PodDisruptionBudget, ApicurioRegistry3> resource,
                              ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
-            boolean isEnabled = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp)
-                    .map(ComponentSpec::getPodDisruptionBudget).map(PodDisruptionSpec::getEnabled)
-                    .orElse(Boolean.TRUE);
-            int numReplicas = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp)
-                    .map(ComponentSpec::getReplicas).orElse(1);
-            boolean autoscalingCanScaleAboveOne = ofNullable(primary.getSpec())
-                    .map(ApicurioRegistry3Spec::getApp).map(ComponentSpec::getAutoscaling)
-                    .filter(a -> Boolean.TRUE.equals(a.getEnabled()))
-                    .map(AutoscalingSpec::getMaxReplicas).map(max -> max > 1).orElse(false);
-
-            boolean isManaged = isEnabled && (numReplicas > 1 || autoscalingCanScaleAboveOne);
+            boolean isManaged = isPodDisruptionBudgetManaged(
+                    ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp).orElse(null));
             if (!isManaged) {
                 ((AppPodDisruptionBudgetResource) resource).delete(primary, context);
             }
@@ -220,9 +229,8 @@ public class ActivationConditions {
         @Override
         public boolean isMet(DependentResource<PodDisruptionBudget, ApicurioRegistry3> resource,
                              ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
-            boolean isManaged = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getUi)
-                    .map(ComponentSpec::getPodDisruptionBudget).map(PodDisruptionSpec::getEnabled)
-                    .orElse(Boolean.TRUE);
+            boolean isManaged = isPodDisruptionBudgetManaged(
+                    ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getUi).orElse(null));
             if (!isManaged) {
                 ((UIPodDisruptionBudgetResource) resource).delete(primary, context);
             }

@@ -292,6 +292,8 @@ The server has no contract-specific configuration. The serializers and deseriali
    and its latest version's tags, not the submitted multi-schema YAML.
 7. **Direct label edits can diverge from the YAML.** The ODCS artifact is authoritative;
    re-submitting it repairs what it projects.
+8. **Consumers do not receive migrated records.** The deserializer runs the UPGRADE rules but
+   discards the result ([#11246](https://github.com/Apicurio/apicurio-registry/issues/11246)).
 
 ## Alternatives
 
@@ -317,10 +319,11 @@ The server has no contract-specific configuration. The serializers and deseriali
 ## Example and verification
 
 - **Example:** [`examples/odcs-data-contracts`](../examples/odcs-data-contracts/):
-  `docker compose up -d && ./demo.sh` checks the contract artifact, the projected labels, rule and
-  field tags, and rule execution on a valid and an invalid record. Its
-  [guide](../examples/odcs-data-contracts/GUIDE.md) walks through every behaviour in this ADR,
-  including the Kafka serializer.
+  `./demo.sh` checks every step of its [guide](../examples/odcs-data-contracts/GUIDE.md): the
+  projection, rule execution, global rules and overrides, the Kafka serializer rejecting invalid
+  records, lifecycle, search and audit, migration in the registry and in a consumer (whose result is
+  discarded today, [#11246](https://github.com/Apicurio/apicurio-registry/issues/11246)), updating and
+  deleting the contract. CI runs it with this commit's images and serde.
 - **User documentation:** [`assembly-data-contracts.adoc`](../docs/modules/ROOT/pages/getting-started/assembly-data-contracts.adoc).
 
 

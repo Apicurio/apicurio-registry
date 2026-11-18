@@ -40,7 +40,10 @@ import java.util.function.Supplier;
  */
 public final class Clients {
 
-    private static final String PASSWORD = "apicurio";
+    // Set by demo.sh: the stores' password, and the registry user's credentials
+    private static final String PASSWORD = env("TLS_STORE_PASSWORD");
+    private static final String USER = env("TLS_REGISTRY_USER");
+    private static final String USER_SECRET = env("TLS_REGISTRY_PASSWORD");
     private static final String TOPIC = "tls-greetings";
     private static final Schema GREETING = new Schema.Parser().parse(
             "{\"type\": \"record\", \"name\": \"Greeting\", \"namespace\": \"com.example.tls\","
@@ -81,42 +84,42 @@ public final class Clients {
         System.out.println("Java SDK, TLS (registry):");
         RegistryClient pem = RegistryClientFactory.create(RegistryClientOptions.create(url)
                 .trustStorePem(certs + "/ca-cert.pem")
-                .basicAuth("developer", "developer"));
+                .basicAuth(USER, USER_SECRET));
         check("trust store PEM + basic credentials: system info", "Apicurio Registry (SQL)",
                 status(() -> pem.system().info().get().getName()));
 
         RegistryClient jks = RegistryClientFactory.create(RegistryClientOptions.create(url)
                 .trustStoreJks(certs + "/truststore.jks", PASSWORD)
-                .basicAuth("developer", "developer"));
+                .basicAuth(USER, USER_SECRET));
         check("trust store JKS + basic credentials: list groups", "ok",
                 status(() -> jks.groups().get() != null ? "ok" : "none"));
 
         RegistryClient noTrust = RegistryClientFactory.create(RegistryClientOptions.create(url)
-                .basicAuth("developer", "developer"));
+                .basicAuth(USER, USER_SECRET));
         check("no trust store (the JVM's CAs): the handshake fails", "error",
                 status(() -> noTrust.groups().get() != null ? "ok" : "none"));
 
         RegistryClient rogue = RegistryClientFactory.create(RegistryClientOptions.create(url)
                 .trustStorePem(certs + "/rogue-ca-cert.pem")
-                .basicAuth("developer", "developer"));
+                .basicAuth(USER, USER_SECRET));
         check("trust store with another CA: the handshake fails", "error",
                 status(() -> rogue.groups().get() != null ? "ok" : "none"));
 
         RegistryClient wrongPassword = RegistryClientFactory.create(RegistryClientOptions.create(url)
                 .trustStorePem(certs + "/ca-cert.pem")
-                .basicAuth("developer", "wrong"));
+                .basicAuth(USER, USER_SECRET + "-wrong"));
         check("TLS fine, wrong password: 401", "401",
                 status(() -> wrongPassword.groups().get() != null ? "ok" : "none"));
 
         RegistryClient byIp = RegistryClientFactory.create(RegistryClientOptions.create(ipUrl)
                 .trustStorePem(certs + "/ca-cert.pem")
-                .basicAuth("developer", "developer"));
+                .basicAuth(USER, USER_SECRET));
         check("127.0.0.1 is not in the certificate: hostname verification fails", "error",
                 status(() -> byIp.groups().get() != null ? "ok" : "none"));
 
         RegistryClient insecure = RegistryClientFactory.create(RegistryClientOptions.create(ipUrl)
                 .trustAll(true).verifyHost(false)
-                .basicAuth("developer", "developer"));
+                .basicAuth(USER, USER_SECRET));
         check("trustAll + verifyHost(false) (development only): accepted", "ok",
                 status(() -> insecure.groups().get() != null ? "ok" : "none"));
     }
@@ -256,5 +259,13 @@ public final class Clients {
             System.out.printf("  FAIL  %s: got '%s', expected '%s'%n", description, actual, expected);
             failures++;
         }
+    }
+
+    private static String env(String name) {
+        String value = System.getenv(name);
+        if (value == null || value.isEmpty()) {
+            throw new IllegalStateException(name + " is not set; run demo.sh, which sets it");
+        }
+        return value;
     }
 }

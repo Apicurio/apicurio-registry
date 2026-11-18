@@ -7,6 +7,9 @@
 # exits non-zero on failure. Safe to run again: it starts by deleting the groups it creates.
 set -euo pipefail
 cd "$(dirname "$0")"
+# Demo credentials, also read by certs/generate-certs.sh and the clients (local only)
+export TLS_STORE_PASSWORD=${TLS_STORE_PASSWORD:-apicurio} TLS_REGISTRY_USER=developer TLS_REGISTRY_PASSWORD=developer
+export STORE_PASSWORD=$TLS_STORE_PASSWORD
 
 REGISTRY_PORT=${REGISTRY_PORT:-8443}
 REGISTRY_HTTP_PORT=${REGISTRY_HTTP_PORT:-8080}
@@ -31,7 +34,7 @@ code() { local url=$1; shift; curl -s --max-time 30 -o /dev/null -w '%{http_code
 # curl_exit <url> [curl args...]: curl's exit code (0 is success; 60 is "the certificate is not trusted")
 curl_exit() { local url=$1; shift; local rc=0; curl -s --max-time 30 -o /dev/null "$url" "$@" || rc=$?; echo "$rc"; }
 CA=(--cacert "$C/ca-cert.pem")
-DEV=(-u developer:developer)
+DEV=(-u "$TLS_REGISTRY_USER:$TLS_REGISTRY_PASSWORD")
 CLIENT=(--cert "$C/client-cert.pem" --key "$C/client-key.pem")
 
 # ------------------------------------------------------------------------------ setup

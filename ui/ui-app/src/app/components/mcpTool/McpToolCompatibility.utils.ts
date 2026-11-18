@@ -71,6 +71,17 @@ export const compatibilitySummary = (results: McpToolCompatibilityResults): stri
 };
 
 /**
+ * Whether an async compatibility response should be applied. Rejects a response from a stale
+ * request after a newer one has started, e.g. when the user switches versions before the
+ * previous request resolves. Mirrors shouldAcceptRenderResponse in
+ * usePromptTemplateTestPanelState.ts, which guards the same class of race in the Prompt
+ * Template test panel.
+ */
+export const shouldAcceptCompatibilityResponse = (requestId: number, latestRequestId: number): boolean => {
+    return requestId === latestRequestId;
+};
+
+/**
  * Says what the listed results leave out: the tools beyond the scan limit, and the results
  * beyond the page shown.
  */

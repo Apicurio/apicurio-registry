@@ -11,6 +11,7 @@ import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.serde.AbstractDeserializer;
 import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
 import io.opentelemetry.sdk.testing.exporter.InMemorySpanExporter;
 import io.opentelemetry.sdk.trace.SdkTracerProvider;
@@ -37,6 +38,7 @@ class DeserializerTracingTest {
     private final AtomicInteger lookups = new AtomicInteger();
     private final ArtifactReference reference = ArtifactReference.builder().globalId(42L).build();
     private StringDeserializer deserializer;
+    private boolean failFirstLookup;
 
     @BeforeEach
     void setUp() {
@@ -78,6 +80,23 @@ class DeserializerTracingTest {
         assertEquals(1, lookups.get());
     }
 
+    @Test
+    void aFallbackLookupHasItsOwnSpan() {
+        failFirstLookup = true;
+        deserializer.setFallbackArtifactProvider((topic, data) -> reference);
+
+        assertEquals("hello", deserializer.readData("orders", "hello".getBytes(StandardCharsets.UTF_8),
+                ArtifactReference.builder().globalId(7L).build()));
+        List<SpanData> spans = spanExporter.getFinishedSpanItems();
+        assertEquals(List.of("serde.resolve_schema", "serde.resolve_schema", "serde.deserialize"),
+                spans.stream().map(SpanData::getName).toList());
+        String deserializeId = spans.get(2).getSpanContext().getSpanId();
+        assertEquals(StatusCode.ERROR, spans.get(0).getStatus().getStatusCode());
+        assertEquals(StatusCode.OK, spans.get(1).getStatus().getStatusCode());
+        assertEquals(deserializeId, spans.get(0).getParentSpanId());
+        assertEquals(deserializeId, spans.get(1).getParentSpanId());
+    }
+
     private static final class StringDeserializer extends AbstractDeserializer<String, String> {
         StringDeserializer(SchemaResolver<String, String> resolver) {
             super(resolver);
@@ -98,6 +117,10 @@ class DeserializerTracingTest {
         @Override
         public SchemaLookupResult<String> resolveSchemaByArtifactReference(ArtifactReference ref) {
             lookups.incrementAndGet();
+            if (failFirstLookup) {
+                failFirstLookup = false;
+                throw new IllegalStateException("no schema for " + ref.getGlobalId());
+            }
             return SchemaLookupResult.<String>builder().parsedSchema(new ParsedSchemaImpl<String>())
                     .globalId(42L).groupId("default").artifactId("OrderEvent").version("1").build();
         }

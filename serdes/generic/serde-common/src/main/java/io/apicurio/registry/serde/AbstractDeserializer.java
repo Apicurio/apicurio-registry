@@ -223,7 +223,8 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
             } else {
                 try {
                     ArtifactReference fallbackReference = getFallbackArtifactProvider().get(topic, data);
-                    SchemaLookupResult<T> result = baseSerde.getSchemaResolver().resolveSchemaByArtifactReference(fallbackReference);
+                    SchemaLookupResult<T> result = tracer.traceSchemaResolve(topic, "deserialize",
+                            span -> baseSerde.getSchemaResolver().resolveSchemaByArtifactReference(fallbackReference));
                     // Cache using fallback reference key
                     SchemaCacheKey fallbackKey = getCacheKey(fallbackReference);
                     if (fallbackKey != null) {

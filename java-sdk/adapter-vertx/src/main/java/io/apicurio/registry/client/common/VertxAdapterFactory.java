@@ -12,6 +12,7 @@ import io.vertx.core.net.PfxOptions;
 import io.vertx.core.net.ProxyOptions;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
+import io.vertx.ext.web.client.WebClientSession;
 
 import java.lang.annotation.Annotation;
 import java.util.logging.Level;
@@ -65,6 +66,12 @@ public final class VertxAdapterFactory {
                 break;
             default:
                 throw new IllegalArgumentException("Unsupported authentication type: " + options.getAuthType());
+        }
+
+        // Skip a client that already is a WebClientSession (basic auth, or such a custom client):
+        // Vert.x throws if a second session interceptor is added.
+        if (options.isCookiesEnabled() && !(webClient instanceof WebClientSession)) {
+            webClient = WebClientSession.create(webClient);
         }
 
         // Added last, so that headers contributed by the auth clients above are logged too. With

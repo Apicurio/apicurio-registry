@@ -85,6 +85,8 @@ public class Client {
                 uri = uri.resolve("/apis/registry/v3");
             }
             final var options = RegistryClientOptions.create(uri.toString(), vertx);
+            // Cookies stay in memory and acr runs one command per process, so they never outlive the command.
+            options.enableCookies();
             if (logHttp) {
                 options.enableHttpLogging();
             }

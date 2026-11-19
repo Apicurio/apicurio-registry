@@ -135,7 +135,10 @@ Console image (`create-config.cjs`): `REGISTRY_API_URL` (default
 `http://localhost:8080/apis/registry/v3`), `REGISTRY_CONTEXT_PATH`, `REGISTRY_NAV_PREFIX_PATH`,
 `REGISTRY_DOCS_URL`, `REGISTRY_EDITORS_URL`, `REGISTRY_AUTH_*` (type, URL, client ID, scopes,
 redirect and logout URLs, RBAC/OBAC, user info, nonce) and `REGISTRY_FEATURE_*` (read-only,
-breadcrumbs, role management, settings, agents). A value set here wins over the server's. The
+breadcrumbs, role management, settings, agents) and `REGISTRY_DELETE_GROUP_ENABLED`,
+`REGISTRY_DELETE_ARTIFACT_ENABLED` and `REGISTRY_DELETE_VERSION_ENABLED` (the `delete*` flags). A
+value set here wins over the server's. When the console is loaded in an iframe with
+`?masthead=false`, as the console plugin does, it hides the masthead for that session. The
 operator sets the console's `REGISTRY_API_URL` from the app ingress host
 (`UIDeploymentResource`); `spec.ui.env` adds the rest.
 
@@ -170,9 +173,8 @@ operator sets the console's `REGISTRY_API_URL` from the app ingress host
 5. Read-only banner text is fixed ([#10672](https://github.com/Apicurio/apicurio-registry/issues/10672));
    local setup instructions need work ([#5298](https://github.com/Apicurio/apicurio-registry/issues/5298)).
 6. The console plugin has no automated UI tests; its CI job only builds it.
-7. Some image settings have no effect: the `REGISTRY_DELETE_*_ENABLED` variables and the plugin's
-   `masthead=false` parameter are ignored, and the plugin backend's registry URL has no scheme
-   ([#11358](https://github.com/Apicurio/apicurio-registry/issues/11358)).
+7. The console plugin backend's registry URL has no scheme
+   ([#11375](https://github.com/Apicurio/apicurio-registry/issues/11375)).
 8. On plain Kubernetes the operator still creates the plugin's Deployment and Service, whose pod
    needs a certificate only OpenShift provides; and calls made outside the SDK do not refresh an
    expired token ([#11370](https://github.com/Apicurio/apicurio-registry/issues/11370)).
@@ -226,3 +228,9 @@ operator sets the console's `REGISTRY_API_URL` from the app ingress host
 (cd ui/tests && npm install && npm run test)   # needs the API on 8080 and the console on 8888
 ./mvnw test -pl operator/controller -Dtest='ConsolePluginManager*Test'
 ```
+
+## History
+
+| Milestone | Result |
+|---|---|
+| [#11376](https://github.com/Apicurio/apicurio-registry/pull/11376) | Fixed [#11358](https://github.com/Apicurio/apicurio-registry/issues/11358): `REGISTRY_DELETE_*_ENABLED` now set the `delete*` flags, and the console honours `?masthead=false` when loaded in an iframe |

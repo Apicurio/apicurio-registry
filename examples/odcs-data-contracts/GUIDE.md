@@ -392,8 +392,9 @@ harmless.
 
 The serializer runs the rules in the client, so a rule change reaches producers within the cache
 TTL, not at once. With `apicurio.registry.serde.contract-rules.fail-on-error=false`, a failing
-record is logged and sent anyway; nothing routes it to a dead letter topic, whatever the rule's
-`onFailure`, and the serializer does not apply the output of `TRANSFORM` rules.
+record is logged and sent anyway. A rule with `onFailure: DLQ` sends the record to the topic set by
+`apicurio.registry.serde.contract-rules.dlq.topic` instead, and the serializer writes the output of
+`TRANSFORM` rules.
 
 Remove the global rule:
 

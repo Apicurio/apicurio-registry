@@ -27,6 +27,7 @@ import io.apicurio.registry.metrics.health.readiness.PersistenceTimeoutReadiness
 import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.VersionId;
+import io.apicurio.registry.rules.app.governance.GovernanceLevel;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.rules.integrity.IntegrityLevel;
 import io.apicurio.registry.rules.validity.ValidityLevel;
@@ -762,6 +763,9 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
             case INTEGRITY ->
                     outboxEvent.fire(KafkaSqlOutboxEvent.of(ArtifactRuleConfigured.of(groupId, artifactId, rule,
                             RuleConfigurationDto.builder().configuration(IntegrityLevel.NONE.name()).build())));
+            case GOVERNANCE ->
+                    outboxEvent.fire(KafkaSqlOutboxEvent.of(ArtifactRuleConfigured.of(groupId, artifactId, rule,
+                            RuleConfigurationDto.builder().configuration(GovernanceLevel.NONE.name()).build())));
         }
     }
 
@@ -796,6 +800,8 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
                     RuleConfigurationDto.builder().configuration(CompatibilityLevel.NONE.name()).build())));
             case INTEGRITY -> outboxEvent.fire(KafkaSqlOutboxEvent.of(GroupRuleConfigured.of(groupId, rule,
                     RuleConfigurationDto.builder().configuration(IntegrityLevel.NONE.name()).build())));
+            case GOVERNANCE -> outboxEvent.fire(KafkaSqlOutboxEvent.of(GroupRuleConfigured.of(groupId, rule,
+                    RuleConfigurationDto.builder().configuration(GovernanceLevel.NONE.name()).build())));
         }
     }
 
@@ -1057,6 +1063,8 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
                     RuleConfigurationDto.builder().configuration(CompatibilityLevel.NONE.name()).build())));
             case INTEGRITY -> outboxEvent.fire(KafkaSqlOutboxEvent.of(GlobalRuleConfigured.of(rule,
                     RuleConfigurationDto.builder().configuration(IntegrityLevel.NONE.name()).build())));
+            case GOVERNANCE -> outboxEvent.fire(KafkaSqlOutboxEvent.of(GlobalRuleConfigured.of(rule,
+                    RuleConfigurationDto.builder().configuration(GovernanceLevel.NONE.name()).build())));
         }
     }
 

@@ -490,7 +490,7 @@ public class ContractRuleSerdeTest extends AbstractClientFacadeTestBase {
         setContractRuleset(groupId, artifactId,
                 "{\"domainRules\":[{\"name\":\"always-fail\","
                         + "\"kind\":\"CONDITION\",\"type\":\"CEL\",\"mode\":\"WRITE\","
-                        + "\"expr\":\"false\",\"onFailure\":\"DLQ\","
+                        + "\"expr\":\"false\",\"onFailure\":\"NONE\","
                         + "\"disabled\":false}],\"migrationRules\":[]}");
 
         Map<String, Object> config = new HashMap<>();
@@ -510,7 +510,7 @@ public class ContractRuleSerdeTest extends AbstractClientFacadeTestBase {
             record.put("totalAmount", -1.0);
 
             byte[] bytes = serializer.serialize(topic, record);
-            Assertions.assertNotNull(bytes, "Should serialize even when rule fails with DLQ action and fail-on-error=false");
+            Assertions.assertNotNull(bytes, "Should serialize even when rule fails and fail-on-error=false");
             Assertions.assertTrue(bytes.length > 0);
         });
 

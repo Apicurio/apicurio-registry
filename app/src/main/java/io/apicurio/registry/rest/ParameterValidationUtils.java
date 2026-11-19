@@ -1,5 +1,6 @@
 package io.apicurio.registry.rest;
 
+import io.apicurio.registry.rules.app.governance.GovernanceLevel;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.rules.integrity.IntegrityLevel;
 import io.apicurio.registry.rules.validity.ValidityLevel;
@@ -116,6 +117,7 @@ public final class ParameterValidationUtils {
         switch (ruleType) {
             case COMPATIBILITY -> requireEnumValue(CompatibilityLevel.class, config, config);
             case VALIDITY -> requireEnumValue(ValidityLevel.class, config, config);
+            case GOVERNANCE -> requireEnumValue(GovernanceLevel.class, config, config);
             case INTEGRITY -> {
                 for (String level : config.split(",")) {
                     requireEnumValue(IntegrityLevel.class, level.trim(), config);

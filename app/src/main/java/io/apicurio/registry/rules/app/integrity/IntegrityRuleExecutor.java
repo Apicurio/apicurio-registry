@@ -29,10 +29,12 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -246,16 +248,26 @@ public class IntegrityRuleExecutor implements RuleExecutor {
      * The version being written does not exist yet, so the walk records a reference to it as missing
      * rather than following it. A reachable reference to exactly that version is therefore how the new
      * version closes a cycle (e.g. creating {@code b@1 -> a@1} when {@code a@1 -> b@1} already exists).
-     * Only possible when the version's id is known before it is stored; references to other versions
-     * that do not exist yet are not cycles.
+     * When the version's id is known before it is stored, only a reference to exactly that version closes
+     * a cycle; references to other versions that do not exist yet are not cycles.
+     * <p>
+     * When the storage generates the id (#11309), it is not known until the version is stored, and
+     * predicting it is not reliable (it differs per storage variant and races with concurrent writes). Any
+     * reachable reference to a version of the artifact being written that does not exist yet is then
+     * treated as closing the cycle, since it may be the id the new version receives. References to
+     * existing versions of the same artifact are walked like any other and are not cycles unless the walk
+     * finds one.
      */
     private static Optional<GAV> findReferenceToVersionBeingWritten(RuleContext context, ResolvedReferences resolved) {
-        if (context.getVersion() == null) {
-            return Optional.empty();
+        String groupId = new GroupId(context.getGroupId()).getRawGroupIdWithNull();
+        if (context.getVersion() != null) {
+            GAV beingWritten = new GAV(groupId, context.getArtifactId(), context.getVersion());
+            return resolved.missing().contains(beingWritten) ? Optional.of(beingWritten) : Optional.empty();
         }
-        GAV beingWritten = new GAV(new GroupId(context.getGroupId()).getRawGroupIdWithNull(),
-                context.getArtifactId(), context.getVersion());
-        return resolved.missing().contains(beingWritten) ? Optional.of(beingWritten) : Optional.empty();
+        return resolved.missing().stream()
+                .filter(missing -> Objects.equals(groupId, missing.getRawGroupIdWithNull())
+                        && context.getArtifactId().equals(missing.getRawArtifactId()))
+                .min(Comparator.comparing(GAV::getRawVersionId));
     }
 
     private Map<GAV, ReferenceNode> loadBatch(RegistryStorage storageToUse, Collection<GAV> coordinates) {

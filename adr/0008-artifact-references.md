@@ -155,12 +155,8 @@ the API.
    ([#10047](https://github.com/Apicurio/apicurio-registry/issues/10047)).
 2. A failed reference load is skipped rather than reported, and two targets with the same name
    collapse into one ([#9626](https://github.com/Apicurio/apicurio-registry/issues/9626), #9000).
-3. `NO_CIRCULAR_REFERENCES` catches a cycle closed by the version being written only when that
-   version's ID is known before the rules run (given explicitly, or `1` for a new artifact). When the
-   storage generates a later version's ID, such a cycle is still accepted; `DEREFERENCE` then
-   returns 422 ([#11030](https://github.com/Apicurio/apicurio-registry/issues/11030) fixed the other cases; [#11309](https://github.com/Apicurio/apicurio-registry/issues/11309)).
-4. The legacy SQL resolver truncates at the depth limit with only a warning (#10635).
-5. References cannot follow `latest`; moving a dependency needs a new version of every referrer.
+3. The legacy SQL resolver truncates at the depth limit with only a warning (#10635).
+4. References cannot follow `latest`; moving a dependency needs a new version of every referrer.
 
 ## Alternatives
 
@@ -176,7 +172,7 @@ the API.
 - **Benefits:** shared types are registered once and evolve explicitly; one model for every format,
   including references across types; clients can choose raw, inlined or linked schemas.
 - **Costs:** clients must register dependencies first and pin versions; per-type support differs;
-  deletion and cycles have the gaps above.
+  deletion has the gap above.
 
 ## Example and verification
 
@@ -209,3 +205,4 @@ the API.
 | 3.4.0 | Server-side auto-references; breadth-first resolution with a depth limit; reference authorization batching (ADR-0005) |
 | This ADR | First written record, with a verified example |
 | [#11175](https://github.com/Apicurio/apicurio-registry/pull/11175) | Fixed: `NO_CIRCULAR_REFERENCES` rejects a version that closes a cycle when its ID is known (#11030); dereferencing a cycle or a missing target returns 422 naming it, instead of 500 (#11030, #11059) |
+| This PR | Fixed: `NO_CIRCULAR_REFERENCES` also rejects a version whose ID the storage generates, when it closes a cycle ([#11309](https://github.com/Apicurio/apicurio-registry/issues/11309)); since that ID is not known beforehand, any reachable reference to a not-yet-existing version of the artifact being written counts as closing the cycle |

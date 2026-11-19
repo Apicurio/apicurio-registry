@@ -126,4 +126,42 @@ public class IntegrityRuleExecutorCircularReferenceTest {
 
         assertDoesNotThrow(() -> executor.execute(context));
     }
+
+    @Test
+    public void referenceToNotYetExistingVersionOfArtifactWithGeneratedVersionIsACycle() {
+        RegistryStorage storage = mock(RegistryStorage.class);
+
+        // a@1 -> self@2, which does not exist yet; the version of "self" being written has no explicit id.
+        ArtifactReferenceDto refToSelf = ArtifactReferenceDto.builder().groupId(GROUP).artifactId("self")
+                .version("2").name("self.avsc").build();
+        when(storage.getArtifactVersionContent(GROUP, "a", "1"))
+                .thenReturn(StoredArtifactVersionDto.builder().references(List.of(refToSelf)).build());
+        when(storage.getArtifactVersionContent(GROUP, "self", "2"))
+                .thenThrow(new VersionNotFoundException(GROUP, "self", "2"));
+
+        RuleContext context = contextWithReferenceTo(storage, "a", "1");
+
+        RuleViolationException ex = assertThrows(RuleViolationException.class,
+                () -> newExecutor().execute(context));
+        assertEquals(1, ex.getCauses().size());
+        assertEquals("Circular reference detected in reference graph: g1/a@1 leads back to g1/self@2, "
+                + "the artifact being written (cycle)", ex.getCauses().iterator().next().getDescription());
+    }
+
+    @Test
+    public void referenceToExistingOtherVersionOfArtifactWithGeneratedVersionIsNotACycle() {
+        RegistryStorage storage = mock(RegistryStorage.class);
+
+        // a@1 -> self@1, which exists and references nothing: the new version of "self" closes no cycle.
+        ArtifactReferenceDto refToSelf = ArtifactReferenceDto.builder().groupId(GROUP).artifactId("self")
+                .version("1").name("self.avsc").build();
+        when(storage.getArtifactVersionContent(GROUP, "a", "1"))
+                .thenReturn(StoredArtifactVersionDto.builder().references(List.of(refToSelf)).build());
+        when(storage.getArtifactVersionContent(GROUP, "self", "1"))
+                .thenReturn(StoredArtifactVersionDto.builder().references(List.of()).build());
+
+        RuleContext context = contextWithReferenceTo(storage, "a", "1");
+
+        assertDoesNotThrow(() -> newExecutor().execute(context));
+    }
 }

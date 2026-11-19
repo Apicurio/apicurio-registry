@@ -77,8 +77,10 @@ is already the contract the server is checked against, so it is the natural sour
    (`getResponseStatusCode()`). A response the spec does not describe becomes a plain `ApiException`.
 7. **The serdes do not depend on the generated client directly.** The schema resolver talks to a
    small internal `RegistryClientFacade` (fetch a schema by global ID, content ID, content hash or
-   coordinates; references; register). `RegistryClientFacadeFactory` builds the v3 implementation, or
-   the v2 one when the URL contains `/apis/registry/v2` or the configured endpoint version is 2.
+   coordinates; references; register). `RegistryClientFacadeFactory` builds the v2 implementation when
+   the configured endpoint version is 2, and the v3 one when it is 3. Only when no version is
+   configured does it look at the URL: v2 if it contains `/apis/registry/v2`, v3 otherwise. An explicit
+   version wins over the URL.
 8. **The CLI is a Java SDK application.** `acr` is a Quarkus picocli application built on the Java
    SDK (Vert.x adapter), distributed as a native executable per platform, and marked dev preview: its
    arguments and behaviour may change incompatibly.
@@ -100,9 +102,9 @@ hand-designed libraries, and inherit Kiota's runtime behaviour, including its ga
 | Trust | `trustStorePkcs12`, `trustStoreJks`, `trustStorePem`, `trustStorePemContent`, `trustAll`, `verifyHost` | `trustAll` and `verifyHost(false)` are for tests |
 | Client certificate (mTLS) | `keystorePkcs12`, `keystoreJks`, `keystorePem`, `keystorePemContent` | |
 | Proxy | `proxy`, `proxyAuth` | |
-| Retry | `retry(...)`, `disableRetry` | Off by default; when on, 3 attempts, 1 s initial delay, ×2 backoff, 10 s cap. Retries only connection failures (`ConnectException`, `SocketTimeoutException`, Vert.x `HttpClosedException`), never an HTTP error status |
+| Retry | `retry(...)`, `disableRetry` | Off by default. `retry()` allows 3 retries after the first call (4 attempts), 250 ms initial delay, ×2 backoff, 10 s cap. Retries only connection failures (`ConnectException`, `SocketTimeoutException`, Vert.x `HttpClosedException`, an `IOException` with "Connection reset"), never an HTTP error status; a non-idempotent request can therefore be sent more than once |
 | Timeouts | `requestTimeout(connectMs, readIdleMs)` | No timeout by default with Vert.x |
-| Diagnostics | `enableHttpLogging`, `enableOpenTelemetry` | Logging writes to `io.apicurio.registry.client.http` at `FINE`, credentials redacted |
+| Diagnostics | `enableHttpLogging`, `enableOpenTelemetry` | Logging writes to `io.apicurio.registry.client.http` at `FINE`. It redacts known credential headers and query parameters only, not bodies or custom headers, so it must not be enabled where requests carry secrets in those (as the method's Javadoc warns) |
 | Adapter | `httpAdapter(AUTO \| VERTX \| JDK)`, `vertx(...)`, `customWebClient(...)` | |
 
 `java-sdk/references` (`ReferenceRegistrar`) is an optional helper that registers a schema and its
@@ -120,7 +122,7 @@ of that release.
 |---|---|
 | Commands | Groups, artifacts, versions, comments, rules, role mappings, search, server configuration, admin import and export, GitOps status, sync and validate, MCP tool import (experimental) |
 | Contexts | Named contexts hold the registry URL, a default group and artifact, and authentication; `acr context` manages them |
-| Configuration | `config.json` under `ACR_HOME` (default `$HOME/.apicurio/apicurio-registry-cli`), managed with `acr config` |
+| Configuration | `config.json` in the CLI's home directory, managed with `acr config`. The `acr` launcher picks that directory, and exports it as `ACR_CURRENT_HOME`: its own directory if the CLI binary is next to it (an unpacked ZIP), otherwise `ACR_HOME`. The installer puts it in `$HOME/.apicurio/apicurio-registry-cli` |
 | Credentials | `acr login` (basic, or OAuth2 client credentials with OIDC discovery); the password or client secret goes to the OS keychain (macOS Keychain, Linux Secret Service, Windows Credential Manager), or an encrypted file with `--allow-unsafe-credential-storage`; tokens are requested per invocation, never stored |
 | Output | `--output-type table` (default) or `json`; JSON on stdout, diagnostics on stderr; `--verbose` logs raw HTTP |
 | Exit codes | `0` success, `1` application error, `2` invalid input, `3` a `ProblemDetails` from the registry |

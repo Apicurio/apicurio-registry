@@ -183,14 +183,12 @@ check "...and nothing was created"                          404 "$(rest "$ADMIN"
 
 # ------------------------------------------------------------------------------- part 4
 part "Part 4: stdio mode, bad credentials"
-# The server starts and initializes; it only asks Keycloak for a token on the first tool call
-stdio_open admin-client wrong-secret
-check "a wrong client secret: the session still opens"      "true" "$(stdio_send "$INIT" | jq -r '.result.serverInfo.name != null')"
-stdio_send "$INITIALIZED"
-r=$(stdio_send "$(tool 1 list_groups "$LIST_GROUPS")")
-check "...but every tool call is an error"                  "true" "$(error "$r")"
-check "...because Keycloak refused the client credentials"  "Execution failed: Failed to obtain OAuth2 token" "$(text "$r")"
-stdio_close
+# The server asks Keycloak for a token at startup and exits when Keycloak refuses the credentials
+r=$(docker compose run --rm --no-deps -T -e APICURIO_MCP_AUTH_CLIENT_SECRET=wrong-secret \
+      apicurio-registry-mcp-stdio < /dev/null 2>&1; echo "exit=$?")
+contains "a wrong client secret: the server exits with status 1" "exit=1" "$r"
+contains "...and an error naming the token endpoint and client" "Failed to obtain an OAuth2 token from http://keycloak:8080/realms/registry/protocol/openid-connect/token for client 'admin-client': HTTP 401" "$r"
+check "...that does not print the secret"                   "0" "$(grep -c wrong-secret <<< "$r" || true)"
 
 # ------------------------------------------------------------------------------- part 5
 part "Part 5: HTTP mode, the endpoint needs a token issued for it"

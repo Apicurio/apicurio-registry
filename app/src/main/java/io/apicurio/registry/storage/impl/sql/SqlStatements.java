@@ -351,6 +351,11 @@ public interface SqlStatements {
     public String deleteArtifactsByGroupId();
 
     /**
+     * A statement to select the ids of all artifacts in a group.
+     */
+    public String selectArtifactIdsByGroupId();
+
+    /**
      * A statement to delete a all artifact rules by groupId.
      */
     public String deleteArtifactRulesByGroupId();

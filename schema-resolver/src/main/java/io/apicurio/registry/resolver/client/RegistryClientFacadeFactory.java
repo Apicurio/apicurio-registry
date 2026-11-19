@@ -294,7 +294,9 @@ public class RegistryClientFacadeFactory {
                 throw new IllegalArgumentException("Failed to load classpath resource: " + pathStr, e);
             }
         }
-        return pathStr;
+        // Every caller passes a file location; the TLS libraries open it as given, and the operating
+        // system cannot resolve '..' through a directory that does not exist
+        return Paths.get(pathStr).normalize().toString();
     }
 
     private static Path createSecureTempDirectory() throws IOException {
@@ -402,9 +404,16 @@ public class RegistryClientFacadeFactory {
         }
     }
 
+    /**
+     * Rejects a {@code classpath:} resource name with a {@code ..} element, which could name a resource
+     * outside the intended location. File paths are not checked: they come from the application's own
+     * configuration, and are normalized where they are read, as the Java SDK and the Maven plugin do.
+     */
     private static void checkPathTraversal(String pathStr) {
-        String cleanPath = pathStr.startsWith(CLASSPATH_PREFIX) ? pathStr.substring(CLASSPATH_PREFIX.length()) : pathStr;
-        Path path = Paths.get(cleanPath);
+        if (!pathStr.startsWith(CLASSPATH_PREFIX)) {
+            return;
+        }
+        Path path = Paths.get(pathStr.substring(CLASSPATH_PREFIX.length()));
         for (Path element : path) {
             if ("..".equals(element.toString())) {
                 throw new IllegalArgumentException("Path traversal detected: " + pathStr);

@@ -222,27 +222,14 @@ Use a sequential pipeline in the following situations:
 * You need to accumulate context across a multi-step workflow
 * Agent outputs serve as inputs to subsequent agents
 
-The `examples/a2a-real-world-integration` example in the {registry} repository shows context chaining with four agents that process a customer complaint:
+For example, a pipeline that handles a customer complaint can run four agents in turn:
 
 . **Sentiment agent**: analyzes the original message and produces a sentiment score
 . **Issue analyzer**: receives the original message and the sentiment output, then identifies specific issues
 . **Response generator**: receives the original message, sentiment, and analysis, then generates a response
 . **Translation agent**: receives the generated response and translates it
 
-Each step stores its output under a context key. Subsequent steps reference previous outputs by using `+{{variable}}+` template placeholders. A `WorkflowContext` object tracks the original message and all agent outputs:
-
-[source,java]
-----
-WorkflowContext context = new WorkflowContext();
-context.originalMessage = customerMessage;
-
-// After each step completes:
-context.agentOutputs.put("sentiment", sentimentResult);
-context.agentOutputs.put("analysis", analysisResult);
-
-// Build prompt for the next step:
-String prompt = context.buildPrompt("Original: {{original}}\nSentiment: {{sentiment}}");
-----
+The orchestrator stores each step's output under a key, and builds the next agent's input from the original message and the earlier outputs. The `agent-registry` example in the {registry} repository runs a pipeline of this kind, in which the orchestrator discovers each agent in {registry} by role: link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/agent-registry[agent-registry example].
 
 // con-parallel-fan-out
 [id="parallel-fan-out_{context}"]

@@ -43,4 +43,12 @@ public class GreetingFactory {
                 .setTimestamp(System.currentTimeMillis())
                 .build();
     }
+
+    public Greeting createFor(String name, String message) {
+        return Greeting.newBuilder()
+                .setName(name)
+                .setMessage(message)
+                .setTimestamp(System.currentTimeMillis())
+                .build();
+    }
 }

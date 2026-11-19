@@ -9,10 +9,11 @@ const (
 	VALIDITY_RULETYPE RuleType = iota
 	COMPATIBILITY_RULETYPE
 	INTEGRITY_RULETYPE
+	GOVERNANCE_RULETYPE
 )
 
 func (i RuleType) String() string {
-	return []string{"VALIDITY", "COMPATIBILITY", "INTEGRITY"}[i]
+	return []string{"VALIDITY", "COMPATIBILITY", "INTEGRITY", "GOVERNANCE"}[i]
 }
 
 func ParseRuleType(v string) (any, error) {
@@ -24,6 +25,8 @@ func ParseRuleType(v string) (any, error) {
 		result = COMPATIBILITY_RULETYPE
 	case "INTEGRITY":
 		result = INTEGRITY_RULETYPE
+	case "GOVERNANCE":
+		result = GOVERNANCE_RULETYPE
 	default:
 		return nil, nil
 	}

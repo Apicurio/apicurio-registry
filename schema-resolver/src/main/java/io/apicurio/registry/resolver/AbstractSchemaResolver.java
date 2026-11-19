@@ -11,6 +11,10 @@ import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.resolver.strategy.ArtifactCoordinates;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
+import io.apicurio.registry.resolver.strategy.DefaultReferenceNamingStrategy;
+import io.apicurio.registry.resolver.strategy.ReferenceCoordinates;
+import io.apicurio.registry.resolver.strategy.ReferenceNamingContext;
+import io.apicurio.registry.resolver.strategy.ReferenceNamingStrategy;
 import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.utils.IoUtil;
 
@@ -37,12 +41,31 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
     protected SchemaParser<S, T> schemaParser;
     protected RegistryClientFacade clientFacade;
     protected ArtifactReferenceResolverStrategy<S, T> artifactResolverStrategy;
+    protected ReferenceNamingStrategy referenceNamingStrategy = new DefaultReferenceNamingStrategy();
 
     protected String explicitArtifactGroupId;
     protected String explicitArtifactId;
     protected String explicitArtifactVersion;
 
+    /**
+     * @deprecated the resolver no longer reads this field; it uses {@link #serializerDereference} and
+     *             {@link #deserializerDereference}. It only exposes the global
+     *             {@code apicurio.registry.dereference-schema} value to subclasses, and changing it has no effect.
+     */
+    @Deprecated
     protected boolean resolveDereferenced;
+
+    /** Whether serializer paths dereference (Avro registration, lookups from {@code resolveSchema}). */
+    protected boolean serializerDereference;
+
+    /** Whether deserializer paths fetch schemas dereferenced. */
+    protected boolean deserializerDereference;
+
+    /**
+     * Whether content-ID and content-hash lookups may fetch schemas dereferenced: only when
+     * {@code apicurio.registry.deserializer.dereference-schema} is set explicitly.
+     */
+    protected boolean contentLookupDereferenceOptIn;
 
     @Override
     public void configure(Map<String, ?> configs, SchemaParser<S, T> schemaParser) {
@@ -55,6 +78,8 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
 
         Object ais = config.getArtifactResolverStrategy();
         Utils.instantiate(ArtifactReferenceResolverStrategy.class, ais, this::setArtifactResolverStrategy);
+        Utils.instantiate(ReferenceNamingStrategy.class, config.getReferenceNamingStrategy(),
+                this::setReferenceNamingStrategy);
 
         schemaCache.configureLifetime(config.getCheckPeriod());
         schemaCache.configureRetryBackoff(config.getRetryBackoff());
@@ -71,7 +96,9 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         schemaCache.configureGlobalIdKeyExtractor(SchemaLookupResult::getGlobalId);
         schemaCache.configureContentKeyExtractor(schema -> {
             var rawSchema = schema.getParsedSchema().getRawSchema();
-            if (rawSchema != null) {
+            // Results read by content hash alone carry no global ID or content ID; a serializer reusing them
+            // through the content index would write an ID of 0, so they are not indexed by content.
+            if (rawSchema != null && (schema.getGlobalId() != 0 || schema.getContentId() != 0)) {
                 return ContentWithReferences.builder()
                         .content(IoUtil.toString(rawSchema))
                         .references(schema.getReferences())
@@ -98,6 +125,9 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         }
 
         this.resolveDereferenced = config.resolveDereferenced();
+        this.serializerDereference = config.serializerDereference();
+        this.deserializerDereference = config.deserializerDereference();
+        this.contentLookupDereferenceOptIn = config.isDeserializerDereferenceSet();
     }
 
     @Override
@@ -152,6 +182,14 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         return artifactReference;
     }
 
+    @Override
+    public ArtifactReference resolveArtifactReference(Record<T> data, ParsedSchema<S> parsedSchema) {
+        if (artifactResolverStrategy == null) {
+            return null;
+        }
+        return resolveArtifactReference(data, parsedSchema, false, null);
+    }
+
     protected String resolveArtifactId(String artifactId, boolean isReference, String referenceArtifactId) {
         if (isReference) {
             return referenceArtifactId;
@@ -160,9 +198,60 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         }
     }
 
+    /**
+     * @param referenceNamingStrategy the strategy naming auto-registered referenced schemas
+     */
+    public void setReferenceNamingStrategy(ReferenceNamingStrategy referenceNamingStrategy) {
+        this.referenceNamingStrategy = referenceNamingStrategy;
+    }
+
+    /**
+     * Coordinates for a referenced schema: the coordinates the resolver would use without a naming strategy,
+     * with the group and artifact ID replaced by the reference naming strategy's choice. The version is not
+     * affected.
+     *
+     * @param data the record being serialized
+     * @param referencedSchema a schema referenced by the schema being registered
+     * @return the coordinates to register the referenced schema under
+     * @throws IllegalStateException if the strategy returns no artifact ID
+     */
+    protected ArtifactReference resolveReferenceArtifactReference(Record<T> data,
+            ParsedSchema<S> referencedSchema) {
+        String referenceName = referencedSchema.referenceName();
+        ArtifactReference defaults = resolveArtifactReference(data, referencedSchema, true, referenceName);
+        ReferenceNamingContext context = new ReferenceNamingContext(referenceName, schemaParser.artifactType(),
+                defaults.getGroupId(), schemaParser.referenceNamespace(referencedSchema), referencedSchema);
+        ReferenceCoordinates coordinates = referenceNamingStrategy.name(context);
+        if (coordinates == null || coordinates.artifactId() == null || coordinates.artifactId().isBlank()) {
+            throw new IllegalStateException("Reference naming strategy " + referenceNamingStrategy.getClass()
+                    .getName() + " returned no artifact ID for reference '" + referenceName + "'.");
+        }
+        String groupId = coordinates.groupId() == null || coordinates.groupId().isBlank() ? null
+                : coordinates.groupId();
+        return ArtifactReference.builder().groupId(groupId).artifactId(coordinates.artifactId())
+                .version(defaults.getVersion()).build();
+    }
+
+    /**
+     * Resolves a schema by global ID, using the deserializer dereference setting.
+     *
+     * @param globalId the global ID
+     * @return the schema
+     */
     protected SchemaLookupResult<S> resolveSchemaByGlobalId(long globalId) {
+        return resolveSchemaByGlobalId(globalId, deserializerDereference);
+    }
+
+    /**
+     * Resolves a schema by global ID.
+     *
+     * @param globalId the global ID
+     * @param dereference whether to fetch the schema dereferenced
+     * @return the schema
+     */
+    protected SchemaLookupResult<S> resolveSchemaByGlobalId(long globalId, boolean dereference) {
         return schemaCache.getByGlobalId(globalId, globalIdKey -> {
-            if (resolveDereferenced) {
+            if (dereference) {
                 return resolveSchemaDereferenced(globalIdKey);
             } else {
                 return resolveSchemaWithReferences(globalIdKey);
@@ -171,9 +260,8 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
     }
 
     private SchemaLookupResult<S> resolveSchemaDereferenced(long globalId) {
-        String rawSchema = this.clientFacade.getSchemaByGlobalId(globalId, true);
-
-        byte[] schema = rawSchema.getBytes(StandardCharsets.UTF_8);
+        // Read as bytes: a dereferenced Protobuf schema is a binary descriptor
+        byte[] schema = this.clientFacade.getSchemaBytesByGlobalId(globalId, true);
         S parsed = schemaParser.parseSchema(schema, Collections.emptyMap());
 
         ParsedSchemaImpl<S> ps = new ParsedSchemaImpl<S>().setParsedSchema(parsed).setRawSchema(schema);

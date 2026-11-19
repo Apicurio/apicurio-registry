@@ -1,5 +1,6 @@
 package io.apicurio.registry.references;
 
+import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
@@ -9,10 +10,12 @@ import io.quarkus.security.ForbiddenException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Bridges the pre-#10634 reference-resolution API — a one-at-a-time {@code Function<ArtifactReferenceDto,
@@ -79,6 +82,56 @@ public final class ReferenceResolution {
     }
 
     /**
+     * Checks that {@code references} can be dereferenced: every version in the reference graph exists and
+     * the graph has no cycle. Dereferencing a graph with a missing target would return incomplete content
+     * (or fail deep inside a content type's dereferencer), and a cyclic graph cannot be inlined at all.
+     *
+     * @throws UnprocessableEntityException naming the missing references, or the cycle
+     */
+    public static void requireDereferenceable(List<ArtifactReferenceDto> references,
+            Function<ArtifactReferenceDto, ContentWrapperDto> loader) {
+        if (references == null || references.isEmpty()) {
+            return;
+        }
+        ReferenceLoader batchLoader = coordinates -> {
+            AuthorizingReferenceLoader.authorizeAll(loader,
+                    coordinates.stream().map(ReferenceResolution::toReference).toList());
+            Map<GAV, ReferenceNode> loaded = new LinkedHashMap<>();
+            for (GAV coordinate : coordinates) {
+                ContentWrapperDto content = loadOne(coordinate, loader);
+                if (content != null) {
+                    loaded.put(coordinate, ReferenceNode.builder().coordinates(coordinate)
+                            .references(content.getReferences()).build());
+                }
+            }
+            return loaded;
+        };
+        ResolvedReferences resolved = ReferenceGraphWalker.walk(references, batchLoader,
+                ReferenceResolutionConfig.maxDepth());
+
+        if (!resolved.missing().isEmpty()) {
+            List<ArtifactReferenceDto> edges = new ArrayList<>(references);
+            resolved.coordinates().forEach(gav -> resolved.get(gav)
+                    .ifPresent(node -> edges.addAll(node.getReferences())));
+            String missing = edges.stream()
+                    .filter(ref -> resolved.missing().contains(ReferenceGraphWalker.coordinatesOf(ref)))
+                    .map(ref -> "'" + ref.getName() + "' (" + format(ReferenceGraphWalker.coordinatesOf(ref)) + ")")
+                    .distinct().collect(Collectors.joining(", "));
+            throw new UnprocessableEntityException(
+                    "Cannot dereference the content: these references point to versions that do not exist: "
+                            + missing);
+        }
+        resolved.findCycle().ifPresent(cycle -> {
+            throw new UnprocessableEntityException("Cannot dereference the content: circular reference "
+                    + cycle.stream().map(ReferenceResolution::format).collect(Collectors.joining(" -> ")));
+        });
+    }
+
+    private static String format(GAV gav) {
+        return gav.getRawGroupIdWithDefaultString() + "/" + gav.getRawArtifactId() + "@" + gav.getRawVersionId();
+    }
+
+    /**
      * Collects the content IDs of every artifact version in {@code root}'s reference tree, distinct and
      * sorted in natural order. Used for identity views, such as the ETag over a whole reference tree, where
      * the set of content matters but names and order do not.
@@ -89,6 +142,19 @@ public final class ReferenceResolution {
      * @return the distinct, sorted content IDs of every resolved node in the tree
      */
     public static List<Long> recursivelyResolveReferenceContentIds(StoredArtifactVersionDto root,
+            Function<ArtifactReferenceDto, StoredArtifactVersionDto> loader) {
+        return recursivelyResolveReferenceContentIds(root == null ? List.of() : root.getReferences(), loader);
+    }
+
+    /**
+     * Content IDs of every artifact version reachable from the given references, for ETags that must change
+     * when any of them changes.
+     *
+     * @param rootReferences the references of the content being returned
+     * @param loader loads a referenced artifact version
+     * @return the content IDs of the whole reference tree
+     */
+    public static List<Long> recursivelyResolveReferenceContentIds(List<ArtifactReferenceDto> rootReferences,
             Function<ArtifactReferenceDto, StoredArtifactVersionDto> loader) {
         ReferenceLoader batchLoader = coordinates -> {
             Map<GAV, ReferenceNode> loaded = new LinkedHashMap<>();
@@ -104,7 +170,6 @@ public final class ReferenceResolution {
             }
             return loaded;
         };
-        List<ArtifactReferenceDto> rootReferences = root == null ? List.of() : root.getReferences();
         return ReferenceGraphWalker.walk(rootReferences, batchLoader, ReferenceResolutionConfig.maxDepth())
                 .contentIds();
     }

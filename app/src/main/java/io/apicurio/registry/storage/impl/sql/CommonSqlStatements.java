@@ -535,6 +535,11 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     @Override
+    public String selectArtifactIdsByGroupId() {
+        return "SELECT artifactId FROM artifacts WHERE groupId = ?";
+    }
+
+    @Override
     public String deleteAllArtifacts() {
         return "DELETE FROM artifacts";
     }

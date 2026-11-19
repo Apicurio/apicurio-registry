@@ -16,7 +16,10 @@ import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Parameter;
 
 import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Base class for all Registry Mojo's. It handles RegistryService's (aka client) lifecycle.
@@ -250,6 +253,8 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
         return "PKCS12"; // Default to PKCS12
     }
 
+    private static final long VERTX_CLOSE_TIMEOUT_SECONDS = 10;
+
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         try {
@@ -265,6 +270,48 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
 
     private void closeClients() {
         // TODO: check there are no connection leaks etc...
+    }
+
+    /**
+     * Closes Vert.x and waits for it, so that its threads are done before Maven discards the plugin's
+     * class loader (otherwise Netty fails late with NoClassDefFoundError).
+     */
+    protected void closeVertx(Vertx vertx) {
+        // Cleanup also runs after an interrupted goal: keep waiting through interrupts, within one
+        // deadline, and restore the interrupt flag afterwards
+        CompletableFuture<Void> closed = vertx.close().toCompletionStage().toCompletableFuture();
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(VERTX_CLOSE_TIMEOUT_SECONDS);
+        boolean interrupted = Thread.interrupted();
+        try {
+            while (true) {
+                try {
+                    closed.get(Math.max(0, deadline - System.nanoTime()), TimeUnit.NANOSECONDS);
+                    return;
+                } catch (InterruptedException e) {
+                    interrupted = true;
+                } catch (ExecutionException | TimeoutException e) {
+                    getLog().warn("The HTTP client did not close cleanly: " + e);
+                    return;
+                }
+            }
+        } finally {
+            if (interrupted) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+
+    /**
+     * The HTTP status of the first {@link ApiException} in the cause chain, as " (HTTP 401)", or an
+     * empty string when the failure has none (a TLS handshake failure, an unreadable error body).
+     */
+    static String httpStatus(Throwable t) {
+        for (Throwable c = t; c != null; c = c.getCause() == c ? null : c.getCause()) {
+            if (c instanceof ApiException api && api.getResponseStatusCode() > 0) {
+                return " (HTTP " + api.getResponseStatusCode() + ")";
+            }
+        }
+        return "";
     }
 
     protected abstract void executeInternal()

@@ -1,5 +1,6 @@
 package io.apicurio.registry.resolver;
 
+import io.apicurio.registry.resolver.cache.AutoCreateKey;
 import io.apicurio.registry.resolver.cache.ContentWithReferences;
 import io.apicurio.registry.resolver.client.RegistryArtifactReference;
 import io.apicurio.registry.resolver.client.RegistryClientFacade;
@@ -85,7 +86,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
             parsedSchema = parseExplicitSchema(explicitSchemaContent);
             logger.info("Using explicit schema from headers instead of inferring from data");
         } else if (artifactResolverStrategy.loadSchema() && schemaParser.supportsExtractSchemaFromData()) {
-            parsedSchema = schemaParser.getSchemaFromData(data, resolveDereferenced);
+            parsedSchema = schemaParser.getSchemaFromData(data, serializerDereference);
         } else {
             parsedSchema = null;
         }
@@ -113,13 +114,13 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
                                                                ParsedSchema<S> parsedSchema) {
         if (artifactReference.getGlobalId() != null
                 && schemaCache.containsByGlobalId(artifactReference.getGlobalId())) {
-            return Optional.of(resolveSchemaByGlobalId(artifactReference.getGlobalId()));
+            return Optional.of(resolveSchemaByGlobalId(artifactReference.getGlobalId(), serializerDereference));
         } else if (artifactReference.getContentId() != null
                 && schemaCache.containsByContentId(artifactReference.getContentId())) {
-            return Optional.of(resolveSchemaByContentId(artifactReference.getContentId()));
+            return Optional.of(resolveSchemaByContentId(artifactReference.getContentId(), serializerDereference));
         } else if (artifactReference.getContentHash() != null
                 && schemaCache.containsByContentHash(artifactReference.getContentHash())) {
-            return Optional.of(resolveSchemaByContentHash(artifactReference.getContentHash()));
+            return Optional.of(resolveSchemaByContentHash(artifactReference.getContentHash(), serializerDereference));
         } else {
             ArtifactCoordinates coords = ArtifactCoordinates.fromArtifactReference(artifactReference);
             ContentWithReferences incomingContent = null;
@@ -129,7 +130,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
                         .build();
             }
             if (schemaCache.containsByArtifactCoordinatesMatchingContent(coords, incomingContent)) {
-                return Optional.of(resolveSchemaByArtifactCoordinatesCached(coords));
+                return Optional.of(resolveSchemaByArtifactCoordinatesCached(coords, serializerDereference));
             }
         }
         return Optional.empty();
@@ -149,7 +150,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
                     if (explicitSchemaContent != null && !explicitSchemaContent.isEmpty()) {
                         parsedSchema = parseExplicitSchema(explicitSchemaContent);
                     } else {
-                        parsedSchema = schemaParser.getSchemaFromData(data, resolveDereferenced);
+                        parsedSchema = schemaParser.getSchemaFromData(data, serializerDereference);
                     }
                 }
 
@@ -169,7 +170,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
 
         if (findLatest || artifactReference.getVersion() != null) {
             return resolveSchemaByCoordinates(artifactReference.getGroupId(),
-                    artifactReference.getArtifactId(), artifactReference.getVersion());
+                    artifactReference.getArtifactId(), artifactReference.getVersion(), serializerDereference);
         }
 
         if (parsedSchema != null || schemaParser.supportsExtractSchemaFromData()) {
@@ -180,14 +181,14 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
                 if (explicitSchemaContent != null && !explicitSchemaContent.isEmpty()) {
                     parsedSchema = parseExplicitSchema(explicitSchemaContent);
                 } else {
-                    parsedSchema = schemaParser.getSchemaFromData(data, resolveDereferenced);
+                    parsedSchema = schemaParser.getSchemaFromData(data, serializerDereference);
                 }
             }
             return handleResolveSchemaByContent(parsedSchema, artifactReference);
         }
 
         return resolveSchemaByCoordinates(artifactReference.getGroupId(), artifactReference.getArtifactId(),
-                artifactReference.getVersion());
+                artifactReference.getVersion(), serializerDereference);
     }
 
     private List<SchemaLookupResult<S>> handleArtifactReferences(Record<T> data,
@@ -195,12 +196,9 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         final List<SchemaLookupResult<S>> referencesLookup = new ArrayList<>();
 
         for (ParsedSchema<S> referencedSchema : parsedSchema.getSchemaReferences()) {
-
+            ArtifactReference reference = resolveReferenceArtifactReference(data, referencedSchema);
             List<SchemaLookupResult<S>> nestedReferences = handleArtifactReferences(data, referencedSchema);
-
-            referencesLookup.add(handleAutoCreateArtifact(referencedSchema,
-                    resolveArtifactReference(data, referencedSchema, true, referencedSchema.referenceName()),
-                    nestedReferences));
+            referencesLookup.add(handleAutoCreateArtifact(referencedSchema, reference, nestedReferences));
         }
         return referencesLookup;
     }
@@ -216,6 +214,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         }
 
         if (reference.getContentId() != null) {
+            // The one-argument hooks apply the deserializer setting and stay overridable by subclasses.
             return resolveSchemaByContentId(reference.getContentId());
         }
         if (reference.getContentHash() != null) {
@@ -226,11 +225,11 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         }
 
         return resolveSchemaByCoordinates(reference.getGroupId(), reference.getArtifactId(),
-                reference.getVersion());
+                reference.getVersion(), deserializerDereference);
     }
 
     private SchemaLookupResult<S> resolveSchemaByCoordinates(String groupId, String artifactId,
-                                                             String version) {
+                                                             String version, boolean dereference) {
         if (artifactId == null) {
             throw new IllegalStateException("artifactId cannot be null");
         }
@@ -238,49 +237,82 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         ArtifactReference reference = ArtifactReference.builder().groupId(groupId).artifactId(artifactId)
                 .version(version).build();
 
-        return resolveSchemaByArtifactReferenceCached(reference);
+        return resolveSchemaByArtifactReferenceCached(reference, dereference);
     }
 
+    /**
+     * Resolves a schema by content ID, using the deserializer dereference setting.
+     *
+     * @param contentId the content ID
+     * @return the schema
+     */
     protected SchemaLookupResult<S> resolveSchemaByContentId(long contentId) {
+        return resolveSchemaByContentId(contentId, deserializerDereference);
+    }
+
+    /**
+     * Resolves a schema by content ID, dereferenced if requested and supported
+     * (see {@link #dereferenceContentLookup(boolean)}).
+     *
+     * @param contentId the content ID
+     * @param dereference whether to fetch the schema dereferenced
+     * @return the schema
+     */
+    protected SchemaLookupResult<S> resolveSchemaByContentId(long contentId, boolean dereference) {
+        boolean dereferenced = dereferenceContentLookup(dereference);
         return schemaCache.getByContentId(contentId, contentIdKey -> {
-
             // it's impossible to retrieve more info about the artifact with only the contentId, and that's ok
-            // for this case
-            ParsedSchemaImpl<S> ps = null;
-            String rawSchema = this.clientFacade.getSchemaByContentId(contentIdKey);
-
-            // Get the artifact references
-            final List<RegistryArtifactReference> artifactReferences = this.clientFacade.getReferencesByContentId(contentId);
-            // If there are any references for the schema being parsed, resolve them before parsing the
-            // schema
-            final Map<String, ParsedSchema<S>> resolvedReferences = resolveReferences(artifactReferences);
-
+            String rawSchema = this.clientFacade.getSchemaByContentId(contentIdKey, dereferenced);
+            Map<String, ParsedSchema<S>> resolvedReferences = dereferenced ? Map.of()
+                    : resolveReferences(this.clientFacade.getReferencesByContentId(contentIdKey));
             byte[] schema = rawSchema.getBytes(StandardCharsets.UTF_8);
             S parsed = schemaParser.parseSchema(schema, resolvedReferences);
-
-            ps = new ParsedSchemaImpl<S>().setParsedSchema(parsed).setRawSchema(schema);
-
+            ParsedSchemaImpl<S> ps = new ParsedSchemaImpl<S>().setParsedSchema(parsed).setRawSchema(schema);
             return SchemaLookupResult.<S>builder().contentId(contentIdKey).parsedSchema(ps).build();
         });
     }
 
+    /**
+     * Whether a content-ID or content-hash lookup fetches the schema dereferenced. Requires the explicit
+     * {@code apicurio.registry.deserializer.dereference-schema} opt-in (servers older than 3.4.0 ignore the
+     * dereference parameter on these endpoints), a client facade that supports it, and a text-based format.
+     *
+     * @param dereference the dereference setting of the calling side
+     * @return true if the lookup fetches the schema dereferenced
+     */
+    private boolean dereferenceContentLookup(boolean dereference) {
+        return dereference && contentLookupDereferenceOptIn && clientFacade.supportsDereferencedContentLookups()
+                && schemaParser.supportsDereferencedContentLookups();
+    }
+
+    /**
+     * Resolves a schema by content hash, using the deserializer dereference setting.
+     *
+     * @param contentHash the content hash
+     * @return the schema
+     */
     protected SchemaLookupResult<S> resolveSchemaByContentHash(String contentHash) {
+        return resolveSchemaByContentHash(contentHash, deserializerDereference);
+    }
+
+    /**
+     * Resolves a schema by content hash, dereferenced if requested and supported
+     * (see {@link #dereferenceContentLookup(boolean)}).
+     *
+     * @param contentHash the content hash
+     * @param dereference whether to fetch the schema dereferenced
+     * @return the schema
+     */
+    protected SchemaLookupResult<S> resolveSchemaByContentHash(String contentHash, boolean dereference) {
+        boolean dereferenced = dereferenceContentLookup(dereference);
         return schemaCache.getByContentHash(contentHash, contentHashKey -> {
-            // it's impossible to retrieve more info about the artifact with only the contentHash, and that's
-            // ok for this case
-            ParsedSchemaImpl<S> ps = null;
-
-            String rawSchema = this.clientFacade.getSchemaByContentHash(contentHashKey);
-
-            // Get the artifact references
-            final List<RegistryArtifactReference> artifactReferences = this.clientFacade.getReferencesByContentHash(contentHashKey);
-            // If there are any references for the schema being parsed, resolve them before parsing the schema
-            final Map<String, ParsedSchema<S>> resolvedReferences = resolveReferences(artifactReferences);
-
+            // it's impossible to retrieve more info about the artifact with only the contentHash, and that's ok
+            String rawSchema = this.clientFacade.getSchemaByContentHash(contentHashKey, dereferenced);
+            Map<String, ParsedSchema<S>> resolvedReferences = dereferenced ? Map.of()
+                    : resolveReferences(this.clientFacade.getReferencesByContentHash(contentHashKey));
             byte[] schema = rawSchema.getBytes(StandardCharsets.UTF_8);
             S parsed = schemaParser.parseSchema(schema, resolvedReferences);
-
-            ps = new ParsedSchemaImpl<S>().setParsedSchema(parsed).setRawSchema(schema);
+            ParsedSchemaImpl<S> ps = new ParsedSchemaImpl<S>().setParsedSchema(parsed).setRawSchema(schema);
             return SchemaLookupResult.<S>builder().contentHash(contentHashKey).parsedSchema(ps).build();
         });
     }
@@ -322,14 +354,20 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
                 .map(SchemaLookupResult::toArtifactReference)
                 .collect(Collectors.toSet());
 
-        var key = ContentWithReferences.builder()
+        var content = ContentWithReferences.builder()
                 .content(rawSchemaString)
                 .references(references)
                 .build();
+        // A null group is the default group. ArtifactReference.builder() already normalizes it; doing it again here
+        // keeps the cache key identical to the coordinates registered below for any other ArtifactReference.
+        String groupId = artifactReference.getGroupId() == null ? "default" : artifactReference.getGroupId();
+        // Key by the target coordinates too: identical content written under other coordinates (e.g. another
+        // topic) must still be registered there (#11053).
+        var key = new AutoCreateKey(content, groupId, artifactReference.getArtifactId(),
+                artifactReference.getVersion());
 
-        return schemaCache.getByContent(key, contentKey -> {
+        return schemaCache.getByAutoCreateKey(key, autoCreateKey -> {
             String artifactType = schemaParser.artifactType();
-            String groupId = artifactReference.getGroupId() == null ? "default" : artifactReference.getGroupId();
             String artifactId = artifactReference.getArtifactId();
             String version = artifactReference.getVersion();
             String autoCreate = this.autoCreateBehavior;
@@ -346,31 +384,33 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
     }
 
     private SchemaLookupResult<S> resolveSchemaByArtifactCoordinatesCached(
-            ArtifactCoordinates artifactCoordinates) {
+            ArtifactCoordinates artifactCoordinates, boolean dereference) {
         return schemaCache.getByArtifactCoordinates(artifactCoordinates,
                 artifactCoordinatesKey -> resolveByCoordinates(artifactCoordinatesKey.getGroupId(),
-                        artifactCoordinatesKey.getArtifactId(), artifactCoordinatesKey.getVersion()));
+                        artifactCoordinatesKey.getArtifactId(), artifactCoordinatesKey.getVersion(), dereference));
     }
 
     private SchemaLookupResult<S> resolveSchemaByArtifactReferenceCached(
-            ArtifactReference artifactReference) {
+            ArtifactReference artifactReference, boolean dereference) {
         if (artifactReference.getGlobalId() != null) {
-            return schemaCache.getByGlobalId(artifactReference.getGlobalId(), this::resolveSchemaByGlobalId);
+            return schemaCache.getByGlobalId(artifactReference.getGlobalId(),
+                    key -> resolveSchemaByGlobalId(key, dereference));
         } else if (artifactReference.getContentId() != null) {
             return schemaCache.getByContentId(artifactReference.getContentId(),
-                    this::resolveSchemaByContentId);
+                    key -> resolveSchemaByContentId(key, dereference));
         } else if (artifactReference.getContentHash() != null) {
             return schemaCache.getByContentHash(artifactReference.getContentHash(),
-                    this::resolveSchemaByContentHash);
+                    key -> resolveSchemaByContentHash(key, dereference));
         } else {
             return schemaCache.getByArtifactCoordinates(
                     ArtifactCoordinates.fromArtifactReference(artifactReference),
                     artifactReferenceKey -> resolveByCoordinates(artifactReferenceKey.getGroupId(),
-                            artifactReferenceKey.getArtifactId(), artifactReferenceKey.getVersion()));
+                            artifactReferenceKey.getArtifactId(), artifactReferenceKey.getVersion(), dereference));
         }
     }
 
-    private SchemaLookupResult<S> resolveByCoordinates(String groupId, String artifactId, String version) {
+    private SchemaLookupResult<S> resolveByCoordinates(String groupId, String artifactId, String version,
+                                                       boolean dereference) {
         // TODO if getArtifactVersion returns the artifact version and globalid in the headers we can reduce
         // this to only one http call
 
@@ -378,16 +418,17 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         RegistryVersionCoordinates versionCoordinates = this.clientFacade.getVersionCoordinatesByGAV(groupId, artifactId, version);
 
         // Get the schema string (either dereferenced or not based on config)
-        String schemaString = this.clientFacade.getSchemaByGlobalId(versionCoordinates.getGlobalId(), resolveDereferenced);
+        // Read as bytes: a dereferenced Protobuf schema is a binary descriptor
+        byte[] schema = this.clientFacade.getSchemaBytesByGlobalId(versionCoordinates.getGlobalId(),
+                dereference);
         Map<String, ParsedSchema<S>> resolvedReferences = new HashMap<>();
         // If resolving dereference, we need to also fetch and resolve the references
-        if (!resolveDereferenced) {
+        if (!dereference) {
             List<RegistryArtifactReference> artifactReferences = this.clientFacade.getReferencesByGlobalId(versionCoordinates.getGlobalId());
             // If there are any references for the schema being parsed, resolve them before parsing the schema
             resolvedReferences = resolveReferences(artifactReferences);
         }
 
-        byte[] schema = schemaString.getBytes(StandardCharsets.UTF_8);
         S parsed = schemaParser.parseSchema(schema, resolvedReferences);
 
         ParsedSchemaImpl<S> parsedSchema = new ParsedSchemaImpl<S>().setParsedSchema(parsed).setRawSchema(schema);

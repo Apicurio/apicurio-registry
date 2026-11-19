@@ -545,7 +545,7 @@ Each tool, and the `MCP_SERVER` artifact, has one of the following statuses:
 |A stored version already matches the tool's definition. For the server, the latest version already has the same references, so no version was added.
 
 |`REJECTED`
-|A rule, such as `COMPATIBILITY`, rejected the new definition, and the causes list the violations. Nothing was written for the tool, and the new server version does not reference it, because no stored version matches what the server offers. A tool is also rejected when an artifact with its ID exists and is not an `MCP_TOOL`.
+|A rule, such as `COMPATIBILITY`, rejected the new definition, and the causes list the violations. Nothing was written for the tool, and the new server version does not reference it, because no stored version matches what the server offers. A tool is also rejected when an artifact with its ID exists and is not an `MCP_TOOL`. A tool is also rejected when its name is not 1 to 128 ASCII letters, digits, `_`, `-` or `.`, the form the MCP specification recommends, because the name becomes part of the tool's artifact ID.
 
 |`REMOVED`
 |The previous server version referenced the tool, but the server no longer lists it. The tool's artifact is not changed or deleted, and the new server version does not reference it.
@@ -564,16 +564,30 @@ The registry applies the following restrictions before and while it connects to 
 * The host must be allowed by `apicurio.mcp-import.allowed-hosts`. Each entry is a hostname (`mcp.example.com`), a domain wildcard (`*.example.com`, which does not match `example.com`), `*` for any host, an IP address, or a CIDR range (`10.0.0.0/8`). A CIDR entry allows a host when every address the host resolves to is in a listed range.
 * Every address that the host resolves to must not be a loopback, link-local, unspecified, multicast, reserved, or cloud metadata address, even when the allow-list permits the host. Loopback is allowed only with `apicurio.mcp-import.loopback.enabled=true`, for development and tests.
 * Redirects are never followed.
-* Each request times out after `apicurio.mcp-import.timeout.seconds`. Each message is limited to `apicurio.mcp-import.response.max-size` bytes, and the number of tools to `apicurio.mcp-import.tools.max-size`.
+* Each request times out after `apicurio.mcp-import.timeout.seconds`, and listing all the tools must finish within `apicurio.mcp-import.total-timeout.seconds`. Each message is limited to `apicurio.mcp-import.response.max-size` bytes, the listed tool definitions together to `apicurio.mcp-import.tools.max-total-size` bytes, and the number of tools to `apicurio.mcp-import.tools.max-size`.
 
-Every refused host gets the same error message, so the endpoint does not reveal which hosts exist or resolve. A refused URL returns HTTP 400. An MCP server that cannot be reached, times out, sends a response that is too large or invalid, or lists too many tools returns HTTP 502. Read-only storage, such as GitOps or KubernetesOps, returns HTTP 409 before any connection is made, as does an import when the feature is disabled.
+Every refused host gets the same error message, so the endpoint does not reveal which hosts exist or resolve. A refused URL returns HTTP 400. At most `apicurio.mcp-import.max-concurrent` imports (4 by default) run at the same time; an import started while that many are running returns HTTP 429 without contacting the MCP server. An MCP server that cannot be reached, times out, sends a response that is too large or invalid, or lists too many tools returns HTTP 502. Read-only storage, such as GitOps or KubernetesOps, returns HTTP 409 before any connection is made, as does an import when the feature is disabled.
+
+WARNING: Private network addresses, such as `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `100.64.0.0/10` and `fc00::/7`, are allowed when the allow-list permits the host. If you list `*`, any user who can write the MCP server artifact can make {registry} connect to services on its internal network. List the hostnames or CIDR ranges of your MCP servers instead.
+
+Each connection attempt is recorded in the audit log as the `mcpImportTarget` action, with the group, the artifact, the target host and port, the outcome and, on failure, the reason. The URL path and query and the request headers are not recorded, because they can contain credentials.
+
+By default, the import trusts the certificate authorities in the JVM default trust store. To import from an MCP server whose certificate is issued by an internal certificate authority, define a named TLS configuration in the Quarkus TLS registry and reference it with `apicurio.mcp-import.tls-configuration.name`, rather than enabling `apicurio.mcp-import.insecure-http.enabled`. It applies to MCP imports only. For example:
+
+[source,properties]
+----
+quarkus.tls.mcp-import.trust-store.pem.certs=/deployments/certs/internal-ca.pem
+apicurio.mcp-import.tls-configuration.name=mcp-import
+----
+
+When `apicurio.mcp-import.tls-configuration.name` names a TLS configuration that does not exist, the registry does not start.
 
 NOTE: The HTTP client resolves the host again when it connects, so a host whose DNS answer changes between the check and the connection (DNS rebinding) is not detected. To limit this, allow hostnames whose DNS you control, or CIDR ranges.
 
 The registry records the following Micrometer counters. They have no URL, host, or header values as tags, and dry runs are not counted in `apicurio.mcp.import.tools`.
 
 * `apicurio.mcp.import.tools`, tagged `result` (`created`, `new-version`, `unchanged`, `rejected`, `removed`).
-* `apicurio.mcp.import.failures`, tagged `reason` (`host-denied`, `timeout`, `oversize`, `too-many-tools`, `protocol`).
+* `apicurio.mcp.import.failures`, tagged `reason` (`host-denied`, `timeout`, `oversize`, `busy`, `too-many-tools`, `protocol`).
 
 // ref-mcp-automatic-label-extraction
 [id="mcp-automatic-label-extraction_{context}"]

@@ -58,6 +58,12 @@ wait_for() {
 echo "Waiting for Keycloak and the registries..."
 wait_for Keycloak "$KEYCLOAK/realms/registry"
 for r in "$REGISTRY" "$BASIC" "$PROXY" "$K8S"; do wait_for Registry "$r$V3/system/info"; done
+# nginx answers (401, or 502) before it can reach registry-proxy: wait for a real response through it
+deadline=$((SECONDS + 120))
+until [ "$(curl -s --max-time 5 -o /dev/null -w '%{http_code}' -u alice:alice "$PROXY$V3/system/info")" = 200 ]; do
+  [ "$SECONDS" -ge "$deadline" ] && { echo "The proxy cannot reach registry-proxy" >&2; exit 1; }
+  sleep 2
+done
 
 if [ ! -d clients/target/classes ] || [ ! -f ../../cli/target/quarkus-app/quarkus-run.jar ]; then
   echo "Building the clients, the Maven plugin and the CLI (first run only, a few minutes)..."
@@ -87,9 +93,9 @@ check "anonymous read access switched on at runtime (admin)" 204 \
      -H "$(bearer "$ADMIN")" -H 'Content-Type: application/json' -d '{"value": "true"}')"
 check "now anonymous read: 200" 200 "$(code "$REGISTRY" GET /groups)"
 check "anonymous write: still 401" 401 "$(write_group "$REGISTRY" anonymous)"
-code "$REGISTRY" PUT /admin/config/properties/apicurio.auth.anonymous-read-access.enabled \
-  -H "$(bearer "$ADMIN")" -H 'Content-Type: application/json' -d '{"value": "false"}' > /dev/null
-check "switched off again (set to false, see #11044): 401" 401 "$(code "$REGISTRY" GET /groups)"
+check "reset to its default (admin)" 204 \
+  "$(code "$REGISTRY" DELETE /admin/config/properties/apicurio.auth.anonymous-read-access.enabled -H "$(bearer "$ADMIN")")"
+check "switched off again: 401" 401 "$(code "$REGISTRY" GET /groups)"
 
 # ------------------------------------------------------------------------------ step 5
 part "Step 5: users with OIDC tokens, and their roles"
@@ -116,7 +122,7 @@ part "Step 7: HTTP basic exchanged for a token (client credentials)"
 check "developer-client:test1 as basic credentials: write" 200 "$(write_group "$REGISTRY" basic-cc -u developer-client:test1)"
 check "a wrong secret: 401" 401 "$(code "$REGISTRY" GET /groups -u developer-client:wrong)"
 check "user:password is not a client: 401 (no password grant configured)" 401 "$(code "$REGISTRY" GET /groups -u developer:developer)"
-check "a malformed basic header: 500 today, should be 401 (#11043)" 500 \
+check "a malformed basic header: 401" 401 \
   "$(code "$REGISTRY" GET /groups -H 'Authorization: Basic !!!notbase64')"
 master=$(curl -s "$KEYCLOAK/realms/master/protocol/openid-connect/token" \
   -d 'grant_type=password&client_id=admin-cli&username=admin&password=admin' | jq -r .access_token)
@@ -146,6 +152,7 @@ check "a malformed basic header: 401" 401 "$(code "$BASIC" GET /groups -H 'Autho
 
 # ------------------------------------------------------------------------------ step 9
 part "Step 9: identity from a trusted proxy (proxy -> registry-proxy)"
+failures_before=$failures
 check "alice (proxy group sr-developer): write" 200 "$(write_group "$PROXY" proxy-alice -u alice:alice)"
 check "bob (proxy group sr-readonly): read, write" "200 403" "$(code "$PROXY" GET /groups -u bob:bob) $(write_group "$PROXY" proxy-bob -u bob:bob)"
 check "the proxy rejects a wrong password, and no credentials" "401 401" "$(code "$PROXY" GET /groups -u alice:wrong) $(code "$PROXY" GET /groups)"
@@ -153,6 +160,10 @@ check "bob cannot promote himself by sending the header: the proxy overwrites it
   "$(write_group "$PROXY" proxy-spoof -u bob:bob -H 'X-Forwarded-Groups: sr-admin')"
 check "the owner is the user the proxy authenticated" alice \
   "$(curl -s -u alice:alice "$PROXY$V3/groups/proxy-alice" | jq -r .owner)"
+# If a step 9 check failed, show what nginx logged about the registry connection (#10992)
+if [ "$failures" -gt "$failures_before" ]; then
+  docker compose logs proxy 2>&1 | grep '\[error\]' | tail -5 | sed 's/^/  info  /' || true
+fi
 
 # ------------------------------------------------------------------------------ step 10
 part "Step 10: Kubernetes service account tokens (registry-k8s, TokenReview with k3s)"

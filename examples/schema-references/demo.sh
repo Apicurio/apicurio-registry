@@ -156,6 +156,14 @@ json_artifact unchecked b '{"$id": "b.json", "type": "object", "properties": {"a
   '[{"name": "a.json", "groupId": "unchecked", "artifactId": "a", "version": "1"}]' > /dev/null
 check "without a rule, a -> b -> a is stored; the graph reports the cycle" true \
   "$(get /groups/unchecked/artifacts/a/versions/1/references/graph | jq -r .metadata.hasCycles)"
+check "dereferencing the cycle: 422" 422 "$(status GET "/groups/unchecked/artifacts/a/versions/1/content?references=DEREFERENCE")"
+# With NO_CIRCULAR_REFERENCES, the version that closes the cycle is rejected
+status POST /groups '{"groupId": "cycles"}' > /dev/null
+status POST /groups/cycles/rules '{"ruleType": "INTEGRITY", "config": "NO_CIRCULAR_REFERENCES"}' > /dev/null
+json_artifact cycles a "$a_schema" "$(dangling cycles)" > /dev/null
+check "NO_CIRCULAR_REFERENCES: b closing a -> b -> a is rejected" "400 INTEGRITY" \
+  "$(json_artifact cycles b '{"$id": "b.json", "type": "object", "properties": {"a": {"$ref": "a.json"}}}' \
+     '[{"name": "a.json", "groupId": "cycles", "artifactId": "a", "version": "1"}]' | jq -r '"\(.status) \(.ruleViolation.ruleType)"')"
 
 # ------------------------------------------------------------------------------ step 10
 part "Step 10: disabling and deleting a referenced artifact"
@@ -164,7 +172,9 @@ check "a DISABLED target still resolves" "enum" \
   "$(get "$order?references=DEREFERENCE" | jq -r '.fields[2].type.fields[2].type.type')"
 check "deleting a referenced artifact is allowed (#11029)" 204 "$(status DELETE /groups/common-manual/artifacts/Money)"
 check "the referrer still lists the reference" "common-manual/Address@1,common-manual/Money@1" "$(refs orders-manual Order)"
-check "but it can no longer be dereferenced (#11029)" 500 "$(status GET "$order?references=DEREFERENCE")"
+deref=$(curl -s --max-time 30 -w '\n%{http_code}' "$V3$order?references=DEREFERENCE")
+check "but it can no longer be dereferenced: 422" 422 "$(tail -n1 <<< "$deref")"
+check "the error names the missing reference" "Money@1" "$(sed '$d' <<< "$deref" | jq -r .detail | grep -o 'Money@1' | head -1)"
 
 # ------------------------------------------------------------------------------ step 11
 part "Step 11: serdes register nested types as references"

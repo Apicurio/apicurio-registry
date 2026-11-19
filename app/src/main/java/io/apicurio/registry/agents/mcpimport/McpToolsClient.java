@@ -7,14 +7,21 @@ import io.modelcontextprotocol.client.transport.HttpClientStreamableHttpTranspor
 import io.modelcontextprotocol.json.schema.JsonSchemaValidator;
 import io.modelcontextprotocol.spec.McpSchema;
 import io.modelcontextprotocol.spec.McpTransportException;
+import io.quarkus.runtime.StartupEvent;
+import io.quarkus.tls.TlsConfiguration;
+import io.quarkus.tls.TlsConfigurationRegistry;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.net.ssl.SSLContext;
+
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpTimeoutException;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -27,8 +34,10 @@ import java.util.concurrent.TimeoutException;
  * Lists the tools of a live MCP server, over the Streamable HTTP transport of the official MCP
  * Java SDK.
  * <p>
- * Redirects are never followed, every request has a timeout, every message has a size bound,
- * and the number of tools and pages is bounded. Headers from the request are added to every call
+ * Redirects are never followed, every request has a timeout and the whole listing a deadline,
+ * every message and the listed tools as a whole have a size bound, and the number of tools and
+ * pages is bounded. HTTPS connections trust the JVM's default truststore, or the TLS configuration
+ * named by {@code apicurio.mcp-import.tls-configuration.name}. Headers from the request are added to every call
  * to the server and nowhere else.
  */
 @ApplicationScoped
@@ -54,6 +63,11 @@ public class McpToolsClient {
     @Inject
     McpImportConfig config;
 
+    @Inject
+    TlsConfigurationRegistry tlsRegistry;
+
+    private volatile SSLContext sslContext;
+
     /**
      * The handshake result and every tool the server lists, in order.
      */
@@ -65,18 +79,70 @@ public class McpToolsClient {
      * @throws McpImportException if the server cannot be reached or its answer cannot be used
      */
     public ServerTools listTools(URI uri, Map<String, String> headers) {
-        return listTools(uri, headers, Duration.ofSeconds(config.getTimeoutSeconds()), config.getResponseMaxSize(),
-                config.getToolsMaxSize());
+        return listTools(uri, headers, new Limits(Duration.ofSeconds(config.getTimeoutSeconds()),
+                Duration.ofSeconds(config.getTotalTimeoutSeconds()), config.getResponseMaxSize(),
+                config.getToolsMaxSize(), config.getToolsMaxTotalSize()), sslContext);
     }
 
-    ServerTools listTools(URI uri, Map<String, String> headers, Duration timeout, int maxMessageSize, int maxTools) {
+    /**
+     * Resolves the TLS configuration at startup, so a name that does not exist stops the registry
+     * instead of failing each import.
+     */
+    void resolveTls(@Observes StartupEvent event) {
+        sslContext = sslContext(tlsRegistry, config.getTlsConfigurationName().orElse(null));
+    }
+
+    /**
+     * @return the SSL context of the named TLS configuration, or null for the JVM default
+     * @throws IllegalStateException if no TLS configuration has this name
+     */
+    static SSLContext sslContext(TlsConfigurationRegistry registry, String name) {
+        if (name == null || name.isBlank()) {
+            return null;
+        }
+        TlsConfiguration tls = registry.get(name).orElseThrow(() -> new IllegalStateException(
+                "apicurio.mcp-import.tls-configuration.name is '" + name
+                        + "', but no TLS configuration has that name (quarkus.tls." + name + ".*)"));
+        try {
+            return tls.createSSLContext();
+        } catch (Exception e) {
+            throw new IllegalStateException("The TLS configuration '" + name + "' cannot be used for MCP imports", e);
+        }
+    }
+
+    /**
+     * @param timeout for connecting and for each request
+     * @param totalTimeout for the whole listing, checked between requests
+     * @param maxMessageSize of each message from the server
+     * @param maxTools listed in total
+     * @param maxTotalSize of the listed tool definitions, serialized as JSON
+     */
+    record Limits(Duration timeout, Duration totalTimeout, int maxMessageSize, int maxTools, long maxTotalSize) {
+    }
+
+    ServerTools listTools(URI uri, Map<String, String> headers, Limits limits) {
+        return listTools(uri, headers, limits, null);
+    }
+
+    /**
+     * @param ssl for HTTPS connections, or null for the JVM default
+     */
+    ServerTools listTools(URI uri, Map<String, String> headers, Limits limits, SSLContext ssl) {
+        Duration timeout = limits.timeout();
+        int maxMessageSize = limits.maxMessageSize();
+        int maxTools = limits.maxTools();
+        long deadline = System.nanoTime() + limits.totalTimeout().toNanos();
         Map<String, String> outbound = headers == null ? Map.of() : Map.copyOf(headers);
+        HttpClient.Builder httpClient = HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_1_1)
+                .followRedirects(HttpClient.Redirect.NEVER);
+        if (ssl != null) {
+            httpClient.sslContext(ssl);
+        }
         HttpClientStreamableHttpTransport transport = HttpClientStreamableHttpTransport
                 .builder(baseUri(uri))
                 .endpoint(endpoint(uri))
-                .clientBuilder(HttpClient.newBuilder()
-                        .version(HttpClient.Version.HTTP_1_1)
-                        .followRedirects(HttpClient.Redirect.NEVER))
+                .clientBuilder(httpClient)
                 .connectTimeout(timeout)
                 .maxResponseSize(maxMessageSize)
                 .jsonMapper(jsonMapper)
@@ -94,9 +160,16 @@ public class McpToolsClient {
             List<McpSchema.Tool> tools = new ArrayList<>();
             Set<String> seenCursors = new HashSet<>();
             String cursor = null;
+            long totalSize = 0;
             do {
+                requireTimeLeft(deadline);
                 McpSchema.ListToolsResult page = client.listTools(cursor);
                 if (page.tools() != null) {
+                    totalSize += serializedSize(page.tools());
+                    if (totalSize > limits.maxTotalSize()) {
+                        throw new McpImportException(Reason.OVERSIZE,
+                                "The tools listed by the MCP server are larger in total than this registry accepts.");
+                    }
                     tools.addAll(page.tools());
                 }
                 if (tools.size() > maxTools) {
@@ -117,6 +190,20 @@ public class McpToolsClient {
             throw translate(e);
         } finally {
             closeQuietly(client);
+        }
+    }
+
+    private static void requireTimeLeft(long deadline) {
+        if (System.nanoTime() - deadline > 0) {
+            throw new McpImportException(Reason.TIMEOUT, "The MCP server did not list its tools in time.");
+        }
+    }
+
+    private long serializedSize(List<McpSchema.Tool> tools) {
+        try {
+            return jsonMapper.writeValueAsString(tools).getBytes(StandardCharsets.UTF_8).length;
+        } catch (Exception e) {
+            throw new McpImportException(Reason.PROTOCOL, "A tool listed by the MCP server could not be read.");
         }
     }
 

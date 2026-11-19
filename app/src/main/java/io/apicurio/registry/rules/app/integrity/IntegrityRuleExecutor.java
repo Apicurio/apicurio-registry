@@ -4,6 +4,7 @@ import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.model.GAV;
+import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.references.ReferenceGraphWalker;
 import io.apicurio.registry.references.ReferenceLoader;
 import io.apicurio.registry.references.ReferenceNode;
@@ -56,8 +57,6 @@ public class IntegrityRuleExecutor implements RuleExecutor {
 
         // Make sure that the user has included mappings for all references in the content of the artifact.
         if (levels.contains(IntegrityLevel.FULL) || levels.contains(IntegrityLevel.ALL_REFS_MAPPED)) {
-            // Not yet implemented - needs artifact type specific logic to extract the full list of
-            // references that must be mapped from the artifact version content
             verifyAllReferencesHaveMappings(context);
         }
 
@@ -178,9 +177,9 @@ public class IntegrityRuleExecutor implements RuleExecutor {
 
     /**
      * Checks if adding the references to the current artifact would create a circular dependency. A circular
-     * dependency occurs when following the reference chain leads to a cycle. Since the version being created
-     * does not yet exist in storage, no existing version can reference it, so we only need to check for
-     * cycles within the existing reference graph that would be introduced by the new references.
+     * dependency occurs when following the reference chain leads to a cycle: either within the existing
+     * reference graph, or back to the version being written, which existing versions may already reference
+     * because references to versions that do not exist yet are allowed without {@code REFS_EXIST}.
      * <p>
      * Each declared reference is checked independently (its own walk, its own cycle search), so a cycle
      * reachable from more than one of them is still reported once per offending reference, matching the
@@ -196,13 +195,22 @@ public class IntegrityRuleExecutor implements RuleExecutor {
         Set<RuleViolation> causes = new HashSet<>();
 
         for (ArtifactReference ref : references) {
-            Optional<List<GAV>> cycle = findCycleInReferenceGraph(storageToUse, ref);
+            ResolvedReferences resolved = walkReferenceGraph(storageToUse, ref);
+            Optional<List<GAV>> cycle = resolved.findCycle();
+            Optional<GAV> backToWritten = findReferenceToVersionBeingWritten(context, resolved);
 
             if (cycle.isPresent()) {
                 RuleViolation violation = new RuleViolation();
                 violation.setContext(ref.getName());
                 violation.setDescription(String.format("Circular reference detected in reference graph: %s",
                         renderCycle(cycle.get())));
+                causes.add(violation);
+            } else if (backToWritten.isPresent()) {
+                RuleViolation violation = new RuleViolation();
+                violation.setContext(ref.getName());
+                violation.setDescription(String.format(
+                        "Circular reference detected in reference graph: %s leads back to %s, the artifact being written (cycle)",
+                        formatArtifactRef(new GAV(ref.getGroupId(), ref.getArtifactId(), ref.getVersion())), formatArtifactRef(backToWritten.get())));
                 causes.add(violation);
             }
         }
@@ -227,13 +235,27 @@ public class IntegrityRuleExecutor implements RuleExecutor {
      * @return the cycle, if one exists, as the coordinates on its path (see
      *         {@link ResolvedReferences#findCycle()})
      */
-    private Optional<List<GAV>> findCycleInReferenceGraph(RegistryStorage storageToUse, ArtifactReference ref) {
+    private ResolvedReferences walkReferenceGraph(RegistryStorage storageToUse, ArtifactReference ref) {
         ReferenceLoader loader = coordinates -> loadBatch(storageToUse, coordinates);
         ArtifactReferenceDto rootReference = ArtifactReferenceDto.builder().groupId(ref.getGroupId())
                 .artifactId(ref.getArtifactId()).version(ref.getVersion()).name(ref.getName()).build();
-        ResolvedReferences resolved = ReferenceGraphWalker.walk(List.of(rootReference), loader,
-                ReferenceResolutionConfig.maxDepth());
-        return resolved.findCycle();
+        return ReferenceGraphWalker.walk(List.of(rootReference), loader, ReferenceResolutionConfig.maxDepth());
+    }
+
+    /**
+     * The version being written does not exist yet, so the walk records a reference to it as missing
+     * rather than following it. A reachable reference to exactly that version is therefore how the new
+     * version closes a cycle (e.g. creating {@code b@1 -> a@1} when {@code a@1 -> b@1} already exists).
+     * Only possible when the version's id is known before it is stored; references to other versions
+     * that do not exist yet are not cycles.
+     */
+    private static Optional<GAV> findReferenceToVersionBeingWritten(RuleContext context, ResolvedReferences resolved) {
+        if (context.getVersion() == null) {
+            return Optional.empty();
+        }
+        GAV beingWritten = new GAV(new GroupId(context.getGroupId()).getRawGroupIdWithNull(),
+                context.getArtifactId(), context.getVersion());
+        return resolved.missing().contains(beingWritten) ? Optional.of(beingWritten) : Optional.empty();
     }
 
     private Map<GAV, ReferenceNode> loadBatch(RegistryStorage storageToUse, Collection<GAV> coordinates) {

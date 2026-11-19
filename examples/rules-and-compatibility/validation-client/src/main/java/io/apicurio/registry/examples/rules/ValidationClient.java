@@ -84,10 +84,11 @@ public class ValidationClient {
                 OrderPlaced.newBuilder().setOrderId("o-1").setAmount(9.5).build()));
         expect("a ShipmentCreated (another message type)", false, protobuf.validateByArtifactReference(
                 ShipmentCreated.newBuilder().setShipmentId("s-1").setParcels(2).build()));
-        // find-latest: look the schema up by the record's coordinates. Without it, Protobuf lookups
-        // by content fail (https://github.com/Apicurio/apicurio-registry/issues/11005).
+        // No reference in the constructor: the schema is looked up for each record by its content.
+        // canonicalize: the schema built from the message class is formatted differently from the
+        // registered .proto, so both are compared in canonical form.
         ProtobufValidator dynamicProtobuf = new ProtobufValidator(
-                Map.of(SchemaResolverConfig.REGISTRY_URL, registryUrl, SchemaResolverConfig.FIND_LATEST_ARTIFACT, true),
+                Map.of(SchemaResolverConfig.REGISTRY_URL, registryUrl, SchemaResolverConfig.CANONICALIZE, true),
                 Optional.empty());
         expect("a valid OrderPlaced, schema chosen per record", true, dynamicProtobuf.validate(
                 new SchemaValidationRecord<>(OrderPlaced.newBuilder().setOrderId("o-2").build(),

@@ -1194,7 +1194,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
     @Test
     public void smokeGlobalRules() throws Exception {
         createGlobalRule(io.apicurio.registry.types.RuleType.COMPATIBILITY, "BACKWARD");
-        createGlobalRule(io.apicurio.registry.types.RuleType.VALIDITY, "FORWARD");
+        createGlobalRule(io.apicurio.registry.types.RuleType.VALIDITY, "FULL");
 
         final List<RuleType> globalRules = clientV3.admin().rules().get();
         assertEquals(2, globalRules.size());

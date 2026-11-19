@@ -206,4 +206,25 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
     public ProtoFileElement toProtoFileElement(FileDescriptor fileDescriptor) {
         return FileDescriptorUtils.fileDescriptorToProtoFile(fileDescriptor.toProto());
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String referenceNamespace(ParsedSchema<ProtobufSchema> schema) {
+        String pkg = schema.getParsedSchema().getFileDescriptor().getPackage();
+        return pkg == null || pkg.isBlank() ? null : pkg;
+    }
+
+    /**
+     * Protobuf schemas are not fetched dereferenced by content ID or content hash: the server returns the
+     * dereferenced form as a binary FileDescriptorProto, which cannot be carried through the text-based
+     * schema lookups without corruption. The resolver keeps fetching the references instead.
+     *
+     * @return false
+     */
+    @Override
+    public boolean supportsDereferencedContentLookups() {
+        return false;
+    }
 }

@@ -6,6 +6,9 @@ import io.apicurio.registry.auth.AuthorizedResource;
 import io.apicurio.registry.auth.ResourceAccessGuard;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.extensions.McpToolImportHandler;
+import io.apicurio.registry.logging.audit.AuditHttpRequestContext;
+import io.apicurio.registry.logging.audit.AuditLogService;
+import io.apicurio.registry.model.ArtifactId;
 import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
@@ -38,11 +41,14 @@ import io.apicurio.registry.types.ContentTypes;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.modelcontextprotocol.spec.McpSchema;
+import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.BadRequestException;
 
+import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -50,7 +56,12 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.regex.Pattern;
+import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
+
+import static io.apicurio.registry.rest.MethodParameterKeys.MPK_ARTIFACT_ID;
+import static io.apicurio.registry.rest.MethodParameterKeys.MPK_GROUP_ID;
 
 /**
  * Imports the tools of a live MCP server as {@code MCP_TOOL} artifacts, and links them from a new
@@ -69,6 +80,14 @@ public class McpToolImportService implements McpToolImportHandler {
 
     static final String METRIC_TOOLS = "apicurio.mcp.import.tools";
     static final String METRIC_FAILURES = "apicurio.mcp.import.failures";
+    static final String AUDIT_INVOKER = "apicurio.audit";
+    static final String AUDIT_ACTION = "mcpImportTarget";
+    static final String AUDIT_TARGET = "target";
+
+    // The tool name becomes part of an artifact ID, so it is held to the MCP specification's
+    // recommended form: 1 to 128 ASCII letters, digits, '_', '-' or '.'.
+    static final int TOOL_NAME_MAX_LENGTH = 128;
+    private static final Pattern TOOL_NAME = Pattern.compile("[A-Za-z0-9_.-]{1," + TOOL_NAME_MAX_LENGTH + "}");
 
     // Headers the transport sets itself, or that the HTTP client refuses to let callers set.
     private static final Set<String> RESERVED_HEADERS = Set.of("host", "content-length", "connection",
@@ -97,7 +116,17 @@ public class McpToolImportService implements McpToolImportHandler {
     @Inject
     MeterRegistry meterRegistry;
 
+    @Inject
+    AuditLogService auditLog;
+
     private final JacksonMcpJsonMapper jsonMapper = new JacksonMcpJsonMapper();
+
+    private Semaphore running;
+
+    @PostConstruct
+    void init() {
+        running = new Semaphore(Math.max(0, config.getMaxConcurrent()));
+    }
 
     /**
      * Everything is checked before the MCP server is contacted: the feature, the storage, the
@@ -112,7 +141,21 @@ public class McpToolImportService implements McpToolImportHandler {
         Map<String, String> headers = validHeaders(request.getHeaders());
         boolean dryRun = Boolean.TRUE.equals(request.getDryRun());
 
-        ServerTools listed = listTools(request.getUrl(), headers);
+        if (!running.tryAcquire()) {
+            failure(McpImportException.Reason.BUSY);
+            throw new McpImportException(McpImportException.Reason.BUSY,
+                    "Too many MCP imports are running. Try again later.");
+        }
+        try {
+            return importTools(groupId, serverArtifactId, request, toolGroupId, headers, dryRun);
+        } finally {
+            running.release();
+        }
+    }
+
+    private McpToolImportResult importTools(String groupId, String serverArtifactId, McpToolImportRequest request,
+            String toolGroupId, Map<String, String> headers, boolean dryRun) {
+        ServerTools listed = listTools(groupId, serverArtifactId, request.getUrl(), headers);
         Set<String> listedNames = checkBeforeWriting(listed.tools(), toolGroupId, serverArtifactId);
 
         List<McpToolImportToolResult> results = new ArrayList<>();
@@ -165,12 +208,38 @@ public class McpToolImportService implements McpToolImportHandler {
         }
     }
 
-    private ServerTools listTools(String url, Map<String, String> headers) {
+    /**
+     * Audits the host the registry was asked to connect to, and whether listing its tools
+     * succeeded. Only the host and port are recorded: the path, query and headers can carry
+     * credentials.
+     */
+    private ServerTools listTools(String groupId, String serverArtifactId, String url, Map<String, String> headers) {
+        Map<String, String> audit = new HashMap<>();
+        audit.put(MPK_GROUP_ID, groupId);
+        audit.put(MPK_ARTIFACT_ID, serverArtifactId);
+        audit.put(AUDIT_TARGET, target(url));
         try {
-            return toolsClient.listTools(targetPolicy.check(url), headers);
+            ServerTools tools = toolsClient.listTools(targetPolicy.check(url), headers);
+            auditLog.log(AUDIT_INVOKER, AUDIT_ACTION, AuditHttpRequestContext.SUCCESS, audit, null);
+            return tools;
         } catch (McpImportException e) {
             failure(e.getReason());
+            audit.put("reason", e.getReason().tag());
+            auditLog.log(AUDIT_INVOKER, AUDIT_ACTION, AuditHttpRequestContext.FAILURE, audit, null);
             throw e;
+        }
+    }
+
+    /** The host and port of the URL, or an empty string when it has none. */
+    static String target(String url) {
+        try {
+            URI uri = new URI(url);
+            if (uri.getHost() == null) {
+                return "";
+            }
+            return uri.getPort() < 0 ? uri.getHost() : uri.getHost() + ":" + uri.getPort();
+        } catch (Exception e) {
+            return "";
         }
     }
 
@@ -190,7 +259,9 @@ public class McpToolImportService implements McpToolImportHandler {
                         "The MCP server lists two tools with the same name.");
             }
             String toolArtifactId = serverArtifactId + "." + tool.name();
-            if (storage.isArtifactExists(raw(toolGroupId), toolArtifactId)) {
+            // A tool with an invalid name is rejected without a lookup: some databases cannot even
+            // compare such an ID (MySQL fails on non-ASCII characters, #11180).
+            if (isValidTool(tool, toolArtifactId) && storage.isArtifactExists(raw(toolGroupId), toolArtifactId)) {
                 accessGuard.requireAccess(AuthorizedLevel.Write, AuthorizedResource.artifact(toolGroupId,
                         toolArtifactId));
             }
@@ -242,6 +313,14 @@ public class McpToolImportService implements McpToolImportHandler {
         result.setName(tool.name());
         result.setGroupId(groupId);
         result.setArtifactId(artifactId);
+
+        if (!isValidTool(tool, artifactId)) {
+            result.setStatus(McpToolImportStatus.REJECTED);
+            result.setCauses(List.of(cause("The tool name must be 1 to " + TOOL_NAME_MAX_LENGTH
+                    + " ASCII letters, digits, '_', '-' or '.', as the MCP specification recommends, and the"
+                    + " artifact ID it forms must not exceed 512 characters.", "/name")));
+            return result;
+        }
 
         boolean exists = storage.isArtifactExists(raw(groupId), artifactId);
         List<String> previousVersions = List.of();
@@ -381,6 +460,14 @@ public class McpToolImportService implements McpToolImportHandler {
     }
 
     /** A character allowed in an HTTP field name: RFC 9110 {@code tchar}. */
+    private static boolean isValidTool(McpSchema.Tool tool, String artifactId) {
+        return isValidToolName(tool.name()) && ArtifactId.isValid(artifactId);
+    }
+
+    private static boolean isValidToolName(String name) {
+        return name != null && TOOL_NAME.matcher(name).matches();
+    }
+
     private static boolean isTokenChar(int c) {
         return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9'
                 || "!#$%&'*+-.^_`|~".indexOf(c) >= 0;

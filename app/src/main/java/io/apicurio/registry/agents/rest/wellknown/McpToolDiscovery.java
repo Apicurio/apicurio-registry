@@ -482,7 +482,7 @@ public class McpToolDiscovery {
         }
 
         return McpToolSearchResult.builder()
-                .groupId(artifact.getGroupId())
+                .groupId(new GroupId(artifact.getGroupId()).getRawGroupIdWithDefaultString())
                 .artifactId(artifact.getArtifactId())
                 .name(artifact.getName())
                 .title(title)
@@ -522,7 +522,7 @@ public class McpToolDiscovery {
         }
 
         return McpToolSearchResult.builder()
-                .groupId(artifact.getGroupId())
+                .groupId(new GroupId(artifact.getGroupId()).getRawGroupIdWithDefaultString())
                 .artifactId(artifact.getArtifactId())
                 .name(artifact.getName())
                 .title(title)

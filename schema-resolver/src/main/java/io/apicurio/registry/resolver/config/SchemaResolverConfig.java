@@ -4,7 +4,9 @@ import io.apicurio.registry.resolver.DefaultSchemaResolver;
 import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.resolver.data.Metadata;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
+import io.apicurio.registry.resolver.strategy.DefaultReferenceNamingStrategy;
 import io.apicurio.registry.resolver.strategy.DynamicArtifactReferenceResolverStrategy;
+import io.apicurio.registry.resolver.strategy.ReferenceNamingStrategy;
 import io.vertx.core.Vertx;
 
 import java.net.URI;
@@ -44,6 +46,17 @@ public class SchemaResolverConfig extends AbstractConfig {
      * ArtifactResolverStrategy
      */
     public static final String ARTIFACT_RESOLVER_STRATEGY_DEFAULT = DynamicArtifactReferenceResolverStrategy.class
+            .getName();
+
+    /**
+     * Fully qualified Java class name of a {@link ReferenceNamingStrategy}, or a Class or instance of one. It
+     * decides the group and artifact ID under which serializers auto-register schemas referenced by another
+     * schema. The reference name stored on the parent is never changed.
+     */
+    public static final String REFERENCE_NAMING_STRATEGY = "apicurio.registry.reference-naming-strategy";
+
+    /** Keeps the coordinates used before reference naming strategies existed. */
+    public static final String REFERENCE_NAMING_STRATEGY_DEFAULT = DefaultReferenceNamingStrategy.class
             .getName();
 
     /**
@@ -291,6 +304,18 @@ public class SchemaResolverConfig extends AbstractConfig {
     public static final boolean DEREFERENCE_DEFAULT = false;
 
     /**
+     * Optional. Overrides {@link #DEREFERENCE_SCHEMA} for serializers: whether to register the schema
+     * dereferenced (Avro only). Falls back to {@link #DEREFERENCE_SCHEMA} when not set.
+     */
+    public static final String SERIALIZER_DEREFERENCE_SCHEMA = "apicurio.registry.serializer.dereference-schema";
+
+    /**
+     * Optional. Overrides {@link #DEREFERENCE_SCHEMA} for deserializers: whether to fetch schemas dereferenced
+     * (by global ID, content ID or content hash). Falls back to {@link #DEREFERENCE_SCHEMA} when not set.
+     */
+    public static final String DESERIALIZER_DEREFERENCE_SCHEMA = "apicurio.registry.deserializer.dereference-schema";
+
+    /**
      * Used to indicate whether the schema resolver should canonicalize content when using content
      * to lookup/search for an artifact version in the registry by content.
      */
@@ -502,6 +527,13 @@ public class SchemaResolverConfig extends AbstractConfig {
         return getObject(ARTIFACT_RESOLVER_STRATEGY);
     }
 
+    /**
+     * @return the configured reference naming strategy (class name, Class, or instance)
+     */
+    public Object getReferenceNamingStrategy() {
+        return getObject(REFERENCE_NAMING_STRATEGY);
+    }
+
     public boolean autoRegisterArtifact() {
         // Should be non-null, a default value is defined
         return getBoolean(AUTO_REGISTER_ARTIFACT);
@@ -629,6 +661,39 @@ public class SchemaResolverConfig extends AbstractConfig {
         return getBooleanOrFalse(DEREFERENCE_SCHEMA);
     }
 
+    /**
+     * Whether serializers dereference schemas.
+     *
+     * @return {@link #SERIALIZER_DEREFERENCE_SCHEMA} if set to a non-null value, otherwise
+     *         {@link #resolveDereferenced()}
+     */
+    public boolean serializerDereference() {
+        return originals.get(SERIALIZER_DEREFERENCE_SCHEMA) != null
+                ? getBooleanOrFalse(SERIALIZER_DEREFERENCE_SCHEMA) : resolveDereferenced();
+    }
+
+    /**
+     * Whether deserializers fetch schemas dereferenced.
+     *
+     * @return {@link #DESERIALIZER_DEREFERENCE_SCHEMA} if set to a non-null value, otherwise
+     *         {@link #resolveDereferenced()}
+     */
+    public boolean deserializerDereference() {
+        return isDeserializerDereferenceSet()
+                ? getBooleanOrFalse(DESERIALIZER_DEREFERENCE_SCHEMA) : resolveDereferenced();
+    }
+
+    /**
+     * Whether {@link #DESERIALIZER_DEREFERENCE_SCHEMA} is set explicitly. Content-ID and content-hash lookups
+     * only dereference when it is, so the global {@link #DEREFERENCE_SCHEMA} keeps its previous behaviour for
+     * them (and keeps working against servers older than 3.4.0).
+     *
+     * @return true if the key is present with a non-null value
+     */
+    public boolean isDeserializerDereferenceSet() {
+        return originals.get(DESERIALIZER_DEREFERENCE_SCHEMA) != null;
+    }
+
     public boolean isCanonicalize() {
         return getBooleanOrFalse(CANONICALIZE);
     }
@@ -754,6 +819,7 @@ public class SchemaResolverConfig extends AbstractConfig {
     private static final Map<String, Object> DEFAULTS = Map.ofEntries(
             entry(CANONICALIZE, CANONICALIZE_DEFAULT),
             entry(ARTIFACT_RESOLVER_STRATEGY, ARTIFACT_RESOLVER_STRATEGY_DEFAULT),
+            entry(REFERENCE_NAMING_STRATEGY, REFERENCE_NAMING_STRATEGY_DEFAULT),
             entry(AUTO_REGISTER_ARTIFACT, AUTO_REGISTER_ARTIFACT_DEFAULT),
             entry(AUTO_REGISTER_ARTIFACT_IF_EXISTS, AUTO_REGISTER_ARTIFACT_IF_EXISTS_DEFAULT),
             entry(CACHE_LATEST, CACHE_LATEST_DEFAULT),

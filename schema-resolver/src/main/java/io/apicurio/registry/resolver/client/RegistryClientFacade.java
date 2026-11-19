@@ -1,5 +1,6 @@
 package io.apicurio.registry.resolver.client;
 
+import java.nio.charset.StandardCharsets;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 
 import java.util.List;
@@ -26,6 +27,61 @@ public interface RegistryClientFacade {
     String getSchemaByGlobalId(long globalId, boolean dereferenced);
     String getSchemaByGAV(String groupId, String artifactId, String version);
     String getSchemaByContentHash(String contentHash);
+
+    /**
+     * Gets a schema by global ID as the raw bytes returned by the registry. Use it instead of
+     * {@link #getSchemaByGlobalId(long, boolean)} when the content may be binary: a dereferenced
+     * Protobuf schema is a binary {@code FileDescriptorProto}, which is corrupted when read as text.
+     *
+     * @param globalId the global ID
+     * @param dereferenced whether to ask the registry to dereference the schema
+     * @return the schema content
+     */
+    default byte[] getSchemaBytesByGlobalId(long globalId, boolean dereferenced) {
+        return getSchemaByGlobalId(globalId, dereferenced).getBytes(StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Gets a schema by content ID, optionally dereferenced (all references inlined).
+     *
+     * @param contentId the content ID
+     * @param dereferenced whether to ask the registry to dereference the schema
+     * @return the schema content
+     * @throws UnsupportedOperationException if {@code dereferenced} is true and this facade does not support it
+     */
+    default String getSchemaByContentId(Long contentId, boolean dereferenced) {
+        if (dereferenced) {
+            throw new UnsupportedOperationException(
+                    "Dereferencing by content ID is not supported by " + getClass().getName());
+        }
+        return getSchemaByContentId(contentId);
+    }
+
+    /**
+     * Gets a schema by content hash, optionally dereferenced (all references inlined).
+     *
+     * @param contentHash the content hash
+     * @param dereferenced whether to ask the registry to dereference the schema
+     * @return the schema content
+     * @throws UnsupportedOperationException if {@code dereferenced} is true and this facade does not support it
+     */
+    default String getSchemaByContentHash(String contentHash, boolean dereferenced) {
+        if (dereferenced) {
+            throw new UnsupportedOperationException(
+                    "Dereferencing by content hash is not supported by " + getClass().getName());
+        }
+        return getSchemaByContentHash(contentHash);
+    }
+
+    /**
+     * Whether {@link #getSchemaByContentId(Long, boolean)} and {@link #getSchemaByContentHash(String, boolean)}
+     * can return dereferenced content.
+     *
+     * @return true if dereferenced content lookups are supported
+     */
+    default boolean supportsDereferencedContentLookups() {
+        return false;
+    }
 
     /*
      * Methods to get the references of a Schema by various identifiers.
@@ -55,6 +111,24 @@ public interface RegistryClientFacade {
      * Gets "full" coordinates (includes all IDs) of a schema version given its GAV coordinates.
      */
     RegistryVersionCoordinates getVersionCoordinatesByGAV(String groupId, String artifactId, String version);
+
+    /**
+     * Gets the coordinates (group ID, artifact ID, version) of the version with the given global ID.
+     * Returns null if there is no such version, or if this facade implementation cannot look it up.
+     */
+    default RegistryVersionCoordinates getVersionCoordinatesByGlobalId(long globalId) {
+        return null;
+    }
+
+    /**
+     * Gets the coordinates of the version of the given artifact whose content has the given content ID.
+     * A content ID can be shared by several versions; the most recently created one is returned.
+     * Returns null if there is no such version, or if this facade implementation cannot look it up.
+     */
+    default RegistryVersionCoordinates getVersionCoordinatesByContentId(long contentId, String groupId,
+            String artifactId) {
+        return null;
+    }
 
     /**
      * Access the underlying (generated) client used by the facade to access the Registry API.  For

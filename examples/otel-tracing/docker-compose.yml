@@ -1,162 +1,226 @@
-version: '3.8'
-
-volumes:
-  postgres_data:
-
+# OpenTelemetry tracing example: Apicurio Registry, Kafka serdes and Debezium CDC, all sending
+# traces to an OpenTelemetry Collector that forwards them to Jaeger. See README.md; run ./demo.sh
+# to verify. Build the Java applications first with ./build.sh (demo.sh does it if needed).
+#
+# For local demonstration only: a single-node broker without security, 100% trace sampling,
+# hard-coded database passwords.
+#
+# Host ports default to 8081 (Registry API), 16686 (Jaeger UI and query API), 8889 (Collector
+# Prometheus metrics), 8084 (greeting producer), 8085 (greeting consumer), 8086 (order service)
+# and 8087 (CDC consumer); override them with REGISTRY_PORT, JAEGER_PORT, COLLECTOR_METRICS_PORT,
+# PRODUCER_PORT, CONSUMER_PORT, ORDER_SERVICE_PORT and CDC_CONSUMER_PORT.
 services:
-  # Jaeger - Distributed Tracing Backend
+  # Trace backend: stores the traces and serves the UI and the query API that demo.sh reads
   jaeger:
-    image: jaegertracing/all-in-one:1.54
-    container_name: jaeger
+    image: jaegertracing/jaeger:2.11.0
+    container_name: jaeger-otel
     ports:
-      - "16686:16686"  # Jaeger UI
-      - "4317:4317"    # OTLP gRPC receiver (for direct connections)
-      - "4318:4318"    # OTLP HTTP receiver
-    environment:
-      COLLECTOR_OTLP_ENABLED: "true"
+      - "${JAEGER_PORT:-16686}:16686"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:16686/api/services"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
 
-  # OpenTelemetry Collector
+  # Every service exports OTLP here; the Collector batches, tags and forwards to Jaeger, and
+  # exposes the metrics it receives in Prometheus format
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.96.0
-    container_name: otel-collector
+    image: otel/opentelemetry-collector-contrib:0.139.0
+    container_name: otel-collector-otel
     command: ["--config=/etc/otel-collector-config.yaml"]
     volumes:
       - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
     ports:
-      - "4319:4317"    # OTLP gRPC receiver (exposed on different port to avoid conflict)
-      - "4320:4318"    # OTLP HTTP receiver
-      - "8888:8888"    # Prometheus metrics exposed by the collector
-      - "8889:8889"    # Prometheus exporter metrics
+      - "${COLLECTOR_METRICS_PORT:-8889}:8889"
     depends_on:
-      - jaeger
+      jaeger:
+        condition: service_healthy
 
-  # Zookeeper for Kafka
-  zookeeper:
-    image: quay.io/strimzi/kafka:0.39.0-kafka-3.6.1
-    platform: linux/amd64
-    container_name: zookeeper
-    command: [
-      "sh", "-c",
-      "bin/zookeeper-server-start.sh config/zookeeper.properties"
-    ]
-    ports:
-      - "2181:2181"
-    environment:
-      LOG_DIR: /tmp/logs
-
-  # Kafka Broker (Strimzi image)
   kafka:
-    image: quay.io/strimzi/kafka:0.39.0-kafka-3.6.1
-    platform: linux/amd64
-    container_name: kafka
-    command: [
-      "sh", "-c",
-      "bin/kafka-server-start.sh config/server.properties --override listeners=$${KAFKA_LISTENERS} --override advertised.listeners=$${KAFKA_ADVERTISED_LISTENERS} --override zookeeper.connect=$${KAFKA_ZOOKEEPER_CONNECT} --override listener.security.protocol.map=$${KAFKA_LISTENER_SECURITY_PROTOCOL_MAP} --override inter.broker.listener.name=$${KAFKA_INTER_BROKER_LISTENER_NAME}"
-    ]
-    depends_on:
-      - zookeeper
-    ports:
-      - "9092:9092"
-      - "29092:29092"
+    image: apache/kafka:3.8.1
+    container_name: kafka-otel
     environment:
-      LOG_DIR: "/tmp/logs"
-      KAFKA_LISTENERS: INTERNAL://0.0.0.0:29092,EXTERNAL://0.0.0.0:9092
-      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092,EXTERNAL://localhost:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      # Single-node KRaft broker (no ZooKeeper), reachable only on the Compose network
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: INTERNAL://:29092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092
       KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-
-  # PostgreSQL for Apicurio Registry
-  postgres:
-    image: postgres:15
-    container_name: postgres
-    ports:
-      - "5434:5432"
-    environment:
-      POSTGRES_DB: apicurio-registry
-      POSTGRES_USER: apicurio
-      POSTGRES_PASSWORD: apicurio
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
-  # Apicurio Registry with OpenTelemetry enabled
-  # NOTE: Requires a build that includes OTEL fixes (PR #7148)
-  apicurio-registry:
-    image: apicurio/apicurio-registry:latest-snapshot
-    platform: linux/amd64
-    container_name: apicurio-registry
-    ports:
-      - "8083:8080"
-    environment:
-      # Storage configuration
-      APICURIO_STORAGE_KIND: "sql"
-      APICURIO_STORAGE_SQL_KIND: "postgresql"
-      APICURIO_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/apicurio-registry"
-      APICURIO_DATASOURCE_USERNAME: "apicurio"
-      APICURIO_DATASOURCE_PASSWORD: "apicurio"
-      # OpenTelemetry configuration - enable SDK at runtime
-      QUARKUS_OTEL_SDK_DISABLED: "false"
-      QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
-      QUARKUS_OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
-      QUARKUS_OTEL_SERVICE_NAME: "apicurio-registry"
-      # Set sampler arg to 1.0 for 100% sampling in demo
-      QUARKUS_OTEL_TRACES_SAMPLER_ARG: "1.0"
-      QUARKUS_OTEL_RESOURCE_ATTRIBUTES: "service.version=3.0.0,deployment.environment=docker"
-    depends_on:
-      - postgres
-      - otel-collector
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      # One broker, so internal topics cannot be replicated
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      # Let the consumers start reading immediately
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/health/ready"]
-      interval: 10s
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:29092 --list > /dev/null"]
+      interval: 5s
+      timeout: 10s
+      retries: 30
+
+  # One PostgreSQL server for the order service (the CDC source, so logical decoding is enabled
+  # in this image) and for the Registry's SQL storage (database "registry", see init-db.sql)
+  postgres:
+    image: quay.io/debezium/postgres:16
+    container_name: postgres-otel
+    environment:
+      POSTGRES_DB: orders
+      POSTGRES_USER: orderuser
+      POSTGRES_PASSWORD: orderpass
+    volumes:
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U orderuser -d orders"]
+      interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 30
 
-  # Producer Application
+  apicurio-registry:
+    image: ${REGISTRY_IMAGE:-apicurio/apicurio-registry:latest-snapshot}
+    container_name: apicurio-registry-api-otel
+    environment:
+      APICURIO_STORAGE_KIND: sql
+      APICURIO_STORAGE_SQL_KIND: postgresql
+      APICURIO_DATASOURCE_URL: jdbc:postgresql://postgres:5432/registry
+      APICURIO_DATASOURCE_USERNAME: orderuser
+      APICURIO_DATASOURCE_PASSWORD: orderpass
+      # The OpenTelemetry SDK is built in but disabled by default; this turns it on
+      QUARKUS_OTEL_SDK_DISABLED: "false"
+      QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      # The default sampler is parentbased_traceidratio at 0.1: requests that arrive with a
+      # sampled traceparent are always traced, others only 10% of the time. Trace all of them here.
+      QUARKUS_OTEL_TRACES_SAMPLER_ARG: "1.0"
+      # Export metrics every 5s instead of every 60s, so demo.sh does not wait for them
+      QUARKUS_OTEL_METRIC_EXPORT_INTERVAL: 5s
+      # Let demo.sh delete the artifacts it creates when it runs again
+      apicurio.rest.deletion.artifact.enabled: "true"
+    ports:
+      - "${REGISTRY_PORT:-8081}:8080"
+    # Health is on the management port, 9000
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9000/health/ready > /dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+    depends_on:
+      postgres:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+
+  # --- Kafka serdes path: REST -> producer (Avro serializer) -> Kafka -> consumer ---
+
   producer:
-    build:
-      context: ./producer
-      dockerfile: Dockerfile
-    container_name: producer
-    ports:
-      - "8084:8080"
+    build: ./producer
+    container_name: greeting-producer-otel
     environment:
-      # Kafka configuration
-      KAFKA_BOOTSTRAP_SERVERS: "kafka:29092"
-      # Apicurio Registry configuration
-      APICURIO_REGISTRY_URL: "http://apicurio-registry:8080/apis/registry/v3"
-      # OpenTelemetry configuration (tracing enabled at build-time in producer app)
-      QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
-      QUARKUS_OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
-      QUARKUS_OTEL_SERVICE_NAME: "greeting-producer"
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      APICURIO_REGISTRY_URL: http://apicurio-registry:8080/apis/registry/v3
+      QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+    ports:
+      - "${PRODUCER_PORT:-8084}:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/q/health/ready > /dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
     depends_on:
       apicurio-registry:
         condition: service_healthy
       kafka:
-        condition: service_started
+        condition: service_healthy
+
+  consumer:
+    build: ./consumer
+    container_name: greeting-consumer-otel
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      APICURIO_REGISTRY_URL: http://apicurio-registry:8080/apis/registry/v3
+      QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+    ports:
+      - "${CONSUMER_PORT:-8085}:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/q/health/ready > /dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    depends_on:
+      apicurio-registry:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  # --- Debezium CDC path: REST -> order service -> PostgreSQL -> Debezium -> Kafka -> CDC consumer ---
+
+  order-service:
+    build: ./order-service
+    container_name: order-service-otel
+    environment:
+      QUARKUS_DATASOURCE_JDBC_URL: jdbc:postgresql://postgres:5432/orders
+      QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+    ports:
+      - "${ORDER_SERVICE_PORT:-8086}:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/q/health/ready > /dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Debezium Server with the OpenTelemetry Java agent and the example's tracing SMT
+  # (debezium-converter), which continues the order service's trace; see debezium-server/
+  debezium-server:
+    build:
+      context: .
+      dockerfile: debezium-server/Dockerfile
+    container_name: debezium-server-otel
+    volumes:
+      - ./debezium-server/application.properties:/debezium/config/application.properties:ro
+    environment:
+      # Configuration of the OpenTelemetry Java agent
+      OTEL_SERVICE_NAME: debezium-server
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+      OTEL_TRACES_SAMPLER: parentbased_always_on
+      OTEL_METRICS_EXPORTER: none
+      OTEL_LOGS_EXPORTER: none
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/q/health/ready > /dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      apicurio-registry:
+        condition: service_healthy
       otel-collector:
         condition: service_started
 
-  # Consumer Application
-  consumer:
-    build:
-      context: ./consumer
-      dockerfile: Dockerfile
-    container_name: consumer
-    ports:
-      - "8085:8080"
+  cdc-consumer:
+    build: ./cdc-consumer
+    container_name: cdc-consumer-otel
     environment:
-      # Kafka configuration
-      KAFKA_BOOTSTRAP_SERVERS: "kafka:29092"
-      # Apicurio Registry configuration
-      APICURIO_REGISTRY_URL: "http://apicurio-registry:8080/apis/registry/v3"
-      # OpenTelemetry configuration (tracing enabled at build-time in consumer app)
-      QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
-      QUARKUS_OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
-      QUARKUS_OTEL_SERVICE_NAME: "greeting-consumer"
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      APICURIO_REGISTRY_URL: http://apicurio-registry:8080/apis/registry/v3
+      APICURIO_REGISTRY_BASE_URL: http://apicurio-registry:8080
+      QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+    ports:
+      - "${CDC_CONSUMER_PORT:-8087}:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/q/health/ready > /dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
     depends_on:
       apicurio-registry:
         condition: service_healthy
       kafka:
-        condition: service_started
-      otel-collector:
-        condition: service_started
+        condition: service_healthy

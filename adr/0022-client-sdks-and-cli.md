@@ -161,8 +161,9 @@ What it registers is [ADR-0008](0008-artifact-references.md) and the
 2. For a `ProblemDetails` the CLI prints the problem's detail, not the HTTP status. A plain
    `ApiException` (such as that 401) exits with code 3 and its message names the HTTP status
    ([#11338](https://github.com/Apicurio/apicurio-registry/issues/11338)).
-3. The JDK adapter does not apply `requestTimeout` (it uses a fixed 30 s connect timeout and no read
-   timeout) and ignores `enableHttpLogging` ([#11337](https://github.com/Apicurio/apicurio-registry/issues/11337)).
+3. The JDK adapter ignores `enableHttpLogging`. It applies `requestTimeout` (default connect timeout
+   30 s), but the JDK `HttpClient` has no read-idle timeout, so the read value bounds the wait for
+   the response headers rather than idle time between reads.
 4. The Kiota version is pinned in four places and must be bumped together
    ([#10923](https://github.com/Apicurio/apicurio-registry/issues/10923)); the Java build downloads
    the Kiota binary from GitHub releases, which is a CI dependency.
@@ -229,3 +230,4 @@ What it registers is [ADR-0008](0008-artifact-references.md) and the
 | [#11321](https://github.com/Apicurio/apicurio-registry/pull/11321) | CLI connect and read timeouts |
 | This ADR | First written record |
 | [#11374](https://github.com/Apicurio/apicurio-registry/pull/11374) | CLI exits with code 3 on any `ApiException` and names the HTTP status ([#11338](https://github.com/Apicurio/apicurio-registry/issues/11338)) |
+| [#11377](https://github.com/Apicurio/apicurio-registry/pull/11377) | JDK adapter honours `requestTimeout` ([#11337](https://github.com/Apicurio/apicurio-registry/issues/11337)) |

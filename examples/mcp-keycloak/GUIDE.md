@@ -116,8 +116,8 @@ anything itself: Registry does, from the token's roles.
 With a wrong `APICURIO_MCP_AUTH_CLIENT_SECRET`, the server requests a token at startup, logs
 `Failed to obtain an OAuth2 token from <token endpoint> for client 'admin-client': HTTP 401
 (unauthorized_client: ...)` to stderr, and exits with status 1 before any session opens. The secret
-is not printed. If Keycloak is unreachable or answers 5xx, the server retries for about 30 seconds
-before it gives up.
+is not printed. If Keycloak is unreachable or answers 5xx, the server retries for at most 60 seconds
+in total before it gives up.
 
 ## Step 5: HTTP mode needs a token issued for the MCP server
 

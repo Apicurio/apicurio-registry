@@ -385,7 +385,7 @@ For the Docker method, pass environment variables by using separate `-e` element
 |OAuth2 scope. Optional.
 |===
 
-When authentication is enabled, the MCP server requests a token at startup. If the token endpoint rejects the client ID or secret (an HTTP 4xx response), the server logs an error that names the token endpoint and the client ID, and exits with a non-zero status. If the token endpoint cannot be reached or returns an HTTP 5xx response, the server retries for about 30 seconds before it exits. The client secret is never logged.
+When authentication is enabled, the MCP server requests a token at startup. If the token endpoint rejects the client ID or secret (an HTTP 4xx response), the server logs an error that names the token endpoint and the client ID, and exits with a non-zero status. If the token endpoint cannot be reached or returns an HTTP 5xx response, the server retries for at most 60 seconds in total before it exits. The client secret is never logged.
 
 .HTTP transport properties
 

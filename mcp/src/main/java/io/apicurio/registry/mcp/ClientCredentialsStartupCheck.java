@@ -12,7 +12,6 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
@@ -20,13 +19,18 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Requests an OAuth2 client-credentials token at startup when {@code apicurio.mcp.auth.enabled}
  * is true, so that wrong credentials stop the server instead of failing every tool call later.
  * <p>
  * A 4xx answer from the token endpoint (wrong client ID or secret, disabled client) fails at once.
- * Connection errors and 5xx answers are retried a few times, because the identity provider may
+ * Connection errors, timeouts and 5xx answers are retried within an overall deadline of
+ * {@link #DEFAULT_DEADLINE_MS} ms, because the identity provider may
  * still be starting next to this server (for example in the same compose file or pod).
  */
 @ApplicationScoped
@@ -39,6 +43,9 @@ public class ClientCredentialsStartupCheck {
     static final int DEFAULT_MAX_ATTEMPTS = 6;
     static final long DEFAULT_INITIAL_DELAY_MS = 1000;
     static final long MAX_DELAY_MS = 8000;
+    static final long DEFAULT_REQUEST_TIMEOUT_MS = 30_000;
+    /** Upper bound for the whole check: requests, body reads and backoff. */
+    static final long DEFAULT_DEADLINE_MS = 60_000;
 
     @ConfigProperty(name = "registry.url", defaultValue = "localhost:8080")
     String rawBaseUrl;
@@ -48,6 +55,8 @@ public class ClientCredentialsStartupCheck {
 
     int maxAttempts = DEFAULT_MAX_ATTEMPTS;
     long initialDelayMs = DEFAULT_INITIAL_DELAY_MS;
+    long requestTimeoutMs = DEFAULT_REQUEST_TIMEOUT_MS;
+    long deadlineMs = DEFAULT_DEADLINE_MS;
 
     void onStart(@Observes StartupEvent event) {
         verify();
@@ -68,43 +77,62 @@ public class ClientCredentialsStartupCheck {
         String endpoint = auth.tokenEndpoint().get();
         String clientId = auth.clientId().get();
 
+        String secret = auth.clientSecret().get();
+        String body = formBody(clientId, secret, auth.scope().orElse(null));
         HttpClient httpClient = buildHttpClient();
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(endpoint))
-                .header("Content-Type", "application/x-www-form-urlencoded")
-                .timeout(Duration.ofSeconds(30))
-                .POST(HttpRequest.BodyPublishers.ofString(formBody(clientId, auth.clientSecret().get(),
-                        auth.scope().orElse(null))))
-                .build();
 
+        long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(deadlineMs);
         long delay = initialDelayMs;
         String lastProblem = null;
-        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+        int attempt = 0;
+        while (attempt < maxAttempts) {
+            long remainingMs = remainingMs(deadline);
+            if (remainingMs <= 0) {
+                break;
+            }
+            attempt++;
+            long timeoutMs = Math.min(requestTimeoutMs, remainingMs);
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(endpoint))
+                    .header("Content-Type", "application/x-www-form-urlencoded")
+                    .timeout(Duration.ofMillis(timeoutMs))
+                    .POST(HttpRequest.BodyPublishers.ofString(body))
+                    .build();
+            // The future completes only once the whole body is read, so get() with a timeout
+            // also bounds a server that sends headers and then stalls.
+            CompletableFuture<HttpResponse<String>> future =
+                    httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
             try {
-                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                HttpResponse<String> response = future.get(timeoutMs, TimeUnit.MILLISECONDS);
                 int status = response.statusCode();
                 if (status == 200 && hasAccessToken(response.body())) {
                     log.info("Obtained an OAuth2 token from {} for client '{}'", endpoint, clientId);
                     return;
                 }
-                lastProblem = "HTTP " + status + describeError(response.body());
+                lastProblem = "HTTP " + status + redact(describeError(response.body()), secret);
                 if (status >= 400 && status < 500) {
                     throw fail("Failed to obtain an OAuth2 token from " + endpoint + " for client '" + clientId
                             + "': " + lastProblem + ". Check APICURIO_MCP_AUTH_CLIENT_ID and "
                             + "APICURIO_MCP_AUTH_CLIENT_SECRET.");
                 }
-            } catch (IOException e) {
-                lastProblem = e.getClass().getSimpleName()
-                        + (e.getMessage() != null ? ": " + e.getMessage() : "");
+            } catch (TimeoutException e) {
+                future.cancel(true);
+                lastProblem = "no complete response within " + timeoutMs + " ms";
+            } catch (ExecutionException e) {
+                Throwable cause = e.getCause() != null ? e.getCause() : e;
+                lastProblem = redact(cause.getClass().getSimpleName()
+                        + (cause.getMessage() != null ? ": " + cause.getMessage() : ""), secret);
             } catch (InterruptedException e) {
+                future.cancel(true);
                 Thread.currentThread().interrupt();
                 throw fail("Interrupted while requesting an OAuth2 token from " + endpoint);
             }
-            if (attempt < maxAttempts) {
+            long sleepMs = Math.min(delay, remainingMs(deadline));
+            if (attempt < maxAttempts && sleepMs > 0) {
                 log.warn("Could not obtain an OAuth2 token from {} for client '{}' (attempt {}/{}): {}. "
-                        + "Retrying in {} ms", endpoint, clientId, attempt, maxAttempts, lastProblem, delay);
+                        + "Retrying in {} ms", endpoint, clientId, attempt, maxAttempts, lastProblem, sleepMs);
                 try {
-                    Thread.sleep(delay);
+                    Thread.sleep(sleepMs);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     throw fail("Interrupted while requesting an OAuth2 token from " + endpoint);
@@ -113,7 +141,27 @@ public class ClientCredentialsStartupCheck {
             }
         }
         throw fail("Failed to obtain an OAuth2 token from " + endpoint + " for client '" + clientId
-                + "' after " + maxAttempts + " attempts: " + lastProblem);
+                + "' after " + attempt + " attempts in at most " + deadlineMs + " ms: " + lastProblem);
+    }
+
+    private static long remainingMs(long deadlineNanos) {
+        return TimeUnit.NANOSECONDS.toMillis(deadlineNanos - System.nanoTime());
+    }
+
+    /**
+     * The token endpoint controls the error text and could echo the submitted secret, so remove it
+     * in the forms it was sent in: raw and form-encoded.
+     */
+    static String redact(String text, String secret) {
+        if (text == null || secret == null || secret.isEmpty()) {
+            return text;
+        }
+        String result = text.replace(secret, "***");
+        String encoded = URLEncoder.encode(secret, StandardCharsets.UTF_8);
+        if (!encoded.isEmpty()) {
+            result = result.replace(encoded, "***");
+        }
+        return result;
     }
 
     private static IllegalStateException fail(String message) {

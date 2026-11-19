@@ -11,12 +11,17 @@ import java.lang.reflect.Proxy;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Handler;
 import java.util.logging.LogRecord;
@@ -38,6 +43,12 @@ class ClientCredentialsStartupCheckTest {
     private static final String KEYCLOAK_401 =
             "{\"error\":\"unauthorized_client\",\"error_description\":\"Invalid client or Invalid client credentials\"}";
 
+    private static final int STALL = -1;
+    private static final int ECHO = -2;
+
+    private final CountDownLatch release = new CountDownLatch(1);
+    private ExecutorService executor;
+    private volatile String echoBody;
     private HttpServer server;
     private String tokenEndpoint;
     private final List<Integer> statuses = Collections.synchronizedList(new ArrayList<>());
@@ -56,14 +67,31 @@ class ClientCredentialsStartupCheckTest {
             bodies.add(requestBody);
             int idx = Math.min(n, statuses.size() - 1);
             int status = statuses.get(idx);
+            if (status == STALL) {
+                exchange.sendResponseHeaders(200, 1000);
+                exchange.getResponseBody().write('{');
+                exchange.getResponseBody().flush();
+                try {
+                    release.await();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                exchange.close();
+                return;
+            }
             String body = status == 200 ? "{\"access_token\":\"abc\",\"expires_in\":300}"
-                    : status == 401 ? KEYCLOAK_401 : "unavailable";
+                    : status == 401 ? KEYCLOAK_401 : status == ECHO ? echoBody : "unavailable";
+            if (status == ECHO) {
+                status = 401;
+            }
             byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
             exchange.sendResponseHeaders(status, bytes.length);
             try (OutputStream os = exchange.getResponseBody()) {
                 os.write(bytes);
             }
         });
+        executor = Executors.newCachedThreadPool();
+        server.setExecutor(executor);
         server.start();
         tokenEndpoint = "http://127.0.0.1:" + server.getAddress().getPort() + "/token";
 
@@ -88,7 +116,9 @@ class ClientCredentialsStartupCheckTest {
     @AfterEach
     void tearDown() {
         julLogger.removeHandler(logHandler);
+        release.countDown();
         server.stop(0);
+        executor.shutdownNow();
     }
 
     @Test
@@ -137,7 +167,7 @@ class ClientCredentialsStartupCheckTest {
         var e = assertThrows(IllegalStateException.class, check::verify);
 
         assertEquals("Failed to obtain an OAuth2 token from " + tokenEndpoint
-                + " for client 'admin-client' after 3 attempts: HTTP 503", e.getMessage());
+                + " for client 'admin-client' after 3 attempts in at most 10000 ms: HTTP 503", e.getMessage());
         assertEquals(3, requests.get());
         assertTrue(logMessages.stream().noneMatch(m -> m.contains(SECRET)), "secret leaked: " + logMessages);
     }
@@ -154,8 +184,63 @@ class ClientCredentialsStartupCheckTest {
         var e = assertThrows(IllegalStateException.class, check::verify);
 
         assertTrue(e.getMessage().startsWith("Failed to obtain an OAuth2 token from " + endpoint
-                + " for client 'admin-client' after 3 attempts: ConnectException"), e.getMessage());
+                + " for client 'admin-client' after 3 attempts in at most 10000 ms: ConnectException"),
+                e.getMessage());
         assertFalse(e.getMessage().contains(SECRET));
+    }
+
+    @Test
+    void stalledBodyFailsWithinTheDeadline() {
+        statuses.add(STALL);
+        var check = newCheck(true, tokenEndpoint);
+        check.maxAttempts = 100;
+        check.deadlineMs = 1500;
+
+        long start = System.nanoTime();
+        var e = assertThrows(IllegalStateException.class, check::verify);
+        long elapsedMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+
+        assertTrue(elapsedMs < 4000, "took " + elapsedMs + " ms");
+        // The per-attempt timeout is the time left before the deadline, so it may be just under 1500 ms
+        assertTrue(e.getMessage().startsWith("Failed to obtain an OAuth2 token from " + tokenEndpoint
+                + " for client 'admin-client' after 1 attempts in at most 1500 ms: "
+                + "no complete response within 1"), e.getMessage());
+    }
+
+    @Test
+    void repeatedServerErrorsStopAtTheDeadline() {
+        statuses.add(503);
+        var check = newCheck(true, tokenEndpoint);
+        check.maxAttempts = 1000;
+        check.initialDelayMs = 200;
+        check.deadlineMs = 1000;
+
+        long start = System.nanoTime();
+        var e = assertThrows(IllegalStateException.class, check::verify);
+        long elapsedMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+
+        assertTrue(elapsedMs >= 900 && elapsedMs < 3000, "took " + elapsedMs + " ms");
+        assertTrue(requests.get() >= 2 && requests.get() < 10, "requests: " + requests.get());
+        assertTrue(e.getMessage().endsWith("in at most 1000 ms: HTTP 503"), e.getMessage());
+    }
+
+    @Test
+    void secretEchoedByTheEndpointIsRedacted() {
+        String secret = "s3cr3t value+never/logged";
+        String encoded = URLEncoder.encode(secret, StandardCharsets.UTF_8);
+        echoBody = "{\"error\":\"invalid_client " + secret + "\",\"error_description\":\"bad secret "
+                + encoded + "\"}";
+        statuses.add(ECHO);
+        var check = newCheck(true, tokenEndpoint, CLIENT_ID, secret);
+
+        var e = assertThrows(IllegalStateException.class, check::verify);
+
+        assertTrue(bodies.get(0).contains("client_secret=" + encoded), "the secret is sent to the endpoint");
+        assertTrue(e.getMessage().contains("HTTP 401 (invalid_client ***: bad secret ***)"), e.getMessage());
+        assertFalse(e.getMessage().contains(secret));
+        assertFalse(e.getMessage().contains(encoded));
+        assertTrue(logMessages.stream().noneMatch(m -> m.contains(secret) || m.contains(encoded)),
+                "secret leaked: " + logMessages);
     }
 
     @Test
@@ -187,6 +272,7 @@ class ClientCredentialsStartupCheckTest {
         check.rawBaseUrl = "http://localhost:8080";
         check.maxAttempts = 3;
         check.initialDelayMs = 10;
+        check.deadlineMs = 10_000;
         check.config = proxy(McpConfig.class, Map.of(
                 "auth", proxy(McpConfig.Auth.class, Map.of(
                         "enabled", authEnabled,

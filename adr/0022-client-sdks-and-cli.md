@@ -125,7 +125,7 @@ of that release.
 | Configuration | `config.json` in the CLI's home directory, managed with `acr config`. The `acr` launcher picks that directory, and exports it as `ACR_CURRENT_HOME`: its own directory if the CLI binary is next to it (an unpacked ZIP), otherwise `ACR_HOME`. The installer puts it in `$HOME/.apicurio/apicurio-registry-cli` |
 | Credentials | `acr login` (basic, or OAuth2 client credentials with OIDC discovery); the password or client secret goes to the OS keychain (macOS Keychain, Linux Secret Service, Windows Credential Manager), or an encrypted file with `--allow-unsafe-credential-storage`; tokens are requested per invocation, never stored |
 | Output | `--output-type table` (default) or `json`; JSON on stdout, diagnostics on stderr; `--verbose` logs raw HTTP |
-| Exit codes | `0` success, `1` application error, `2` invalid input, `3` a `ProblemDetails` from the registry |
+| Exit codes | `0` success, `1` application error, `2` invalid input, `3` a `ProblemDetails` or any other `ApiException` (an HTTP error status) from the registry |
 | Timeouts | Registry calls: 30 s connect, 120 s read idle; import: 1 h read idle |
 | Updates | Checks once a day; `acr update` installs, `--check`, `--postpone`, `update.check-enabled=false` |
 | Distribution | Native ZIPs for Linux x86_64, macOS aarch64, Windows x86_64; `acr install` sets up `PATH` and completions |
@@ -158,9 +158,9 @@ What it registers is [ADR-0008](0008-artifact-references.md) and the
    from a proxy reaches the caller without a usable message, and a 401 without a body is a plain
    `ApiException` (`service returned status code401 but no response body was found`), not a
    `ProblemDetails` ([#11261](https://github.com/Apicurio/apicurio-registry/issues/11261)).
-2. The CLI maps only `ProblemDetails` to exit code 3; a plain `ApiException` (such as that 401) is
-   reported as an unexpected error with exit code 1. The CLI prints the problem's detail, not the
-   HTTP status ([#11338](https://github.com/Apicurio/apicurio-registry/issues/11338)).
+2. For a `ProblemDetails` the CLI prints the problem's detail, not the HTTP status. A plain
+   `ApiException` (such as that 401) exits with code 3 and its message names the HTTP status
+   ([#11338](https://github.com/Apicurio/apicurio-registry/issues/11338)).
 3. The JDK adapter does not apply `requestTimeout` (it uses a fixed 30 s connect timeout and no read
    timeout) and ignores `enableHttpLogging` ([#11337](https://github.com/Apicurio/apicurio-registry/issues/11337)).
 4. The Kiota version is pinned in four places and must be bumped together
@@ -211,7 +211,7 @@ What it registers is [ADR-0008](0008-artifact-references.md) and the
 | Retry, OTel, logging | `RetryInvocationHandlerTest`, `OTelRequestAdapterDecoratorTest`, `HttpLoggingInterceptorTest` |
 | Auth and TLS per adapter | `VertXAuthFactoryTest`, `JdkAuthFactoryTest`, `JdkAdapterAuthenticationTest`, `JdkSslContextFactoryTest` |
 | Serdes facade | `RegistryClientFacadeFactoryTest`, `RegistryClientFacadeImplTest` |
-| CLI | `AbstractCommandRuleViolationTest`, `ClientTimeoutTest`, `AuthCommandTest`, `ContextCommandTest`, `UpdateCommandTest`, `FileCredentialProviderTest` |
+| CLI | `AbstractCommandRuleViolationTest`, `ApiExceptionExitCodeTest`, `ClientTimeoutTest`, `AuthCommandTest`, `ContextCommandTest`, `UpdateCommandTest`, `FileCredentialProviderTest` |
 | Maven plugin | `HttpStatusMessageTest`, `TlsConfigurationTest`, `TlsIntegrationTest` |
 
 ```bash
@@ -228,3 +228,4 @@ What it registers is [ADR-0008](0008-artifact-references.md) and the
 | [#11289](https://github.com/Apicurio/apicurio-registry/pull/11289) | Maven plugin errors name the HTTP status |
 | [#11321](https://github.com/Apicurio/apicurio-registry/pull/11321) | CLI connect and read timeouts |
 | This ADR | First written record |
+| this PR | CLI exits with code 3 on any `ApiException` and names the HTTP status ([#11338](https://github.com/Apicurio/apicurio-registry/issues/11338)) |

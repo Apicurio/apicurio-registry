@@ -8,6 +8,7 @@ import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.impl.sql.jdb.RuntimeSqlException;
+import io.apicurio.registry.storage.impl.sql.repositories.SqlSequenceRepository;
 import io.apicurio.registry.storage.impl.sql.upgrader.DuplicateVersionOrderUpgrader;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
@@ -18,10 +19,21 @@ import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 @QuarkusTest
 public class DefaultRegistryStorageTest extends AbstractRegistryStorageTest {
@@ -165,6 +177,122 @@ public class DefaultRegistryStorageTest extends AbstractRegistryStorageTest {
         Assertions.assertEquals(lowerGlobalId, byCanonicalHash.getGlobalId());
     }
 
+    private SqlSequenceRepository sequences() {
+        return new SqlSequenceRepository(handles, sqlStatements,
+                LoggerFactory.getLogger(DefaultRegistryStorageTest.class));
+    }
+
+    /**
+     * Allocating an ID must not wait for another transaction that allocated an ID and has not
+     * committed yet. With the old sequences-table upsert the second caller blocks on the row lock.
+     */
+    @Test
+    public void testIdAllocationDoesNotWaitForOpenTransactions() throws Exception {
+        SqlSequenceRepository sequences = sequences();
+        CountDownLatch allocated = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        try {
+            Future<Long> holder = executor.submit(() -> handles.withHandleNoException(handle -> {
+                long id = sequences.nextGlobalIdRaw(handle);
+                allocated.countDown();
+                Assertions.assertTrue(release.await(30, TimeUnit.SECONDS), "release latch timed out");
+                return id;
+            }));
+            Assertions.assertTrue(allocated.await(30, TimeUnit.SECONDS), "holder never allocated an ID");
+
+            Future<Long> other = executor.submit(sequences::nextGlobalId);
+            // Upper bound on a call that should return immediately; a timeout means it blocked.
+            long otherId = other.get(5, TimeUnit.SECONDS);
+
+            release.countDown();
+            long heldId = holder.get(30, TimeUnit.SECONDS);
+            Assertions.assertNotEquals(heldId, otherId, "concurrent allocations returned the same ID");
+        } finally {
+            release.countDown();
+            executor.shutdownNow();
+            executor.awaitTermination(30, TimeUnit.SECONDS);
+        }
+    }
+
+    /**
+     * An ID handed out inside a transaction that rolls back is never handed out again.
+     */
+    @Test
+    public void testIdsAreNotReusedAfterRollback() {
+        SqlSequenceRepository sequences = sequences();
+        long[] rolledBack = new long[1];
+        Assertions.assertThrows(IllegalStateException.class, () -> handles.withHandle(handle -> {
+            rolledBack[0] = sequences.nextGlobalIdRaw(handle);
+            throw new IllegalStateException("force rollback");
+        }));
+        long next = sequences.nextGlobalId();
+        Assertions.assertTrue(next > rolledBack[0], "expected > " + rolledBack[0] + " but was " + next);
+    }
+
+    /**
+     * Concurrent callers on separate connections always receive distinct IDs.
+     */
+    @Test
+    public void testConcurrentIdAllocationIsUnique() throws Exception {
+        SqlSequenceRepository sequences = sequences();
+        int threads = 8;
+        int perThread = 50;
+        ExecutorService executor = Executors.newFixedThreadPool(threads);
+        try {
+            CountDownLatch start = new CountDownLatch(1);
+            List<Future<List<Long>>> futures = new ArrayList<>();
+            for (int t = 0; t < threads; t++) {
+                futures.add(executor.submit(() -> {
+                    Assertions.assertTrue(start.await(30, TimeUnit.SECONDS), "start latch timed out");
+                    List<Long> ids = new ArrayList<>();
+                    for (int i = 0; i < perThread; i++) {
+                        ids.add(sequences.nextGlobalId());
+                        ids.add(-sequences.nextContentId());
+                        ids.add(Long.MIN_VALUE + sequences.nextCommentId());
+                    }
+                    return ids;
+                }));
+            }
+            start.countDown();
+            Set<Long> all = new HashSet<>();
+            for (Future<List<Long>> future : futures) {
+                all.addAll(future.get(60, TimeUnit.SECONDS));
+            }
+            Assertions.assertEquals(threads * perThread * 3, all.size(), "duplicate IDs were allocated");
+        } finally {
+            executor.shutdownNow();
+            executor.awaitTermination(30, TimeUnit.SECONDS);
+        }
+    }
+
+    /**
+     * After an ID-preserving import, reset moves the sequences past the imported IDs; a reset with
+     * nothing above the sequence never moves it backwards.
+     */
+    @Test
+    public void testResetMovesSequencesPastImportedIdsAndNeverBackwards() {
+        SqlSequenceRepository sequences = sequences();
+        String groupId = TestUtils.generateGroupId();
+        ArtifactVersionMetaDataDto first = createFirstVersion(groupId, TestUtils.generateArtifactId());
+
+        long importedGlobalId = sequences.nextGlobalId() + 1000;
+        ArtifactVersionEntity imported = duplicateOf(first, "2");
+        imported.globalId = importedGlobalId;
+        imported.versionOrder = first.getVersionOrder() + 1;
+        storage.importArtifactVersion(imported);
+
+        storage.resetGlobalId();
+        long afterReset = sequences.nextGlobalId();
+        Assertions.assertTrue(afterReset > importedGlobalId,
+                "expected > " + importedGlobalId + " but was " + afterReset);
+
+        storage.resetGlobalId();
+        long afterSecondReset = sequences.nextGlobalId();
+        Assertions.assertTrue(afterSecondReset > afterReset,
+                "expected > " + afterReset + " but was " + afterSecondReset);
+    }
+
     private ArtifactVersionMetaDataDto createFirstVersion(String groupId, String artifactId) {
         return storage.createArtifact(groupId, artifactId, ArtifactType.OPENAPI, null, "1",
                 ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON)
@@ -208,6 +336,129 @@ public class DefaultRegistryStorageTest extends AbstractRegistryStorageTest {
         });
     }
 
+    /**
+     * The 115 upgrader seeds the native sequences above both the legacy sequences table and the
+     * IDs present in the data tables.
+     */
+    @Test
+    public void testNativeSequencesUpgraderSeedsAboveLegacyValues() {
+        Assumptions.assumeFalse("h2".equals(sqlStatements.dbType()), "H2 keeps in-memory counters");
+        SqlSequenceRepository sequences = sequences();
+        long legacyGlobalId = sequences.nextGlobalId() + 5000;
+        long legacyContentId = sequences.nextContentId() + 5000;
+        long legacyCommentId = sequences.nextCommentId() + 5000;
+
+        runNativeSequencesUpgrader(legacyGlobalId, legacyContentId, legacyCommentId);
+
+        assertGreater(legacyGlobalId, sequences.nextGlobalId());
+        assertGreater(legacyContentId, sequences.nextContentId());
+        assertGreater(legacyCommentId, sequences.nextCommentId());
+    }
+
+    /**
+     * When the data tables hold IDs above the legacy sequences-table value (e.g. after an
+     * ID-preserving import), the 115 upgrader seeds the native sequence above the table maximum.
+     */
+    @Test
+    public void testNativeSequencesUpgraderSeedsAboveTableMaxWhenLegacyIsLower() {
+        Assumptions.assumeFalse("h2".equals(sqlStatements.dbType()), "H2 keeps in-memory counters");
+        SqlSequenceRepository sequences = sequences();
+        ArtifactVersionMetaDataDto first = createFirstVersion(TestUtils.generateGroupId(),
+                TestUtils.generateArtifactId());
+        long legacyGlobalId = sequences.nextGlobalId();
+        long importedGlobalId = legacyGlobalId + 10000;
+        ArtifactVersionEntity imported = duplicateOf(first, "2");
+        imported.globalId = importedGlobalId;
+        imported.versionOrder = first.getVersionOrder() + 1;
+        storage.importArtifactVersion(imported);
+
+        runNativeSequencesUpgrader(legacyGlobalId, sequences.nextContentId(), sequences.nextCommentId());
+
+        assertGreater(importedGlobalId, sequences.nextGlobalId());
+    }
+
+    private static void assertGreater(long floor, long actual) {
+        Assertions.assertTrue(actual > floor, "expected > " + floor + " but was " + actual);
+    }
+
+    /**
+     * Recreates the legacy sequences table with the given values, runs the 115 upgrader against
+     * it, and drops the table again.
+     */
+    private void runNativeSequencesUpgrader(long globalId, long contentId, long commentId) {
+        execute("CREATE TABLE sequences (seqName VARCHAR(32) NOT NULL PRIMARY KEY, seqValue BIGINT NOT NULL)");
+        try {
+            execute("INSERT INTO sequences (seqName, seqValue) VALUES ('globalId', " + globalId + ")");
+            execute("INSERT INTO sequences (seqName, seqValue) VALUES ('contentId', " + contentId + ")");
+            execute("INSERT INTO sequences (seqName, seqValue) VALUES ('commentId', " + commentId + ")");
+
+            runNativeSequencesUpgraderOnly();
+        } finally {
+            execute("DROP TABLE sequences");
+        }
+    }
+
+    /**
+     * Runs only the 115 upgrader class (not the surrounding DDL).
+     */
+    private void runNativeSequencesUpgraderOnly() {
+        String className = sqlStatements.databaseUpgrade(114, 115).stream()
+                .filter(s -> s.startsWith("UPGRADER:"))
+                .map(s -> s.substring("UPGRADER:".length()).trim())
+                .findFirst().orElseThrow();
+        handles.withHandleNoException(handle -> {
+            ((IDbUpgrader) Class.forName(className).getConstructor().newInstance()).upgrade(handle);
+            return null;
+        });
+    }
+
+    /**
+     * A re-run after a partial failure may find the legacy sequences table already dropped; the
+     * upgrader then seeds from the data-table maximums alone.
+     */
+    @Test
+    public void testNativeSequencesUpgraderSeedsAboveTableMaxWithoutLegacyTable() {
+        Assumptions.assumeFalse("h2".equals(sqlStatements.dbType()), "H2 keeps in-memory counters");
+        SqlSequenceRepository sequences = sequences();
+        ArtifactVersionMetaDataDto first = createFirstVersion(TestUtils.generateGroupId(),
+                TestUtils.generateArtifactId());
+        long importedGlobalId = sequences.nextGlobalId() + 10000;
+        ArtifactVersionEntity imported = duplicateOf(first, "2");
+        imported.globalId = importedGlobalId;
+        imported.versionOrder = first.getVersionOrder() + 1;
+        storage.importArtifactVersion(imported);
+
+        runNativeSequencesUpgraderOnly();
+
+        assertGreater(importedGlobalId, sequences.nextGlobalId());
+    }
+
+    /**
+     * The 115 script (minus the version bump) is re-runnable against a database where its objects
+     * already exist and the legacy table is gone, as after a partially failed MySQL upgrade.
+     */
+    @Test
+    public void testNativeSequencesUpgradeScriptIsRerunnable() {
+        Assumptions.assumeFalse("h2".equals(sqlStatements.dbType()), "H2 keeps in-memory counters");
+        SqlSequenceRepository sequences = sequences();
+        long before = sequences.nextGlobalId();
+        for (int run = 0; run < 2; run++) {
+            handles.withHandleNoException(handle -> {
+                for (String statement : sqlStatements.databaseUpgrade(114, 115)) {
+                    if (statement.startsWith("UPGRADER:")) {
+                        String className = statement.substring("UPGRADER:".length()).trim();
+                        ((IDbUpgrader) Class.forName(className).getConstructor().newInstance())
+                                .upgrade(handle);
+                    } else if (!statement.startsWith("UPDATE apicurio")) {
+                        handle.createUpdate(statement).execute();
+                    }
+                }
+                return null;
+            });
+        }
+        assertGreater(before, sequences.nextGlobalId());
+    }
+
     private void execute(String sql) {
         handles.withHandleNoException(handle -> {
             handle.createUpdate(sql).execute();
@@ -222,4 +473,31 @@ public class DefaultRegistryStorageTest extends AbstractRegistryStorageTest {
         });
     }
 
+    /**
+     * Pruning leaves exactly one ticket row per MySQL sequence and numbering continues after it.
+     */
+    @Test
+    public void testPruneSequenceTicketsKeepsNewestRow() {
+        Assumptions.assumeTrue("mysql".equals(sqlStatements.dbType()), "Ticket tables are MySQL-only");
+        SqlSequenceRepository sequences = sequences();
+        long lastGlobalId = 0;
+        long lastContentId = 0;
+        long lastCommentId = 0;
+        for (int i = 0; i < 20; i++) {
+            lastGlobalId = sequences.nextGlobalId();
+            lastContentId = sequences.nextContentId();
+            lastCommentId = sequences.nextCommentId();
+        }
+        sequences.pruneSequenceTickets();
+
+        for (String table : List.of("globalid_seq", "contentid_seq", "commentid_seq")) {
+            long rows = handles.withHandleNoException(handle -> {
+                return handle.createQuery("SELECT COUNT(*) FROM " + table).mapTo(Long.class).one();
+            });
+            Assertions.assertEquals(1L, rows, table + " should keep exactly one ticket row");
+        }
+        assertGreater(lastGlobalId, sequences.nextGlobalId());
+        assertGreater(lastContentId, sequences.nextContentId());
+        assertGreater(lastCommentId, sequences.nextCommentId());
+    }
 }

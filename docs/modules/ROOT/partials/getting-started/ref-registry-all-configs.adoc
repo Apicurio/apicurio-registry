@@ -934,6 +934,36 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
+|`apicurio.agent-inventory.enabled`
+|`boolean`
+|`false`
+|`3.4.0`
+|Enable keeping groups in sync with inventories of agents and MCP servers, such as MCPServer and AgentCard resources in Kubernetes and agents registered in Google Cloud Agent Registry _(experimental)_
+|`apicurio.agent-inventory.google.url`
+|`string`
+|`https://agentregistry.googleapis.com`
+|`3.4.0`
+|Base URL of the Google Cloud Agent Registry API read by the GOOGLE_AGENT_REGISTRY inventory source
+|`apicurio.agent-inventory.items.max-size`
+|`int`
+|`1000`
+|`3.4.0`
+|Maximum number of items an inventory source may list for one sync. A sync of a source listing more is refused, so an unexpectedly large inventory cannot flood the group
+|`apicurio.agent-inventory.kubernetes.agent-card.group`
+|`string`
+|`agent.rossoctl.dev`
+|`3.4.0`
+|API group of the AgentCard resources read by the KUBERNETES_AGENT_CARDS inventory source. The default is the group of the Rossoctl operator, formerly Kagenti; set agent.kagenti.dev for clusters running an older Kagenti operator
+|`apicurio.agent-inventory.kubernetes.namespaces`
+|`optional<list<string>>`
+|
+|`3.4.0`
+|Kubernetes namespaces that an inventory sync may read MCPServer and AgentCard resources from, as a comma-separated list. When empty, Kubernetes inventory sources are refused. The registry's service account needs permission to list these resources in each namespace
+|`apicurio.agent-inventory.timeout.seconds`
+|`int`
+|`10`
+|`3.4.0`
+|Timeout, in seconds, for each request to an inventory source during a sync
 |`apicurio.mcp-import.allowed-hosts`
 |`optional<list<string>>`
 |

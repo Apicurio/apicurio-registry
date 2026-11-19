@@ -102,7 +102,7 @@ the artifact through the core API is governed by the usual authorization
 | MCP Registry API | `agents.mcpregistry` | v0.1 API, status, cursors, its own error mapper |
 | MCP import | `agents.mcpimport` | Client, target policy, idempotent import (`UNCHANGED`) |
 | Prompts | `agents.services` | Rendering with variables, defaults and validation errors |
-| Registry MCP server | `mcp/` module | Tools for AI assistants over the core API, including ARD search |
+| Registry MCP server | `mcp/` module | Tools for AI assistants over the core API, including ARD search ([ADR-0023](0023-mcp-server.md)) |
 
 ## Configuration
 

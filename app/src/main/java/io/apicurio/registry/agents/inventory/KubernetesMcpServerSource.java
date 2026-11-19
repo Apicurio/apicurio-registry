@@ -83,4 +83,9 @@ public class KubernetesMcpServerSource implements InventorySource {
                 KubernetesInventory.artifactId(ARTIFACT_ID_PREFIX, namespace, name), ArtifactType.MCP_SERVER,
                 serverName != null ? serverName : name, description, server.toString(), url);
     }
+
+    @Override
+    public String artifactId(String namespace, String externalId) {
+        return KubernetesInventory.artifactIdFor(ARTIFACT_ID_PREFIX, namespace, externalId);
+    }
 }

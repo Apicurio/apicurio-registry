@@ -155,4 +155,6 @@ Add `"dryRun": true` to see the report without writing anything.
 [role="_abstract"]
 {registry} runs a sync when a caller requests one, with the caller's identity: authorization, rules, and auditing apply to every write as for any other request. To keep the inventory current, call the endpoint on a schedule, for example from a Kubernetes `CronJob` that authenticates with a service account token when Kubernetes authentication is enabled.
 
-Each request to a source times out after `apicurio.agent-inventory.timeout.seconds`, and a source that lists more than `apicurio.agent-inventory.items.max-size` items is refused, so that an unexpectedly large inventory cannot flood the group.
+Each request to Google Cloud Agent Registry, including reading its response, times out after `apicurio.agent-inventory.timeout.seconds`. The Kubernetes sources use the timeouts of the Kubernetes client, set with `quarkus.kubernetes-client.request-timeout`. A source that lists more than `apicurio.agent-inventory.items.max-size` items is refused, so that an unexpectedly large inventory cannot flood the group.
+
+A sync reports an item as `MISSING` only on the evidence of a complete, well-formed listing: a listing that fails or that is not in the documented shape fails the whole sync before anything is written. An `AgentCard` whose card the operator has not fetched yet is not published, and is not reported missing either.

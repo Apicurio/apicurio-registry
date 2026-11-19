@@ -63,6 +63,8 @@ import java.util.Set;
 public class AgentInventorySyncService implements AgentInventorySyncHandler {
 
     // Headers the HTTP client sets itself, or refuses to let callers set.
+    private static final int MISSING_PAGE_SIZE = 200;
+
     private static final Set<String> RESERVED_HEADERS = Set.of("host", "content-length", "connection",
             "accept", "expect", "upgrade", "transfer-encoding", "te", "trailer", "keep-alive");
 
@@ -116,16 +118,23 @@ public class AgentInventorySyncService implements AgentInventorySyncHandler {
         }
 
         List<AgentInventorySyncItemResult> results = new ArrayList<>();
+        Set<String> disabled = new HashSet<>();
         for (InventoryItem item : items) {
-            AgentInventorySyncItemResult result = syncItem(groupId, request.getSource(), scope, item, dryRun);
+            if (item.content() == null) {
+                // Listed, so not missing, but there is nothing to publish yet.
+                continue;
+            }
+            AgentInventorySyncItemResult result = syncItem(groupId, request.getSource(), scope, item, dryRun,
+                    disabled);
             if (importTools && item.mcpUrl() != null && result.getStatus() != AgentInventorySyncStatus.REJECTED
                     && result.getStatus() != AgentInventorySyncStatus.NOT_MANAGED
+                    && !disabled.contains(item.artifactId())
                     && !(dryRun && result.getStatus() == AgentInventorySyncStatus.CREATED)) {
                 importTools(groupId, item, result, dryRun);
             }
             results.add(result);
         }
-        results.addAll(missing(groupId, request.getSource(), scope, seen, dryRun));
+        results.addAll(missing(groupId, source, scope, seen, dryRun));
 
         AgentInventorySyncResult result = new AgentInventorySyncResult();
         result.setGroupId(groupId);
@@ -143,31 +152,50 @@ public class AgentInventorySyncService implements AgentInventorySyncHandler {
         throw new ConflictException("The inventory source " + wanted + " is not available.");
     }
 
+    /**
+     * @param disabled collects the artifacts left alone because someone disabled their latest
+     *                 version, so that nothing else, such as a tool import, changes them either
+     */
     private AgentInventorySyncItemResult syncItem(String groupId, AgentInventorySource source, String scope,
-            InventoryItem item, boolean dryRun) {
+            InventoryItem item, boolean dryRun, Set<String> disabled) {
         AgentInventorySyncItemResult result = new AgentInventorySyncItemResult();
         result.setExternalId(item.externalId());
         result.setArtifactId(item.artifactId());
         result.setArtifactType(item.artifactType());
 
         boolean exists = storage.isArtifactExists(raw(groupId), item.artifactId());
-        Set<String> previousVersions = Set.of();
         if (exists) {
             Map<String, String> labels = storage.getArtifactMetaData(raw(groupId), item.artifactId()).getLabels();
             if (!managedBy(labels, source, scope, item.externalId())) {
                 result.setStatus(AgentInventorySyncStatus.NOT_MANAGED);
                 return result;
             }
+            // Compared with the latest version only, not the history: after A, B, then A again, the
+            // artifact gets a new version for A, so the latest version is what the source lists.
             GAV tip = storage.getBranchTip(new GA(raw(groupId), item.artifactId()), BranchId.LATEST,
                     RetrievalBehavior.ALL_STATES);
-            if (storage.getArtifactVersionMetaData(raw(groupId), item.artifactId(), tip.getRawVersionId())
-                    .getState() == VersionState.DISABLED) {
+            String tipVersion = tip.getRawVersionId();
+            VersionState state = storage.getArtifactVersionMetaData(raw(groupId), item.artifactId(), tipVersion)
+                    .getState();
+            if (state == VersionState.DISABLED) {
                 // Someone disabled it on purpose: no new version, and it stays disabled.
+                disabled.add(item.artifactId());
                 result.setStatus(AgentInventorySyncStatus.UNCHANGED);
-                result.setVersion(tip.getRawVersionId());
+                result.setVersion(tipVersion);
                 return result;
             }
-            previousVersions = new HashSet<>(storage.getArtifactVersions(raw(groupId), item.artifactId()));
+            String stored = storage.getArtifactVersionContent(raw(groupId), item.artifactId(), tipVersion)
+                    .getContent().content();
+            if (item.content().equals(stored)) {
+                result.setVersion(tipVersion);
+                // Listed again after it was reported missing: enable it again.
+                boolean reenabled = state == VersionState.DEPRECATED;
+                if (reenabled) {
+                    setLatestState(groupId, item.artifactId(), VersionState.ENABLED, dryRun);
+                }
+                result.setStatus(reenabled ? AgentInventorySyncStatus.UPDATED : AgentInventorySyncStatus.UNCHANGED);
+                return result;
+            }
         }
 
         Map<String, String> labels = labels(source, scope, item.externalId());
@@ -184,21 +212,11 @@ public class AgentInventorySyncService implements AgentInventorySyncHandler {
         version.setContent(content);
         create.setFirstVersion(version);
         try {
-            CreateArtifactResponse response = groups.createArtifact(groupId, IfArtifactExists.FIND_OR_CREATE_VERSION,
-                    false, dryRun, create);
-            String stored = response.getVersion().getVersion();
-            if (!exists) {
-                result.setStatus(AgentInventorySyncStatus.CREATED);
-                result.setVersion(dryRun ? null : stored);
-            } else if (previousVersions.contains(stored)) {
-                result.setVersion(stored);
-                // Listed again after it was reported missing: enable it again.
-                result.setStatus(reenable(groupId, item.artifactId(), dryRun) ? AgentInventorySyncStatus.UPDATED
-                        : AgentInventorySyncStatus.UNCHANGED);
-            } else {
-                result.setStatus(AgentInventorySyncStatus.UPDATED);
-                result.setVersion(dryRun ? null : stored);
-            }
+            // Through the regular create path: rules, write hooks, authorization and audit apply.
+            CreateArtifactResponse response = groups.createArtifact(groupId,
+                    exists ? IfArtifactExists.CREATE_VERSION : IfArtifactExists.FAIL, false, dryRun, create);
+            result.setStatus(exists ? AgentInventorySyncStatus.UPDATED : AgentInventorySyncStatus.CREATED);
+            result.setVersion(dryRun ? null : response.getVersion().getVersion());
         } catch (RuleViolationException e) {
             result.setStatus(AgentInventorySyncStatus.REJECTED);
             result.setCauses(e.getCauses().stream().map(AgentInventorySyncService::cause).toList());
@@ -227,24 +245,39 @@ public class AgentInventorySyncService implements AgentInventorySyncHandler {
      * The artifacts that an earlier sync of the same source and scope created, but that the source
      * no longer lists. Their latest version is marked {@code DEPRECATED}; nothing is deleted.
      */
-    private List<AgentInventorySyncItemResult> missing(String groupId, AgentInventorySource source, String scope,
+    private List<AgentInventorySyncItemResult> missing(String groupId, InventorySource source, String scope,
             Set<String> listed, boolean dryRun) {
         Set<SearchFilter> filters = Set.of(SearchFilter.ofGroupId(raw(groupId)),
-                SearchFilter.ofLabel(AgentInventoryLabels.SOURCE, source.name()),
+                SearchFilter.ofLabel(AgentInventoryLabels.SOURCE, source.source().name()),
                 SearchFilter.ofLabel(AgentInventoryLabels.SCOPE, scope));
+        // Every artifact an earlier sync of this source and scope left, however many: the item
+        // limit bounds one listing, not what earlier syncs created.
+        List<SearchedArtifactDto> candidates = new ArrayList<>();
+        int offset = 0;
+        List<SearchedArtifactDto> page;
+        do {
+            page = storage.searchArtifacts(filters, OrderBy.artifactId, OrderDirection.asc, offset, MISSING_PAGE_SIZE,
+                    true).getArtifacts();
+            candidates.addAll(page);
+            offset += page.size();
+        } while (page.size() == MISSING_PAGE_SIZE);
+
         List<AgentInventorySyncItemResult> results = new ArrayList<>();
-        for (SearchedArtifactDto artifact : storage.searchArtifacts(filters, OrderBy.artifactId, OrderDirection.asc,
-                0, config.getItemsMaxSize() + 1, true).getArtifacts()) {
+        for (SearchedArtifactDto artifact : candidates) {
             if (listed.contains(artifact.getArtifactId())) {
                 continue;
             }
-            Map<String, String> labels = artifact.getLabels() == null ? Map.of() : artifact.getLabels();
-            if (labels.get(AgentInventoryLabels.EXTERNAL_ID) == null) {
-                // Not created by a sync: a sync always records the item's external ID.
+            // Search results may carry only some labels, so the artifact's own metadata decides.
+            Map<String, String> labels = storage.getArtifactMetaData(raw(groupId), artifact.getArtifactId())
+                    .getLabels();
+            String externalId = labels == null ? null : labels.get(AgentInventoryLabels.EXTERNAL_ID);
+            if (!managedBy(labels, source.source(), scope, externalId)
+                    || !artifact.getArtifactId().equals(source.artifactId(scope, externalId))) {
+                // Its labels do not map back to this artifact, so the sync does not manage it.
                 continue;
             }
             AgentInventorySyncItemResult result = new AgentInventorySyncItemResult();
-            result.setExternalId(labels.get(AgentInventoryLabels.EXTERNAL_ID));
+            result.setExternalId(externalId);
             result.setArtifactId(artifact.getArtifactId());
             result.setArtifactType(artifact.getArtifactType());
             GAV tip = storage.getBranchTip(new GA(raw(groupId), artifact.getArtifactId()), BranchId.LATEST,
@@ -261,19 +294,6 @@ public class AgentInventorySyncService implements AgentInventorySyncHandler {
         return results;
     }
 
-    /** @return whether the latest version was deprecated by an earlier sync, and is now enabled again */
-    private boolean reenable(String groupId, String artifactId, boolean dryRun) {
-        GAV tip = storage.getBranchTip(new GA(raw(groupId), artifactId), BranchId.LATEST,
-                RetrievalBehavior.ALL_STATES);
-        VersionState state = storage.getArtifactVersionMetaData(raw(groupId), artifactId, tip.getRawVersionId())
-                .getState();
-        if (state != VersionState.DEPRECATED) {
-            return false;
-        }
-        setLatestState(groupId, artifactId, VersionState.ENABLED, dryRun);
-        return true;
-    }
-
     private void setLatestState(String groupId, String artifactId, VersionState state, boolean dryRun) {
         WrappedVersionState wrapped = new WrappedVersionState();
         wrapped.setState(state);
@@ -282,7 +302,7 @@ public class AgentInventorySyncService implements AgentInventorySyncHandler {
 
     private static boolean managedBy(Map<String, String> labels, AgentInventorySource source, String scope,
             String externalId) {
-        return labels != null && source.name().equals(labels.get(AgentInventoryLabels.SOURCE))
+        return labels != null && externalId != null && source.name().equals(labels.get(AgentInventoryLabels.SOURCE))
                 && Objects.equals(scope, labels.get(AgentInventoryLabels.SCOPE))
                 && Objects.equals(externalId, labels.get(AgentInventoryLabels.EXTERNAL_ID));
     }

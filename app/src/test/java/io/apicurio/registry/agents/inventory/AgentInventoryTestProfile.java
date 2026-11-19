@@ -22,6 +22,8 @@ public class AgentInventoryTestProfile implements QuarkusTestProfile {
         props.put("apicurio.agent-inventory.google.url", GoogleAgentRegistryStub.url());
         props.put("apicurio.agent-inventory.timeout.seconds", "2");
         props.put("apicurio.agent-inventory.items.max-size", "5");
+        // Search results carry no labels at all, so reconciliation must read each artifact's metadata.
+        props.put("apicurio.rest.search-results.labels.max-size.bytes", "0");
         // One API request per list call, so the mock server's expectations are exact.
         props.put("quarkus.kubernetes-client.request-retry-backoff-limit", "0");
         return props;

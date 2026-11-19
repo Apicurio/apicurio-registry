@@ -963,7 +963,7 @@ The following {registry} configuration options are available for each component 
 |`int`
 |`10`
 |`3.4.0`
-|Timeout, in seconds, for each request to an inventory source during a sync
+|Timeout, in seconds, for each request to Google Cloud Agent Registry during a sync, including reading the response. Kubernetes inventory sources use the timeouts of the Kubernetes client (quarkus.kubernetes-client.request-timeout)
 |`apicurio.mcp-import.allowed-hosts`
 |`optional<list<string>>`
 |

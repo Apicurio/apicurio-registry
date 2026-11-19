@@ -9,8 +9,10 @@ import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -27,12 +29,15 @@ public final class GoogleAgentRegistryStub {
 
     private static final Pattern LIST_PATH = Pattern.compile("/v1/(.+)/agents");
     private static final Pattern PAGE_TOKEN = Pattern.compile("pageToken=page-(\\d+)");
+    // Longer than the registry's timeout in the test profile
+    private static final long STALL_MILLIS = 10_000;
     private static final GoogleAgentRegistryStub INSTANCE = new GoogleAgentRegistryStub();
 
     private final HttpServer server;
     private final Map<String, List<String>> authorizations = new ConcurrentHashMap<>();
     private final Map<String, List<String>> pages = new ConcurrentHashMap<>();
     private final Map<String, Integer> statuses = new ConcurrentHashMap<>();
+    private final Set<String> stalled = ConcurrentHashMap.newKeySet();
 
     private GoogleAgentRegistryStub() {
         try {
@@ -42,7 +47,12 @@ public final class GoogleAgentRegistryStub {
             throw new UncheckedIOException(e);
         }
         server.createContext("/v1/", this::handle);
-        server.setExecutor(null);
+        // A pool, so a stalled response does not hold up the next request.
+        server.setExecutor(Executors.newCachedThreadPool(runnable -> {
+            Thread thread = new Thread(runnable, "google-agent-registry-stub");
+            thread.setDaemon(true);
+            return thread;
+        }));
         server.start();
         Runtime.getRuntime().addShutdownHook(new Thread(() -> server.stop(0)));
     }
@@ -57,6 +67,7 @@ public final class GoogleAgentRegistryStub {
 
     /** Forgets everything set and recorded for the location. */
     void reset(String location) {
+        stalled.remove(location);
         authorizations.remove(location);
         pages.remove(location);
         statuses.remove(location);
@@ -71,6 +82,11 @@ public final class GoogleAgentRegistryStub {
     /** Answers every list request for the location with this status. */
     void status(String location, int status) {
         statuses.put(location, status);
+    }
+
+    /** Sends the response headers for the location, then never sends the body. */
+    void stall(String location) {
+        stalled.add(location);
     }
 
     /** The Authorization header of each request for the location, "null" when there was none. */
@@ -91,6 +107,14 @@ public final class GoogleAgentRegistryStub {
             String query = exchange.getRequestURI().getQuery();
             Matcher token = PAGE_TOKEN.matcher(query == null ? "" : query);
             int page = token.find() ? Integer.parseInt(token.group(1)) : 0;
+            if (stalled.contains(location)) {
+                exchange.sendResponseHeaders(200, 0);
+                exchange.getResponseBody().write('{');
+                exchange.getResponseBody().flush();
+                Thread.sleep(STALL_MILLIS);
+                exchange.close();
+                return;
+            }
             Integer status = statuses.get(location);
             List<String> responses = pages.get(location);
             if (status != null || responses == null || page >= responses.size()) {
@@ -99,6 +123,9 @@ public final class GoogleAgentRegistryStub {
                 return;
             }
             respond(exchange, 200, responses.get(page));
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            exchange.close();
         } catch (RuntimeException e) {
             // Answer instead of leaving the client to time out, so a broken test fails clearly.
             respond(exchange, 500, "{\"error\":{\"code\":500}}");

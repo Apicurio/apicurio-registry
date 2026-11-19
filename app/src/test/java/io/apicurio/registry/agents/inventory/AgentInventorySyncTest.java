@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.contains;
@@ -30,6 +31,7 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Syncing a group with each inventory source: what is created, kept, versioned, reported missing
@@ -455,6 +457,106 @@ public class AgentInventorySyncTest extends AbstractResourceTestBase {
         kubernetesRequest.put("location", location);
         sync(TestUtils.generateGroupId(), kubernetesRequest).statusCode(400)
                 .body("detail", containsString("A location is only used by the GOOGLE_AGENT_REGISTRY source."));
+    }
+
+    // ---------------------------------------------------------------- review follow-ups
+
+    @Test
+    void itemListedAgainAfterAChangeGetsANewLatestVersion() {
+        // A, then B, then A again: the latest version must be A, not the B left by the second sync.
+        String group = TestUtils.generateGroupId();
+        for (String version : List.of("1.0.0", "1.1.0", "1.0.0")) {
+            serve("mcp.x-k8s.io", "v1", "mcpservers", NS, mcpServer("weather", version, "http://weather.team-a.svc:8080/mcp"));
+            sync(group, mcpServers()).statusCode(200);
+        }
+        given().get(registryV3ApiUrl + "/groups/" + group + "/artifacts/k8s-mcp.team-a.weather/versions/branch=latest")
+                .then().body("version", equalTo("3"));
+        given().get(registryV3ApiUrl + "/groups/" + group
+                + "/artifacts/k8s-mcp.team-a.weather/versions/branch=latest/content").then()
+                .body("version", equalTo("1.0.0"));
+    }
+
+    @Test
+    void disabledServerGetsNoToolImport() throws Exception {
+        String group = TestUtils.generateGroupId();
+        try (McpTestServer mcp = new McpTestServer()) {
+            mcp.tools(McpTestServer.tool("search", "string"));
+            serve("mcp.x-k8s.io", "v1", "mcpservers", NS, mcpServer("search", "1.0.0", mcp.url()));
+            sync(group, mcpServers()).statusCode(200).body("items[0].status", equalTo("CREATED"));
+            given().contentType(ContentTypes.APPLICATION_JSON).body(Map.of("state", "DISABLED"))
+                    .put(registryV3ApiUrl + "/groups/" + group + "/artifacts/k8s-mcp.team-a.search/versions/1/state")
+                    .then().statusCode(204);
+            int before = mcp.requests.get();
+            serve("mcp.x-k8s.io", "v1", "mcpservers", NS, mcpServer("search", "1.0.0", mcp.url()));
+            Map<String, Object> request = mcpServers();
+            request.put("importTools", true);
+
+            sync(group, request).statusCode(200)
+                    .body("items[0].status", equalTo("UNCHANGED"))
+                    .body("items[0].toolImport", nullValue());
+            assertEquals(before, mcp.requests.get());
+            assertEquals("DISABLED", state(group, "k8s-mcp.team-a.search"));
+        }
+    }
+
+    @Test
+    void changedExternalIdLabelStopsReconciliation() {
+        String group = TestUtils.generateGroupId();
+        serve("mcp.x-k8s.io", "v1", "mcpservers", NS, mcpServer("weather", "1.0.0", "http://weather.team-a.svc:8080/mcp"));
+        sync(group, mcpServers()).statusCode(200).body("items[0].status", equalTo("CREATED"));
+        given().contentType(ContentTypes.APPLICATION_JSON)
+                .body(Map.of("labels", Map.of("apicurio.agent-inventory.source", "KUBERNETES_MCP_SERVERS",
+                        "apicurio.agent-inventory.scope", NS, "apicurio.agent-inventory.external-id", "team-a/other")))
+                .put(registryV3ApiUrl + "/groups/" + group + "/artifacts/k8s-mcp.team-a.weather").then()
+                .statusCode(204);
+
+        serve("mcp.x-k8s.io", "v1", "mcpservers", NS);
+        sync(group, mcpServers()).statusCode(200).body("items", hasSize(0));
+        assertEquals("ENABLED", state(group, "k8s-mcp.team-a.weather"));
+    }
+
+    @Test
+    void agentCardNotFetchedYetIsNotReportedMissing() {
+        String group = TestUtils.generateGroupId();
+        serve("agent.rossoctl.dev", "v1alpha1", "agentcards", NS, agentCard("summarizer", validCard()));
+        sync(group, Map.of("source", "KUBERNETES_AGENT_CARDS", "namespace", NS)).statusCode(200)
+                .body("items[0].status", equalTo("CREATED"));
+
+        // The resource is still there, its card is not cached at the moment
+        serve("agent.rossoctl.dev", "v1alpha1", "agentcards", NS, agentCard("summarizer", null));
+        sync(group, Map.of("source", "KUBERNETES_AGENT_CARDS", "namespace", NS)).statusCode(200)
+                .body("items", hasSize(0));
+        assertEquals("ENABLED", state(group, "k8s-agent.team-a.summarizer"));
+    }
+
+    @Test
+    void malformedGooglePagesFailBeforeAnythingIsWritten() {
+        String group = TestUtils.generateGroupId();
+        GoogleAgentRegistryStub google = GoogleAgentRegistryStub.get();
+        Map<String, Object> request = Map.of("source", "GOOGLE_AGENT_REGISTRY", "location", location);
+        google.pages(location, "{\"agents\":[" + googleAgentWithCard("billing") + "]}");
+        sync(group, request).statusCode(200).body("items[0].status", equalTo("CREATED"));
+
+        // Neither reads as "the agents are gone"
+        google.pages(location, "{\"agents\":\"unavailable\"}");
+        sync(group, request).statusCode(502)
+                .body("title", equalTo("Google Cloud Agent Registry sent an invalid response."));
+        google.pages(location, "{\"agents\":[" + googleAgentWithCard("billing") + "],\"nextPageToken\":5}");
+        sync(group, request).statusCode(502)
+                .body("title", equalTo("Google Cloud Agent Registry sent an invalid response."));
+        assertEquals("ENABLED", state(group, "gcp-agent." + project + ".us-central1.billing"));
+    }
+
+    @Test
+    void stalledGoogleResponseBodyTimesOut() {
+        GoogleAgentRegistryStub.get().stall(location);
+        long start = System.nanoTime();
+
+        sync(TestUtils.generateGroupId(), Map.of("source", "GOOGLE_AGENT_REGISTRY", "location", location))
+                .statusCode(502)
+                .body("title", equalTo("Google Cloud Agent Registry did not answer in time."));
+        // The profile's timeout is 2 s; the stub would stall for 10 s.
+        assertTrue(System.nanoTime() - start < TimeUnit.SECONDS.toNanos(8));
     }
 
     // ---------------------------------------------------------------- helpers

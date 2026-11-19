@@ -13,6 +13,7 @@ import jakarta.ws.rs.BadRequestException;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
@@ -25,7 +26,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.regex.Pattern;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Agents registered in Google Cloud Agent Registry (API v1), as {@code AGENT_CARD} artifacts. An
@@ -37,6 +45,8 @@ import java.util.regex.Pattern;
  */
 @ApplicationScoped
 public class GoogleAgentRegistrySource implements InventorySource {
+
+    private static final Logger log = LoggerFactory.getLogger(GoogleAgentRegistrySource.class);
 
     static final String ARTIFACT_ID_PREFIX = "gcp-agent";
 
@@ -78,19 +88,53 @@ public class GoogleAgentRegistrySource implements InventorySource {
         String pageToken = null;
         do {
             JsonNode page = get(location, pageToken, headers);
-            for (JsonNode agent : page.path("agents")) {
+            for (JsonNode agent : agents(page)) {
                 if (items.size() == maxItems) {
                     throw new InventorySourceException("The location has more agents than one sync accepts.");
                 }
                 items.add(item(location, agent));
             }
-            pageToken = page.path("nextPageToken").isTextual() && !page.get("nextPageToken").asText().isEmpty()
-                    ? page.get("nextPageToken").asText() : null;
+            pageToken = nextPageToken(page);
             if (pageToken != null && !seenTokens.add(pageToken)) {
                 throw new InventorySourceException("Google Cloud Agent Registry's agent list does not end.");
             }
         } while (pageToken != null);
         return items;
+    }
+
+    /**
+     * The agents of a page. A page is the evidence that agents not on it are gone, so a page that is
+     * not in the documented shape fails the sync before anything is written, rather than reading as
+     * an empty inventory. An omitted or null list means no agents.
+     */
+    static List<JsonNode> agents(JsonNode page) {
+        JsonNode agents = page.get("agents");
+        if (agents == null || agents.isNull()) {
+            return List.of();
+        }
+        if (!agents.isArray()) {
+            throw new InventorySourceException("Google Cloud Agent Registry sent an invalid response.");
+        }
+        List<JsonNode> list = new ArrayList<>();
+        for (JsonNode agent : agents) {
+            if (!agent.isObject()) {
+                throw new InventorySourceException("Google Cloud Agent Registry sent an invalid response.");
+            }
+            list.add(agent);
+        }
+        return list;
+    }
+
+    /** @return the next page token, or {@code null} on the last page */
+    static String nextPageToken(JsonNode page) {
+        JsonNode token = page.get("nextPageToken");
+        if (token == null || token.isNull()) {
+            return null;
+        }
+        if (!token.isTextual()) {
+            throw new InventorySourceException("Google Cloud Agent Registry sent an invalid response.");
+        }
+        return token.asText().isEmpty() ? null : token.asText();
     }
 
     private JsonNode get(String location, String pageToken, Map<String, String> headers) {
@@ -100,19 +144,15 @@ public class GoogleAgentRegistrySource implements InventorySource {
                 URI.create(config.getGoogleUrl() + "/v1/" + location + "/agents?" + query))
                 .timeout(Duration.ofSeconds(config.getTimeoutSeconds())).header("Accept", "application/json").GET();
         headers.forEach(request::header);
-        HttpResponse<InputStream> response;
-        try {
-            response = http.send(request.build(), HttpResponse.BodyHandlers.ofInputStream());
-        } catch (IOException e) {
-            throw new InventorySourceException("Google Cloud Agent Registry could not be reached.");
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new InventorySourceException("Reading Google Cloud Agent Registry was interrupted.");
-        }
+        // The request timeout covers the response headers only: the body is read against the same
+        // deadline, so a source that stalls after the headers cannot hold the sync.
+        long deadline = System.nanoTime() + Duration.ofSeconds(config.getTimeoutSeconds()).toNanos();
+        HttpResponse<InputStream> response = await(http.sendAsync(request.build(),
+                HttpResponse.BodyHandlers.ofInputStream()), deadline, null);
         try (InputStream body = response.body()) {
             switch (response.statusCode()) {
                 case 200 -> {
-                    byte[] bytes = body.readNBytes((int) MAX_RESPONSE_BYTES + 1);
+                    byte[] bytes = await(CompletableFuture.supplyAsync(() -> read(body)), deadline, body);
                     if (bytes.length > MAX_RESPONSE_BYTES) {
                         throw new InventorySourceException("A response from Google Cloud Agent Registry was too large.");
                     }
@@ -131,6 +171,57 @@ public class GoogleAgentRegistrySource implements InventorySource {
         } catch (IOException e) {
             throw new InventorySourceException("Google Cloud Agent Registry sent an invalid response.");
         }
+    }
+
+    private static byte[] read(InputStream body) {
+        try {
+            return body.readNBytes((int) MAX_RESPONSE_BYTES + 1);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    /** Waits for the future until the deadline; on timeout, closes the body so the reader stops. */
+    private static <T> T await(CompletableFuture<T> future, long deadline, InputStream body) {
+        try {
+            return future.get(Math.max(0, deadline - System.nanoTime()), TimeUnit.NANOSECONDS);
+        } catch (TimeoutException e) {
+            future.cancel(true);
+            closeQuietly(body);
+            throw new InventorySourceException("Google Cloud Agent Registry did not answer in time.");
+        } catch (ExecutionException e) {
+            throw new InventorySourceException(e.getCause() instanceof UncheckedIOException
+                    ? "Google Cloud Agent Registry sent an invalid response."
+                    : "Google Cloud Agent Registry could not be reached.");
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new InventorySourceException("Reading Google Cloud Agent Registry was interrupted.");
+        }
+    }
+
+    private static void closeQuietly(InputStream body) {
+        if (body == null) {
+            return;
+        }
+        try {
+            body.close();
+        } catch (IOException e) {
+            // Closing only stops the reader; the sync has already failed with the timeout.
+            log.debug("Closing a timed-out response body failed: {}", e.getClass().getSimpleName());
+        }
+    }
+
+    @Override
+    public String artifactId(String location, String externalId) {
+        if (externalId == null || !externalId.startsWith(location + "/agents/")) {
+            return null;
+        }
+        var matcher = LOCATION.matcher(location);
+        String agentId = externalId.substring((location + "/agents/").length());
+        String artifactId = ARTIFACT_ID_PREFIX + "." + (matcher.matches() ? matcher.group(1) + "." + matcher.group(2) : "")
+                + "." + agentId;
+        return matcher.matches() && !agentId.isEmpty() && !agentId.contains("/") && ArtifactId.isValid(artifactId)
+                ? artifactId : null;
     }
 
     static InventoryItem item(String location, JsonNode agent) {

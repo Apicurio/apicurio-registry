@@ -17,8 +17,8 @@ import java.util.Map;
 
 /**
  * {@code AgentCard} resources of the Rossoctl operator (formerly Kagenti), as {@code AGENT_CARD}
- * artifacts. The operator fetches each agent's card and caches it in {@code status.card}; a
- * resource whose card has not been fetched yet is skipped until it has one.
+ * artifacts. The operator fetches each agent's card and caches it in {@code status.card}; nothing
+ * is written for a resource whose card has not been fetched yet, but it is not reported missing.
  */
 @ApplicationScoped
 public class KubernetesAgentCardSource implements InventorySource {
@@ -54,8 +54,14 @@ public class KubernetesAgentCardSource implements InventorySource {
                 VERSIONS, KIND, PLURAL, namespace, maxItems)) {
             Map<String, Object> status = KubernetesInventory.map(resource.getAdditionalProperties().get("status"));
             Object card = status.get("card");
+            String name = resource.getMetadata().getName();
             if (card instanceof Map<?, ?>) {
-                items.add(item(namespace, resource.getMetadata().getName(), MAPPER.valueToTree(card)));
+                items.add(item(namespace, name, MAPPER.valueToTree(card)));
+            } else {
+                // Still listed: not missing, but there is no card to publish yet.
+                items.add(new InventoryItem(namespace + "/" + name,
+                        KubernetesInventory.artifactId(ARTIFACT_ID_PREFIX, namespace, name), ArtifactType.AGENT_CARD,
+                        name, null, null, null));
             }
         }
         return items;
@@ -69,5 +75,10 @@ public class KubernetesAgentCardSource implements InventorySource {
         return new InventoryItem(namespace + "/" + name,
                 KubernetesInventory.artifactId(ARTIFACT_ID_PREFIX, namespace, name), ArtifactType.AGENT_CARD,
                 cardName, description, normalized.toString(), null);
+    }
+
+    @Override
+    public String artifactId(String namespace, String externalId) {
+        return KubernetesInventory.artifactIdFor(ARTIFACT_ID_PREFIX, namespace, externalId);
     }
 }

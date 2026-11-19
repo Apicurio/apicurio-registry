@@ -36,7 +36,7 @@ public class AgentInventoryConfig {
     String googleUrl;
 
     @ConfigProperty(name = "apicurio.agent-inventory.timeout.seconds", defaultValue = "10")
-    @Info(category = CATEGORY_MCP, description = "Timeout, in seconds, for each request to an inventory source during a sync", availableSince = "3.4.0")
+    @Info(category = CATEGORY_MCP, description = "Timeout, in seconds, for each request to Google Cloud Agent Registry during a sync, including reading the response. Kubernetes inventory sources use the timeouts of the Kubernetes client (quarkus.kubernetes-client.request-timeout)", availableSince = "3.4.0")
     int timeoutSeconds;
 
     @ConfigProperty(name = "apicurio.agent-inventory.items.max-size", defaultValue = "1000")

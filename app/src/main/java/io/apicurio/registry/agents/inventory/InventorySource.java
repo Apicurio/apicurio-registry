@@ -35,4 +35,13 @@ public interface InventorySource {
      * @throws InventorySourceException when the source cannot be read
      */
     List<InventoryItem> list(String scope, Map<String, String> headers, int maxItems);
+
+    /**
+     * @param scope      a scope returned by {@link #scope}
+     * @param externalId an external ID, as recorded in an artifact's labels
+     * @return the ID of the artifact this source keeps for that item in that scope, or {@code null}
+     *         when the external ID does not belong to the scope. A sync changes an artifact only
+     *         when its labels map back to its own ID.
+     */
+    String artifactId(String scope, String externalId);
 }

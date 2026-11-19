@@ -105,6 +105,21 @@ final class KubernetesInventory {
         return id;
     }
 
+    /**
+     * @return the artifact ID for an external ID {@code <namespace>/<name>} of the given namespace,
+     *         or {@code null} when it belongs to another namespace or is not valid
+     */
+    static String artifactIdFor(String prefix, String namespace, String externalId) {
+        if (externalId == null || !externalId.startsWith(namespace + "/")) {
+            return null;
+        }
+        try {
+            return artifactId(prefix, namespace, externalId.substring(namespace.length() + 1));
+        } catch (InventorySourceException e) {
+            return null;
+        }
+    }
+
     @SuppressWarnings("unchecked")
     static Map<String, Object> map(Object value) {
         return value instanceof Map<?, ?> m ? (Map<String, Object>) m : Map.of();

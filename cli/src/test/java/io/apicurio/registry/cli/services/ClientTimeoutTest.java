@@ -5,6 +5,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.concurrent.TimeUnit;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
@@ -20,8 +22,8 @@ class ClientTimeoutTest {
     }
 
     @AfterEach
-    void tearDown() {
-        vertx.close().toCompletionStage().toCompletableFuture().join();
+    void tearDown() throws Exception {
+        vertx.close().toCompletionStage().toCompletableFuture().get(10, TimeUnit.SECONDS);
     }
 
     @Test

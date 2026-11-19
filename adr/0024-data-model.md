@@ -95,16 +95,24 @@ the version at the matching content row (`AbstractSqlRegistryStorage.updateArtif
 | `SUNSET` | Migration deadline passed (usage telemetry, [ADR-0003](0003-usage-telemetry.md)) | Skipped |
 | `DRAFT` | Created with `isDraft: true`; content may change | Never added to `latest` |
 
-- A version is created `ENABLED`, or `DRAFT` when `isDraft` is set. Drafts skip rules and write hooks
-  unless draft production mode is on.
+- A version is created `ENABLED`, or `DRAFT` when `isDraft` is set. Write hooks have two phases:
+  content planning (`planContent`, which may rewrite content) runs for every version, drafts
+  included; publication (`beforePublish` and its post-publish actions) runs only for non-draft
+  versions. Draft production mode makes rules run on draft creation, but does not run the
+  publication phase.
 - `PUT .../versions/{version}/state` moves a version to any state except `DRAFT`; moving to `DRAFT` is
   a 400. No other transition is refused by the REST layer or SQL storage today (`SunsetStateTest`
   moves `ENABLED` straight to `SUNSET`).
-- Leaving `DRAFT` runs the artifact's rules against the draft and the write hooks, then adds the
-  version to `latest` (and the SemVer branches), and removes it from `drafts`. A rule violation
-  keeps it a draft.
-- Lookups by `branch=latest` use `RetrievalBehavior.SKIP_DISABLED_LATEST` (`ENABLED`, `DEPRECATED`,
-  `DRAFT`), so a disabled or sunset tip falls through to the newest earlier allowed version.
+- Leaving `DRAFT` runs the artifact's rules against the draft, then adds the version to `latest`
+  (and the SemVer branches) and removes it from `drafts`. The publication phase of the write hooks
+  runs too, except when the target state is `DISABLED`. A rule violation keeps it a draft.
+- How a `branch=<id>` expression resolves depends on the endpoint (`GroupsResourceImpl`). Content,
+  metadata reads and updates, the reference graph, export and contract endpoints use
+  `RetrievalBehavior.SKIP_DISABLED_LATEST` (`ENABLED`, `DEPRECATED`, `DRAFT`), so a `DISABLED` or
+  `SUNSET` tip falls through to the newest earlier allowed version. State reads and updates, content
+  updates, version deletion, comments and the reference list use `ALL_STATES` and target the tip
+  itself. With a disabled tip, the same expression can therefore name different versions on
+  different endpoints.
 - Lookups by `globalId` or `contentId` do not serve drafts unless draft production mode is on
   (`IdsResourceImpl`).
 
@@ -112,10 +120,13 @@ the version at the matching content row (`AbstractSqlRegistryStorage.updateArtif
 
 | Branch | Kind | Contents |
 |---|---|---|
-| `latest` | System | Every non-draft version, in creation order |
+| `latest` | System | Every non-draft version, in the order it joined: on creation, or when a draft is published |
 | `drafts` | System | Draft versions until they are published |
 | `<major>.x`, `<major>.<minor>.x` | System | When `apicurio.semver.branching.enabled=true`; versions parsed (or, with `apicurio.semver.branching.coerce`, coerced) as SemVer |
 | Any other ID | User | Created by the client, or with `branches` on version create; append, replace, delete |
+
+The tip of a branch is the version appended last (highest `branchOrder`), not the highest
+`versionOrder`: if draft `1` is published after `2` was created, `1` becomes the tip of `latest`.
 
 A system branch rejects metadata updates, appends, replacement and deletion with `NotAllowedException`
 (`SqlBranchRepository`). `apicurio.semver.validation.enabled=true` refuses versions that are not

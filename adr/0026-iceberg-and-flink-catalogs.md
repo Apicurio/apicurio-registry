@@ -86,7 +86,8 @@ does not manage data files.
 | `/{prefix}/namespaces/{ns}/properties` | POST | Write |
 | `/{prefix}/namespaces/{ns}/tables`, `.../views` | GET, POST | Read; Write on the namespace and the new artifact |
 | `/{prefix}/namespaces/{ns}/tables/{t}`, `.../views/{v}` | GET, HEAD, POST, DELETE | Read; POST (commit / replace) Write; DELETE Admin |
-| `/{prefix}/tables/rename`, `/{prefix}/views/rename` | POST | Write on source and destination artifacts and the destination group |
+| `/{prefix}/tables/rename` | POST | Write on the source and destination artifacts, and per-resource Write on the destination group |
+| `/{prefix}/views/rename` | POST | Write on the source and destination artifacts |
 
 ### Commits
 
@@ -181,7 +182,7 @@ are counted in the exception mapper, so they cover every Iceberg endpoint.
    [#7668](https://github.com/Apicurio/apicurio-registry/issues/7668),
    [#7667](https://github.com/Apicurio/apicurio-registry/issues/7667)); the registry's own
    authentication applies.
-3. Rename is create-then-delete, not atomic; a failed delete leaves the source for manual cleanup.
+3. Rename is create-then-delete, not atomic; a failed delete leaves the source for manual cleanup. View rename does not check destination-group grants the way table rename does.
 4. Listing uses offset page tokens; keyset pagination is tracked in
    [#11105](https://github.com/Apicurio/apicurio-registry/issues/11105).
 5. The prefix is not a catalog boundary, and group IDs containing `.` read back as multi-level

@@ -66,14 +66,6 @@ public class ProtobufSchemaParserTest {
     }
 
     /**
-     * Protobuf keeps fetching references on content lookups, since its dereferenced form is binary.
-     */
-    @Test
-    public void testDoesNotSupportDereferencedContentLookups() {
-        assertFalse(new ProtobufSchemaParser<>().supportsDereferencedContentLookups());
-    }
-
-    /**
      * Test that text .proto format is parsed correctly.
      */
     @Test

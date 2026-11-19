@@ -300,7 +300,7 @@ public class AiCatalogDiscovery {
 
     private AiCatalog buildAiCatalog(String publisherDomain, List<AiCatalogEntry> entries) {
         return AiCatalog.builder()
-                .specVersion(aiCatalogConfig.getSpecVersion())
+                .specVersion(AiCatalogConfig.SPEC_VERSION)
                 .host(AiCatalogHost.builder()
                         .displayName(aiCatalogConfig.getHostName())
                         .identifier(publisherDomain)

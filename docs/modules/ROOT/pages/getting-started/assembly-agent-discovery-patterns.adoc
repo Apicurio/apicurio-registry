@@ -281,7 +281,7 @@ When you build multi-agent workflows, you must handle agent unavailability, vers
 
 |A2A support is disabled
 |404
-|Verify that `apicurio.a2a.enabled` is set to `true` in the {registry} configuration.
+|Verify that `apicurio.agents.enabled` or `apicurio.a2a.enabled` is set to `true` in the {registry} configuration, and that `apicurio.a2a.enabled` is not set to `false`.
 
 |Agent card not found
 |404

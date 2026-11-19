@@ -103,7 +103,7 @@ the artifact through the core API is governed by the usual authorization
 | MCP import | `agents.mcpimport` | Client, target policy, idempotent import (`UNCHANGED`) |
 | Inventory sync | `agents.inventory` | Keeps a group in sync with Kubernetes and Google Cloud agent inventories ([ADR-0028](0028-agent-inventory-sync.md)) |
 | Prompts | `agents.services` | Rendering with variables, defaults and validation errors |
-| Registry MCP server | `mcp/` module | Tools for AI assistants over the core API, including ARD search |
+| Registry MCP server | `mcp/` module | Tools for AI assistants over the core API, including ARD search ([ADR-0023](0023-mcp-server.md)) |
 
 ## Configuration
 

@@ -1068,18 +1068,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         final var artifactCell = cellWithLoader(() -> storage.getArtifactVersionContent(
                 gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId()));
 
-        caching(
-                VersionContentCacheStrategy.builder()
-                        .contentId(metaData.getContentId())
-                        .references(references)
-                        .referenceTreeContentIds(() -> recursivelyResolveReferenceContentIds(artifactCell.get(),
-                                ref -> storage.getArtifactVersionContent(ref.getGroupId(), ref.getArtifactId(), ref.getVersion())
-                        ))
-                        .versionExpression(versionExpression)
-                        .versionState(metaData.getState())
-                        .build()
-        ).prepare();
-
         if (ContentTypes.isEmptyContentType(artifactCell.get().getContentType())) {
             throw new ContentNotFoundException(artifactCell.get().getContentId());
         }
@@ -1098,6 +1086,20 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             contentToReturn = contentUtils.canonicalizeContent(metaData.getArtifactType(),
                     contentToReturn, resolvedReferences);
         }
+
+        // After the references are checked, so that a matching ETag cannot answer 304 to a caller who may not
+        // read them
+        caching(
+                VersionContentCacheStrategy.builder()
+                        .contentId(metaData.getContentId())
+                        .references(references)
+                        .referenceTreeContentIds(() -> recursivelyResolveReferenceContentIds(artifactCell.get(),
+                                ref -> storage.getArtifactVersionContent(ref.getGroupId(), ref.getArtifactId(), ref.getVersion())
+                        ))
+                        .versionExpression(versionExpression)
+                        .versionState(metaData.getState())
+                        .build()
+        ).prepare();
 
         var builder = Response.ok().entity(contentToReturn.getContent())
                 .type(contentToReturn.getContentType())

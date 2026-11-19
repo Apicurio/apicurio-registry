@@ -333,6 +333,18 @@ A `FORWARD` check compares the two versions in the opposite direction, so the `c
 `oneOf` accepts a value that matches exactly one of its subschemas, so a new subschema that can match the same values as an existing one is reported, even though it adds alternatives.
 Boolean schemas, `true` and `false`, are compared like any other schema.
 
+`dependentSchemas`::
+A schema associated with a property in `dependentSchemas` applies to the entire object when that property is present. It is not limited to validating the triggering property. Narrowing a dependent schema can therefore reject previously valid objects that contain the triggering property. For example, adding a required property to a dependent schema can break backward compatibility for those objects. Replacing a dependent schema with `false` rejects every object containing its triggering property.
+
+`unevaluatedProperties`::
+This keyword can reject properties that have not been evaluated by other applicable schema keywords. Evaluation can depend on the object's own `properties` and on branches such as `allOf`, `anyOf`, `oneOf`, `if`/`then`/`else`, and `dependentSchemas`. Consequently, removing a property definition from one of these branches can make that property unevaluated and cause previously valid objects to be rejected.
+
+Array tuple schemas and `unevaluatedItems`::
+In tuple validation, each position can have its own schema. Appending a position can break backward compatibility when elements beyond the previous tuple were unconstrained, because the new position now imposes a constraint. Removing a position can also break compatibility when additional elements were forbidden. Drafts 4 through 2019-09 use `additionalItems` to control elements beyond the tuple. Draft 2020-12 uses `prefixItems` for tuple positions and `items` for remaining elements. `unevaluatedItems` can also restrict positions not evaluated by applicable item schemas or schema branches.
+Adding a `type` constraint::
+Adding `type` to a schema that previously had no `type` can break backward compatibility, even when other keywords appear to imply a particular type. For example, `{"maxLength": 10}` does not reject numbers, whereas `{"type": "string", "maxLength": 10}` does. The checker evaluates subschemas individually, so it can report this change inside `allOf`, `then`, or `else` even when an enclosing schema already restricts the type. An existing `enum` or `const` that already limits values to the declared type is an exception.
+
+
 References::
 References to other artifacts are resolved from the artifact references that are stored with the version, including references inside the referenced artifacts, and references between artifacts that refer to each other.
 No document is fetched over the network.

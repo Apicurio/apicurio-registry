@@ -51,7 +51,8 @@ public class ImportCommand extends AbstractCommand {
             throw new CliException("Cannot read file: " + file, VALIDATION_ERROR_RETURN_CODE);
         }
 
-        final var registryClient = client.getRegistryClient();
+        // An import can keep the server busy for long without a byte sent back
+        final var registryClient = client.getRegistryClientForLongRequests();
 
         try (InputStream inputStream = Files.newInputStream(filePath)) {
             registryClient.admin().importEscaped().post(inputStream, r -> {

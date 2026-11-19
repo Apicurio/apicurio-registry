@@ -8,6 +8,7 @@ import io.apicurio.registry.rest.client.models.AgentInventorySource;
 import io.apicurio.registry.rest.client.models.AgentInventorySyncRequest;
 import io.apicurio.registry.rest.client.models.AgentInventorySyncResult;
 import io.apicurio.registry.rest.client.models.AgentInventorySyncStatus;
+import io.apicurio.registry.rest.client.models.VersionState;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.KeycloakTestContainerManager;
 import io.apicurio.registry.utils.tests.TestUtils;
@@ -74,6 +75,38 @@ public class AgentInventoryAuthTest extends AbstractResourceTestBase {
 
         assertForbidden(exception);
         assertEquals(List.of(), GoogleAgentRegistryStub.get().authorizations(LOCATION));
+    }
+
+    /**
+     * The paths that write nothing are the ones that could disclose: an unchanged item would be
+     * reported with its version, and an already deprecated missing one as MISSING. Owner-only
+     * authorization must refuse them like any write.
+     */
+    @Test
+    void artifactsOwnedBySomeoneElseRefuseTheWholeSyncAndRevealNothing() {
+        String group = TestUtils.generateGroupId();
+        String artifactId = "gcp-agent.auth-project.europe-west1.support";
+        // The admin's sync creates the artifact, so the admin owns it
+        serveOneAgent();
+        clientV3.groups().byGroupId(group).agentInventorySync().post(request());
+        RegistryClient developer = clientFor(vertx, KeycloakTestContainerManager.DEVELOPER_CLIENT_ID);
+
+        // Listed again unchanged: nothing would be written, and still nothing may be reported
+        Exception unchanged = Assertions.assertThrows(Exception.class,
+                () -> developer.groups().byGroupId(group).agentInventorySync().post(request()));
+        assertForbidden(unchanged);
+
+        // No longer listed, and already deprecated by the admin's own sync
+        GoogleAgentRegistryStub.get().pages(LOCATION, "{\"agents\":[]}");
+        clientV3.groups().byGroupId(group).agentInventorySync().post(request());
+        Exception missing = Assertions.assertThrows(Exception.class,
+                () -> developer.groups().byGroupId(group).agentInventorySync().post(request()));
+        assertForbidden(missing);
+
+        assertEquals(1, clientV3.groups().byGroupId(group).artifacts().byArtifactId(artifactId).versions().get()
+                .getCount());
+        assertEquals(VersionState.DEPRECATED, clientV3.groups().byGroupId(group).artifacts().byArtifactId(artifactId)
+                .versions().byVersionExpression("1").get().getState());
     }
 
     @Test

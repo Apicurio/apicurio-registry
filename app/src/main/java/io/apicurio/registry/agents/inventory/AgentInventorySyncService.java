@@ -1,6 +1,12 @@
 package io.apicurio.registry.agents.inventory;
 
 import io.apicurio.registry.agents.OutboundHeaders;
+import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
+import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
+import io.apicurio.registry.rest.v3.beans.ArtifactReference;
+import io.apicurio.registry.auth.ResourceAccessGuard;
+import io.apicurio.registry.auth.AuthorizedResource;
+import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.extensions.AgentInventorySyncHandler;
 import io.apicurio.registry.extensions.McpToolImportHandler;
@@ -85,6 +91,9 @@ public class AgentInventorySyncService implements AgentInventorySyncHandler {
     @Inject
     Instance<McpToolImportHandler> toolImport;
 
+    @Inject
+    ResourceAccessGuard accessGuard;
+
     @Override
     public AgentInventorySyncResult sync(String groupId, AgentInventorySyncRequest request) {
         if (!config.isEnabled()) {
@@ -117,6 +126,11 @@ public class AgentInventorySyncService implements AgentInventorySyncHandler {
             }
         }
 
+        // Everything this sync could touch, decided before anything is read out or written: the
+        // existing artifacts of listed items, and the managed artifacts the source no longer lists.
+        List<Missing> missing = missingCandidates(groupId, source, scope, seen);
+        requireWriteAccess(groupId, items, missing);
+
         List<AgentInventorySyncItemResult> results = new ArrayList<>();
         Set<String> disabled = new HashSet<>();
         for (InventoryItem item : items) {
@@ -134,7 +148,7 @@ public class AgentInventorySyncService implements AgentInventorySyncHandler {
             }
             results.add(result);
         }
-        results.addAll(missing(groupId, source, scope, seen, dryRun));
+        results.addAll(markMissing(groupId, missing, dryRun));
 
         AgentInventorySyncResult result = new AgentInventorySyncResult();
         result.setGroupId(groupId);
@@ -164,6 +178,7 @@ public class AgentInventorySyncService implements AgentInventorySyncHandler {
         result.setArtifactType(item.artifactType());
 
         boolean exists = storage.isArtifactExists(raw(groupId), item.artifactId());
+        List<ArtifactReference> references = List.of();
         if (exists) {
             Map<String, String> labels = storage.getArtifactMetaData(raw(groupId), item.artifactId()).getLabels();
             if (!managedBy(labels, source, scope, item.externalId())) {
@@ -184,8 +199,13 @@ public class AgentInventorySyncService implements AgentInventorySyncHandler {
                 result.setVersion(tipVersion);
                 return result;
             }
-            String stored = storage.getArtifactVersionContent(raw(groupId), item.artifactId(), tipVersion)
-                    .getContent().content();
+            StoredArtifactVersionDto tipContent = storage.getArtifactVersionContent(raw(groupId), item.artifactId(),
+                    tipVersion);
+            // Kept on a new version, so refreshing a server's descriptor does not disconnect its
+            // tools; a later tool import replaces them with what the server lists.
+            references = tipContent.getReferences() == null ? List.of()
+                    : tipContent.getReferences().stream().map(AgentInventorySyncService::reference).toList();
+            String stored = tipContent.getContent().content();
             if (item.content().equals(stored)) {
                 result.setVersion(tipVersion);
                 // Listed again after it was reported missing: enable it again.
@@ -209,6 +229,7 @@ public class AgentInventorySyncService implements AgentInventorySyncHandler {
         VersionContent content = new VersionContent();
         content.setContent(item.content());
         content.setContentType(ContentTypes.APPLICATION_JSON);
+        content.setReferences(references);
         version.setContent(content);
         create.setFirstVersion(version);
         try {
@@ -241,12 +262,35 @@ public class AgentInventorySyncService implements AgentInventorySyncHandler {
         }
     }
 
+    /** An artifact an earlier sync of this source and scope created, which the source no longer lists. */
+    private record Missing(String artifactId, String artifactType, String externalId) {
+    }
+
+    /**
+     * Owner-only and per-resource authorization apply to each artifact the sync would read out or
+     * change, as they would to the caller's own requests; the endpoint only checked the group. They
+     * are checked before anything is written, so a refusal leaves nothing half done, and before the
+     * MCP import, which expects write access to the server artifact to be checked already.
+     */
+    private void requireWriteAccess(String groupId, List<InventoryItem> items, List<Missing> missing) {
+        for (InventoryItem item : items) {
+            // New artifacts too: per-resource grants can deny creating a name; owner-only
+            // authorization allows resources that do not exist yet.
+            if (item.content() != null) {
+                accessGuard.requireAccess(AuthorizedLevel.Write, AuthorizedResource.artifact(groupId, item.artifactId()));
+            }
+        }
+        for (Missing artifact : missing) {
+            accessGuard.requireAccess(AuthorizedLevel.Write, AuthorizedResource.artifact(groupId, artifact.artifactId()));
+        }
+    }
+
     /**
      * The artifacts that an earlier sync of the same source and scope created, but that the source
-     * no longer lists. Their latest version is marked {@code DEPRECATED}; nothing is deleted.
+     * no longer lists.
      */
-    private List<AgentInventorySyncItemResult> missing(String groupId, InventorySource source, String scope,
-            Set<String> listed, boolean dryRun) {
+    private List<Missing> missingCandidates(String groupId, InventorySource source, String scope,
+            Set<String> listed) {
         Set<SearchFilter> filters = Set.of(SearchFilter.ofGroupId(raw(groupId)),
                 SearchFilter.ofLabel(AgentInventoryLabels.SOURCE, source.source().name()),
                 SearchFilter.ofLabel(AgentInventoryLabels.SCOPE, scope));
@@ -262,7 +306,7 @@ public class AgentInventorySyncService implements AgentInventorySyncHandler {
             offset += page.size();
         } while (page.size() == MISSING_PAGE_SIZE);
 
-        List<AgentInventorySyncItemResult> results = new ArrayList<>();
+        List<Missing> missing = new ArrayList<>();
         for (SearchedArtifactDto artifact : candidates) {
             if (listed.contains(artifact.getArtifactId())) {
                 continue;
@@ -271,22 +315,30 @@ public class AgentInventorySyncService implements AgentInventorySyncHandler {
             Map<String, String> labels = storage.getArtifactMetaData(raw(groupId), artifact.getArtifactId())
                     .getLabels();
             String externalId = labels == null ? null : labels.get(AgentInventoryLabels.EXTERNAL_ID);
-            if (!managedBy(labels, source.source(), scope, externalId)
-                    || !artifact.getArtifactId().equals(source.artifactId(scope, externalId))) {
-                // Its labels do not map back to this artifact, so the sync does not manage it.
-                continue;
+            if (managedBy(labels, source.source(), scope, externalId)
+                    && artifact.getArtifactId().equals(source.artifactId(scope, externalId))) {
+                missing.add(new Missing(artifact.getArtifactId(), artifact.getArtifactType(), externalId));
             }
+            // Otherwise its labels do not map back to this artifact, so the sync does not manage it.
+        }
+        return missing;
+    }
+
+    /** Marks the latest version of each missing artifact {@code DEPRECATED}; nothing is deleted. */
+    private List<AgentInventorySyncItemResult> markMissing(String groupId, List<Missing> missing, boolean dryRun) {
+        List<AgentInventorySyncItemResult> results = new ArrayList<>();
+        for (Missing artifact : missing) {
             AgentInventorySyncItemResult result = new AgentInventorySyncItemResult();
-            result.setExternalId(externalId);
-            result.setArtifactId(artifact.getArtifactId());
-            result.setArtifactType(artifact.getArtifactType());
-            GAV tip = storage.getBranchTip(new GA(raw(groupId), artifact.getArtifactId()), BranchId.LATEST,
+            result.setExternalId(artifact.externalId());
+            result.setArtifactId(artifact.artifactId());
+            result.setArtifactType(artifact.artifactType());
+            GAV tip = storage.getBranchTip(new GA(raw(groupId), artifact.artifactId()), BranchId.LATEST,
                     RetrievalBehavior.ALL_STATES);
             result.setVersion(tip.getRawVersionId());
-            VersionState state = storage.getArtifactVersionMetaData(raw(groupId), artifact.getArtifactId(),
+            VersionState state = storage.getArtifactVersionMetaData(raw(groupId), artifact.artifactId(),
                     tip.getRawVersionId()).getState();
             if (state == VersionState.ENABLED) {
-                setLatestState(groupId, artifact.getArtifactId(), VersionState.DEPRECATED, dryRun);
+                setLatestState(groupId, artifact.artifactId(), VersionState.DEPRECATED, dryRun);
             }
             result.setStatus(AgentInventorySyncStatus.MISSING);
             results.add(result);
@@ -313,6 +365,15 @@ public class AgentInventorySyncService implements AgentInventorySyncHandler {
         labels.put(AgentInventoryLabels.SCOPE, scope);
         labels.put(AgentInventoryLabels.EXTERNAL_ID, externalId);
         return labels;
+    }
+
+    private static ArtifactReference reference(ArtifactReferenceDto stored) {
+        ArtifactReference reference = new ArtifactReference();
+        reference.setGroupId(stored.getGroupId());
+        reference.setArtifactId(stored.getArtifactId());
+        reference.setVersion(stored.getVersion());
+        reference.setName(stored.getName());
+        return reference;
     }
 
     private static RuleViolationCause cause(RuleViolation violation) {

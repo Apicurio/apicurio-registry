@@ -143,7 +143,12 @@ public class GoogleAgentRegistrySource implements InventorySource {
         HttpRequest.Builder request = HttpRequest.newBuilder(
                 URI.create(config.getGoogleUrl() + "/v1/" + location + "/agents?" + query))
                 .timeout(Duration.ofSeconds(config.getTimeoutSeconds())).header("Accept", "application/json").GET();
-        headers.forEach(request::header);
+        try {
+            headers.forEach(request::header);
+        } catch (IllegalArgumentException e) {
+            // The client's message repeats the header value, which may be a credential.
+            throw new InventorySourceException("A header in the request cannot be sent to Google Cloud Agent Registry.", 400);
+        }
         // The request timeout covers the response headers only: the body is read against the same
         // deadline, so a source that stalls after the headers cannot hold the sync.
         long deadline = System.nanoTime() + Duration.ofSeconds(config.getTimeoutSeconds()).toNanos();

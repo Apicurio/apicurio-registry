@@ -183,6 +183,31 @@ When one serializer writes the same schema content to more than one topic, for e
 Each topic's compatibility and validity rules now run, and messages for a topic carry that topic's own artifact ID rather than the first topic's.
 Consumers are not affected, because the schema content is identical.
 
+Invalid rule configuration is now rejected at write time::
+Creating or updating a global, group or artifact rule now validates the configuration against the levels the rule type supports, and returns HTTP 400 if it is not one of them.
+Before 3.4, an invalid configuration was stored, and every later write to the artifact failed with HTTP 500 instead.
+
+Compatibility groups are enforced::
+A new version now records the artifact's compatibility group in its labels, and the compatibility rule compares it only with versions of the same group.
+Before 3.4, the compatibility group was accepted but ignored, and every version was compared regardless of group.
+Artifacts with no group are unaffected.
+
+Concurrent promotions and status changes now conflict instead of racing::
+Promoting a contract, changing its status, and the metadata update that can accompany either are now compare-and-set: if the stage or status changed since the request was validated, it fails with HTTP 409 instead of applying on top of a stale read.
+
+Artifact type webhook failures::
+A webhook failure during validation now rejects the request instead of silently accepting the content.
+A webhook failure during compatibility checking, canonicalization, dereferencing, or reference finding now fails with HTTP 502 and a generic message, instead of silently falling back to a less precise result or leaking exception text.
+Webhook calls now have a connect timeout (`apicurio.artifact-types.webhooks.connect-timeout.seconds`, default 5) and a read timeout (`apicurio.artifact-types.webhooks.read-timeout.seconds`, default 10), so an unreachable webhook now fails after about 10 seconds instead of about 25 seconds per call.
+
+A malformed Basic authentication header now returns 401::
+A Basic authentication header that is not valid Base64 is now treated as missing credentials, and the request fails with HTTP 401.
+Before 3.4, it failed with HTTP 500 and exception text in the response.
+
+Disabled versions through the v2 API::
+`GET /apis/registry/v2/ids/globalIds/\{id\}` for a version in state `DISABLED` now returns HTTP 404, matching the v3 API.
+Before 3.4, the v2 API returned the content of a disabled version.
+
 
 // ref-upgrading-to-3-4-artifact-types
 [id="upgrading-to-3-4-artifact-types_{context}"]

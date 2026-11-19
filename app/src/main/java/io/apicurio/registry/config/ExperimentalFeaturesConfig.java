@@ -15,6 +15,8 @@ import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_SYSTEM;
 
@@ -31,6 +33,9 @@ import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_SYS
 // Run the gate before default-priority @Startup beans (2500) can initialize storage.
 @Startup(Interceptor.Priority.PLATFORM_BEFORE)
 public class ExperimentalFeaturesConfig {
+
+    // A value that is exactly one property reference, with an optional default: ${name} or ${name:default}
+    private static final Pattern SINGLE_REFERENCE = Pattern.compile("\\$\\{([^:}$]+)(?::[^}$]*)?}");
 
     @Inject
     Logger log;
@@ -55,9 +60,10 @@ public class ExperimentalFeaturesConfig {
         final List<String> violations = new ArrayList<>();
 
         // Auto-check all boolean experimental toggle properties discovered at build time
-        for (final ExperimentalConfigPropertyDef prop : experimentalProperties.getExperimentalConfigProperties()) {
+        final List<ExperimentalConfigPropertyDef> experimental = experimentalProperties.getExperimentalConfigProperties();
+        for (final ExperimentalConfigPropertyDef prop : experimental) {
             final boolean value = config.getOptionalValue(prop.getName(), Boolean.class).orElse(false);
-            if (value && !isDerived(prop.getName())) {
+            if (value && !followsReportedToggle(prop.getName(), experimental)) {
                 violations.add(prop.getName() + " (" + prop.getDescription() + ")");
             }
         }
@@ -81,14 +87,25 @@ public class ExperimentalFeaturesConfig {
     }
 
     /**
-     * Whether the property's value comes from an expression, such as
-     * {@code apicurio.a2a.enabled=${apicurio.agents.enabled:false}}. Its source property is reported
-     * instead, so the error names only what was actually configured.
+     * Whether the property's value is nothing but a reference to another experimental toggle that is
+     * itself enabled, such as {@code apicurio.a2a.enabled=${apicurio.agents.enabled:false}} with the
+     * umbrella on. That toggle is reported instead, so the error names what was actually configured.
+     * Any other expression, for example one reading an environment variable, is reported as is.
      */
-    private boolean isDerived(String name) {
+    private boolean followsReportedToggle(String name, List<ExperimentalConfigPropertyDef> experimental) {
         final ConfigValue value = config.getConfigValue(name);
         final String raw = value == null ? null : value.getRawValue();
-        return raw != null && raw.contains("${");
+        if (raw == null) {
+            return false;
+        }
+        final Matcher reference = SINGLE_REFERENCE.matcher(raw.trim());
+        if (!reference.matches()) {
+            return false;
+        }
+        final String referenced = reference.group(1);
+        return !referenced.equals(name)
+                && experimental.stream().anyMatch(prop -> prop.getName().equals(referenced))
+                && config.getOptionalValue(referenced, Boolean.class).orElse(false);
     }
 
     public boolean isExperimentalFeaturesEnabled() {

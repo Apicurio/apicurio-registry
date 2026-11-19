@@ -139,6 +139,52 @@ class ExperimentalFeaturesConfigTest {
     }
 
     @Test
+    void umbrellaReadFromAnEnvironmentExpressionStillFailsStartup() {
+        config.experimentalFeaturesEnabled = false;
+        ExperimentalConfigPropertyDef umbrella = new ExperimentalConfigPropertyDef("apicurio.agents.enabled", "Agents");
+        ExperimentalConfigPropertyDef a2a = new ExperimentalConfigPropertyDef("apicurio.a2a.enabled", "A2A");
+        when(config.experimentalProperties.getExperimentalConfigProperties()).thenReturn(List.of(umbrella, a2a));
+        when(mpConfig.getOptionalValue(umbrella.getName(), Boolean.class)).thenReturn(Optional.of(true));
+        ConfigValue fromEnvironment = raw("${AGENTS_ENABLED:true}");
+        when(mpConfig.getConfigValue(umbrella.getName())).thenReturn(fromEnvironment);
+        when(mpConfig.getOptionalValue(a2a.getName(), Boolean.class)).thenReturn(Optional.of(true));
+        ConfigValue derived = raw("${apicurio.agents.enabled:false}");
+        when(mpConfig.getConfigValue(a2a.getName())).thenReturn(derived);
+        when(mpConfig.getOptionalValue(STORAGE_KIND, String.class)).thenReturn(Optional.of("sql"));
+
+        IllegalStateException thrown = assertThrows(IllegalStateException.class, () -> config.validate());
+        assertTrue(thrown.getMessage().contains("apicurio.agents.enabled"), thrown.getMessage());
+    }
+
+    @Test
+    void flagReadFromAnyOtherExpressionStillFailsStartup() {
+        config.experimentalFeaturesEnabled = false;
+        ExperimentalConfigPropertyDef mcpImport = new ExperimentalConfigPropertyDef("apicurio.mcp-import.enabled", "Import");
+        when(config.experimentalProperties.getExperimentalConfigProperties()).thenReturn(List.of(mcpImport));
+        when(mpConfig.getOptionalValue(mcpImport.getName(), Boolean.class)).thenReturn(Optional.of(true));
+        ConfigValue fromEnvironment = raw("${IMPORT_ENABLED:true}");
+        when(mpConfig.getConfigValue(mcpImport.getName())).thenReturn(fromEnvironment);
+        when(mpConfig.getOptionalValue(STORAGE_KIND, String.class)).thenReturn(Optional.of("sql"));
+
+        IllegalStateException thrown = assertThrows(IllegalStateException.class, () -> config.validate());
+        assertTrue(thrown.getMessage().contains("apicurio.mcp-import.enabled"), thrown.getMessage());
+    }
+
+    @Test
+    void flagReferencingAPropertyThatIsNotAToggleStillFailsStartup() {
+        config.experimentalFeaturesEnabled = false;
+        ExperimentalConfigPropertyDef a2a = new ExperimentalConfigPropertyDef("apicurio.a2a.enabled", "A2A");
+        when(config.experimentalProperties.getExperimentalConfigProperties()).thenReturn(List.of(a2a));
+        when(mpConfig.getOptionalValue(a2a.getName(), Boolean.class)).thenReturn(Optional.of(true));
+        ConfigValue derived = raw("${some.other.property:true}");
+        when(mpConfig.getConfigValue(a2a.getName())).thenReturn(derived);
+        when(mpConfig.getOptionalValue(STORAGE_KIND, String.class)).thenReturn(Optional.of("sql"));
+
+        IllegalStateException thrown = assertThrows(IllegalStateException.class, () -> config.validate());
+        assertTrue(thrown.getMessage().contains("apicurio.a2a.enabled"), thrown.getMessage());
+    }
+
+    @Test
     void unsetStorageKindDefaultsToSqlAndPasses() {
         // When apicurio.storage.kind is absent the code defaults to "sql", which is not gated.
         config.experimentalFeaturesEnabled = false;

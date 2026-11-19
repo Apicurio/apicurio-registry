@@ -246,4 +246,4 @@ API writes; they apply rules when they load data, with different version selecti
 | 3.3.0 | Rule violations return 400 instead of 409 by default (`apicurio.rest.legacy-error-codes.enabled` restores 409) |
 | This ADR | First written record of the rules engine, with a verified example |
 | [#11175](https://github.com/Apicurio/apicurio-registry/pull/11175), [#11176](https://github.com/Apicurio/apicurio-registry/pull/11176) | Fixed: publishing a draft no longer compares it with itself (#11001); the v3 API rejects an invalid rule config with 400 instead of storing it (#11000); compatibility rules honour data contract compatibility groups (#10969) |
-| this PR | Fixed: the v2 API rejects invalid rule configs with 400, like v3 (#11307) |
+| [#11319](https://github.com/Apicurio/apicurio-registry/pull/11319) | Fixed: the v2 API rejects invalid rule configs with 400, like v3 (#11307) |

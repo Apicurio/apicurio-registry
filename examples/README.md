@@ -27,7 +27,7 @@ follow each example's README quick start.
 
 | Example | What it shows | ADR | Docs |
 |---|---|---|---|
-| [rules-and-compatibility](rules-and-compatibility/) | Validity, compatibility and integrity rules, globally, per group and per artifact; the client-side validation library | [0006](../adr/0006-rules-engine.md) | [Rules](../docs/modules/ROOT/pages/getting-started/assembly-intro-to-registry-rules.adoc) |
+| [rules-and-compatibility](rules-and-compatibility/) | Validity, compatibility and integrity rules, globally, per group and per artifact; the client-side validation library | [0006](../adr/0006-rules-engine.md), [0024](../adr/0024-data-model.md) | [Rules](../docs/modules/ROOT/pages/getting-started/assembly-intro-to-registry-rules.adoc) |
 | [schema-references](schema-references/) | References from the Maven plugin, the REST API and the serializers; the reference graph and integrity rules | [0008](../adr/0008-artifact-references.md) | [References](../docs/modules/ROOT/pages/getting-started/assembly-artifact-reference.adoc) |
 | [custom-artifact-types](custom-artifact-types/) | Adding artifact types with Java classes or a webhook | [0013](../adr/0013-custom-artifact-types.md) | [Custom types](../docs/modules/ROOT/pages/getting-started/assembly-custom-artifact-types.adoc) |
 | [odcs-data-contracts](odcs-data-contracts/) | ODCS contracts projected onto schemas, enforced by serdes, migration rules | [0002](../adr/0002-odcs-native-data-contracts.md) | [Data contracts](../docs/modules/ROOT/pages/getting-started/assembly-data-contracts.adoc) |

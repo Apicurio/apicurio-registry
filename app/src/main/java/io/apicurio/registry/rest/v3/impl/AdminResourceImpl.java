@@ -830,19 +830,15 @@ public class AdminResourceImpl implements AdminResource {
     }
 
     @Override
-    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public List<GitOpsValidateTask> listGitOpsValidateTasks() {
-        // Reports name groups and artifacts, so only for callers not restricted by grants
-        accessGuard.requireUnrestrictedRead();
         requireGitOpsStorage();
         return requireValidationTaskManager().listTasks();
     }
 
     @Override
-    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public GitOpsValidateTask getGitOpsValidateTask(String taskId) {
-        // Reports name groups and artifacts, so only for callers not restricted by grants
-        accessGuard.requireUnrestrictedRead();
         requireGitOpsStorage();
         var task = requireValidationTaskManager().getTask(taskId);
         if (task == null) {

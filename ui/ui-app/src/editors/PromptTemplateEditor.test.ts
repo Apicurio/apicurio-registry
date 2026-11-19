@@ -656,11 +656,11 @@ variables:
             expect(screen.getByTestId("badge-missing")).toHaveTextContent("0 missing");
         });
 
-        it("reads flow-style YAML by its content type and syncs it in flow style", () => {
+        it.each(["application/x-yaml", "application/yaml"])("reads flow-style YAML by its %s content type and syncs it in flow style", (contentType) => {
             const source = "{templateId: t, template: \"Hi {{name}} {{role}}\", variables: {name: {type: string}}}";
             const synced = source.replace("{name: {type: string}}", "{name: {type: string}, role: {type: string, description: \"\"}}");
             const onChange = vi.fn();
-            render(renderDraft({ content: source, contentType: "application/x-yaml" }, onChange));
+            render(renderDraft({ content: source, contentType }, onChange));
             const { model } = mount(source);
             forwardChanges(model);
 

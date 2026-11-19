@@ -59,6 +59,9 @@ const FLOW_ROOT_ERROR = "The document root is a flow mapping. Add a 'variables' 
 
 const STUB_SCHEMA = { type: "string", description: "" };
 
+/** YAML media types: the registry's `application/x-yaml` and the standard `application/yaml`. */
+const YAML_MEDIA_TYPES = new Set([ContentTypes.APPLICATION_YAML, "application/yaml"]);
+
 /**
  * Whether the source is JSON. The artifact content type decides, so flow-style YAML that starts
  * with `{` is read as YAML. Without a JSON or YAML content type, a leading `{` or `[` means JSON.
@@ -68,7 +71,7 @@ const isJsonSource = (source: string, contentType: string | undefined): boolean 
     if (mediaType === ContentTypes.APPLICATION_JSON) {
         return true;
     }
-    if (mediaType === ContentTypes.APPLICATION_YAML) {
+    if (mediaType && YAML_MEDIA_TYPES.has(mediaType)) {
         return false;
     }
     const trimmed = source.trim();
@@ -276,6 +279,10 @@ const planInsertion = (source: string, json: boolean, names: string[]): TextInse
     if (doc.errors.length > 0) {
         return { error: describeYamlError(doc.errors[0]) };
     }
+    const recursive = findRecursiveAlias(doc);
+    if (recursive) {
+        return { error: `The alias *${recursive} is inside the node it refers to, so the document is recursive. Synchronization does not support recursive structures. Add the missing variables manually.` };
+    }
     const root = doc.contents;
     if (!YAML.isMap(root)) {
         return { error: UNSAFE_RESULT_ERROR };
@@ -327,6 +334,22 @@ const refuseSharedYaml = (doc: Document, value: unknown): string | undefined => 
         return `'variables' is shared through the anchor &${value.anchor}. Adding entries would also change every alias of it.`;
     }
     return undefined;
+};
+
+/** Names the first alias that refers to one of its own ancestors, which makes the data recursive. */
+const findRecursiveAlias = (doc: Document): string | undefined => {
+    let recursive: string | undefined;
+    YAML.visit(doc, {
+        Alias(_key, node, path) {
+            const target = node.resolve(doc);
+            if (target && path.includes(target)) {
+                recursive = node.source;
+                return YAML.visit.BREAK;
+            }
+            return undefined;
+        }
+    });
+    return recursive;
 };
 
 const isAliased = (doc: Document, anchor: string): boolean => {

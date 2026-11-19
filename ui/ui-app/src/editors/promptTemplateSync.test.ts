@@ -747,6 +747,19 @@ describe("promptTemplateSync — Content Type (#10196)", () => {
         expect(result.updatedSource).toBe(source);
     });
 
+    it.each(["application/yaml", "application/yaml; charset=utf-8"])("reads and synchronizes flow-style YAML for %s too", (contentType) => {
+        const detection = detectPromptVariables(FLOW_YAML, contentType);
+        expect(detection.valid).toBe(true);
+        expect(detection.synchronizedCount).toBe(1);
+        expect(detection.missingCount).toBe(1);
+
+        const result = syncPromptTemplateVariables(FLOW_YAML, contentType);
+        expect(result.success).toBe(true);
+        expect(result.updatedSource).toBe(
+            "{templateId: t, template: \"Hi {{name}} {{role}}\", variables: {name: {type: string}, role: {type: string, description: \"\"}}}"
+        );
+    });
+
     it("writes entries in the format the content type names, not the one the first character suggests", () => {
         const source = "{\"template\": \"Hi {{name}}\", \"variables\": {}}";
         expect(syncPromptTemplateVariables(source, "application/json; charset=utf-8").updatedSource).toBe(
@@ -755,5 +768,43 @@ describe("promptTemplateSync — Content Type (#10196)", () => {
         expect(syncPromptTemplateVariables(source, "application/x-yaml").updatedSource).toBe(
             "{\"template\": \"Hi {{name}}\", \"variables\": {name: {type: string, description: \"\"}}}"
         );
+    });
+});
+
+describe("promptTemplateSync — Recursive Aliases (#10196)", () => {
+    const RECURSIVE_METADATA = `templateId: t
+template: "Hi {{name}} {{role}}"
+variables:
+  name:
+    type: string
+metadata: &meta
+  owner: team
+  self: *meta
+`;
+
+    it("still detects variables when unrelated metadata is recursive", () => {
+        const detection = detectPromptVariables(RECURSIVE_METADATA, "application/x-yaml");
+        expect(detection.valid).toBe(true);
+        expect(detection.synchronizedCount).toBe(1);
+        expect(detection.missingCount).toBe(1);
+    });
+
+    it("refuses to synchronize a recursive document instead of throwing, and leaves the source untouched", () => {
+        expect(syncPromptTemplateVariables(RECURSIVE_METADATA, "application/x-yaml")).toEqual({
+            success: false,
+            updatedSource: RECURSIVE_METADATA,
+            addedCount: 0,
+            error: "The alias *meta is inside the node it refers to, so the document is recursive. "
+                + "Synchronization does not support recursive structures. Add the missing variables manually."
+        });
+    });
+
+    it("leaves a recursive document unchanged without an error when nothing is missing", () => {
+        const synchronized = RECURSIVE_METADATA.replace(" {{role}}", "");
+        expect(syncPromptTemplateVariables(synchronized, "application/x-yaml")).toEqual({
+            success: true,
+            updatedSource: synchronized,
+            addedCount: 0
+        });
     });
 });

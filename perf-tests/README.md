@@ -65,8 +65,8 @@ PERF_SIMULATION=agent-discovery REGISTRY_URL=http://localhost:8080/apis/registry
   PERF_MCP_URL=http://127.0.0.1:8099/mcp java -jar perf-tests/target/*-jar-with-dependencies.jar
 ```
 
-(for a local registry, also set `apicurio.mcp-import.loopback.enabled` and
-`apicurio.mcp-import.insecure-http.enabled`).
+(for a local registry, also set `apicurio.outbound.loopback.enabled` and
+`apicurio.outbound.insecure-http.enabled`, or their `apicurio.mcp-import.*` equivalents).
 
 ## Running locally
 

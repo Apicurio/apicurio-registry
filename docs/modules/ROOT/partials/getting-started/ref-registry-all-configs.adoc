@@ -43,15 +43,10 @@ The following {registry} configuration options are available for each component 
 |`3.0.0`
 |URL to the registry agent icon
 |`apicurio.a2a.agent.name`
-|`string`
-|`Apicurio Registry`
+|`optional<string>`
+|
 |`3.0.0`
-|Name of the registry agent for A2A discovery
-|`apicurio.a2a.agent.protocol-version`
-|`string`
-|`1.0`
-|`3.0.0`
-|A2A protocol version supported by the registry agent
+|Deprecated since 3.4.0, use apicurio.instance.name, which takes precedence. Name of the registry agent for A2A discovery
 |`apicurio.a2a.agent.provider.organization`
 |`string`
 |`Apicurio`
@@ -79,9 +74,9 @@ The following {registry} configuration options are available for each component 
 |Default visibility for new Agent Card artifacts (public, entitled, private)
 |`apicurio.a2a.enabled`
 |`boolean`
-|`false`
+|
 |`3.0.0`
-|Enable A2A protocol support _(experimental)_
+|Enable A2A protocol support. Defaults to apicurio.agents.enabled _(experimental)_
 |`apicurio.a2a.openapi-integration.enabled`
 |`boolean`
 |`false`
@@ -92,6 +87,11 @@ The following {registry} configuration options are available for each component 
 |`true`
 |`3.4.0`
 |Update the generated Agent Card whenever its source OpenAPI artifact is updated
+|`apicurio.agents.enabled`
+|`boolean`
+|`false`
+|`3.4.0`
+|Enable the agent registry's discovery features: A2A agent discovery, MCP tool discovery, the MCP Registry API, the AI Catalog, ARD, and the web console's Agents tab. Each of them can still be turned on or off with its own property, which takes precedence. Features that connect to other servers (apicurio.mcp-import.enabled, apicurio.agent-inventory.enabled, apicurio.federation.enabled) are not included and must be enabled separately _(experimental)_
 |===
 
 == aicatalog
@@ -105,24 +105,19 @@ The following {registry} configuration options are available for each component 
 |Description
 |`apicurio.ai-catalog.enabled`
 |`boolean`
-|`false`
+|
 |`3.3.3`
-|Enable the AI Catalog well-known discovery endpoint _(experimental)_
+|Enable the AI Catalog well-known discovery endpoint. Defaults to apicurio.agents.enabled _(experimental)_
 |`apicurio.ai-catalog.host-name`
-|`string`
-|`Apicurio Registry`
+|`optional<string>`
+|
 |`3.3.3`
-|Display name for this registry instance, reported as the AI Catalog host
+|Deprecated since 3.4.0, use apicurio.instance.name, which takes precedence. Display name for this registry instance, reported as the AI Catalog host
 |`apicurio.ai-catalog.publisher-domain`
 |`optional<string>`
 |
 |`3.3.3`
 |The publisher domain segment used when building 'urn:air:' identifiers for AI Catalog entries. When not configured, the domain is derived from the incoming request's host and port.
-|`apicurio.ai-catalog.spec-version`
-|`string`
-|`1.0`
-|`3.3.3`
-|The AI Catalog specification version reported in the catalog document
 |===
 
 == api
@@ -172,14 +167,9 @@ The following {registry} configuration options are available for each component 
 |Description
 |`apicurio.ard.enabled`
 |`boolean`
-|`false`
+|
 |`3.3.3`
-|Enable the ARD (Agentic Resource Discovery) well-known API endpoints _(experimental)_
-|`apicurio.ard.federation.default`
-|`string`
-|`none`
-|`3.3.3`
-|Default ARD federation mode advertised by this registry. Only 'none' (no federation) is currently implemented.
+|Enable the ARD (Agentic Resource Discovery) well-known API endpoints. Defaults to apicurio.agents.enabled _(experimental)_
 |===
 
 == auth
@@ -542,14 +532,14 @@ The following {registry} configuration options are available for each component 
 |Enable federation with peer registries, including the peer management API _(experimental)_
 |`apicurio.federation.peer.insecure-http.enabled`
 |`boolean`
-|`false`
+|
 |`3.4.0`
-|Allow peer registry URLs that use plain HTTP instead of HTTPS. Server-wide: applies to every peer, whether created through the admin API or loaded declaratively
+|Allow peer registry URLs that use plain HTTP instead of HTTPS. Server-wide: applies to every peer, whether created through the admin API or loaded declaratively. Defaults to apicurio.outbound.insecure-http.enabled
 |`apicurio.federation.peer.loopback.enabled`
 |`boolean`
-|`false`
+|
 |`3.4.0`
-|Allow peer registry URLs that point at a loopback address or a localhost name, for development and tests. Server-wide: applies to every peer, whether created through the admin API or loaded declaratively
+|Allow peer registry URLs that point at a loopback address or a localhost name, for development and tests. Server-wide: applies to every peer, whether created through the admin API or loaded declaratively. Defaults to apicurio.outbound.loopback.enabled
 |===
 
 == gitops
@@ -718,6 +708,16 @@ The following {registry} configuration options are available for each component 
 |
 |`3.3.1`
 |Comma-separated list of enabled SSL/TLS protocol versions (e.g. TLSv1.2,TLSv1.3). When not set, the JVM/Quarkus defaults apply. Invalid values will cause TLS handshake failures at runtime.
+|`apicurio.outbound.insecure-http.enabled`
+|`boolean`
+|`false`
+|`3.4.0`
+|Default for the features that connect to other servers: allow URLs that use plain HTTP instead of HTTPS. Used by apicurio.mcp-import.insecure-http.enabled and apicurio.federation.peer.insecure-http.enabled when they are not set
+|`apicurio.outbound.loopback.enabled`
+|`boolean`
+|`false`
+|`3.4.0`
+|Default for the features that connect to other servers: allow URLs that point at a loopback address or a localhost name, for development and tests. Used by apicurio.mcp-import.loopback.enabled and apicurio.federation.peer.loopback.enabled when they are not set
 |===
 
 == iceberg
@@ -976,14 +976,14 @@ The following {registry} configuration options are available for each component 
 |Enable importing tool definitions from live MCP servers. The registry connects to the MCP server URL given in the request _(experimental)_
 |`apicurio.mcp-import.insecure-http.enabled`
 |`boolean`
-|`false`
+|
 |`3.4.0`
-|Allow MCP server URLs that use plain HTTP instead of HTTPS when importing
+|Allow MCP server URLs that use plain HTTP instead of HTTPS when importing. Defaults to apicurio.outbound.insecure-http.enabled
 |`apicurio.mcp-import.loopback.enabled`
 |`boolean`
-|`false`
+|
 |`3.4.0`
-|Allow MCP server URLs that point at a loopback address or a localhost name when importing, for development and tests. The host must still be allowed by apicurio.mcp-import.allowed-hosts
+|Allow MCP server URLs that point at a loopback address or a localhost name when importing, for development and tests. The host must still be allowed by apicurio.mcp-import.allowed-hosts. Defaults to apicurio.outbound.loopback.enabled
 |`apicurio.mcp-import.max-concurrent`
 |`int`
 |`4`
@@ -1021,9 +1021,9 @@ The following {registry} configuration options are available for each component 
 |Maximum time, in seconds, for listing the tools of an MCP server during an import, across all requests. It is checked between requests, so a listing can exceed it by at most one request timeout
 |`apicurio.mcp-registry.enabled`
 |`boolean`
-|`false`
+|
 |`3.4.0`
-|Enable the MCP Registry API (Developer Preview) _(experimental)_
+|Enable the MCP Registry API (Developer Preview). Defaults to apicurio.agents.enabled _(experimental)_
 |`apicurio.mcp-registry.max-page-size`
 |`int`
 |`100`
@@ -1031,9 +1031,9 @@ The following {registry} configuration options are available for each component 
 |Maximum number of MCP servers returned by a single list request
 |`apicurio.mcp-tools.enabled`
 |`boolean`
-|`false`
+|
 |`3.0.0`
-|Enable MCP tool definition discovery endpoints _(experimental)_
+|Enable MCP tool definition discovery endpoints. Defaults to apicurio.agents.enabled _(experimental)_
 |===
 
 == observability
@@ -1707,6 +1707,11 @@ The following {registry} configuration options are available for each component 
 |`false`
 |`3.2.0`
 |Enable experimental features. When disabled, any experimental feature that is individually enabled will prevent the application from starting.
+|`apicurio.instance.name`
+|`optional<string>`
+|
+|`3.4.0`
+|Display name of this registry instance in discovery documents, such as the A2A Agent Card and the AI Catalog. Defaults to Apicurio Registry. Replaces apicurio.a2a.agent.name and apicurio.ai-catalog.host-name, and takes precedence over them
 |===
 
 == types
@@ -1798,7 +1803,7 @@ The following {registry} configuration options are available for each component 
 |`boolean [dynamic]`
 |`false`
 |`3.2.0`
-|Enabled to show the Agents tab in the UI _(experimental)_
+|Enabled to show the Agents tab in the UI. Defaults to apicurio.agents.enabled _(experimental)_
 |`apicurio.ui.features.breadcrumbs`
 |`string`
 |`true`

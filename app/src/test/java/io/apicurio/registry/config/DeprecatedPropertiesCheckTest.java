@@ -138,6 +138,11 @@ public class DeprecatedPropertiesCheckTest {
         assertEquals(List.of(
                 "apicurio.compat.json-schema.use-apitomy",
                 "apicurio.usage.dead-threshold-days",
+                "apicurio.a2a.agent.protocol-version",
+                "apicurio.ai-catalog.spec-version",
+                "apicurio.ard.federation.default",
+                "apicurio.a2a.agent.name",
+                "apicurio.ai-catalog.host-name",
                 "apicurio.kafkasql.ssl.truststore.password",
                 "apicurio.kafkasql.ssl.keystore.location",
                 "apicurio.kafkasql.ssl.keystore.type",
@@ -145,10 +150,16 @@ public class DeprecatedPropertiesCheckTest {
                 "apicurio.kafkasql.ssl.key.password"), oldNames);
         List<String> replacementNames = defaultCheck.getRegistry().stream()
                 .map(DeprecatedPropertiesCheck.DeprecatedPropertyDef::getReplacementName).toList();
-        // The JSON Schema checker and dead-threshold properties have no replacement: they do nothing.
+        // The JSON Schema checker, dead-threshold and advertised-version properties have no
+        // replacement: they do nothing.
         assertEquals(Arrays.asList(
                 null,
                 null,
+                null,
+                null,
+                null,
+                "apicurio.instance.name",
+                "apicurio.instance.name",
                 "apicurio.kafkasql.security.ssl.truststore.password",
                 "apicurio.kafkasql.security.ssl.keystore.location",
                 "apicurio.kafkasql.security.ssl.keystore.type",

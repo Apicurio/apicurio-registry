@@ -9,6 +9,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.interceptor.Interceptor;
 import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.config.ConfigValue;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
@@ -56,7 +57,7 @@ public class ExperimentalFeaturesConfig {
         // Auto-check all boolean experimental toggle properties discovered at build time
         for (final ExperimentalConfigPropertyDef prop : experimentalProperties.getExperimentalConfigProperties()) {
             final boolean value = config.getOptionalValue(prop.getName(), Boolean.class).orElse(false);
-            if (value) {
+            if (value && !isDerived(prop.getName())) {
                 violations.add(prop.getName() + " (" + prop.getDescription() + ")");
             }
         }
@@ -77,6 +78,17 @@ public class ExperimentalFeaturesConfig {
                             + "experimental features gate or disable the following properties: "
                             + String.join(", ", violations));
         }
+    }
+
+    /**
+     * Whether the property's value comes from an expression, such as
+     * {@code apicurio.a2a.enabled=${apicurio.agents.enabled:false}}. Its source property is reported
+     * instead, so the error names only what was actually configured.
+     */
+    private boolean isDerived(String name) {
+        final ConfigValue value = config.getConfigValue(name);
+        final String raw = value == null ? null : value.getRawValue();
+        return raw != null && raw.contains("${");
     }
 
     public boolean isExperimentalFeaturesEnabled() {

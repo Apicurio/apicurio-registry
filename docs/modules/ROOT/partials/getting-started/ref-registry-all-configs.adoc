@@ -1143,12 +1143,12 @@ The following {registry} configuration options are available for each component 
 |BUILD-TIME property to enable distributed tracing instrumentation. When enabled, {registry} creates spans for REST API requests and storage operations. Use `quarkus.otel.sdk.disabled` to control tracing at runtime.
 |`quarkus.otel.traces.sampler`
 |`string`
-|`parentbased_always_on`
+|`parentbased_traceidratio`
 |`3.1.7`
 |The sampling strategy for traces. Use `parentbased_always_on` for development or `parentbased_traceidratio` for production to reduce overhead.
 |`quarkus.otel.traces.sampler.arg`
 |`string`
-|`1.0`
+|`0.1`
 |`3.1.7`
 |The sampling ratio when using `parentbased_traceidratio` sampler. A value of `0.1` means 10% of traces are sampled.
 |===

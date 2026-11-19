@@ -124,7 +124,7 @@ later on another thread and is a separate trace.
 | `quarkus.otel.exporter.otlp.endpoint` | `http://localhost:4317` | Collector endpoint |
 | `quarkus.otel.exporter.otlp.protocol` | `grpc` | Or `http/protobuf` (port 4318) |
 | `quarkus.otel.service.name` | `${apicurio.app.id:apicurio-registry}` | Service name |
-| `quarkus.otel.traces.sampler`, `.sampler.arg` | `parentbased_traceidratio`, `0.1` (in `application.properties`; the configuration reference still lists `parentbased_always_on`, [#11339](https://github.com/Apicurio/apicurio-registry/issues/11339)) | 10% of traces that start in the registry; a sampled caller is always followed |
+| `quarkus.otel.traces.sampler`, `.sampler.arg` | `parentbased_traceidratio`, `0.1` | 10% of traces that start in the registry; a sampled caller is always followed |
 | `quarkus.otel.resource.attributes` | `service.version`, `deployment.environment` | Resource attributes |
 | `quarkus.otel.instrument.kafka` | `true` | Kafka client spans (KafkaSQL) |
 | `apicurio.metrics.rest.enabled`, `.path-filter-pattern`, `.method-tag-enabled`, `.path-tag-enabled`, `.explicit-status-codes-list` | `true`, `/apis/.*`, `true`, `true`, `401` | Micrometer REST timers |
@@ -219,3 +219,4 @@ later on another thread and is a separate trace.
 | [#11286](https://github.com/Apicurio/apicurio-registry/pull/11286) | Artifact and version counters moved to storage, for every API |
 | [#11287](https://github.com/Apicurio/apicurio-registry/pull/11287) | Header-based deserialization and cache-miss lookups traced |
 | This ADR | First written record |
+| this PR | Configuration reference lists the effective sampler defaults (`parentbased_traceidratio`, `0.1`), [#11339](https://github.com/Apicurio/apicurio-registry/issues/11339) |

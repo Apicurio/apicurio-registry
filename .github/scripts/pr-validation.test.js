@@ -1182,9 +1182,9 @@ test('checkCompatibilityRisk(): flags a CRD model change', () => {
   assert.deepEqual(reasons, ['the operator CRD model']);
 });
 
-test('checkCompatibilityRisk(): flags a SQL schema change, matching the previous filename on rename', () => {
+test('checkCompatibilityRisk(): a file moved out of the SQL directory is still flagged, by its previous filename', () => {
   const files = [{
-    filename: 'app/src/main/resources/io/apicurio/registry/storage/impl/sql/renamed.ddl',
+    filename: 'app/src/main/resources/moved-out.ddl',
     previous_filename: 'app/src/main/resources/io/apicurio/registry/storage/impl/sql/h2.ddl',
   }];
   const reasons = checkCompatibilityRisk(files);

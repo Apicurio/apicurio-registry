@@ -219,4 +219,4 @@ later on another thread and is a separate trace.
 | [#11286](https://github.com/Apicurio/apicurio-registry/pull/11286) | Artifact and version counters moved to storage, for every API |
 | [#11287](https://github.com/Apicurio/apicurio-registry/pull/11287) | Header-based deserialization and cache-miss lookups traced |
 | This ADR | First written record |
-| this PR | Configuration reference lists the effective sampler defaults (`parentbased_traceidratio`, `0.1`), [#11339](https://github.com/Apicurio/apicurio-registry/issues/11339) |
+| [#11381](https://github.com/Apicurio/apicurio-registry/pull/11381) | Configuration reference lists the effective sampler defaults (`parentbased_traceidratio`, `0.1`), [#11339](https://github.com/Apicurio/apicurio-registry/issues/11339) |

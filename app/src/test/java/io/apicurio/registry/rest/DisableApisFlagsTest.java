@@ -105,6 +105,12 @@ public class DisableApisFlagsTest extends AbstractResourceTestBase {
                     .post(path, UUID.randomUUID().toString()).then()
                     .statusCode(404);
         }
+        // ... including with an encoded '/' in the subject, which routing keeps inside one segment
+        given().urlEncodingEnabled(false).when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(CCompatTestConstants.SCHEMA_SIMPLE_WRAPPED)
+                .post("/ccompat;x=1/v7/subjects/a%2F" + UUID.randomUUID() + "/versions").then()
+                .statusCode(404);
 
         var req = given().when().contentType(CT_JSON).get("/ccompat/v7/subjects").then();
         if (disabledDirectAccess) {

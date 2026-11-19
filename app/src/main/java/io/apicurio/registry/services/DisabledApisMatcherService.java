@@ -60,8 +60,10 @@ public class DisabledApisMatcherService {
             return false;
         }
         String normalizedPath = normalizePath(requestPath);
+        String normalizedEncodedPath = normalizePath(requestPath, false);
         for (Pattern pattern : disabledPatternsList) {
-            if (pattern.matcher(requestPath).matches() || pattern.matcher(normalizedPath).matches()) {
+            if (pattern.matcher(requestPath).matches() || pattern.matcher(normalizedPath).matches()
+                    || pattern.matcher(normalizedEncodedPath).matches()) {
                 log.warn("Request {} is rejected because it's disabled by pattern {}", requestPath,
                         pattern.pattern());
                 return true;
@@ -76,17 +78,27 @@ public class DisabledApisMatcherService {
      * {@code .} segments dropped, and {@code ..} segments resolved. A trailing slash is kept.
      */
     static String normalizePath(String rawPath) {
+        return normalizePath(rawPath, true);
+    }
+
+    /**
+     * @param decode whether to percent-decode the segments in the result. Routing keeps segment
+     *            boundaries as they are encoded ({@code a%2Fb} is one segment), which a pattern such as
+     *            {@code [^/]+} only matches in the encoded form; dot segments are recognised either way.
+     */
+    static String normalizePath(String rawPath, boolean decode) {
         Deque<String> segments = new ArrayDeque<>();
         for (String segment : rawPath.split("/", -1)) {
             int matrix = segment.indexOf(';');
-            String name = percentDecode(matrix >= 0 ? segment.substring(0, matrix) : segment);
+            String encoded = matrix >= 0 ? segment.substring(0, matrix) : segment;
+            String name = percentDecode(encoded);
             if (name.isEmpty() || ".".equals(name)) {
                 continue;
             }
             if ("..".equals(name)) {
                 segments.pollLast();
             } else {
-                segments.addLast(name);
+                segments.addLast(decode ? name : encoded);
             }
         }
         String normalized = "/" + String.join("/", segments);

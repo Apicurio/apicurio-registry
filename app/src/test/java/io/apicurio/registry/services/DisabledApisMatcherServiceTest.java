@@ -22,7 +22,8 @@ class DisabledApisMatcherServiceTest {
     void setUp() {
         service = new DisabledApisMatcherService();
         service.log = LoggerFactory.getLogger(DisabledApisMatcherService.class);
-        service.disableRegexps = Optional.of(List.of("/apis/ccompat/.*", "/apis/registry/v2/.*"));
+        service.disableRegexps = Optional.of(List.of("/apis/ccompat/.*", "/apis/registry/v2/.*",
+                "/apis/other/v7/subjects/[^/]+/versions.*"));
         service.init(null);
     }
 
@@ -47,7 +48,8 @@ class DisabledApisMatcherServiceTest {
             "//apis/ccompat/v7/subjects",
             "/apis/x/../ccompat/v7/subjects",
             "/apis/registry/v2;x/search/artifacts",
-            "/apis/registry;x/v2/search/artifacts"
+            "/apis/registry;x/v2/search/artifacts",
+            "/apis/ccompat;x=1/v7/subjects/a%2Fb/versions"
     })
     void disabledPathsAreDisabledInEveryForm(String path) {
         assertTrue(service.isDisabled(path), path);
@@ -61,6 +63,18 @@ class DisabledApisMatcherServiceTest {
     })
     void otherPathsAreNotDisabled(String path) {
         assertFalse(service.isDisabled(path), path);
+    }
+
+    @Test
+    void encodedSegmentBoundariesAreKeptInOneNormalizedForm() {
+        assertEquals("/apis/ccompat/v7/subjects/a%2Fb/versions",
+                DisabledApisMatcherService.normalizePath("/apis/ccompat;x=1/v7/subjects/a%2Fb/versions", false));
+        assertEquals("/apis/ccompat/v7/subjects/a/b/versions",
+                DisabledApisMatcherService.normalizePath("/apis/ccompat;x=1/v7/subjects/a%2Fb/versions", true));
+        // A pattern with a single-segment wildcard still matches the encoded subject
+        assertTrue(service.isDisabled("/apis/other;x=1/v7/subjects/a%2Fb/versions"));
+        assertTrue(service.isDisabled("/apis/other/v7/subjects/a%2Fb/versions/1"));
+        assertFalse(service.isDisabled("/apis/other/v7/subjects/a%2Fb"));
     }
 
     @Test

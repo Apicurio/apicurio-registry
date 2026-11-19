@@ -77,14 +77,19 @@ administrators also expect registry instances to appear in the OpenShift Console
 6. **Login is OIDC in the browser.** The auth type and options come from `uiConfig`
    (`quarkus.oidc.auth-server-url`, `apicurio.ui.auth.oidc.*`) or `REGISTRY_AUTH_*`.
    `ApplicationAuth` from `@apitomy/common-ui-components` (built on `oidc-client-ts`) runs the login;
-   a relative `redirectUri` or `logoutUrl` is made absolute against the page origin. A 401 triggers
-   one shared token refresh and a retry; if the refresh fails, the console asks the user to log in
-   again (`RefreshOn401Handler`, `useReauthenticationService`).
-7. **The OpenShift console plugin is opt-in through the operator.** With `spec.consolePlugin.enabled:
-   true` and the plugin image configured on the operator (`REGISTRY_CONSOLE_PLUGIN_IMAGE`), on a
-   cluster that exposes `console.openshift.io`, the operator creates a plugin Deployment and Service
-   and a cluster-scoped `ConsolePlugin` named `<namespace>-<name>-console-plugin`
-   (`ConsolePluginManager`). Otherwise it deletes that `ConsolePlugin`.
+   a relative `redirectUri` or `logoutUrl` is made absolute against the page origin. With OIDC, a 401
+   on a request made through the SDK triggers one shared token refresh and a retry; if the refresh
+   fails, the console asks the user to log in again (`RefreshOn401Handler`, installed only for OIDC
+   in `createRegistryClient`, and `useReauthenticationService`). The axios calls (data contracts,
+   prompt rendering) and Basic authentication do not get this recovery: a 401 is returned as an
+   error.
+7. **The OpenShift console plugin is opt-in through the operator.** When
+   `spec.consolePlugin.enabled` is `true` and the plugin image is configured on the operator
+   (`REGISTRY_CONSOLE_PLUGIN_IMAGE`), the operator creates the plugin Deployment and Service
+   (`ActivationConditions`); this check does not look at the cluster type. Only the cluster-scoped
+   `ConsolePlugin` named `<namespace>-<name>-console-plugin` additionally requires the
+   `console.openshift.io` API (`ConsolePluginManager`); without it, or when the plugin is disabled,
+   the operator deletes that `ConsolePlugin`.
 8. **The plugin lists instances and embeds the console, it does not reimplement it.** The plugin
    ([`console-extensions.json`](../console-plugin/console-extensions.json)) adds an *Apicurio*
    section to the administrator perspective with list and detail pages for `ApicurioRegistry3`, and
@@ -214,7 +219,7 @@ operator sets the console's `REGISTRY_API_URL` from the app ingress host
 | Operator | `ConsolePluginManagerTest`, `ConsolePluginManagerOwnershipTest`, `SmokeITTest` |
 
 ```bash
-cd ui && npm install && npm run test
-cd ui/tests && npm install && npm run test   # needs the API on 8080 and the console on 8888
+(cd ui && npm install && npm run test)
+(cd ui/tests && npm install && npm run test)   # needs the API on 8080 and the console on 8888
 ./mvnw test -pl operator/controller -Dtest='ConsolePluginManager*Test'
 ```

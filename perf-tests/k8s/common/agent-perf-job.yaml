@@ -28,6 +28,9 @@ spec:
         app: agent-perf-test-runner
     spec:
       restartPolicy: Never
+      # Without this, Kubernetes sets PERF_MCP_PORT=tcp://<ip>:8099 in the pod for the perf-mcp
+      # Service, which replaces the port PerfTestRunner reads from PERF_MCP_PORT.
+      enableServiceLinks: false
       containers:
         - name: agent-perf-test-runner
           image: "${PERF_TEST_IMAGE}"

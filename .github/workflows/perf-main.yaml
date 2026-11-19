@@ -344,7 +344,12 @@ jobs:
           if [ -n "$STATS_FILE" ]; then
             python3 perf-tests/scripts/summarize-agent-baseline.py "$STATS_FILE" "${{ matrix.storage }}"
           else
-            echo "Agent scale baseline: no Gatling js/stats.js found under /tmp/agent-perf-results." | tee -a "$GITHUB_STEP_SUMMARY"
+            {
+              echo "Agent scale baseline: no Gatling js/stats.js found under /tmp/agent-perf-results. End of the runner log:"
+              echo '```'
+              tail -n 20 /tmp/agent-perf-results/agent-perf-test-runner.log 2>/dev/null || echo "(no log)"
+              echo '```'
+            } | tee -a "$GITHUB_STEP_SUMMARY"
           fi
 
       - name: Upload the agent scale baseline results

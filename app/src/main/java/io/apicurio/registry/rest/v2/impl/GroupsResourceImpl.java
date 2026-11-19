@@ -522,6 +522,7 @@ public class GroupsResourceImpl implements GroupsResource {
         if (data.getConfig() == null || data.getConfig().isEmpty()) {
             throw new MissingRequiredParameterException("Config");
         }
+        ParameterValidationUtils.validateRuleConfig(type, data.getConfig());
 
         RuleConfigurationDto config = new RuleConfigurationDto();
         config.setConfiguration(data.getConfig());
@@ -579,6 +580,7 @@ public class GroupsResourceImpl implements GroupsResource {
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
         ParameterValidationUtils.requireParameter("rule", rule);
+        ParameterValidationUtils.validateRuleConfig(rule, data.getConfig());
 
         RuleConfigurationDto dto = new RuleConfigurationDto(data.getConfig());
         storage.updateArtifactRule(defaultGroupIdToNull(groupId), artifactId, rule, dto);

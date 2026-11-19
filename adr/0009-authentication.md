@@ -46,8 +46,9 @@ to work the same whatever established the identity.
 5. **Clients get first-class support** for the same mechanisms: OAuth2 client credentials, basic and
    bearer tokens in the Java SDK, serdes, Maven plugin and CLI.
 6. **TLS is Quarkus's; mutual TLS is the front's.** The registry serves HTTPS through the Quarkus TLS
-   registry. It does not require client certificates itself: a proxy or the platform enforces
-   mutual TLS. See [transport security](#transport-security).
+   registry. The published images do not require client certificates: in them a proxy or the
+   platform enforces mutual TLS. A build that sets client authentication at build time can require
+   them itself. See [transport security](#transport-security).
 
 ### Why a chain
 
@@ -100,7 +101,7 @@ stored like other registry data on every variant.
 | Server certificate | Quarkus TLS registry: `quarkus.tls.key-store.p12.*`, `.jks.*` or `.pem.<name>.cert`/`.key` | HTTPS on `quarkus.http.ssl-port` (8443). The older `quarkus.http.ssl.certificate.*` properties still work (`TlsTestProfile`) |
 | Plain HTTP | `quarkus.http.insecure-requests`: `enabled` (default), `redirect`, `disabled` | `redirect` sends HTTP to HTTPS; `disabled` closes port 8080 |
 | Management port | Same certificate | With a key store set, port 9000 (health, metrics) serves HTTPS too |
-| Mutual TLS | A front proxy, ingress or service mesh | `quarkus.http.ssl.client-auth` is fixed at build time (`NONE`); setting it at runtime only logs `Build time property cannot be changed at runtime` |
+| Mutual TLS | With the published images, a front proxy, ingress or service mesh | `quarkus.http.ssl.client-auth` is a build-time property, `NONE` in the published images; setting it at runtime only logs `Build time property cannot be changed at runtime`. A build that sets it to `required` enforces client certificates in the registry itself, as the tests' `MtlsTestProfile` does |
 | Operator | `spec.app.tls` ([ADR-0019](0019-operator.md)) | Mounts a PKCS12 key store from a Secret and sets `QUARKUS_TLS_KEY_STORE_P12_*` and `QUARKUS_HTTP_INSECURE_REQUESTS` (`feat/TLS.java`) |
 | Clients | Trust and key stores in PKCS12, JKS or PEM | SDK options in [ADR-0022](0022-client-sdks-and-cli.md); serdes `apicurio.registry.tls.*`; Maven plugin `trustStore*` and `keyStore*`. `trustAll` and host-verification switches are for development |
 

@@ -55,7 +55,7 @@ fetch_trace() {
   local deadline=$((SECONDS + 60))
   while :; do
     curl -s "$JAEGER/api/traces/$1" | jq "$SPANS" > "$work/$1.json" 2>/dev/null || echo '[]' > "$work/$1.json"
-    if jq -e "$2" "$work/$1.json" > /dev/null 2>&1 || [ "$SECONDS" -ge "$deadline" ]; then return; fi
+    if jq -e ". as \$spans | $2" "$work/$1.json" > /dev/null 2>&1 || [ "$SECONDS" -ge "$deadline" ]; then return; fi
     sleep 2
   done
 }
@@ -100,7 +100,7 @@ read -r tid sid < <(new_trace)
 status=$(curl -s -o /dev/null -w '%{http_code}' -H "traceparent: 00-$tid-$sid-01" "$V3/groups/default/artifacts/no-such-artifact")
 expect "GET a missing artifact" 404 "$status"
 route="GET /apis/registry/v3/groups/{groupId}/artifacts/{artifactId}"
-fetch_trace "$tid" 'any(.op == "storage.getArtifactMetaData")'
+fetch_trace "$tid" 'any(.op == "storage.getArtifactMetaData") and any(.svc == "apicurio-registry" and .op == "GET /apis/registry/v3/groups/{groupId}/artifacts/{artifactId}")'
 check_span "the server span of the failed request" "$tid" apicurio-registry "$route" "$sid"
 expect "  its HTTP status" 404 "$(span_value "$tid" apicurio-registry "$route" '.tags["http.response.status_code"]')"
 expect "  its artifactId attribute" no-such-artifact "$(span_value "$tid" apicurio-registry "$route" '.tags["apicurio.registry.path.artifact_id"]')"
@@ -115,8 +115,14 @@ name="demo-$(openssl rand -hex 3)"
 read -r tid sid < <(new_trace)
 response=$(curl -s -X POST -H "traceparent: 00-$tid-$sid-01" "$PRODUCER/greetings?name=$name")
 expect "POST /greetings returns the caller's trace ID" "$tid" "$(jq -r .traceId <<< "$response")"
-fetch_trace "$tid" 'any(.op == "process-greeting-message") and any(.op == "greetings process") and any(.op == "create-greeting")
-  and any(.op == "POST /apis/registry/v3/groups/{groupId}/artifacts")'
+# Wait for every span checked below: each service exports its spans in its own batches
+fetch_trace "$tid" 'all(
+  ["greeting-producer", "POST /greetings"], ["greeting-producer", "create-greeting"],
+  ["greeting-producer", "greetings publish"], ["greeting-producer", "serde.serialize"],
+  ["greeting-producer", "serde.resolve_schema"], ["greeting-producer", "POST"],
+  ["apicurio-registry", "POST /apis/registry/v3/groups/{groupId}/artifacts"],
+  ["greeting-consumer", "greetings process"], ["greeting-consumer", "process-greeting-message"];
+  . as [$s, $o] | any($spans[]; .svc == $s and .op == $o))'
 check_span "producer: REST endpoint" "$tid" greeting-producer "POST /greetings" "$sid"
 http_id=$(span_value "$tid" greeting-producer "POST /greetings" .id)
 check_span "producer: @WithSpan business span" "$tid" greeting-producer create-greeting "$http_id"
@@ -180,8 +186,12 @@ response=$(curl -s -X POST -H "traceparent: 00-$tid-$sid-01" -H 'Content-Type: a
   -d '{"customerName": "Demo", "product": "Widget", "quantity": 2, "price": 9.99}' "$ORDERS/orders")
 expect "POST /orders returns the caller's trace ID" "$tid" "$(jq -r .traceId <<< "$response")"
 order_id=$(jq -r .id <<< "$response")
-fetch_trace "$tid" 'any(.op == "debezium-cdc-orders") and any(.op == "process-cdc-event") and any(.svc == "cdc-consumer" and .op == "GET /apis/registry/v3/ids/globalIds/{globalId}")
-  and any(.svc == "apicurio-registry" and .op == "GET /apis/registry/v3/ids/globalIds/{globalId}")'
+fetch_trace "$tid" 'all(
+  ["order-service", "POST /orders"], ["order-service", "create-order-entity"],
+  ["debezium-server", "debezium-cdc-orders"], ["cdc-consumer", "process-cdc-event"],
+  ["cdc-consumer", "GET /apis/registry/v3/ids/globalIds/{globalId}"],
+  ["apicurio-registry", "GET /apis/registry/v3/ids/globalIds/{globalId}"];
+  . as [$s, $o] | any($spans[]; .svc == $s and .op == $o))'
 check_span "order service: REST endpoint" "$tid" order-service "POST /orders" "$sid"
 check_span "order service: the insert, whose context is stored in the row" "$tid" order-service create-order-entity \
   "$(span_value "$tid" order-service "POST /orders" .id)"

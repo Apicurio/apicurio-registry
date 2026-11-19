@@ -36,8 +36,11 @@ public abstract class AbstractPollingDataFile implements PollingDataFile {
     @Getter
     protected final Optional<String> formatError;
 
+    @Getter
+    protected final Optional<String> parseError;
+
     protected AbstractPollingDataFile(String sourceId, String path, ContentHandle data, Optional<Any> any) {
-        this(sourceId, path, data, new Any.Parsed(any, Optional.empty()));
+        this(sourceId, path, data, new Any.Parsed(any, Optional.empty(), Optional.empty()));
     }
 
     protected AbstractPollingDataFile(String sourceId, String path, ContentHandle data, Any.Parsed parsed) {
@@ -46,6 +49,7 @@ public abstract class AbstractPollingDataFile implements PollingDataFile {
         this.data = data;
         this.any = parsed.any();
         this.formatError = parsed.formatError();
+        this.parseError = parsed.parseError();
     }
 
     @Override

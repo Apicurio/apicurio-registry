@@ -222,6 +222,33 @@ class KubernetesOpsSmokeTest {
         assertEquals("before-cred", peer.getCredentialSecretRef());
     }
 
+    /**
+     * ConfigMapDataFile parses every entry unconditionally (#11111), unlike GitOps, which only
+     * parses files that already look like metadata files by their path. This is the scenario the
+     * issue describes: the error from KubernetesManager's temporary ProcessingState was only logged
+     * ("ConfigMap parse error"), never recorded on the real one, so the load succeeded without the
+     * broken artifact and nothing in the API showed it.
+     */
+    @Test
+    void brokenArtifactConfigMapEntryFailsTheLoadInsteadOfDisappearingSilently() throws Exception {
+        var configMapStore = KubernetesTestResourceManager.getConfigMapStore();
+
+        configMapStore.load("git/smoke01");
+        await().atMost(Duration.ofSeconds(30)).until(() -> withContext(() -> storage.getArtifactIds(10)),
+                equalTo(Set.of("petstore")));
+
+        configMapStore.load("git/parse-error-broken-artifact");
+        await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
+            var status = kubernetesOpsStorage.getStatus();
+            assertEquals(PollingStorageStatus.SyncState.ERROR, status.getSyncState());
+            assertEquals(1, status.getErrors().size());
+            assertTrue(status.getErrors().get(0).detail().contains("Could not parse file"));
+            assertTrue(status.getErrors().get(0).detail().contains("artifact-petstore.registry.yaml"));
+        });
+        // The registry keeps its last good data; the artifact doesn't silently disappear.
+        assertEquals(Set.of("petstore"), withContext(() -> storage.getArtifactIds(10)));
+    }
+
     @ActivateRequestContext
     public <T> T withContext(Supplier<T> supplier) {
         return supplier.get();

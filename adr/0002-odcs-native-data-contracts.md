@@ -363,6 +363,7 @@ The feature was delivered in phases; the design above is their current combined 
 | 8 | Global rulesets, UI contract tab and global contract rules page |
 | [#10958](https://github.com/Apicurio/apicurio-registry/issues/10958) | Projection lifecycle (deletion, re-projection that keeps API-set state, cleanup, rollback), case-preserving label merges, inline tag extraction, serializers evaluating all rule scopes, complete audit log, deletion of contract rules and audit with the artifact |
 | [#11176](https://github.com/Apicurio/apicurio-registry/pull/11176) | Fixed: compatibility rules use the compatibility group; status transitions, promotion and metadata updates are compare-and-set and return 409 on a conflict ([#10969](https://github.com/Apicurio/apicurio-registry/issues/10969), [#10971](https://github.com/Apicurio/apicurio-registry/issues/10971)) |
+| [#11206](https://github.com/Apicurio/apicurio-registry/pull/11206) | Governance rules run (`GOVERNANCE` rule type: `NONE`, `BASIC`, `FULL`); serializers apply TRANSFORM output and route to a DLQ ([#10968](https://github.com/Apicurio/apicurio-registry/issues/10968), [#10970](https://github.com/Apicurio/apicurio-registry/issues/10970)) |
 
 Earlier revisions of this ADR also recorded, and resolved: un-namespaced projection, which allowed
 only one contract per schema (fixed by namespacing with the contract ID); read-modify-write label

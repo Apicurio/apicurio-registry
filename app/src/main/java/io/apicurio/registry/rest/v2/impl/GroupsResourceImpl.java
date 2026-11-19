@@ -1114,7 +1114,9 @@ public class GroupsResourceImpl implements GroupsResource {
             final Map<String, TypedContent> resolvedReferences = ReferenceResolution
                     .recursivelyResolveReferences(referencesAsDtos, accessGuard.referenceLoader());
 
-            rulesService.applyRules(defaultGroupIdToNull(groupId), artifactId, artifactType, typedContent,
+            // A first version without an explicit id is stored as "1".
+            rulesService.applyRulesForNewVersion(defaultGroupIdToNull(groupId), artifactId,
+                    xRegistryVersion != null ? xRegistryVersion : "1", artifactType, typedContent,
                     RuleApplicationType.CREATE, toV3Refs(references), resolvedReferences);
 
             // Extract metadata from content, then override extracted values with provided values.
@@ -1265,8 +1267,9 @@ public class GroupsResourceImpl implements GroupsResource {
 
         String artifactType = lookupArtifactType(groupId, artifactId);
         TypedContent typedContent = TypedContent.create(content, ct);
-        rulesService.applyRules(defaultGroupIdToNull(groupId), artifactId, artifactType, typedContent,
-                RuleApplicationType.UPDATE, toV3Refs(references), resolvedReferences);
+        rulesService.applyRulesForNewVersion(defaultGroupIdToNull(groupId), artifactId, xRegistryVersion,
+                artifactType, typedContent, RuleApplicationType.UPDATE, toV3Refs(references),
+                resolvedReferences);
         EditableVersionMetaDataDto metaData = getEditableVersionMetaData(artifactName, artifactDescription);
         ContentWrapperDto contentDto = ContentWrapperDto.builder().content(content).contentType(ct)
                 .references(referencesAsDtos).build();
@@ -1374,8 +1377,8 @@ public class GroupsResourceImpl implements GroupsResource {
                 .recursivelyResolveReferences(referencesAsDtos, accessGuard.referenceLoader());
 
         TypedContent typedContent = TypedContent.create(content, contentType);
-        rulesService.applyRules(defaultGroupIdToNull(groupId), artifactId, artifactType, typedContent,
-                RuleApplicationType.UPDATE, toV3Refs(references), resolvedReferences);
+        rulesService.applyRulesForNewVersion(defaultGroupIdToNull(groupId), artifactId, version, artifactType,
+                typedContent, RuleApplicationType.UPDATE, toV3Refs(references), resolvedReferences);
 
         // Extract metadata from content, then override extracted values with provided values.
         EditableArtifactMetaDataDto artifactMD = extractMetaData(artifactType, content);

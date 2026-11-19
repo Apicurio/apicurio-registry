@@ -6,6 +6,8 @@ import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.RuleType;
+import io.apicurio.registry.rest.client.models.RuleViolationProblemDetails;
+import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.rules.integrity.IntegrityLevel;
 import io.apicurio.registry.types.ArtifactType;
@@ -18,6 +20,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Unit tests for circular reference detection in the Integrity rule.
@@ -397,5 +400,174 @@ public class CircularReferenceIntegrityRuleTest extends AbstractResourceTestBase
                 .post(newVersionA);
         Assertions.assertNotNull(newResponseA);
         Assertions.assertEquals("2", newResponseA.getVersion());
+    }
+
+    // #11309: a cycle closed by a version whose id the storage generates (no explicit version).
+
+    @Test
+    public void testGeneratedVersionClosingDirectCycleIsRejected() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        enableNoCircularReferences();
+        String a = TestUtils.generateArtifactId();
+        String b = TestUtils.generateArtifactId();
+
+        // b@1 has no references; a@1 references b@2, which does not exist yet.
+        createVersion(groupId, b, null, "RecordB");
+        createVersion(groupId, a, null, "RecordA", ref(groupId, b, "2", "b.avsc"));
+
+        // b's next version (generated id 2) referencing a@1 closes a@1 -> b@2 -> a@1.
+        RuleViolationProblemDetails error = Assertions.assertThrows(RuleViolationProblemDetails.class,
+                () -> createVersion(groupId, b, null, "RecordBv2", ref(groupId, a, "1", "a.avsc")));
+        assertCycleClosedBy(error, "a.avsc", groupId + "/" + a + "@1", groupId + "/" + b + "@2");
+        Assertions.assertEquals(List.of("1"), versionsOf(groupId, b));
+    }
+
+    @Test
+    public void testGeneratedVersionClosingLongerCycleIsRejected() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        enableNoCircularReferences();
+        String a = TestUtils.generateArtifactId();
+        String b = TestUtils.generateArtifactId();
+        String c = TestUtils.generateArtifactId();
+
+        // a@1 -> b@2 (not yet existing), c@1 -> a@1; b@1 has no references.
+        createVersion(groupId, b, null, "RecordB");
+        createVersion(groupId, a, null, "RecordA", ref(groupId, b, "2", "b.avsc"));
+        createVersion(groupId, c, null, "RecordC", ref(groupId, a, "1", "a.avsc"));
+
+        // b's next version (generated id 2) referencing c@1 closes b@2 -> c@1 -> a@1 -> b@2.
+        RuleViolationProblemDetails error = Assertions.assertThrows(RuleViolationProblemDetails.class,
+                () -> createVersion(groupId, b, null, "RecordBv2", ref(groupId, c, "1", "c.avsc")));
+        assertCycleClosedBy(error, "c.avsc", groupId + "/" + c + "@1", groupId + "/" + b + "@2");
+        Assertions.assertEquals(List.of("1"), versionsOf(groupId, b));
+    }
+
+    @Test
+    public void testExplicitVersionClosingCycleIsStillRejected() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        enableNoCircularReferences();
+        String a = TestUtils.generateArtifactId();
+        String b = TestUtils.generateArtifactId();
+
+        createVersion(groupId, b, null, "RecordB");
+        createVersion(groupId, a, null, "RecordA", ref(groupId, b, "2", "b.avsc"));
+
+        RuleViolationProblemDetails error = Assertions.assertThrows(RuleViolationProblemDetails.class,
+                () -> createVersion(groupId, b, "2", "RecordBv2", ref(groupId, a, "1", "a.avsc")));
+        assertCycleClosedBy(error, "a.avsc", groupId + "/" + a + "@1", groupId + "/" + b + "@2");
+    }
+
+    @Test
+    public void testExplicitFirstVersionClosingCycleIsStillRejected() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        enableNoCircularReferences();
+        String a = TestUtils.generateArtifactId();
+        String b = TestUtils.generateArtifactId();
+
+        // a@1 -> b@1, b does not exist yet; creating b (first version, id "1") referencing a@1 closes it.
+        createVersion(groupId, a, null, "RecordA", ref(groupId, b, "1", "b.avsc"));
+
+        RuleViolationProblemDetails error = Assertions.assertThrows(RuleViolationProblemDetails.class,
+                () -> createVersion(groupId, b, null, "RecordB", ref(groupId, a, "1", "a.avsc")));
+        assertCycleClosedBy(error, "a.avsc", groupId + "/" + a + "@1", groupId + "/" + b + "@1");
+    }
+
+    @Test
+    public void testGeneratedVersionWithoutCycleIsAllowed() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        enableNoCircularReferences();
+        String a = TestUtils.generateArtifactId();
+        String b = TestUtils.generateArtifactId();
+
+        // a@1 -> b@1 (an existing version); b's next version referencing a@1 is b@2 -> a@1 -> b@1: no cycle.
+        createVersion(groupId, b, null, "RecordB");
+        createVersion(groupId, a, null, "RecordA", ref(groupId, b, "1", "b.avsc"));
+
+        VersionMetaData created = createVersion(groupId, b, null, "RecordBv2", ref(groupId, a, "1", "a.avsc"));
+        Assertions.assertEquals("2", created.getVersion());
+        Assertions.assertEquals(List.of("1", "2"), versionsOf(groupId, b));
+    }
+
+    @Test
+    public void testGeneratedVersionWithDanglingReferenceToOtherFutureVersionIsRejected() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        enableNoCircularReferences();
+        String a = TestUtils.generateArtifactId();
+        String b = TestUtils.generateArtifactId();
+
+        // a@1 -> b@99, which does not exist; b@1 has no references.
+        createVersion(groupId, b, null, "RecordB");
+        createVersion(groupId, a, null, "RecordA", ref(groupId, b, "99", "b.avsc"));
+
+        // With a generated id, b@99 might be the id the new version receives, so it is rejected.
+        RuleViolationProblemDetails error = Assertions.assertThrows(RuleViolationProblemDetails.class,
+                () -> createVersion(groupId, b, null, "RecordBv2", ref(groupId, a, "1", "a.avsc")));
+        assertCycleClosedBy(error, "a.avsc", groupId + "/" + a + "@1", groupId + "/" + b + "@99");
+        Assertions.assertEquals(List.of("1"), versionsOf(groupId, b));
+
+        // With the explicit id 2, the new version is known not to be b@99: no cycle.
+        VersionMetaData created = createVersion(groupId, b, "2", "RecordBv2", ref(groupId, a, "1", "a.avsc"));
+        Assertions.assertEquals("2", created.getVersion());
+        Assertions.assertEquals(List.of("1", "2"), versionsOf(groupId, b));
+    }
+
+    private void enableNoCircularReferences() {
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.INTEGRITY);
+        createRule.setConfig(IntegrityLevel.NO_CIRCULAR_REFERENCES.name());
+        clientV3.admin().rules().post(createRule);
+    }
+
+    private static ArtifactReference ref(String groupId, String artifactId, String version, String name) {
+        ArtifactReference ref = new ArtifactReference();
+        ref.setGroupId(groupId);
+        ref.setArtifactId(artifactId);
+        ref.setVersion(version);
+        ref.setName(name);
+        return ref;
+    }
+
+    private VersionMetaData createVersion(String groupId, String artifactId, String version, String recordName,
+            ArtifactReference... references) {
+        VersionContent content = new VersionContent();
+        content.setContent(String.format(AVRO_SCHEMA_TEMPLATE, recordName));
+        content.setContentType(ContentTypes.APPLICATION_JSON);
+        content.setReferences(List.of(references));
+        CreateVersion createVersion = new CreateVersion();
+        createVersion.setVersion(version);
+        createVersion.setContent(content);
+
+        boolean exists = clientV3.search().artifacts().get(config -> {
+            config.queryParameters.groupId = groupId;
+            config.queryParameters.artifactId = artifactId;
+        }).getCount() > 0;
+        if (exists) {
+            return clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                    .post(createVersion);
+        }
+        CreateArtifact createArtifact = new CreateArtifact();
+        createArtifact.setArtifactId(artifactId);
+        createArtifact.setArtifactType(ArtifactType.AVRO);
+        createArtifact.setFirstVersion(createVersion);
+        return clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact).getVersion();
+    }
+
+    private List<String> versionsOf(String groupId, String artifactId) {
+        return clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().get()
+                .getVersions().stream().map(v -> v.getVersion()).sorted().collect(Collectors.toList());
+    }
+
+    private static void assertCycleClosedBy(RuleViolationProblemDetails error, String referenceName,
+            String reference, String versionBeingWritten) {
+        Assertions.assertEquals(400, error.getStatus());
+        String description = String.format(
+                "Circular reference detected in reference graph: %s leads back to %s, the artifact being written (cycle)",
+                reference, versionBeingWritten);
+        Assertions.assertEquals("Circular artifact reference(s) detected. Causes: " + description + " at "
+                + referenceName, error.getDetail());
+        Assertions.assertEquals(1, error.getCauses().size());
+        var cause = error.getCauses().get(0);
+        Assertions.assertEquals(referenceName, cause.getContext());
+        Assertions.assertEquals(description, cause.getDescription());
     }
 }

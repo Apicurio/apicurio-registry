@@ -1,5 +1,6 @@
 package io.apicurio.registry.protobuf.content.dereference;
 
+import com.google.protobuf.DescriptorProtos;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.types.ContentTypes;
@@ -8,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Collections;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class ProtobufDereferencerTest {
@@ -19,7 +21,7 @@ class ProtobufDereferencerTest {
     }
 
     @Test
-    void testDereferenceServiceOnlyProto() {
+    void testDereferenceServiceOnlyProto() throws Exception {
         String messageProto = """
                 syntax = "proto3";
                 package com.example;
@@ -50,10 +52,13 @@ class ProtobufDereferencerTest {
 
         assertNotNull(result);
         assertNotNull(result.getContent());
+
+        var fdp = DescriptorProtos.FileDescriptorProto.parseFrom(result.getContent().bytes());
+        assertEquals("Greeter", fdp.getService(0).getName());
     }
 
     @Test
-    void testDereferenceEnumOnlyProto() {
+    void testDereferenceEnumOnlyProto() throws Exception {
         String enumProto = """
                 syntax = "proto3";
                 package com.example;
@@ -72,5 +77,8 @@ class ProtobufDereferencerTest {
 
         assertNotNull(result);
         assertNotNull(result.getContent());
+
+        var fdp = DescriptorProtos.FileDescriptorProto.parseFrom(result.getContent().bytes());
+        assertEquals("Status", fdp.getEnumType(0).getName());
     }
 }

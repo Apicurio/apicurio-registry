@@ -540,9 +540,8 @@ call POST $ORDER/contract/migrate '{"fromVersion":"1","toVersion":"2","record":{
 ../../mvnw -q exec:java -Dexec.args=migrate
 ```
 
-Today the deserializer runs the rule but discards its result, so the record of step 9 arrives
-without `currency` ([#11246](https://github.com/Apicurio/apicurio-registry/issues/11246));
-`demo.sh` checks that, and will expect `USD` once it is fixed.
+The deserializer applies the rule and builds the result against version 2's schema, so the
+record of step 9 arrives with `"currency": "USD"`.
 
 Migrating from 1 to 3 would apply version 2's rules, then version 3's. Migration rules at the
 artifact or global level are not used for migration.
@@ -655,8 +654,9 @@ rm -f orders-contract-1.1.yaml
   - *Can two contracts govern one schema?* Yes. Everything projected carries the contract ID.
   - *Are inline schema tags (Avro `tags`, JSON Schema `x-tags`) picked up?* Yes, when a version
     is created through the REST API (as `INLINE` field tags, step 5).
-  - *Does the compatibility group change compatibility checks?* Not yet: it is stored as a label
-    and can be searched, but compatibility rules ignore it.
+  - *Does the compatibility group change compatibility checks?* Yes. Each new version records the
+    artifact's group, and a compatibility rule compares a new version only with the versions of the
+    same group. Setting a new group starts a new compatibility line.
 - **To reset between runs:** `docker compose down -v`, then steps 1 to 3 again.
 
 ## Troubleshooting

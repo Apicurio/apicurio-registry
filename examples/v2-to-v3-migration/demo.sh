@@ -96,7 +96,7 @@ inventory() {
   echo "$versions" | while read -r line; do
     local gid sha refs
     gid=$(jq -r .gid <<< "$line")
-    # A DISABLED version's content is not served by globalId (but see #11116)
+    # A DISABLED version's content is not served by globalId
     if [ "$(jq -r .s <<< "$line")" = DISABLED ]; then
       sha=disabled
     else
@@ -180,8 +180,7 @@ check "  and so does the registry: 409" 409 \
   "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$V3/apis/registry/v3/admin/import" -H 'Content-Type: application/zip' --data-binary "@$WORK/v2-export.zip")"
 
 part "Import with new IDs, into a registry that already has data"
-# Content that is not in the export: content that is (the same bytes) would be linked to the wrong
-# versions (https://github.com/Apicurio/apicurio-registry/issues/11115)
+# Content that is not in the export (content that is, the same bytes, is reused by the import)
 curl -sf -o /dev/null -X POST "$V3_RENUM/apis/registry/v3/groups/existing/artifacts" -H 'Content-Type: application/json' \
   -d "$(jq -n --arg c '{"type": "object", "title": "AlreadyHere"}' '{artifactId: "already-here", artifactType: "JSON", firstVersion: {content: {content: $c, contentType: "application/json"}}}')"
 check "import with X-Registry-Preserve-GlobalId/ContentId: false and requireEmptyRegistry=false" 204 \

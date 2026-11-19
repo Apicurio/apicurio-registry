@@ -29,6 +29,7 @@ import io.apicurio.registry.storage.StorageEventType;
 import io.apicurio.registry.storage.dto.*;
 import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
+import io.apicurio.registry.storage.error.ContractStateConflictException;
 import io.apicurio.registry.storage.error.CommitFailedException;
 import io.apicurio.registry.storage.error.ContentNotFoundException;
 import io.apicurio.registry.storage.error.GroupAlreadyExistsException;
@@ -77,6 +78,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.HashMap;
 import java.util.Optional;
 import java.util.Set;
@@ -1186,6 +1188,22 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Override
     public void mergeArtifactLabels(String groupId, String artifactId, String prefix,
             Map<String, String> labels) throws RegistryStorageException {
+        mergeArtifactLabelsIfMatch(groupId, artifactId, prefix, labels, Map.of());
+    }
+
+    @Override
+    public void compareAndSetArtifactLabels(String groupId, String artifactId, Map<String, String> expected,
+            Map<String, String> labels) throws RegistryStorageException {
+        mergeArtifactLabelsIfMatch(groupId, artifactId, null, labels, expected);
+    }
+
+    /**
+     * Merges labels into an artifact under its row lock: checks that each expected label still has its
+     * expected value (a {@code null} value meaning absent), deletes the labels matching the prefix (if
+     * any), then sets the given labels.
+     */
+    private void mergeArtifactLabelsIfMatch(String groupId, String artifactId, String prefix,
+            Map<String, String> labels, Map<String, String> expected) throws RegistryStorageException {
         String normalizedGroup = normalizeGroupId(groupId);
         handles.withHandleNoException(handle -> {
             // An UPDATE locks the canonical row on every supported SQL dialect, including SQL Server.
@@ -1197,7 +1215,14 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             }
             var existing = artifactRepository.getArtifactMetaData(groupId, artifactId).getLabels();
             Map<String, String> merged = existing == null ? new HashMap<>() : new HashMap<>(existing);
-            merged.keySet().removeIf(key -> key.startsWith(prefix));
+            expected.forEach((key, value) -> {
+                if (!Objects.equals(value, merged.get(key))) {
+                    throw new ContractStateConflictException(groupId, artifactId);
+                }
+            });
+            if (prefix != null) {
+                merged.keySet().removeIf(key -> key.startsWith(prefix));
+            }
             merged.putAll(labels);
             artifactRepository.updateArtifactMetaData(groupId, artifactId,
                     EditableArtifactMetaDataDto.builder().labels(merged).build());
@@ -1215,23 +1240,30 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     }
 
     @Override
+    public void updateContractMetadata(String groupId, String artifactId, String prefix,
+            Map<String, String> labels, Map<String, String> expected) throws RegistryStorageException {
+        mergeArtifactLabelsIfMatch(groupId, artifactId, prefix, labels, expected);
+
+        outboxEvent.fire(SqlOutboxEvent.of(ContractMetadataUpdated.of(groupId, artifactId)));
+    }
+
+    @Override
     public void transitionContractStatus(String groupId, String artifactId, String fromStatus,
             String toStatus, String prefix, String effectiveDate) throws RegistryStorageException {
-        // Each merge is scoped to a single label key so that the other contract labels
-        // are left untouched.
+        // A single compare-and-set on the status and lifecycle date labels: the transition was
+        // validated against fromStatus, so it only applies if the status has not changed since.
         String statusKey = prefix + ContractLabels.SUFFIX_STATUS;
-        mergeArtifactLabels(groupId, artifactId, statusKey, Map.of(statusKey, toStatus));
-
+        Map<String, String> expected = new HashMap<>();
+        expected.put(statusKey, fromStatus);
+        Map<String, String> labels = new HashMap<>();
+        labels.put(statusKey, toStatus);
         if (ContractStatus.STABLE.name().equals(toStatus)) {
-            String stableDateKey = prefix + ContractLabels.SUFFIX_STABLE_DATE;
-            mergeArtifactLabels(groupId, artifactId, stableDateKey,
-                    Map.of(stableDateKey, effectiveDate));
+            labels.put(prefix + ContractLabels.SUFFIX_STABLE_DATE, effectiveDate);
         }
         if (ContractStatus.DEPRECATED.name().equals(toStatus)) {
-            String deprecatedDateKey = prefix + ContractLabels.SUFFIX_DEPRECATED_DATE;
-            mergeArtifactLabels(groupId, artifactId, deprecatedDateKey,
-                    Map.of(deprecatedDateKey, effectiveDate));
+            labels.put(prefix + ContractLabels.SUFFIX_DEPRECATED_DATE, effectiveDate);
         }
+        mergeArtifactLabelsIfMatch(groupId, artifactId, null, labels, expected);
 
         outboxEvent.fire(SqlOutboxEvent
                 .of(ContractStatusChanged.of(groupId, artifactId, fromStatus, toStatus)));

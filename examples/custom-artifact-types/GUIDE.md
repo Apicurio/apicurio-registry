@@ -112,12 +112,15 @@ Two differences from the contract today
 
 ## Step 4: When the webhook is down
 
-`demo.sh` stops `csv-webhook` and tries again
-([#11152](https://github.com/Apicurio/apicurio-registry/issues/11152)):
+`demo.sh` stops `csv-webhook` and tries again:
 
-- **`VALIDITY` fails open:** an invalid version is accepted; the error is only logged.
-- **`COMPATIBILITY` fails closed:** the change is rejected, but the message shows the Java exception.
-- Each request waits about a minute before it fails.
+- **`VALIDITY` fails closed:** the version is rejected with `Error invoking Content Validator webhook
+  for 'CSV'.`; the cause is only logged.
+- **`COMPATIBILITY` fails closed:** the change is rejected, with a generic message as well.
+- The other providers (canonicalizer, reference finder, dereferencer) fail the request with a 502.
+- Each request fails after about 10 seconds of retries. The connect and read timeouts of a webhook
+  call are set by `apicurio.artifact-types.webhooks.connect-timeout.seconds` and
+  `apicurio.artifact-types.webhooks.read-timeout.seconds`.
 
 A webhook is a runtime dependency of every rule that uses it: run it with the same availability as
 the registry.
@@ -145,4 +148,4 @@ the registry.
 | MARKDOWN or CSV is missing from the types | Check the log for "Failed to load artifact type configuration file": a malformed file is ignored |
 | A request fails with "class not found" | Java providers are loaded on first use: the jar is not in `providers/`, or `build.sh` was not run after copying it |
 | Content is not detected as CSV | Send `contentType: text/csv`; `/accept` must return a bare boolean (#11151) |
-| Requests take a minute | The webhook is unreachable (#11152) |
+| Requests fail after about 10 seconds with "Error invoking ... webhook" | The webhook is unreachable: check the registry log for the cause |

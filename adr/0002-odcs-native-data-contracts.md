@@ -202,9 +202,13 @@ There are three callers, and they see different rules:
 The serializers are opt-in (`apicurio.registry.serde.contract-rules.enabled`, default `false`).
 They run `WRITE` rules after resolving the schema and before writing, and `READ` rules after
 reading. With `contract-rules.fail-on-error` (default `true`) any failed rule throws; otherwise it
-is logged. Records are converted to maps by parsing their JSON `toString()`. The output of
-TRANSFORM rules and of deserializer migrations is not applied to the record (see
-[Limitations](#limitations-and-open-work)).
+is logged. Avro generic records and JSON Schema records are converted to maps field by field
+(each deserializer's `toRuleRecord`); other records by parsing their JSON `toString()`. The output
+of TRANSFORM domain rules is not applied to the record (see
+[Limitations](#limitations-and-open-work)). A deserializer migration returns the transformed record
+as a record of the target version (`fromRuleRecord`: an Avro `GenericRecord` built and validated
+against the target version's schema, or JSON Schema data of the type read); Protobuf messages and
+Avro specific records are returned as written, with a warning logged once.
 
 Running the rules in the client keeps the serializer's hot path free of a registry call per record,
 at the cost of a rules cache that can be up to one TTL out of date. A ruleset that cannot be
@@ -254,7 +258,7 @@ The server has no contract-specific configuration. The serializers and deseriali
 | `apicurio.registry.serde.contract-rules.enabled` | `false` | Evaluate the artifact's contract rules on write (serializer) and read (deserializer) |
 | `apicurio.registry.serde.contract-rules.fail-on-error` | `true` | Throw on any failed rule; when `false`, log and continue |
 | `apicurio.registry.serde.contract-rules.cache.ttl.seconds` | `60` | How long a fetched ruleset is cached |
-| `apicurio.registry.serde.contract-rules.migration.enabled` | `false` | Run migration rules in the deserializer (the result is currently discarded) |
+| `apicurio.registry.serde.contract-rules.migration.enabled` | `false` | Run migration rules in the deserializer and return the migrated record |
 | `apicurio.registry.serde.contract-rules.migration.target-version` | none | Target version for deserializer migration |
 
 ## Source map
@@ -292,8 +296,9 @@ The server has no contract-specific configuration. The serializers and deseriali
    and its latest version's tags, not the submitted multi-schema YAML.
 7. **Direct label edits can diverge from the YAML.** The ODCS artifact is authoritative;
    re-submitting it repairs what it projects.
-8. **Consumers do not receive migrated records.** The deserializer runs the UPGRADE rules but
-   discards the result ([#11246](https://github.com/Apicurio/apicurio-registry/issues/11246)).
+8. **Only Avro generic records and JSON Schema data are migrated in consumers.** For Protobuf
+   messages and Avro specific records the deserializer runs the migration rules but returns the
+   record as written, and logs a warning once.
 
 ## Alternatives
 
@@ -321,8 +326,7 @@ The server has no contract-specific configuration. The serializers and deseriali
 - **Example:** [`examples/odcs-data-contracts`](../examples/odcs-data-contracts/):
   `./demo.sh` checks every step of its [guide](../examples/odcs-data-contracts/GUIDE.md): the
   projection, rule execution, global rules and overrides, the Kafka serializer rejecting invalid
-  records, lifecycle, search and audit, migration in the registry and in a consumer (whose result is
-  discarded today, [#11246](https://github.com/Apicurio/apicurio-registry/issues/11246)), updating and
+  records, lifecycle, search and audit, migration in the registry and in a consumer, updating and
   deleting the contract. CI runs it with this commit's images and serde.
 - **User documentation:** [`assembly-data-contracts.adoc`](../docs/modules/ROOT/pages/getting-started/assembly-data-contracts.adoc).
 

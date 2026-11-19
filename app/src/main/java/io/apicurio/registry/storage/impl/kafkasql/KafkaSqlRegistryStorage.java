@@ -899,6 +899,23 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
     }
 
     @Override
+    public void updateContractMetadata(String groupId, String artifactId, String prefix,
+            Map<String, String> labels, Map<String, String> expected) throws RegistryStorageException {
+        var message = new UpdateContractMetadata5Message(groupId, artifactId, prefix, labels, expected);
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+        outboxEvent.fire(KafkaSqlOutboxEvent.of(ContractMetadataUpdated.of(groupId, artifactId)));
+    }
+
+    @Override
+    public void compareAndSetArtifactLabels(String groupId, String artifactId, Map<String, String> expected,
+            Map<String, String> labels) throws RegistryStorageException {
+        var message = new CompareAndSetArtifactLabels4Message(groupId, artifactId, expected, labels);
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+    }
+
+    @Override
     public void transitionContractStatus(String groupId, String artifactId, String fromStatus,
             String toStatus, String prefix, String effectiveDate) throws RegistryStorageException {
         var message = new TransitionContractStatus6Message(groupId, artifactId, fromStatus,

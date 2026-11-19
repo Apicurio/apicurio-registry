@@ -1322,6 +1322,27 @@ class CrossToolCompatibilityServiceTest {
     }
 
     @Test
+    void testOpenPreparedProducerIsReusedAcrossConsumers() {
+        PreparedProducer producer = service.prepareProducer(tool("outputSchema",
+                "{'type':'object','properties':{'u':{'type':'object','properties':{'id':{'type':'string'}},"
+                        + "'required':['id']}},'required':['u']}"));
+        JsonNode asWritten = producer.asWritten().deepCopy();
+        JsonNode closed = producer.closed().deepCopy();
+        JsonNode restrictive = tool("inputSchema", "{'type':'object','properties':{'u':{'type':'object',"
+                + "'properties':{'id':{'type':'string'}},'additionalProperties':false}}}");
+        JsonNode accepting = tool("inputSchema", "{'type':'object','properties':{'u':{'type':'object',"
+                + "'properties':{'id':{'type':'string'}}}}}");
+        PairCompatibility openObject = new PairCompatibility(CompatibilityVerdict.INDETERMINATE, List.of(),
+                List.of(objectOpen("/outputSchema/properties/u")));
+
+        assertEquals(openObject, service.compare(producer, restrictive));
+        assertCompatible(service.compare(producer, accepting));
+        assertEquals(openObject, service.compare(producer, restrictive));
+        assertEquals(asWritten, producer.asWritten());
+        assertEquals(closed, producer.closed());
+    }
+
+    @Test
     void testUnsupportedConsumerDialectCoversWholeSchema() {
         PairCompatibility result = compare(CLOSED_PRODUCER_A,
                 "{'$schema':'https://example.invalid/custom-dialect','type':'object',"

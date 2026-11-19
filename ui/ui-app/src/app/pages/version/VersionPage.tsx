@@ -97,6 +97,8 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
     const referencesMatch = useMatch("/explore/:groupId/:artifactId/versions/:version/references");
     const documentationMatch = useMatch("/explore/:groupId/:artifactId/versions/:version/documentation");
     const compatibilityMatch = useMatch("/explore/:groupId/:artifactId/versions/:version/compatibility");
+    // Versions without the compatible tools tab show their overview on the compatibility route
+    const isCompatibleToolsTabShown: boolean = showCompatibleToolsTab(artifact?.artifactType, artifactVersion?.state);
 
     let activeTabKey: string = "overview";
     if (contentMatch) {
@@ -105,7 +107,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
         activeTabKey = "references";
     } else if (documentationMatch) {
         activeTabKey = "documentation";
-    } else if (compatibilityMatch) {
+    } else if (compatibilityMatch && isCompatibleToolsTabShown) {
         activeTabKey = "compatibility";
     }
 
@@ -445,7 +447,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
                 onChangeState={openChangeStateModal}
             />
         </Tab>,
-        <Tab data-testid="version-documentation-tab" eventKey="documentation" title="Documentation" key="documentation" className="documentation-tab" tabContentId="tab-documentation">
+        showDocumentationTab() && <Tab data-testid="version-documentation-tab" eventKey="documentation" title="Documentation" key="documentation" className="documentation-tab" tabContentId="tab-documentation">
             <DocumentationTabContent
                 versionContent={versionContent}
                 artifactType={artifact?.artifactType as string}
@@ -460,18 +462,10 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
         <Tab data-testid="version-references-tab" eventKey="references" title="References" key="references" tabContentId="tab-references">
             <ReferencesTabContent version={artifactVersion as VersionMetaData} />
         </Tab>,
-    ];
-    if (!showDocumentationTab()) {
-        tabs.splice(1, 1);
-    }
-    // Appended after the index-based removal above, so that the removal still targets the documentation tab
-    if (showCompatibleToolsTab(artifact?.artifactType, artifactVersion?.state)) {
-        tabs.push(
-            <Tab data-testid="version-compatibility-tab" eventKey="compatibility" title="Compatible tools" key="compatibility" tabContentId="tab-compatibility">
-                <McpToolCompatibilityPanel groupId={groupId as string} artifactId={artifactId as string} version={version as string} />
-            </Tab>
-        );
-    }
+        isCompatibleToolsTabShown && <Tab data-testid="version-compatibility-tab" eventKey="compatibility" title="Compatible tools" key="compatibility" tabContentId="tab-compatibility">
+            <McpToolCompatibilityPanel groupId={groupId as string} artifactId={artifactId as string} version={version as string} />
+        </Tab>,
+    ].filter(tab => tab);
 
     const gid: string = groupId || "default";
     const breadcrumbs = (

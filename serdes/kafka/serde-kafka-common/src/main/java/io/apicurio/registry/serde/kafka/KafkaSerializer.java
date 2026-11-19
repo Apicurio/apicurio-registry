@@ -29,6 +29,8 @@ public class KafkaSerializer<T, U> implements Serializer<U> {
 
     protected HeadersHandler headersHandler;
 
+    private KafkaDeadLetterQueue deadLetterQueue;
+
     protected KafkaSerializer(AbstractSerializer<T, U> delegatedSerializer) {
         this.delegatedSerializer = delegatedSerializer;
     }
@@ -37,6 +39,11 @@ public class KafkaSerializer<T, U> implements Serializer<U> {
     public void configure(Map<String, ?> configs, boolean isKey) {
         delegatedSerializer.configure(new SerdeConfig(configs), isKey);
         this.configure(new BaseKafkaSerDeConfig(configs), isKey);
+        Object dlqTopic = configs.get(SerdeConfig.CONTRACT_RULES_DLQ_TOPIC);
+        if (dlqTopic != null && !dlqTopic.toString().isBlank()) {
+            deadLetterQueue = new KafkaDeadLetterQueue(dlqTopic.toString(), configs);
+            delegatedSerializer.setDeadLetterQueue(deadLetterQueue);
+        }
     }
 
     protected void configure(BaseKafkaSerDeConfig config, boolean isKey) {
@@ -91,8 +98,9 @@ public class KafkaSerializer<T, U> implements Serializer<U> {
                 SchemaLookupResult<T> schema = delegatedSerializer.getSerdeConfigurer().getSchemaResolver()
                         .resolveSchema(new SerdeRecord<>(resolverMetadata, data));
                 ByteArrayOutputStream out = new ByteArrayOutputStream();
+                U toWrite = delegatedSerializer.applyContractRulesForWrite(topic, schema, data);
                 headersHandler.writeHeaders(headers, schema.toArtifactReference());
-                this.serializeData(headers, schema.getParsedSchema(), data, out);
+                this.serializeData(headers, schema.getParsedSchema(), toWrite, out);
                 return out.toByteArray();
             } else {
                 return delegatedSerializer.serializeData(topic, data);
@@ -131,6 +139,9 @@ public class KafkaSerializer<T, U> implements Serializer<U> {
 
     @Override
     public void close() {
+        if (deadLetterQueue != null) {
+            deadLetterQueue.close();
+        }
         delegatedSerializer.getSerdeConfigurer().close();
     }
 

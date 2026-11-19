@@ -203,9 +203,11 @@ The serializers are opt-in (`apicurio.registry.serde.contract-rules.enabled`, de
 They run `WRITE` rules after resolving the schema and before writing, and `READ` rules after
 reading. With `contract-rules.fail-on-error` (default `true`) any failed rule throws; otherwise it
 is logged. Avro generic records and JSON Schema records are converted to maps field by field
-(each deserializer's `toRuleRecord`); other records by parsing their JSON `toString()`. The output
-of TRANSFORM domain rules is not applied to the record (see
-[Limitations](#limitations-and-open-work)). A deserializer migration returns the transformed record
+(each deserializer's `toRuleRecord`, and the same in the serializers); Protobuf messages through
+their canonical JSON form; other records by parsing their JSON `toString()`. The output of TRANSFORM
+domain rules replaces the record (`fromRuleRecord`): the serializer writes it, and the deserializer
+returns the output of `READ` transforms. A failed rule with `onFailure: DLQ` sends the record to
+`contract-rules.dlq.topic` and throws `ContractRuleViolationException`. A deserializer migration returns the transformed record
 as a record of the target version (`fromRuleRecord`: an Avro `GenericRecord` built and validated
 against the target version's schema, or JSON Schema data of the type read); Protobuf messages and
 Avro specific records are returned as written, with a warning logged once.

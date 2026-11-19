@@ -1,5 +1,7 @@
 package io.apicurio.registry.serde.avro;
 
+import org.apache.avro.generic.GenericRecord;
+import java.util.Map;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
@@ -214,5 +216,27 @@ public class AvroSerializer<U> extends AbstractSerializer<Schema, U> {
         } else {
             return encoderFactory.directBinaryEncoder(os, null);
         }
+    }
+
+    @Override
+    protected Map<String, Object> toRuleRecord(U data) {
+        if (data instanceof GenericRecord) {
+            return AvroRuleRecordConverter.toMap((GenericRecord) data);
+        }
+        return super.toRuleRecord(data);
+    }
+
+    /**
+     * Only generic records, as for migrated records in {@link AvroDeserializer}.
+     */
+    @Override
+    protected boolean supportsTransformResult(U data) {
+        return data instanceof GenericRecord && !(data instanceof SpecificRecord);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    protected U fromRuleRecord(Map<String, Object> record, ParsedSchema<Schema> schema, U original) {
+        return (U) AvroRuleRecordConverter.fromMap(record, schema.getParsedSchema());
     }
 }

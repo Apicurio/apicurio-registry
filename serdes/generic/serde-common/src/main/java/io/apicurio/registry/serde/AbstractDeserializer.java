@@ -61,6 +61,7 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
     private ContractRulesetCache rulesetCache;
     private ContractRuleLoader ruleLoader;
     private ContractRuleCoordinatesResolver coordinatesResolver;
+    private DeadLetterQueue deadLetterQueue;
     private final AtomicBoolean unsupportedMigrationWarned = new AtomicBoolean();
 
     public AbstractDeserializer() {
@@ -160,7 +161,7 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
             U result = readData(schema.getParsedSchema(), buffer, start, length);
 
             if (contractRulesEnabled) {
-                return executeContractRulesForRead(topic, artifactReference, schema, result);
+                return executeContractRulesForRead(topic, data, artifactReference, schema, result);
             }
 
             return result;
@@ -191,7 +192,7 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
             U result = readData(schema.getParsedSchema(), buffer, start, length);
 
             if (contractRulesEnabled) {
-                return executeContractRulesForRead(topic, artifactReference, schema, result);
+                return executeContractRulesForRead(topic, data, artifactReference, schema, result);
             }
 
             return result;
@@ -280,7 +281,7 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
      * @return the record to hand to the caller: the migrated record if a migration ran and its result
      *         could be applied, otherwise {@code data} itself
      */
-    private U executeContractRulesForRead(String topic, ArtifactReference recordReference,
+    private U executeContractRulesForRead(String topic, byte[] payload, ArtifactReference recordReference,
             SchemaLookupResult<T> schema, U data) {
         try {
             var resolved = coordinatesResolver.resolve(readReference(recordReference, schema),
@@ -298,18 +299,22 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
             // Domain rule validation
             List<RuleDefinition> rules = ruleLoader.domainRules(ref.getGroupId(), ref.getArtifactId(),
                     ref.getVersion());
+            U result = data;
             if (!rules.isEmpty()) {
-                validateReadRules(rules, data);
+                result = applyReadRules(topic, payload, rules, schema, data);
             }
 
             // Migration transforms
             if (migrationEnabled && migrationTargetVersion != null) {
                 String recordVersion = ref.getVersion();
                 if (recordVersion != null && !recordVersion.equals(migrationTargetVersion)) {
-                    return executeMigration(ref.getGroupId(), ref.getArtifactId(),
-                            recordVersion, migrationTargetVersion, data);
+                    return executeMigration(topic, payload, ref.getGroupId(), ref.getArtifactId(),
+                            recordVersion, migrationTargetVersion, result);
                 }
             }
+            return result;
+        } catch (ContractRuleViolationException e) {
+            throw e;
         } catch (RuntimeException e) {
             if (contractRulesFailOnError) {
                 throw e;
@@ -354,19 +359,50 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
         return "no global ID or content ID";
     }
 
-    private void validateReadRules(List<RuleDefinition> rules, U data) {
-        Map<String, Object> recordMap = toRuleRecord(data);
-        RuleExecutionResult result = ruleEngine.execute(rules, "READ", recordMap);
-        if (!result.isPassed()) {
-            String msg = "Contract rule validation failed (READ): " + result.getViolations();
-            if (contractRulesFailOnError) {
-                throw new RuntimeException(msg);
-            }
-            LOG.warning(msg);
+    /**
+     * Runs the READ rules. A failed rule with {@code onFailure: DLQ} sends the record to the dead letter
+     * queue; the output of TRANSFORM rules is returned when the format can build a record from it.
+     */
+    private U applyReadRules(String topic, byte[] payload, List<RuleDefinition> rules, SchemaLookupResult<T> schema,
+            U data) {
+        RuleExecutionResult result = ruleEngine.execute(rules, "READ", toRuleRecord(data));
+        checkOutcome(topic, payload, "READ", result);
+        if (result.getTransformedRecord() == null || !supportsTransformResult(data)) {
+            return data;
         }
+        return fromRuleRecord(result.getTransformedRecord(), schema.getParsedSchema(), data);
     }
 
-    private U executeMigration(String groupId, String artifactId,
+    /**
+     * Routes the record to the dead letter queue when a failed rule asks for it, otherwise fails or logs
+     * according to fail-on-error.
+     */
+    private void checkOutcome(String topic, byte[] payload, String mode, RuleExecutionResult outcome) {
+        if (outcome.isPassed()) {
+            return;
+        }
+        if (ContractRuleOutcomes.hasDeadLetterViolation(outcome)) {
+            ContractRuleOutcomes.requireDeadLetterQueue(deadLetterQueue, outcome);
+            deadLetterQueue.send(topic, payload, outcome.getViolations());
+            throw new ContractRuleViolationException(mode, outcome.getViolations(), deadLetterQueue.topic());
+        }
+        ContractRuleViolationException violation = new ContractRuleViolationException(mode,
+                outcome.getViolations(), null);
+        if (contractRulesFailOnError) {
+            throw violation;
+        }
+        LOG.warning(violation.getMessage());
+    }
+
+    /**
+     * Sets the dead letter queue that receives the records failing a contract rule with
+     * {@code onFailure: DLQ}.
+     */
+    public void setDeadLetterQueue(DeadLetterQueue deadLetterQueue) {
+        this.deadLetterQueue = deadLetterQueue;
+    }
+
+    private U executeMigration(String topic, byte[] payload, String groupId, String artifactId,
             String fromVersion, String toVersion, U data) {
         List<String> allVersions = rulesetCache.getVersionList(groupId, artifactId);
         if (allVersions == null) {
@@ -388,6 +424,9 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
                 allVersions, fromVersion, toVersion, recordMap,
                 (version, mode) -> ruleLoader.migrationRules(groupId, artifactId, version));
 
+        if (!result.isPassed() && ContractRuleOutcomes.hasDeadLetterViolation(result)) {
+            checkOutcome(topic, payload, "MIGRATION " + fromVersion + " -> " + toVersion, result);
+        }
         if (!result.isPassed()) {
             String msg = "Migration transform failed (" + fromVersion + " -> " + toVersion + "): "
                     + result.getViolations();
@@ -451,6 +490,15 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
      */
     protected boolean supportsMigrationResult(U data) {
         return false;
+    }
+
+    /**
+     * Whether {@link #fromRuleRecord} can turn the output of READ TRANSFORM rules, which keeps the
+     * record's own schema version, back into a record like {@code data}. Defaults to
+     * {@link #supportsMigrationResult}.
+     */
+    protected boolean supportsTransformResult(U data) {
+        return supportsMigrationResult(data);
     }
 
     /**

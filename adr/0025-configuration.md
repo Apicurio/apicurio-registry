@@ -212,4 +212,4 @@ instance by `GET /apis/registry/v3/admin/config/properties`.
 | [#6790](https://github.com/Apicurio/apicurio-registry/pull/6790) | Config documentation generator fixed |
 | [#9850](https://github.com/Apicurio/apicurio-registry/pull/9850) | Atomic loads in the config cache |
 | This ADR | First written record |
-| this PR | Missing `.dynamic.allow` entry added and checked by a test; v2 config update audited and validated like v3; `.dynamic.allow` entries dropped from the config reference ([#11359](https://github.com/Apicurio/apicurio-registry/issues/11359)) |
+| [#11379](https://github.com/Apicurio/apicurio-registry/pull/11379) | Missing `.dynamic.allow` entry added and checked by a test; v2 config update audited and validated like v3; `.dynamic.allow` entries dropped from the config reference ([#11359](https://github.com/Apicurio/apicurio-registry/issues/11359)) |

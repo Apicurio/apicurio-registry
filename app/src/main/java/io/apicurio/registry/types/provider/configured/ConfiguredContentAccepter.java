@@ -54,7 +54,13 @@ public class ConfiguredContentAccepter extends AbstractConfiguredArtifactTypeUti
             ContentAccepterRequest requestBody = createRequest(content, resolvedReferences);
 
             try {
-                return isAccepted(invokeHook(requestBody, Object.class));
+                Object response = invokeHook(requestBody, Object.class);
+                if (response instanceof Boolean) {
+                    log.debug("Content accepter webhook for artifact type {} returned a bare boolean. This legacy "
+                            + "response is still accepted, but the webhook should return a ContentAccepterResponse "
+                            + "object instead.", artifactType.getArtifactType());
+                }
+                return isAccepted(response);
             } catch (Throwable e) {
                 log.error("Error invoking webhook", e);
                 return false;
@@ -66,7 +72,8 @@ public class ConfiguredContentAccepter extends AbstractConfiguredArtifactTypeUti
     /**
      * Reads the response of a content accepter webhook. The contract defines it as a
      * {@code ContentAccepterResponse} object, {@code {"accepted": true}}. A bare JSON boolean is also
-     * accepted, because that is what earlier versions of the registry required. Any other response,
+     * accepted for backward compatibility with existing webhooks, because that is what earlier versions
+     * of the registry required; the webhook delegate logs its use at DEBUG. Any other response,
      * including an object without a boolean {@code accepted} property, means the content is not accepted.
      */
     static boolean isAccepted(Object response) {

@@ -20,6 +20,11 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogManager;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -28,7 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Tests a content accepter configured as a webhook: the configured headers are sent with the request,
  * and the response is read as the {@code ContentAccepterResponse} of the webhook contract
- * ({@code {"accepted": boolean}}), with a bare JSON boolean still accepted.
+ * ({@code {"accepted": boolean}}), with a bare JSON boolean still accepted and logged at DEBUG.
  */
 class ConfiguredContentAccepterWebhookTest {
 
@@ -148,6 +153,23 @@ class ConfiguredContentAccepterWebhookTest {
     }
 
     @Test
+    void testBareBooleanResponseIsLoggedAtDebug() {
+        List<LogRecord> records = captureDebug(() -> assertTrue(accepts("/bareTrue", null)));
+
+        assertEquals(1, records.size(), "expected exactly one DEBUG record for the legacy bare boolean");
+        String message = records.get(0).getMessage();
+        assertTrue(message.contains("bare boolean") && message.contains("TEST_WEBHOOK"),
+                "expected the legacy form and the artifact type in the DEBUG record, got: " + message);
+    }
+
+    @Test
+    void testContractResponseIsNotLoggedAtDebug() {
+        List<LogRecord> records = captureDebug(() -> assertTrue(accepts("/acceptedTrue", null)));
+
+        assertEquals(0, records.size());
+    }
+
+    @Test
     void testResponseWithoutBooleanAcceptedIsNotAccepted() {
         assertFalse(accepts("/missingAccepted", null));
         assertFalse(accepts("/acceptedNotBoolean", null));
@@ -182,5 +204,48 @@ class ConfiguredContentAccepterWebhookTest {
 
         ConfiguredContentAccepter accepter = new ConfiguredContentAccepter(httpClientService, artifactType);
         return accepter.acceptsContent(TypedContent.create("{}", "application/json"), Collections.emptyMap());
+    }
+
+    /**
+     * Captures the DEBUG-level (JUL {@code FINE}) records logged by {@link ConfiguredContentAccepter} while
+     * {@code action} runs, by attaching a {@code java.util.logging} {@link Handler} by logger name and
+     * lowering that logger's level for the duration. This works because {@code app/pom.xml} configures
+     * {@code java.util.logging.manager=org.jboss.logmanager.LogManager}, through which SLF4J is routed.
+     */
+    private static List<LogRecord> captureDebug(Runnable action) {
+        String loggerName = ConfiguredContentAccepter.class.getName();
+        Logger julLogger = LogManager.getLogManager().getLogger(loggerName);
+        if (julLogger == null) {
+            julLogger = Logger.getLogger(loggerName);
+        }
+        List<LogRecord> captured = new CopyOnWriteArrayList<>();
+        Handler handler = new Handler() {
+            @Override
+            public void publish(LogRecord logRecord) {
+                if (logRecord.getLevel().intValue() == Level.FINE.intValue()) {
+                    captured.add(logRecord);
+                }
+            }
+
+            @Override
+            public void flush() {
+                // No-op: nothing is buffered by this test handler.
+            }
+
+            @Override
+            public void close() {
+                // No-op: this test handler holds no resources.
+            }
+        };
+        Level previousLevel = julLogger.getLevel();
+        julLogger.setLevel(Level.FINE);
+        julLogger.addHandler(handler);
+        try {
+            action.run();
+        } finally {
+            julLogger.removeHandler(handler);
+            julLogger.setLevel(previousLevel);
+        }
+        return List.copyOf(captured);
     }
 }

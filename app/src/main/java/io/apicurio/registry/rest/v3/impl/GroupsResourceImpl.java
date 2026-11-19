@@ -2,6 +2,7 @@ package io.apicurio.registry.rest.v3.impl;
 
 import io.apicurio.registry.rest.v3.beans.McpToolImportResult;
 import io.apicurio.registry.rest.v3.beans.McpToolImportRequest;
+import io.apicurio.registry.extensions.AgentInventorySyncHandler;
 import io.apicurio.registry.extensions.McpToolImportHandler;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
@@ -159,6 +160,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
     @Inject
     Instance<McpToolImportHandler> mcpToolImportHandler;
+
+    @Inject
+    Instance<AgentInventorySyncHandler> agentInventorySyncHandler;
 
     @Inject
     ArtifactTypeUtilProviderFactory factory;
@@ -2233,6 +2237,23 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             throw new ConflictException("Importing tools from MCP servers is not available.");
         }
         return mcpToolImportHandler.get().importTools(groupId, artifactId, data);
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v3.GroupsResource#syncAgentInventory(java.lang.String,
+     *      io.apicurio.registry.rest.v3.beans.AgentInventorySyncRequest)
+     */
+    @Override
+    // The request body is not extracted: its headers may carry credentials for the inventory source.
+    @MethodMetadata(extractParameters = {"0", MPK_GROUP_ID})
+    @Audited
+    @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
+    public AgentInventorySyncResult syncAgentInventory(String groupId, AgentInventorySyncRequest data) {
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        if (!agentInventorySyncHandler.isResolvable()) {
+            throw new ConflictException("Syncing agent inventories is not available.");
+        }
+        return agentInventorySyncHandler.get().sync(groupId, data);
     }
 
     /**

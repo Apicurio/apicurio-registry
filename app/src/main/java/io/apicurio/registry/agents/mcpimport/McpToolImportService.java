@@ -1,5 +1,6 @@
 package io.apicurio.registry.agents.mcpimport;
 
+import io.apicurio.registry.agents.OutboundHeaders;
 import io.apicurio.registry.agents.mcpimport.McpToolsClient.ServerTools;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedResource;
@@ -439,42 +440,15 @@ public class McpToolImportService implements McpToolImportHandler {
     }
 
     private static Map<String, String> validHeaders(Headers requested) {
-        if (requested == null || requested.getAdditionalProperties().isEmpty()) {
-            return Map.of();
-        }
-        Map<String, String> headers = new LinkedHashMap<>();
-        for (var header : requested.getAdditionalProperties().entrySet()) {
-            String name = header.getKey();
-            if (name == null || name.isEmpty() || !name.chars().allMatch(McpToolImportService::isTokenChar)
-                    || RESERVED_HEADERS.contains(name.toLowerCase(Locale.ROOT))) {
-                // The name is safe to repeat; the value is never repeated.
-                throw new BadRequestException("Header '" + sanitize(name) + "' cannot be sent to the MCP server.");
-            }
-            if (!(header.getValue() instanceof String value)
-                    || value.chars().anyMatch(c -> c == '\r' || c == '\n')) {
-                throw new BadRequestException("Header '" + sanitize(name) + "' has an invalid value.");
-            }
-            headers.put(name, value);
-        }
-        return Map.copyOf(headers);
+        return OutboundHeaders.validate(requested, RESERVED_HEADERS, "the MCP server");
     }
 
-    /** A character allowed in an HTTP field name: RFC 9110 {@code tchar}. */
     private static boolean isValidTool(McpSchema.Tool tool, String artifactId) {
         return isValidToolName(tool.name()) && ArtifactId.isValid(artifactId);
     }
 
     private static boolean isValidToolName(String name) {
         return name != null && TOOL_NAME.matcher(name).matches();
-    }
-
-    private static boolean isTokenChar(int c) {
-        return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9'
-                || "!#$%&'*+-.^_`|~".indexOf(c) >= 0;
-    }
-
-    private static String sanitize(String name) {
-        return name == null ? "" : name.replaceAll("[^A-Za-z0-9-]", "?");
     }
 
     private static RuleViolationCause cause(RuleViolation violation) {

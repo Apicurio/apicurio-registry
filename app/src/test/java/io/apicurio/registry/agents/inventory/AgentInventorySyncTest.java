@@ -29,6 +29,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -213,6 +214,34 @@ public class AgentInventorySyncTest extends AbstractResourceTestBase {
     }
 
     @Test
+    void refreshingAServerKeepsItsToolsUntilAnImportReplacesThem() throws Exception {
+        String group = TestUtils.generateGroupId();
+        try (McpTestServer mcp = new McpTestServer()) {
+            mcp.tools(McpTestServer.tool("search", "string"));
+            Map<String, Object> withTools = mcpServers();
+            withTools.put("importTools", true);
+            serve("mcp.x-k8s.io", "v1", "mcpservers", NS, mcpServer("search", "1.0.0", mcp.url()));
+            sync(group, withTools).statusCode(200).body("items[0].toolImport.tools[0].status", equalTo("CREATED"));
+            String server = registryV3ApiUrl + "/groups/" + group + "/artifacts/k8s-mcp.team-a.search";
+
+            // The server's descriptor changes; the sync does not import tools this time
+            serve("mcp.x-k8s.io", "v1", "mcpservers", NS, mcpServer("search", "1.1.0", mcp.url()));
+            sync(group, mcpServers()).statusCode(200).body("items[0].status", equalTo("UPDATED"))
+                    .body("items[0].version", equalTo("3"));
+            given().get(server + "/versions/3/references").then().statusCode(200)
+                    .body("name", contains("search"))
+                    .body("artifactId", contains("k8s-mcp.team-a.search.search"));
+
+            // The server drops its tool: the next import reports it removed
+            mcp.tools();
+            serve("mcp.x-k8s.io", "v1", "mcpservers", NS, mcpServer("search", "1.1.0", mcp.url()));
+            sync(group, withTools).statusCode(200)
+                    .body("items[0].status", equalTo("UNCHANGED"))
+                    .body("items[0].toolImport.tools.status", contains("REMOVED"));
+        }
+    }
+
+    @Test
     void namespaceOutsideTheAllowListIsRefusedBeforeReading() {
         Map<String, Object> request = mcpServers();
         request.put("namespace", "kube-system");
@@ -316,6 +345,15 @@ public class AgentInventorySyncTest extends AbstractResourceTestBase {
         sync(TestUtils.generateGroupId(), Map.of("source", "GOOGLE_AGENT_REGISTRY",
                 "location", "projects/../locations/x")).statusCode(400)
                 .body("detail", containsString("A location is required for Google Cloud Agent Registry"));
+    }
+
+    @Test
+    void headerValuesWithControlCharactersAreRefusedWithoutRepeatingThem() {
+        sync(TestUtils.generateGroupId(), Map.of("source", "GOOGLE_AGENT_REGISTRY", "location", location,
+                "headers", Map.of("Authorization", "Bearer secret\u0001token"))).statusCode(400)
+                .body("detail", containsString("Header 'Authorization' has an invalid value."))
+                .body("detail", not(containsString("secret")));
+        assertEquals(List.of(), GoogleAgentRegistryStub.get().authorizations(location));
     }
 
     @Test

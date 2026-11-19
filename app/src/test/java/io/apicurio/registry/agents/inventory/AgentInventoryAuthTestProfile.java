@@ -14,6 +14,8 @@ public class AgentInventoryAuthTestProfile extends AuthTestProfile {
     public Map<String, String> getConfigOverrides() {
         Map<String, String> props = super.getConfigOverrides();
         props.putAll(AgentInventoryTestProfile.inventoryOverrides());
+        // Per-artifact authorization: a developer may not change an artifact someone else owns
+        props.put("apicurio.auth.owner-only-authorization", "true");
         return props;
     }
 }

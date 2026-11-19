@@ -7,8 +7,11 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -33,6 +36,30 @@ public class McpAuthenticationTest {
 
     @Inject
     Utils utils;
+
+    @Inject
+    ClientCredentialsStartupCheck startupCheck;
+
+    @Test
+    public void testStartupCheckAcceptsRightSecret() {
+        // The check already ran at startup (otherwise this test would not run); run it again explicitly.
+        assertDoesNotThrow(startupCheck::verify);
+    }
+
+    @Test
+    public void testStartupCheckRejectsWrongSecretFromKeycloak() {
+        String endpoint = AuthTestContainersManager.sharedTokenEndpoint();
+        String wrongSecret = "definitely-wrong-secret";
+        var check = ClientCredentialsStartupCheckTest.newCheck(true, endpoint,
+                AuthTestContainersManager.ADMIN_CLIENT_ID, wrongSecret);
+
+        var e = assertThrows(IllegalStateException.class, check::verify);
+
+        assertEquals("Failed to obtain an OAuth2 token from " + endpoint + " for client 'admin-client': "
+                + "HTTP 401 (unauthorized_client: Invalid client or Invalid client credentials). "
+                + "Check APICURIO_MCP_AUTH_CLIENT_ID and APICURIO_MCP_AUTH_CLIENT_SECRET.", e.getMessage());
+        assertFalse(e.getMessage().contains(wrongSecret));
+    }
 
     @Test
     public void testOAuth2AuthenticationGetServerInfo() {

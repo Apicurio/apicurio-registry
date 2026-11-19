@@ -34,8 +34,9 @@ check fails). It is safe to run again. It checks that:
   to detect the type from);
 - **stdio, as `readonly-client` (`sr-readonly`):** `list_artifacts` works, `create_artifact` is a
   tool error carrying Registry's 403, and nothing is created;
-- **stdio, with a wrong client secret:** the session opens, but every tool call fails with
-  `Failed to obtain OAuth2 token`;
+- **stdio, with a wrong client secret:** the server asks Keycloak for a token at startup, logs
+  `Failed to obtain an OAuth2 token from <token endpoint> for client 'admin-client': HTTP 401 ...`
+  (without the secret), and exits with a non-zero status, so no session opens;
 - **HTTP:** no token, a malformed token, and a valid token for another audience (even `sr-admin`'s)
   are refused with 401; `/.well-known/oauth-protected-resource` names Keycloak;
 - **HTTP, as `developer-client` (`sr-developer`):** the tool list is the same as over stdio, and

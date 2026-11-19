@@ -1,0 +1,9 @@
+$type: artifact-v1
+registryIds: [test
+groupId: foo
+artifactId: petstore
+artifactType: OPENAPI
+versions:
+  - version: "1"
+    state: ENABLED
+    content: ./content/petstore-1.0.0.yaml

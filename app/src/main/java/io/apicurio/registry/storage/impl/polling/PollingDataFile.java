@@ -46,6 +46,14 @@ public interface PollingDataFile {
     }
 
     /**
+     * Returns the error for a metadata file that fails to parse, or whose {@code $type} field is not a
+     * usable string. The load reports it and fails, naming the file, instead of silently skipping it.
+     */
+    default Optional<String> getParseError() {
+        return Optional.empty();
+    }
+
+    /**
      * Returns whether this file has been processed.
      */
     boolean isProcessed();

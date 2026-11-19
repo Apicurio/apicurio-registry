@@ -49,12 +49,17 @@ public class Any {
 
     /**
      * The result of parsing a file: the entity, if the file is a readable metadata file, and an error,
-     * if its data format version can't be read. A file can have neither, for example a schema file.
+     * if its data format version can't be read, or if a metadata file fails to parse. A file can have
+     * neither, for example a schema file.
      */
-    public record Parsed(Optional<Any> any, Optional<String> formatError) {
+    public record Parsed(Optional<Any> any, Optional<String> formatError, Optional<String> parseError) {
 
         static Parsed empty() {
-            return new Parsed(Optional.empty(), Optional.empty());
+            return new Parsed(Optional.empty(), Optional.empty(), Optional.empty());
+        }
+
+        static Parsed error(String message) {
+            return new Parsed(Optional.empty(), Optional.empty(), Optional.of(message));
         }
     }
 
@@ -63,15 +68,28 @@ public class Any {
     }
 
     /**
-     * Parses a file. Parse errors are recorded in {@code state}, if given. A file in a data format
-     * version that this registry doesn't read is returned with a format error, which the caller
-     * reports when the file is loaded, so that the load fails instead of skipping the file.
+     * Parses a file. A file in a data format version that this registry doesn't read, a metadata file
+     * that fails to parse, or a metadata file with no usable {@code $type}, is returned with an error,
+     * which the caller reports when the file is loaded, so that the load fails instead of silently
+     * skipping the file. {@code state} is used only to look up the configured file suffixes; errors
+     * are not recorded on it directly, since the caller may parse with a disposable state before the
+     * file joins the real one (GitOps and KubernetesOps both do this), and such errors would be lost.
      */
     public static Parsed parse(ProcessingState state, String path, ContentHandle content) {
         try {
             var raw = YAML_MAPPER.readTree(content.bytes());
             var typeNode = raw == null ? null : raw.get(DataFormat.TYPE_FIELD);
             if (typeNode == null || typeNode.textValue() == null) {
+                if (raw != null && raw.has(DataFormat.TYPE_FIELD) && isMetadataFile(state, path)) {
+                    // Has a $type field, but it's not a usable string (null, a number, an object, ...)
+                    return Parsed.error("File " + path + " has a $type field that is not a string.");
+                }
+                if (isMetadataFile(state, path)) {
+                    // No $type field at all: not failed, since a metadata-suffix file might
+                    // legitimately not be a registry file, but worth naming so it isn't missed.
+                    log.warn("File {} has no $type field. It will not be loaded as registry metadata.",
+                            path);
+                }
                 return Parsed.empty();
             }
             var rawType = typeNode.textValue();
@@ -94,7 +112,7 @@ public class Any {
                     if (isKnownNonMetadataFile(state, path)) {
                         return Parsed.empty();
                     }
-                    return new Parsed(Optional.empty(), resolution.error(path));
+                    return new Parsed(Optional.empty(), resolution.error(path), Optional.empty());
                 }
                 default -> {
                     // READABLE, handled below
@@ -107,19 +125,16 @@ public class Any {
                 var entity = YAML_MAPPER.treeToValue(upgraded, type.getKlass());
                 var any = Any.builder().raw(raw).type(type).formatVersion(resolution.version())
                         .entity(entity).build();
-                return new Parsed(Optional.of(any), Optional.empty());
+                return new Parsed(Optional.of(any), Optional.empty(), Optional.empty());
             } catch (JsonProcessingException ex) {
-                if (state != null) {
-                    state.recordError("Could not parse file %s as %s: %s", path, type, ex.getOriginalMessage());
-                }
-                return Parsed.empty();
+                return Parsed.error(
+                        "Could not parse file " + path + " as " + type + ": " + ex.getOriginalMessage());
             }
         } catch (IOException ex) {
-            // Only report parse errors for files that look like registry metadata files
+            // Only report parse errors for files that look like registry metadata files. A content
+            // file (a binary schema, for example) is not valid YAML/JSON at all, and that's expected.
             if (isMetadataFile(state, path)) {
-                if (state != null) {
-                    state.recordError("Could not parse file %s: %s", path, ex.getMessage());
-                }
+                return Parsed.error("Could not parse file " + path + ": " + ex.getMessage());
             }
             return Parsed.empty();
         }

@@ -3,6 +3,7 @@ package io.apicurio.registry.rules.app.integrity;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.logging.Logged;
+import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.references.ReferenceGraphWalker;
@@ -18,6 +19,7 @@ import io.apicurio.registry.rules.violation.RuleViolation;
 import io.apicurio.registry.rules.violation.RuleViolationException;
 import io.apicurio.registry.rules.validity.ContentValidator;
 import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
@@ -199,7 +201,7 @@ public class IntegrityRuleExecutor implements RuleExecutor {
         for (ArtifactReference ref : references) {
             ResolvedReferences resolved = walkReferenceGraph(storageToUse, ref);
             Optional<List<GAV>> cycle = resolved.findCycle();
-            Optional<GAV> backToWritten = findReferenceToVersionBeingWritten(context, resolved);
+            Optional<GAV> backToWritten = findReferenceToVersionBeingWritten(storageToUse, context, resolved);
 
             if (cycle.isPresent()) {
                 RuleViolation violation = new RuleViolation();
@@ -257,17 +259,57 @@ public class IntegrityRuleExecutor implements RuleExecutor {
      * treated as closing the cycle, since it may be the id the new version receives. References to
      * existing versions of the same artifact are walked like any other and are not cycles unless the walk
      * finds one.
+     * <p>
+     * Whether a missing coordinate names the artifact being written is decided as the storage resolves
+     * artifact IDs (see {@link #isArtifactBeingWritten}), so a reference that differs only in case is
+     * matched on a backend that compares IDs case-insensitively (MySQL), and only there.
      */
-    private static Optional<GAV> findReferenceToVersionBeingWritten(RuleContext context, ResolvedReferences resolved) {
+    private static Optional<GAV> findReferenceToVersionBeingWritten(RegistryStorage storageToUse,
+            RuleContext context, ResolvedReferences resolved) {
         String groupId = new GroupId(context.getGroupId()).getRawGroupIdWithNull();
-        if (context.getVersion() != null) {
-            GAV beingWritten = new GAV(groupId, context.getArtifactId(), context.getVersion());
-            return resolved.missing().contains(beingWritten) ? Optional.of(beingWritten) : Optional.empty();
-        }
+        String artifactId = context.getArtifactId();
+        String version = context.getVersion();
         return resolved.missing().stream()
-                .filter(missing -> Objects.equals(groupId, missing.getRawGroupIdWithNull())
-                        && context.getArtifactId().equals(missing.getRawArtifactId()))
+                .filter(missing -> version == null || version.equals(missing.getRawVersionId()))
+                .filter(missing -> isArtifactBeingWritten(storageToUse, groupId, artifactId, missing))
                 .min(Comparator.comparing(GAV::getRawVersionId));
+    }
+
+    /**
+     * Whether {@code missing} names the artifact {@code groupId/artifactId}. An exact match always does.
+     * Coordinates that differ only in case may still name the same artifact when the storage compares IDs
+     * case-insensitively (e.g. MySQL's {@code ascii_general_ci} collation); rather than encoding any
+     * backend's rules here, both are looked up in storage and the canonical IDs it returns are compared.
+     * On a case-sensitive backend the lookups resolve to different artifacts (or none), so they never match.
+     */
+    static boolean isArtifactBeingWritten(RegistryStorage storageToUse, String groupId, String artifactId,
+            GAV missing) {
+        String missingGroupId = missing.getRawGroupIdWithNull();
+        String missingArtifactId = missing.getRawArtifactId();
+        if (Objects.equals(groupId, missingGroupId) && artifactId.equals(missingArtifactId)) {
+            return true;
+        }
+        if (!equalsIgnoreCase(groupId, missingGroupId) || !artifactId.equalsIgnoreCase(missingArtifactId)) {
+            return false;
+        }
+        Optional<GA> written = canonicalArtifact(storageToUse, groupId, artifactId);
+        return written.isPresent()
+                && written.equals(canonicalArtifact(storageToUse, missingGroupId, missingArtifactId));
+    }
+
+    private static boolean equalsIgnoreCase(String a, String b) {
+        return a == null ? b == null : a.equalsIgnoreCase(b);
+    }
+
+    private static Optional<GA> canonicalArtifact(RegistryStorage storageToUse, String groupId,
+            String artifactId) {
+        try {
+            ArtifactMetaDataDto metaData = storageToUse.getArtifactMetaData(groupId, artifactId);
+            return Optional.of(new GA(new GroupId(metaData.getGroupId()).getRawGroupIdWithNull(),
+                    metaData.getArtifactId()));
+        } catch (ArtifactNotFoundException e) {
+            return Optional.empty();
+        }
     }
 
     private Map<GAV, ReferenceNode> loadBatch(RegistryStorage storageToUse, Collection<GAV> coordinates) {

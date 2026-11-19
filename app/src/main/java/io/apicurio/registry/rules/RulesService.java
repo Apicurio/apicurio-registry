@@ -79,10 +79,11 @@ public interface RulesService {
     /**
      * Applies all configured rules using the provided storage instance and explicit
      * existing content for comparison (e.g., for compatibility checks during GitOps loading
-     * where all versions are already imported into the same storage).
+     * where all versions are already imported into the same storage, or when publishing a draft).
+     * {@code version} is the id of the version being checked, which already exists in storage.
      */
-    public void applyRules(RegistryStorage storage, String groupId, String artifactId, String artifactType,
-            TypedContent content, List<TypedContent> existingContent,
+    public void applyRules(RegistryStorage storage, String groupId, String artifactId, String version,
+            String artifactType, TypedContent content, List<TypedContent> existingContent,
             List<ArtifactReference> references, Map<String, TypedContent> resolvedReferences)
             throws RuleViolationException;
 

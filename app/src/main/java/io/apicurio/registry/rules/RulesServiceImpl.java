@@ -98,12 +98,12 @@ public class RulesServiceImpl implements RulesService {
     }
 
     @Override
-    public void applyRules(RegistryStorage storageToUse, String groupId, String artifactId,
+    public void applyRules(RegistryStorage storageToUse, String groupId, String artifactId, String version,
             String artifactType, TypedContent content, List<TypedContent> existingContent,
             List<ArtifactReference> references, Map<String, TypedContent> resolvedReferences)
             throws RuleViolationException {
         Set<RuleType> artifactRules = new HashSet<>(storageToUse.getArtifactRules(groupId, artifactId));
-        applyAllRules(storageToUse, groupId, artifactId, artifactType, existingContent, content,
+        applyAllRules(storageToUse, groupId, artifactId, version, artifactType, existingContent, content,
                 artifactRules, references, resolvedReferences);
     }
 

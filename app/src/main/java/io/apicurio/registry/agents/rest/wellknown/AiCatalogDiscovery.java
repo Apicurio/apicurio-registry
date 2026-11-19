@@ -325,6 +325,30 @@ public class AiCatalogDiscovery {
 
     List<AiCatalogCandidate> collectAiCatalogCandidates(String baseUrl, String publisherDomain,
             String textFilter, Set<SearchFilter> structureFilters) {
+        List<AiCatalogCandidate> candidates = collectAgentCandidates(baseUrl, publisherDomain, textFilter,
+                structureFilters);
+
+        Set<SearchFilter> toolFilters = new HashSet<>();
+        toolFilters.add(SearchFilter.ofArtifactType(ArtifactType.MCP_TOOL));
+        if (!StringUtil.isEmpty(textFilter)) {
+            toolFilters.add(SearchFilter.ofPartialName(textFilter));
+        }
+        ArtifactSearchResultsDto toolResults = searchAuthorizer.searchArtifacts(
+                toolFilters, OrderBy.createdOn, OrderDirection.desc, 0, MAX_VISIBILITY_FILTER_RESULTS, false);
+        warnIfTruncated(toolResults);
+        for (SearchedArtifactDto artifact : toolResults.getArtifacts()) {
+            candidates.add(buildToolCandidate(artifact, baseUrl, publisherDomain));
+        }
+
+        return candidates;
+    }
+
+    /**
+     * The Agent Card candidates only. Agent searches use this, so they do not read and parse the
+     * content of every MCP tool just to discard it.
+     */
+    List<AiCatalogCandidate> collectAgentCandidates(String baseUrl, String publisherDomain,
+            String textFilter, Set<SearchFilter> structureFilters) {
         List<AiCatalogCandidate> candidates = new ArrayList<>();
 
         Set<SearchFilter> agentFilters = new HashSet<>();
@@ -338,18 +362,6 @@ public class AiCatalogDiscovery {
         warnIfTruncated(agentResults);
         for (SearchedArtifactDto artifact : agentVisibilityFilter.filterDtosByVisibility(agentResults.getArtifacts())) {
             candidates.add(buildAgentCandidate(artifact, baseUrl, publisherDomain));
-        }
-
-        Set<SearchFilter> toolFilters = new HashSet<>();
-        toolFilters.add(SearchFilter.ofArtifactType(ArtifactType.MCP_TOOL));
-        if (!StringUtil.isEmpty(textFilter)) {
-            toolFilters.add(SearchFilter.ofPartialName(textFilter));
-        }
-        ArtifactSearchResultsDto toolResults = searchAuthorizer.searchArtifacts(
-                toolFilters, OrderBy.createdOn, OrderDirection.desc, 0, MAX_VISIBILITY_FILTER_RESULTS, false);
-        warnIfTruncated(toolResults);
-        for (SearchedArtifactDto artifact : toolResults.getArtifacts()) {
-            candidates.add(buildToolCandidate(artifact, baseUrl, publisherDomain));
         }
 
         return candidates;

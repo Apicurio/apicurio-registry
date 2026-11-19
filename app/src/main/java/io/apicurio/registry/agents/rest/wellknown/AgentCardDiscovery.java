@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.agents.a2a.A2AConfig;
 import io.apicurio.registry.agents.a2a.RegistryAgentCardBuilder;
-import io.apicurio.registry.agents.aicatalog.AiCatalogConstants;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
@@ -131,10 +130,7 @@ public class AgentCardDiscovery {
         // AiCatalogEntry, so they are evaluated afterwards against each surviving candidate's
         // Agent Card content.
         List<SearchedArtifactDto> matched = new ArrayList<>();
-        for (AiCatalogDiscovery.AiCatalogCandidate candidate : aiCatalogDiscovery.collectAiCatalogCandidates(baseUrl, publisherDomain, name, structureFilters)) {
-            if (!AiCatalogConstants.MEDIA_TYPE_AGENT_CARD.equals(candidate.entry.getType())) {
-                continue;
-            }
+        for (AiCatalogDiscovery.AiCatalogCandidate candidate : aiCatalogDiscovery.collectAgentCandidates(baseUrl, publisherDomain, name, structureFilters)) {
             if (matchesAgentStructuredFilters(candidate.artifact, skills, capabilities, inputModes, outputModes)) {
                 matched.add(candidate.artifact);
             }

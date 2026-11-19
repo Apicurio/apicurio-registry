@@ -213,4 +213,4 @@ Main properties (prefix `apicurio.registry.`); the configuration docs list them 
 |---|---|
 | 3.0 | Content ID and 4-byte IDs by default (2.x used the global ID in 8 bytes) |
 | This ADR | First written record, with a verified example |
-| [#11174](https://github.com/Apicurio/apicurio-registry/pull/11174) | Fixed: a rule violation on auto-register surfaces as a `SerializationException` with a readable message (#11018); the Protobuf validator no longer fails with a `NullPointerException` unless `find-latest` is set (#11005) |
+| [#11174](https://github.com/Apicurio/apicurio-registry/pull/11174) | Fixed: a rule violation on auto-register surfaces as a `SerializationException` with a readable message (#11018); the Protobuf validator no longer fails with a `NullPointerException` when `find-latest` is not set, which used to be the workaround (#11005) |

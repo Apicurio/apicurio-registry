@@ -116,11 +116,11 @@ which most types extend, defines the levels once:
 - no existing content always passes.
 
 The existing contents come from `getEnabledArtifactContentIds`: every version **except `DISABLED`**,
-ordered by version order, so `DEPRECATED` and `DRAFT` versions are included. Publishing a draft
-excludes the draft's own content, so it is compared with the published versions and never with
-itself. When the artifact is in a data contract compatibility group
-([ADR-0002](0002-odcs-native-data-contracts.md)), only the versions created in that group are
-compared.
+ordered by version order, so `DEPRECATED` and `DRAFT` versions are included. When a new version
+is created in a data contract compatibility group ([ADR-0002](0002-odcs-native-data-contracts.md)),
+only the versions created in that group are compared. Publishing a draft excludes only the draft's
+own content, so it is never compared with itself, but it is compared with every other enabled version
+of the artifact: other drafts, and versions of other compatibility groups, can make it fail.
 
 Checkers are registered per type in
 [`StandardArtifactTypeProviderRegistry`](../schema-util/util-provider/src/main/java/io/apicurio/registry/types/provider/StandardArtifactTypeProviderRegistry.java):

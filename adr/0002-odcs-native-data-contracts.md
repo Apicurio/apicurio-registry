@@ -158,7 +158,9 @@ same `contract.{id}.*` artifact labels, so the metadata view, search and export 
 
 Status transitions, promotion and metadata updates are compare-and-set: while holding the artifact
 row lock, the write checks that status and stage still have the values it validated against, and
-returns 409 (`ContractStateConflictException`) otherwise. Of two concurrent requests, one wins.
+returns 409 (`ContractStateConflictException`) otherwise. Of two concurrent requests that change the
+status or the stage, one wins. Other metadata fields (owner, contact, and so on) are not guarded: of
+two concurrent metadata updates that leave status and stage alone, the later overwrites the earlier.
 
 `GET .../contract/metadata` maps the labels to a DTO (`ContractMetadataMapper`); it finds the
 contract through the `contract.{id}.id` label and falls back to un-namespaced `contract.*` labels

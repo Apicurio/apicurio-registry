@@ -276,16 +276,16 @@ final class AvroRuleRecordConverter {
             decimal = new BigDecimal(big);
         } else if (value instanceof Double || value instanceof Float) {
             double d = ((Number) value).doubleValue();
-            if (Double.isNaN(d) || Double.isInfinite(d)) {
+            if (Double.isNaN(d) || Double.isInfinite(d) || d != Math.rint(d)) {
                 throw mismatch(path, schema, value);
             }
-            decimal = new BigDecimal(d);
+            // An integral double within the long range converts to long exactly; anything outside it is
+            // rejected by the caller's range check, so the shortest-repr BigDecimal is precise enough there.
+            decimal = Math.abs(d) < 0x1p63 ? BigDecimal.valueOf((long) d) : BigDecimal.valueOf(d);
         } else {
             decimal = BigDecimal.valueOf(((Number) value).longValue());
         }
-        try {
-            decimal.toBigIntegerExact();
-        } catch (ArithmeticException e) {
+        if (decimal.signum() != 0 && decimal.stripTrailingZeros().scale() > 0) {
             throw mismatch(path, schema, value);
         }
         return decimal;

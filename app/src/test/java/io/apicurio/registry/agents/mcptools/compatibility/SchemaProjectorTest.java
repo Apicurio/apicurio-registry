@@ -109,6 +109,26 @@ class SchemaProjectorTest {
     }
 
     @Test
+    void testItemsAndAdditionalPropertiesBelowTheDepthLimitAreRemoved() {
+        SchemaProjection projection = project(nested(SchemaProjector.MAX_SCHEMA_DEPTH - 1,
+                "{'type':'object','properties':{'list':{'type':'array','items':{'type':'string'}},"
+                        + "'map':{'type':'object','additionalProperties':{'type':'string'}}}}"));
+
+        String deepest = "/inputSchema" + "/properties/p".repeat(SchemaProjector.MAX_SCHEMA_DEPTH - 1);
+        assertEquals(json(nested(SchemaProjector.MAX_SCHEMA_DEPTH - 1,
+                "{'type':'object','properties':{'list':{'type':'array'},'map':{'type':'object'}}}")),
+                projection.projected());
+        assertEquals(List.of(
+                new CompatibilityLimitation(LimitationCode.DEPTH_LIMIT_REACHED, SchemaSide.CONSUMER,
+                        deepest + "/properties/list", deepest + "/properties/list/items",
+                        "'items' nests deeper than the comparison evaluates"),
+                new CompatibilityLimitation(LimitationCode.DEPTH_LIMIT_REACHED, SchemaSide.CONSUMER,
+                        deepest + "/properties/map", deepest + "/properties/map/additionalProperties",
+                        "'additionalProperties' nests deeper than the comparison evaluates")),
+                projection.limitations());
+    }
+
+    @Test
     void testItemsIsEvaluatedOnlyAsASingleSchema() {
         SchemaProjection projection = project("{'type':'object','properties':{"
                 + "'tuple':{'type':'array','items':[{'type':'string'}]},'none':{'type':'array','items':false},"

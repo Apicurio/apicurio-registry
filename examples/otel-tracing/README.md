@@ -127,6 +127,8 @@ in the operator documentation).
   ([source](../../docs/modules/ROOT/pages/getting-started/assembly-configuring-the-registry.adoc)).
 - *Configuring Registry observability with OpenTelemetry* in the operator documentation
   ([source](../../operator/docs/modules/ROOT/partials/proc-registry-observability-otel.adoc)).
+- [ADR-0021](../../adr/0021-observability.md): the observability design: spans, attributes, metrics
+  and their limits.
 - [ADR-0007](../../adr/0007-kafka-serdes.md): the Kafka serdes, whose `serde.serialize` and
   `serde.deserialize` spans appear here.
 - [Debezium distributed tracing](https://debezium.io/documentation/reference/stable/integrations/tracing.html).

@@ -28,6 +28,7 @@ ifndef::service-registry-downstream[]
 endif::[]
 ** xref:getting-started/assembly-custom-artifact-types.adoc[]
 ** xref:getting-started/assembly-registry-events.adoc[]
+** xref:getting-started/assembly-audit-logging.adoc[]
 * Client applications
 ** xref:getting-started/assembly-managing-registry-artifacts-ui.adoc[]
 ** xref:getting-started/assembly-managing-registry-artifacts-api.adoc[]

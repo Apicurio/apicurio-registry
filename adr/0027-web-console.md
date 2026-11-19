@@ -233,4 +233,4 @@ operator sets the console's `REGISTRY_API_URL` from the app ingress host
 
 | Milestone | Result |
 |---|---|
-| this PR | Fixed [#11358](https://github.com/Apicurio/apicurio-registry/issues/11358): `REGISTRY_DELETE_*_ENABLED` now set the `delete*` flags, and the console honours `?masthead=false` when loaded in an iframe |
+| [#11376](https://github.com/Apicurio/apicurio-registry/pull/11376) | Fixed [#11358](https://github.com/Apicurio/apicurio-registry/issues/11358): `REGISTRY_DELETE_*_ENABLED` now set the `delete*` flags, and the console honours `?masthead=false` when loaded in an iframe |

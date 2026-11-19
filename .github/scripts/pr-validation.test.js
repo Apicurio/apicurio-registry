@@ -15,6 +15,7 @@ const {
   checkDcoSignOff,
   checkMilestone,
   checkUpgradeScripts,
+  checkCompatibilityRisk,
 } = require('./pr-validation.js');
 
 const OWNER = 'Apicurio';
@@ -1156,4 +1157,80 @@ test('validate(): without a docs_only config section nothing is docs-only', asyn
   await validate({ github, context: makeContext(pr), core });
 
   assert.equal(getFailed(), 'PR validation failed: Issue link, Milestone');
+});
+
+// ---------------------------------------------------------------------------
+// checkCompatibilityRisk(): advisory compatibility-risk reminder (#9235, #11388).
+// ---------------------------------------------------------------------------
+
+test('checkCompatibilityRisk(): null when nothing matches', () => {
+  const files = [{ filename: 'app/src/main/java/io/apicurio/registry/Foo.java' }];
+  assert.equal(checkCompatibilityRisk(files), null);
+});
+
+test('checkCompatibilityRisk(): flags an openapi.json change', () => {
+  const files = [{ filename: 'common/src/main/resources/META-INF/openapi.json' }];
+  const reasons = checkCompatibilityRisk(files);
+  assert.deepEqual(reasons, ['the REST API contract (openapi.json)']);
+});
+
+test('checkCompatibilityRisk(): flags a CRD model change', () => {
+  const files = [{
+    filename: 'operator/model/src/main/java/io/apicurio/registry/operator/api/v1/spec/AppSpec.java',
+  }];
+  const reasons = checkCompatibilityRisk(files);
+  assert.deepEqual(reasons, ['the operator CRD model']);
+});
+
+test('checkCompatibilityRisk(): flags a SQL schema change, matching the previous filename on rename', () => {
+  const files = [{
+    filename: 'app/src/main/resources/io/apicurio/registry/storage/impl/sql/renamed.ddl',
+    previous_filename: 'app/src/main/resources/io/apicurio/registry/storage/impl/sql/h2.ddl',
+  }];
+  const reasons = checkCompatibilityRisk(files);
+  assert.deepEqual(reasons, ['the SQL schema']);
+});
+
+test('checkCompatibilityRisk(): flags an added @ConfigProperty line in the diff', () => {
+  const files = [{
+    filename: 'app/src/main/java/io/apicurio/registry/config/FooConfig.java',
+    patch: '@@ -1,3 +1,6 @@\n'
+      + ' class FooConfig {\n'
+      + '+    @ConfigProperty(name = "apicurio.foo.bar")\n'
+      + '+    String bar;\n'
+      + ' }',
+  }];
+  const reasons = checkCompatibilityRisk(files);
+  assert.deepEqual(reasons, ['a new or changed `@ConfigProperty`']);
+});
+
+test('checkCompatibilityRisk(): an unchanged @ConfigProperty line (context, not added) does not match', () => {
+  const files = [{
+    filename: 'app/src/main/java/io/apicurio/registry/config/FooConfig.java',
+    patch: '@@ -1,3 +1,4 @@\n'
+      + '     @ConfigProperty(name = "apicurio.foo.bar")\n'
+      + '     String bar;\n'
+      + '+    String baz;\n'
+      + ' }',
+  }];
+  assert.equal(checkCompatibilityRisk(files), null);
+});
+
+test('checkCompatibilityRisk(): a file with no patch (e.g. a binary, or a very large diff) is skipped without erroring', () => {
+  const files = [{ filename: 'app/src/main/java/io/apicurio/registry/config/FooConfig.java' }];
+  assert.equal(checkCompatibilityRisk(files), null);
+});
+
+test('checkCompatibilityRisk(): reasons are de-duplicated across files', () => {
+  const files = [
+    { filename: 'app/src/main/resources/io/apicurio/registry/storage/impl/sql/h2.ddl' },
+    { filename: 'app/src/main/resources/io/apicurio/registry/storage/impl/sql/mysql.ddl' },
+  ];
+  const reasons = checkCompatibilityRisk(files);
+  assert.deepEqual(reasons, ['the SQL schema']);
+});
+
+test('checkCompatibilityRisk(): an unrelated file is not flagged', () => {
+  const files = [{ filename: 'docs/modules/ROOT/pages/a.adoc' }];
+  assert.equal(checkCompatibilityRisk(files), null);
 });

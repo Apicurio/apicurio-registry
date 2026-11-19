@@ -151,12 +151,12 @@ instance by `GET /apis/registry/v3/admin/config/properties`.
    not used by the generator or at runtime
    ([#10162](https://github.com/Apicurio/apicurio-registry/issues/10162), epic
    [#10142](https://github.com/Apicurio/apicurio-registry/issues/10142)).
-5. A `@Dynamic` property is settable only if it also has a `.dynamic.allow` entry; nothing checks
-   that the two lists agree ([#11359](https://github.com/Apicurio/apicurio-registry/issues/11359)).
-6. Value validation is limited to parsing the type (v3 validates `apicurio.log.level`); ranges and
-   enumerations are not checked.
-7. Properties found only in `application.properties` (including the `.dynamic.allow` entries) appear
-   in the reference under an `unknown` category ([#11359](https://github.com/Apicurio/apicurio-registry/issues/11359)).
+5. A `@Dynamic` property is settable only if it also has a `.dynamic.allow` entry; a test
+   (`DynamicConfigConsistencyTest`) checks that the two lists agree, but the build itself does not.
+6. Value validation is limited to parsing the type (and `apicurio.log.level`), shared by v2 and v3;
+   ranges and enumerations are not checked.
+7. Properties found only in `application.properties` appear in the reference under an `unknown`
+   category; the `.dynamic.allow` entries are left out of it.
 
 ## Alternatives
 
@@ -212,3 +212,4 @@ instance by `GET /apis/registry/v3/admin/config/properties`.
 | [#6790](https://github.com/Apicurio/apicurio-registry/pull/6790) | Config documentation generator fixed |
 | [#9850](https://github.com/Apicurio/apicurio-registry/pull/9850) | Atomic loads in the config cache |
 | This ADR | First written record |
+| this PR | Missing `.dynamic.allow` entry added and checked by a test; v2 config update audited and validated like v3; `.dynamic.allow` entries dropped from the config reference ([#11359](https://github.com/Apicurio/apicurio-registry/issues/11359)) |

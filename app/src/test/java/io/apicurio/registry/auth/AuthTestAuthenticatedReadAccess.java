@@ -58,4 +58,13 @@ public class AuthTestAuthenticatedReadAccess extends AbstractResourceTestBase {
         });
         assertForbidden(exception);
     }
+
+    @Test
+    public void testPropertyIsExposedByConfigApi() throws Exception {
+        // @Dynamic property, settable at runtime only through its .dynamic.allow entry
+        var property = clientV3.admin().config().properties()
+                .byPropertyName("apicurio.auth.authenticated-read-access.enabled").get();
+        Assertions.assertEquals("apicurio.auth.authenticated-read-access.enabled", property.getName());
+        Assertions.assertEquals("true", property.getValue());
+    }
 }

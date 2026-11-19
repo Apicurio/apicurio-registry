@@ -173,6 +173,9 @@ operator sets the console's `REGISTRY_API_URL` from the app ingress host
 7. Some image settings have no effect: the `REGISTRY_DELETE_*_ENABLED` variables and the plugin's
    `masthead=false` parameter are ignored, and the plugin backend's registry URL has no scheme
    ([#11358](https://github.com/Apicurio/apicurio-registry/issues/11358)).
+8. On plain Kubernetes the operator still creates the plugin's Deployment and Service, whose pod
+   needs a certificate only OpenShift provides; and calls made outside the SDK do not refresh an
+   expired token ([#11370](https://github.com/Apicurio/apicurio-registry/issues/11370)).
 
 ## Alternatives
 

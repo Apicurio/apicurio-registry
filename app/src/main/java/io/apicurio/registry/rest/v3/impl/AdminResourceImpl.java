@@ -250,6 +250,7 @@ public class AdminResourceImpl implements AdminResource {
         if (data.getConfig() == null || data.getConfig().trim().isEmpty()) {
             throw new MissingRequiredParameterException("config");
         }
+        ParameterValidationUtils.validateRuleConfig(data.getRuleType(), data.getConfig());
 
         RuleConfigurationDto configDto = new RuleConfigurationDto();
         configDto.setConfiguration(data.getConfig());
@@ -300,6 +301,7 @@ public class AdminResourceImpl implements AdminResource {
         if (data.getConfig() == null || data.getConfig().trim().isEmpty()) {
             throw new MissingRequiredParameterException("config");
         }
+        ParameterValidationUtils.validateRuleConfig(ruleType, data.getConfig());
 
         RuleConfigurationDto configDto = new RuleConfigurationDto();
         configDto.setConfiguration(data.getConfig());

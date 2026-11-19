@@ -122,10 +122,10 @@ services:
       kafka-ks: {condition: service_healthy}
     healthcheck: *registry-health
 
-  # A second replica: started after the first creates the topics (#11079)
+  # A second replica, started together with the first
   registry-ks-b:
     <<: *registry-ks
     container_name: events-registry-ks-b
     ports: ["${REGISTRY_B_PORT:-8082}:8080"]
     depends_on:
-      registry-ks-a: {condition: service_healthy}
+      kafka-ks: {condition: service_healthy}

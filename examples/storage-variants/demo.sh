@@ -16,6 +16,8 @@ if [ -z "${VARIANTS:-}" ]; then
 fi
 A=${API:-http://localhost:8081/apis}/registry/v3
 B=${API_B:-http://localhost:8082/apis}/registry/v3
+# The schema version this build creates, so the check follows schema upgrades
+DB_VERSION=$(tr -d '[:space:]' < ../../app/src/main/resources/io/apicurio/registry/storage/impl/sql/db-version)
 failures=0
 current=""
 
@@ -132,7 +134,7 @@ run_postgresql() {
   writable_checks "$A"
   check "the other replica sees every write at once" "1,2" "$(versions "$B")"
   search_checks "$A" "$B"
-  check "the schema version is recorded in the database" 113 \
+  check "the schema version is recorded in the database" "$DB_VERSION" \
     "$(compose exec -T postgres psql -U registry -d registry -tAc "select propvalue from apicurio where propname = 'db_version'")"
   restart registry-pg-a "$A"
   check "after a restart, the data is still there" "1,2" "$(eventually 60 "1,2" versions "$A")"
@@ -144,7 +146,7 @@ run_mysql() {
   up mysql || return 0
   writable_checks "$A"
   check "without the search index, content search is refused" 400 "$(code GET "$A/search/versions?content=orderId")"
-  check "the schema version is recorded in the database" 113 \
+  check "the schema version is recorded in the database" "$DB_VERSION" \
     "$(compose exec -T mysql mysql -uregistry -pregistry registry -sNe "select propValue from apicurio where propName = 'db_version'" 2>/dev/null)"
   restart registry-mysql "$A"
   check "after a restart, the data is still there" "1,2" "$(eventually 60 "1,2" versions "$A")"

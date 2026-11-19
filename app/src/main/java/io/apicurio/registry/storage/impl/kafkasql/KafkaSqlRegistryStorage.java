@@ -18,6 +18,7 @@ import io.apicurio.registry.events.GroupCreated;
 import io.apicurio.registry.events.GroupDeleted;
 import io.apicurio.registry.events.GroupMetadataUpdated;
 import io.apicurio.registry.events.GroupRuleConfigured;
+import io.apicurio.registry.events.ImportEvents;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.storage.impl.sql.SqlStatements;
 import io.apicurio.registry.metrics.StorageMetricsApply;
@@ -26,6 +27,7 @@ import io.apicurio.registry.metrics.health.readiness.PersistenceTimeoutReadiness
 import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.VersionId;
+import io.apicurio.registry.rules.app.governance.GovernanceLevel;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.rules.integrity.IntegrityLevel;
 import io.apicurio.registry.rules.validity.ValidityLevel;
@@ -613,9 +615,12 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
      */
     @Override
     public void deleteArtifacts(String groupId) throws RegistryStorageException {
+        List<String> artifactIds = sqlStore.getArtifactIdsInGroup(groupId);
         var message = new DeleteArtifacts1Message(groupId);
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+        artifactIds.forEach(artifactId -> outboxEvent
+                .fire(KafkaSqlOutboxEvent.of(ArtifactDeleted.of(groupId, artifactId))));
     }
 
     @Override
@@ -758,6 +763,9 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
             case INTEGRITY ->
                     outboxEvent.fire(KafkaSqlOutboxEvent.of(ArtifactRuleConfigured.of(groupId, artifactId, rule,
                             RuleConfigurationDto.builder().configuration(IntegrityLevel.NONE.name()).build())));
+            case GOVERNANCE ->
+                    outboxEvent.fire(KafkaSqlOutboxEvent.of(ArtifactRuleConfigured.of(groupId, artifactId, rule,
+                            RuleConfigurationDto.builder().configuration(GovernanceLevel.NONE.name()).build())));
         }
     }
 
@@ -792,6 +800,8 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
                     RuleConfigurationDto.builder().configuration(CompatibilityLevel.NONE.name()).build())));
             case INTEGRITY -> outboxEvent.fire(KafkaSqlOutboxEvent.of(GroupRuleConfigured.of(groupId, rule,
                     RuleConfigurationDto.builder().configuration(IntegrityLevel.NONE.name()).build())));
+            case GOVERNANCE -> outboxEvent.fire(KafkaSqlOutboxEvent.of(GroupRuleConfigured.of(groupId, rule,
+                    RuleConfigurationDto.builder().configuration(GovernanceLevel.NONE.name()).build())));
         }
     }
 
@@ -892,6 +902,23 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
         outboxEvent.fire(KafkaSqlOutboxEvent.of(ContractMetadataUpdated.of(groupId, artifactId)));
+    }
+
+    @Override
+    public void updateContractMetadata(String groupId, String artifactId, String prefix,
+            Map<String, String> labels, Map<String, String> expected) throws RegistryStorageException {
+        var message = new UpdateContractMetadata5Message(groupId, artifactId, prefix, labels, expected);
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+        outboxEvent.fire(KafkaSqlOutboxEvent.of(ContractMetadataUpdated.of(groupId, artifactId)));
+    }
+
+    @Override
+    public void compareAndSetArtifactLabels(String groupId, String artifactId, Map<String, String> expected,
+            Map<String, String> labels) throws RegistryStorageException {
+        var message = new CompareAndSetArtifactLabels4Message(groupId, artifactId, expected, labels);
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
     }
 
     @Override
@@ -1036,6 +1063,8 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
                     RuleConfigurationDto.builder().configuration(CompatibilityLevel.NONE.name()).build())));
             case INTEGRITY -> outboxEvent.fire(KafkaSqlOutboxEvent.of(GlobalRuleConfigured.of(rule,
                     RuleConfigurationDto.builder().configuration(IntegrityLevel.NONE.name()).build())));
+            case GOVERNANCE -> outboxEvent.fire(KafkaSqlOutboxEvent.of(GlobalRuleConfigured.of(rule,
+                    RuleConfigurationDto.builder().configuration(GovernanceLevel.NONE.name()).build())));
         }
     }
 
@@ -1346,6 +1375,7 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         var message = new ImportGroup1Message(entity);
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+        outboxEvent.fire(KafkaSqlOutboxEvent.of(ImportEvents.of(entity)));
     }
 
     /**
@@ -1356,6 +1386,7 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         var message = new ImportGlobalRule1Message(entity);
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+        outboxEvent.fire(KafkaSqlOutboxEvent.of(ImportEvents.of(entity)));
     }
 
     /**
@@ -1377,6 +1408,7 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         var message = new ImportArtifactVersion1Message(entity);
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+        outboxEvent.fire(KafkaSqlOutboxEvent.of(ImportEvents.of(entity)));
     }
 
     @Override
@@ -1384,6 +1416,7 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         var message = new ImportArtifact1Message(entity);
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+        outboxEvent.fire(KafkaSqlOutboxEvent.of(ImportEvents.of(entity)));
     }
 
     /**
@@ -1394,6 +1427,7 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         var message = new ImportArtifactRule1Message(entity);
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+        outboxEvent.fire(KafkaSqlOutboxEvent.of(ImportEvents.of(entity)));
     }
 
     @Override
@@ -1401,6 +1435,9 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         var message = new ImportContractRule1Message(entity);
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+        String version = entity.globalId == null ? null
+                : sqlStore.getArtifactVersionMetaData(entity.globalId).getVersion();
+        outboxEvent.fire(KafkaSqlOutboxEvent.of(ImportEvents.of(entity, version)));
     }
 
     @Override
@@ -1408,6 +1445,7 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         var message = new ImportGroupRule1Message(entity);
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+        outboxEvent.fire(KafkaSqlOutboxEvent.of(ImportEvents.of(entity)));
     }
 
     /**
@@ -1519,7 +1557,7 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
 
     /**
      * Usage writes are best effort and their callers never wait for the result, so they must not register a
-     * latch in the coordinator that nothing would ever remove. A broker outage fails every event of a flush,
+     * pending entry in the coordinator that nothing would ever remove. A broker outage fails every event of a flush,
      * so the failure is logged at WARN at most once a minute and at DEBUG otherwise.
      */
     private void submitWithoutResponse(KafkaSqlMessage message) {

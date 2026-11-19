@@ -71,7 +71,10 @@ The registry uses in-memory storage and no authentication, so there is nothing e
 `demo.sh` registers the Avro schema [`schemas/order-event-v1.avsc`](schemas/order-event-v1.avsc) as
 artifact `orders/OrderEvent`, version `1`, submits the contract
 [`contracts/orders-contract.yaml`](contracts/orders-contract.yaml) to group `orders`, then checks
-what the registry made of it. It ends with:
+what the registry made of it. It then runs every step of this guide as a check (the Java steps
+build the example first; `SKIP_KAFKA=1` skips them), and finally restores this starting point:
+version 1 and the contract, nothing else. `SETUP_ONLY=1 ./demo.sh` only creates the starting
+point. It ends with:
 
 ```
 All checks passed.
@@ -389,8 +392,9 @@ harmless.
 
 The serializer runs the rules in the client, so a rule change reaches producers within the cache
 TTL, not at once. With `apicurio.registry.serde.contract-rules.fail-on-error=false`, a failing
-record is logged and sent anyway; nothing routes it to a dead letter topic, whatever the rule's
-`onFailure`, and the serializer does not apply the output of `TRANSFORM` rules.
+record is logged and sent anyway. A rule with `onFailure: DLQ` sends the record to the topic set by
+`apicurio.registry.serde.contract-rules.dlq.topic` instead, and the serializer writes the output of
+`TRANSFORM` rules.
 
 Remove the global rule:
 
@@ -529,6 +533,17 @@ call POST $ORDER/contract/migrate '{"fromVersion":"1","toVersion":"2","record":{
 }
 ```
 
+**In a consumer.** A Kafka consumer on version 2 can ask the deserializer to do the same with
+`apicurio.registry.serde.contract-rules.migration.enabled=true` and
+`apicurio.registry.serde.contract-rules.migration.target-version=2`:
+
+```bash
+../../mvnw -q exec:java -Dexec.args=migrate
+```
+
+The deserializer applies the rule and builds the result against version 2's schema, so the
+record of step 9 arrives with `"currency": "USD"`.
+
 Migrating from 1 to 3 would apply version 2's rules, then version 3's. Migration rules at the
 artifact or global level are not used for migration.
 
@@ -640,8 +655,9 @@ rm -f orders-contract-1.1.yaml
   - *Can two contracts govern one schema?* Yes. Everything projected carries the contract ID.
   - *Are inline schema tags (Avro `tags`, JSON Schema `x-tags`) picked up?* Yes, when a version
     is created through the REST API (as `INLINE` field tags, step 5).
-  - *Does the compatibility group change compatibility checks?* Not yet: it is stored as a label
-    and can be searched, but compatibility rules ignore it.
+  - *Does the compatibility group change compatibility checks?* Yes. Each new version records the
+    artifact's group, and a compatibility rule compares a new version only with the versions of the
+    same group. Setting a new group starts a new compatibility line.
 - **To reset between runs:** `docker compose down -v`, then steps 1 to 3 again.
 
 ## Troubleshooting

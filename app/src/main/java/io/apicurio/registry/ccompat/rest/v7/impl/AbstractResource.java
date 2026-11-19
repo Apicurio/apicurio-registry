@@ -168,8 +168,8 @@ public abstract class AbstractResource {
                 // Registering a new subject creates an artifact: as with the core API, this needs
                 // write access to the group as well as to the artifact (checked by the interceptor)
                 accessGuard.requireGrantsAccess(AuthorizedLevel.Write, AuthorizedResource.group(groupId));
-                // Apply rules using the potentially converted text content
-                rulesService.applyRules(groupId, artifactId, artifactType, contentForRules,
+                // Apply rules using the potentially converted text content; the first version is stored as "1"
+                rulesService.applyRulesForNewVersion(groupId, artifactId, "1", artifactType, contentForRules,
                         RuleApplicationType.CREATE, artifactReferences, resolvedReferences);
 
                 EditableArtifactMetaDataDto artifactMetaData = EditableArtifactMetaDataDto.builder().build();
@@ -196,7 +196,10 @@ public abstract class AbstractResource {
             if (ex.getRuleType() == RuleType.VALIDITY) {
                 throw new UnprocessableEntityException(ex);
             } else {
-                throw new ConflictException(ex);
+                String subject = cconfig.groupConcatEnabled ? toSubjectWithGroupConcat(groupId, artifactId)
+                        : artifactId;
+                throw new ConflictException("Schema being registered is incompatible with an earlier schema"
+                        + " for subject \"" + subject + "\", details: " + ex.getMessage(), ex);
             }
         }
         return res;

@@ -1057,7 +1057,7 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
         createMcpTool("default", sourceId, COMPAT_SOURCE_TOOL);
         createMcpTool("default", candidateId, COMPAT_RECORDS_CONSUMER_TOOL);
 
-        // Tools in the default group have no groupId in the response, and the IDs are unique.
+        // Tools in the default group are reported with the groupId "default".
         givenSource("default", sourceId)
                 .queryParam("limit", 500)
                 .get(ROOT_ROUTES + COMPATIBILITY)
@@ -1065,15 +1065,14 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body("results.tool.artifactId", hasItem(candidateId))
                 .body("results.tool.artifactId", not(hasItem(sourceId)))
-                .body("results.find { it.tool.artifactId == '" + candidateId + "' }.verdict",
-                        equalTo("COMPATIBLE"));
+                .body(result("default", candidateId) + ".verdict", equalTo("COMPATIBLE"));
 
         givenSource("default", sourceId)
                 .queryParam("limit", 500)
                 .get(ROOT_ROUTES + COMPATIBLE)
                 .then()
                 .statusCode(200)
-                .body("tools.artifactId", hasItem(candidateId))
+                .body(artifactIdsInGroup("default"), hasItem(candidateId))
                 .body("tools.artifactId", not(hasItem(sourceId)));
     }
 
@@ -1205,10 +1204,11 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
             config.queryParameters.limit = 500;
         });
 
-        // This test's candidates are the newest tools, so the two it expects lead the results.
+        // Other tests' tools can match too, and on MySQL can share this test's creation second, so
+        // only this group's results are checked here.
         List<String> matching = unpaginated.getResults().stream().map(result -> identity(result.getTool())).toList();
         assertEquals(Set.of(groupId + "/" + CATALOG_INCOMPATIBLE, groupId + "/" + CATALOG_INDETERMINATE),
-                Set.copyOf(matching.subList(0, 2)));
+                matching.stream().filter(tool -> tool.startsWith(groupId + "/")).collect(Collectors.toSet()));
         assertFalse(matching.contains(groupId + "/" + CATALOG_COMPATIBLE));
         assertEquals(matching.size(), unpaginated.getCount());
         // The offset skips the first of them, and count still covers every match.

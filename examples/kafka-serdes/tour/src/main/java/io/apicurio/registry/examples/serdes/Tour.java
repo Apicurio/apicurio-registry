@@ -12,6 +12,7 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -237,7 +238,11 @@ public final class Tour {
                 Map.of("apicurio.registry.auto-register", "true"), order(ORDER_AMOUNT_AS_TEXT, "o-5", "50"));
         check("the incompatible schema is rejected; send() throws", true, rejected != null);
         info("producer exception", describe(rejected));
-        // The registry's answer is the cause: a RuleViolationProblemDetails from the Java SDK
+        check("send() throws Kafka's SerializationException", SerializationException.class.getName(),
+                rejected == null ? null : rejected.getClass().getName());
+        check("its message names the violated rule", true, rejected != null && rejected.getMessage() != null
+                && rejected.getMessage().contains("COMPATIBILITY rule violation: Incompatible artifact: orders-value"));
+        // The registry's full answer is the cause: a RuleViolationProblemDetails from the Java SDK
         RuleViolationProblemDetails violation = null;
         for (Throwable c = rejected; c != null && violation == null; c = c.getCause()) {
             if (c instanceof RuleViolationProblemDetails details) {

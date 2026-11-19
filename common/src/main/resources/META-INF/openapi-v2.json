@@ -1280,7 +1280,8 @@
             "enum": [
               "VALIDITY",
               "COMPATIBILITY",
-              "INTEGRITY"
+              "INTEGRITY",
+              "GOVERNANCE"
             ],
             "type": "string"
           },
@@ -3619,7 +3620,8 @@
         "enum": [
           "VALIDITY",
           "COMPATIBILITY",
-          "INTEGRITY"
+          "INTEGRITY",
+          "GOVERNANCE"
         ],
         "type": "string",
         "example": "VALIDITY",

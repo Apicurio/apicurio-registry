@@ -5,6 +5,8 @@ import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.VersionContent;
+import io.apicurio.registry.rest.client.models.VersionState;
+import io.apicurio.registry.rest.client.models.WrappedVersionState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.TestUtils;
@@ -24,6 +26,7 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 
 /**
  * Tests for the A2A well-known endpoint.
@@ -491,6 +494,81 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
                 .get("/.well-known/schemas/nonexistent/v1")
                 .then()
                 .statusCode(404);
+    }
+
+    @Test
+    public void testSearchAgentsInDefaultGroup() throws Exception {
+        String artifactId = "defaultgroupagent-" + TestUtils.generateArtifactId();
+        createAgentCard("default", artifactId, AGENT_CARD_CONTENT);
+
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .queryParam("name", artifactId)
+                .get("/.well-known/agents")
+                .then()
+                .statusCode(200)
+                .body("count", equalTo(1))
+                .body("agents.find { it.artifactId == '" + artifactId + "' }.groupId", equalTo("default"));
+    }
+
+    @Test
+    public void testSearchMcpToolsInDefaultGroup() throws Exception {
+        String artifactId = "defaultgrouptool-" + TestUtils.generateArtifactId();
+        createMcpTool("default", artifactId, MCP_TOOL_CONTENT);
+
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .queryParam("name", artifactId)
+                .get("/.well-known/mcp-tools")
+                .then()
+                .statusCode(200)
+                .body("count", equalTo(1))
+                .body("tools.find { it.artifactId == '" + artifactId + "' }.groupId", equalTo("default"));
+    }
+
+    @Test
+    public void testSearchMcpToolsInDefaultGroupWithUnreadableContent() throws Exception {
+        String artifactId = "defaultgroupdisabledtool-" + TestUtils.generateArtifactId();
+        createMcpTool("default", artifactId, MCP_TOOL_CONTENT);
+
+        // With its only version disabled the tool's content cannot be loaded, so the search
+        // result is built from the artifact metadata alone.
+        WrappedVersionState disabled = new WrappedVersionState();
+        disabled.setState(VersionState.DISABLED);
+        clientV3.groups().byGroupId("default").artifacts().byArtifactId(artifactId).versions()
+                .byVersionExpression("1").state().put(disabled);
+
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .queryParam("name", artifactId)
+                .get("/.well-known/mcp-tools")
+                .then()
+                .statusCode(200)
+                .body("count", equalTo(1))
+                .body("tools[0].artifactId", equalTo(artifactId))
+                .body("tools[0].groupId", equalTo("default"))
+                .body("tools[0].title", nullValue())
+                .body("tools[0].parameters", hasSize(0));
+    }
+
+    @Test
+    public void testSearchMcpToolsInNamedGroupKeepsGroupId() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = "namedgrouptool-" + TestUtils.generateArtifactId();
+        createMcpTool(groupId, artifactId, MCP_TOOL_CONTENT);
+
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .queryParam("name", artifactId)
+                .get("/.well-known/mcp-tools")
+                .then()
+                .statusCode(200)
+                .body("count", equalTo(1))
+                .body("tools[0].groupId", equalTo(groupId));
     }
 
     private void createAgentCard(String groupId, String artifactId, String content) throws Exception {

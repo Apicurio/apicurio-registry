@@ -36,6 +36,11 @@ services:
       APICURIO_MCP_TOOLS_ENABLED: "true"
       APICURIO_MCP_REGISTRY_ENABLED: "true"
       APICURIO_UI_FEATURES_AGENTS_ENABLED: "true"
+      # Importing tools from a running MCP server: only from the demo server in this stack, over
+      # plain HTTP because it runs on this private network.
+      APICURIO_MCP_IMPORT_ENABLED: "true"
+      APICURIO_MCP_IMPORT_ALLOWED_HOSTS: weather-mcp
+      APICURIO_MCP_IMPORT_INSECURE_HTTP_ENABLED: "true"
       QUARKUS_HTTP_CORS_ORIGINS: http://localhost:8888
     ports:
       # Bound to localhost only: nothing in this stack is authenticated.
@@ -58,6 +63,14 @@ services:
     depends_on:
       apicurio-registry:
         condition: service_healthy
+
+  # A demo MCP server with fictional weather tools, for importing tools from a running server. Not
+  # published on the host: only the Registry reaches it.
+  weather-mcp:
+    image: python:3.12-alpine
+    command: ["python", "/weather-mcp/server.py"]
+    volumes:
+      - ./weather-mcp:/weather-mcp:ro
 
   # Loads the demo catalog once the Registry is ready, then exits. Running it again changes nothing.
   seed:

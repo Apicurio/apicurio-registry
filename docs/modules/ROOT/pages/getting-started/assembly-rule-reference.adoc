@@ -56,7 +56,7 @@ a| Enforces artifact reference integrity when creating or updating artifacts. Th
 
 * `FULL`: All artifact reference integrity checks are enabled.
 * `NO_DUPLICATES`: Detect if there are any duplicate artifact references.
-* `NO_CIRCULAR_REFERENCES`: Detect circular reference chains among artifacts.
+* `NO_CIRCULAR_REFERENCES`: Detect circular reference chains among artifacts. When you create a version without an explicit version ID, the version ID is not known in advance, so a reachable reference to any version of the same artifact that does not exist yet is rejected as a cycle; to create such a version, specify its version ID explicitly.
 * `REFS_EXIST`: Detect if there are any references to non-existent artifacts. For `AGENT_CARD`, `MCP_SERVER`, and `MCP_TOOL` artifacts, also detect references to artifact types that they cannot reference.
 * `ALL_REFS_MAPPED`: Ensure that all artifact references are mapped.
 * `NONE`: All artifact reference integrity checks are disabled.

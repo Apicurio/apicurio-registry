@@ -63,6 +63,14 @@ public class RegistryStorageConfigCache extends RegistryStorageDecoratorBase
     }
 
     /**
+     * @see io.apicurio.registry.storage.decorator.RegistryStorageDecorator#deleteConfigProperty(java.lang.String)
+     */
+    public void deleteConfigProperty(String propertyName) throws RegistryStorageException {
+        delegate.deleteConfigProperty(propertyName);
+        invalidateCache();
+    }
+
+    /**
      * @see io.apicurio.registry.storage.decorator.RegistryStorageDecorator#getConfigProperty(java.lang.String)
      */
     public DynamicConfigPropertyDto getConfigProperty(String propertyName) {

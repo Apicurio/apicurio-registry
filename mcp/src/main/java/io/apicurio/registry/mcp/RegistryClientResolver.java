@@ -235,7 +235,7 @@ public class RegistryClientResolver {
         var options = RegistryClientOptions.create(rawBaseUrl)
                 .httpAdapter(HttpAdapterType.JDK)
                 .retry();
-        configureTls(options);
+        configureTls(config.tls(), options);
         return options;
     }
 
@@ -334,8 +334,7 @@ public class RegistryClientResolver {
         log.info("Configured OAuth2 client credentials with token endpoint: {}", auth.tokenEndpoint().get());
     }
 
-    private void configureTls(RegistryClientOptions options) {
-        var tls = config.tls();
+    static void configureTls(McpConfig.Tls tls, RegistryClientOptions options) {
 
         if (tls.trustAll()) {
             log.warn("TLS trust-all is enabled. This should only be used in development environments.");

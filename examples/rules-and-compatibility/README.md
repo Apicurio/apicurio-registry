@@ -64,9 +64,6 @@ Stop and remove everything with `docker compose down -v`.
   `REGISTRY_IMAGE=<that image> docker compose up -d`.
 - **Validation client:** it uses the validation library built from this checkout, which `build.sh`
   builds (snapshots are not published). `demo.sh` runs it as its last step, also in CI.
-- **Known issues:** publishing a draft under a non-transitive rule compares it with itself
-  ([#11001](https://github.com/Apicurio/apicurio-registry/issues/11001)); an invalid rule config is
-  accepted and then breaks writes ([#11000](https://github.com/Apicurio/apicurio-registry/issues/11000)).
 - **Local only:** in-memory storage, no authentication. Do not use this configuration in production.
 
 ## Learn more

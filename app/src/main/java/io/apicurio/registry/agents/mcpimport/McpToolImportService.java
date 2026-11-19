@@ -41,6 +41,7 @@ import io.apicurio.registry.types.ContentTypes;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.modelcontextprotocol.spec.McpSchema;
+import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.BadRequestException;
@@ -56,6 +57,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
+import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
 
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_ARTIFACT_ID;
@@ -119,6 +121,13 @@ public class McpToolImportService implements McpToolImportHandler {
 
     private final JacksonMcpJsonMapper jsonMapper = new JacksonMcpJsonMapper();
 
+    private Semaphore running;
+
+    @PostConstruct
+    void init() {
+        running = new Semaphore(Math.max(0, config.getMaxConcurrent()));
+    }
+
     /**
      * Everything is checked before the MCP server is contacted: the feature, the storage, the
      * server artifact, write access to the tool group, the headers and the URL.
@@ -132,6 +141,20 @@ public class McpToolImportService implements McpToolImportHandler {
         Map<String, String> headers = validHeaders(request.getHeaders());
         boolean dryRun = Boolean.TRUE.equals(request.getDryRun());
 
+        if (!running.tryAcquire()) {
+            failure(McpImportException.Reason.BUSY);
+            throw new McpImportException(McpImportException.Reason.BUSY,
+                    "Too many MCP imports are running. Try again later.");
+        }
+        try {
+            return importTools(groupId, serverArtifactId, request, toolGroupId, headers, dryRun);
+        } finally {
+            running.release();
+        }
+    }
+
+    private McpToolImportResult importTools(String groupId, String serverArtifactId, McpToolImportRequest request,
+            String toolGroupId, Map<String, String> headers, boolean dryRun) {
         ServerTools listed = listTools(groupId, serverArtifactId, request.getUrl(), headers);
         Set<String> listedNames = checkBeforeWriting(listed.tools(), toolGroupId, serverArtifactId);
 
@@ -236,7 +259,9 @@ public class McpToolImportService implements McpToolImportHandler {
                         "The MCP server lists two tools with the same name.");
             }
             String toolArtifactId = serverArtifactId + "." + tool.name();
-            if (storage.isArtifactExists(raw(toolGroupId), toolArtifactId)) {
+            // A tool with an invalid name is rejected without a lookup: some databases cannot even
+            // compare such an ID (MySQL fails on non-ASCII characters, #11180).
+            if (isValidTool(tool, toolArtifactId) && storage.isArtifactExists(raw(toolGroupId), toolArtifactId)) {
                 accessGuard.requireAccess(AuthorizedLevel.Write, AuthorizedResource.artifact(toolGroupId,
                         toolArtifactId));
             }
@@ -289,7 +314,7 @@ public class McpToolImportService implements McpToolImportHandler {
         result.setGroupId(groupId);
         result.setArtifactId(artifactId);
 
-        if (!isValidToolName(tool.name()) || !ArtifactId.isValid(artifactId)) {
+        if (!isValidTool(tool, artifactId)) {
             result.setStatus(McpToolImportStatus.REJECTED);
             result.setCauses(List.of(cause("The tool name must be 1 to " + TOOL_NAME_MAX_LENGTH
                     + " ASCII letters, digits, '_', '-' or '.', as the MCP specification recommends, and the"
@@ -435,6 +460,10 @@ public class McpToolImportService implements McpToolImportHandler {
     }
 
     /** A character allowed in an HTTP field name: RFC 9110 {@code tchar}. */
+    private static boolean isValidTool(McpSchema.Tool tool, String artifactId) {
+        return isValidToolName(tool.name()) && ArtifactId.isValid(artifactId);
+    }
+
     private static boolean isValidToolName(String name) {
         return name != null && TOOL_NAME.matcher(name).matches();
     }

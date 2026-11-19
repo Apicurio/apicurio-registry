@@ -92,11 +92,18 @@ Treat `common/src/main/resources/META-INF/openapi.json` as a public contract.
 
 ### Proposed policy
 
-- **Do not remove CRD fields without a migration plan.** Kubernetes rejects
-  unknown fields once they are removed from the schema, which breaks existing CRs.
-- When a field is replaced, keep the old field in the CRD schema for at least
-  one minor version and add a migration updater under
+- **Never remove a field from a served CRD version.** OLM v1's upgrade-safety
+  preflight (`existingFieldRemoval`) rejects *any* removal of a field from a
+  served CRD version, not just within some grace period, and fails the
+  upgrade outright: #10318 had to revert a field removal because it left
+  `ClusterExtension` installs stuck on the old version. To retire a field,
+  add a new CRD version with a conversion webhook instead of removing it from
+  the existing one.
+- When a field is replaced, keep the old field in the CRD schema and add a
+  migration updater under
   `operator/controller/src/main/java/io/apicurio/registry/operator/updater/`.
+  Note that an updater that prunes a deprecated field's value, rather than
+  migrating it, loses data the field held (#10100); prefer migrating it.
 - Add or update `operator/controller/src/test/java/io/apicurio/registry/operator/it/CRUpdateITTest.java`
   cases for each migration.
 - Do not add new **required** CRD fields unless users can leave them empty and
@@ -236,6 +243,10 @@ Treat `common/src/main/resources/META-INF/openapi.json` as a public contract.
 - `app/src/main/resources/io/apicurio/registry/storage/impl/sql/upgrades/<new-version>/<dbtype>.upgrade.ddl`
 - `app/src/main/java/io/apicurio/registry/storage/impl/sql/upgrader/*` if data
   migration is needed
+- The base DDLs for a fresh install,
+  `app/src/main/resources/io/apicurio/registry/storage/impl/sql/{h2,postgresql,mysql,mssql}.ddl`,
+  and the `db_version` row they seed. These are loaded once, instead of the
+  upgrade scripts, so a new install must already reflect the latest schema.
 - Storage variant test coverage for all SQL dialects (H2, PostgreSQL, MySQL, MSSQL)
 - The version's upgrade page, as above
 

@@ -23,7 +23,7 @@ For the general upgrade procedure, backups, and rollbacks, see the versioning an
 :_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
-With SQL storage, {registry} 3.4 upgrades the database schema to version 113 when it starts. {registry} 3.3 uses version 109.
+With SQL storage, {registry} 3.4 upgrades the database schema to version 114 when it starts. {registry} 3.3 uses version 109.
 The upgrade runs automatically, but two of its steps can need your attention.
 
 Duplicate version order values stop the upgrade (schema version 113)::
@@ -56,12 +56,13 @@ If the upgrade has already failed, restore the database from the backup that you
 --
 
 Structured content index backfill (schema version 110)::
-The upgrade indexes the structure of the latest version of every agent card, MCP tool, OpenAPI, and AsyncAPI artifact, so that search filters on structure work with SQL storage.
+The upgrade indexes the structure of the latest version of every artifact whose type has structured content extraction, which includes Avro, Protobuf, JSON Schema, OpenAPI, AsyncAPI, GraphQL, WSDL, XSD, XML, Iceberg tables and views, Thrift, and the agent card, MCP tool, MCP server, model schema, and prompt template types, so that search filters on structure work with SQL storage.
 On a registry with many such artifacts, this makes the first startup of 3.4 take longer.
 {registry} logs its progress during the backfill.
-Other artifact types are not read.
 
 The other two steps add a table for peer registries (version 111), and remove versions that are no longer drafts from the `drafts` branch (version 112).
+
+On MySQL, version 114 also widens names, labels, and principals from ASCII to UTF-8 (`utf8mb4`), so non-ASCII values are accepted. Principal comparisons stay case-insensitive but now tell accented letters apart, so `jose` no longer matches the role mappings or artifacts of `josé`.
 
 
 // ref-upgrading-to-3-4-json-schema-compatibility
@@ -155,6 +156,9 @@ Both are off by default.
 If your configuration sets them, requests that create artifacts or versions, or update their metadata, with more labels or larger labels than these limits allow, now fail with HTTP 409.
 For a label, the size is the number of UTF-8 bytes of its key and value together.
 
+`apicurio.limits.config.max-property-key-size.bytes` and `apicurio.limits.config.max-property-value-size.bytes`, which separately bound a label's key and value, now count UTF-8 bytes instead of characters.
+A non-ASCII key or value that fit under the character count can now exceed the byte limit and start failing with HTTP 409.
+
 
 // ref-upgrading-to-3-4-clients
 [id="upgrading-to-3-4-clients_{context}"]
@@ -173,6 +177,11 @@ Protobuf message indexes::
 The Protobuf serializer writes the message index of the first message type in a schema as the single byte `0x00`, as Confluent serializers do.
 Before 3.4, it wrote two bytes, `0x02 0x00`.
 Deserializers of {registry} 3.1 and later read both forms, so producers and consumers can be upgraded in any order.
+
+Auto-registration of identical schemas on multiple topics::
+When one serializer writes the same schema content to more than one topic, for example with `TopicIdStrategy`, {registry} now auto-registers a separate artifact for each topic, instead of caching the first topic's registration and reusing it for the others.
+Each topic's compatibility and validity rules now run, and messages for a topic carry that topic's own artifact ID rather than the first topic's.
+Consumers are not affected, because the schema content is identical.
 
 
 // ref-upgrading-to-3-4-artifact-types
@@ -219,3 +228,8 @@ The following change affects deployments that enabled one in an earlier version.
 ARD agents endpoint::
 With `apicurio.ard.enabled=true`, `GET /.well-known/ard/agents` returns a paginated response with `items`, `total`, and `pageToken`, as the ARD Registry API expects.
 In 3.3, it returned the AI Catalog format, with the next page in `nextPageToken`.
+
+Setting an experimental feature through the dynamic configuration API::
+`+PUT /admin/config/properties/{propertyName}+` now returns HTTP 409, and leaves the stored value unchanged, when it would set an experimental feature's dynamic property to `true` while `apicurio.features.experimental.enabled` is `false`.
+Before 3.4, the request succeeded but the feature stayed off, which could look like a configuration bug.
+Today the only property this affects is `apicurio.ui.features.agents.enabled`, which controls whether the UI shows the Agents tab.

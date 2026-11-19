@@ -4,7 +4,7 @@
 
 CREATE TABLE apicurio (propName VARCHAR(255) NOT NULL, propValue VARCHAR(255));
 ALTER TABLE apicurio ADD PRIMARY KEY (propName);
-INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 114);
+INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 115);
 
 CREATE TABLE sequences (seqName VARCHAR(32) NOT NULL, seqValue BIGINT NOT NULL);
 ALTER TABLE sequences ADD PRIMARY KEY (seqName);
@@ -131,7 +131,8 @@ CREATE INDEX IDX_contract_audit_2 ON contract_audit_log(createdOn);
 CREATE TABLE outbox (id VARCHAR(128) NOT NULL, aggregatetype VARCHAR(255) NOT NULL, aggregateid VARCHAR(255) NOT NULL, type VARCHAR(255) NOT NULL, payload JSONB NOT NULL);
 ALTER TABLE outbox ADD PRIMARY KEY (id);
 
-CREATE TABLE schema_usage (globalId BIGINT NOT NULL, contentId BIGINT NOT NULL DEFAULT 0, clientId VARCHAR(256) NOT NULL, operation VARCHAR(32) NOT NULL, eventTimestamp BIGINT NOT NULL, recordedOn TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE schema_usage (usageId BIGSERIAL NOT NULL, globalId BIGINT NOT NULL, contentId BIGINT NOT NULL DEFAULT 0, clientId VARCHAR(256) NOT NULL, operation VARCHAR(32) NOT NULL, eventTimestamp BIGINT NOT NULL, recordedOn TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP);
+ALTER TABLE schema_usage ADD PRIMARY KEY (usageId);
 CREATE INDEX IDX_schema_usage_1 ON schema_usage(globalId);
 CREATE INDEX IDX_schema_usage_2 ON schema_usage(clientId);
 CREATE INDEX IDX_schema_usage_3 ON schema_usage(eventTimestamp);

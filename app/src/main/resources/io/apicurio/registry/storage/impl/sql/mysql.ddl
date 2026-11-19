@@ -7,7 +7,7 @@ CREATE TABLE apicurio (
     propValue VARCHAR(255),
     PRIMARY KEY (propName)
 ) DEFAULT CHARACTER SET ascii COLLATE ascii_general_ci;
-INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 114);
+INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 115);
 
 CREATE TABLE sequences (
     seqName  VARCHAR(32) NOT NULL,
@@ -284,12 +284,14 @@ CREATE INDEX IDX_contract_audit_1 ON contract_audit_log(groupId(255), artifactId
 CREATE INDEX IDX_contract_audit_2 ON contract_audit_log(createdOn);
 
 CREATE TABLE schema_usage (
+    usageId         BIGINT       NOT NULL AUTO_INCREMENT,
     globalId        BIGINT       NOT NULL,
     contentId       BIGINT       NOT NULL DEFAULT 0,
     clientId        VARCHAR(256) NOT NULL,
     operation       VARCHAR(32)  NOT NULL,
     eventTimestamp  BIGINT       NOT NULL,
-    recordedOn      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+    recordedOn      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (usageId)
 ) DEFAULT CHARACTER SET ascii COLLATE ascii_general_ci;
 CREATE INDEX IDX_schema_usage_1 ON schema_usage(globalId);
 CREATE INDEX IDX_schema_usage_2 ON schema_usage(clientId);

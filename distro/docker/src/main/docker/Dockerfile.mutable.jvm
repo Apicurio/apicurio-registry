@@ -8,7 +8,7 @@
 #   FROM apicurio/apicurio-registry:VERSION-mutable
 #   COPY --chown=1001:0 my-provider.jar /deployments/quarkus-app/providers/
 #   RUN /deployments/build.sh --prune
-FROM registry.access.redhat.com/ubi10/openjdk-21-runtime@sha256:c1e7e1d56e36b5a88a1c2931bad9c9e5226695238f8b3c814648de10aaf3afc9
+FROM registry.access.redhat.com/ubi10/openjdk-21-runtime@sha256:23fb65c7e4cbb94bc59d72fcfb8e78f2fdb865e0d1bc2a1e3d45a692a9e7d6ea
 
 # NOTE: -XX:-UseBASE64Intrinsics mitigates CVE-2026-114938 ("Java4Shell"), a memory corruption
 # vulnerability in the OpenJDK Base64 decoder on x86-64 CPUs with AVX-512 VBMI support. Remove

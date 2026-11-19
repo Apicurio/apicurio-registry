@@ -198,6 +198,9 @@ SemVer.
 5. The default group is stored as a sentinel string, and group IDs are compared as given except for
    `default`, which is matched case-insensitively by `GroupId` but case-sensitively by
    `RegistryContentUtils.normalizeGroupId` ([#11360](https://github.com/Apicurio/apicurio-registry/issues/11360)).
+6. Whether a `DISABLED` or `SUNSET` tip of `branch=latest` is skipped depends on the endpoint, and
+   the tip of `latest` is the version added to it last, so publishing an older draft makes it the
+   latest ([#11369](https://github.com/Apicurio/apicurio-registry/issues/11369)).
 
 ## Alternatives
 

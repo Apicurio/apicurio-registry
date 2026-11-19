@@ -146,11 +146,19 @@ same `contract.{id}.*` artifact labels, so the metadata view, search and export 
   `lifecycle.deprecated-date`.
 - **Promotion stage** (`POST .../contract/promote`, `PromotionService`): `DEV → STAGE → PROD`,
   forward and one step at a time, starting at DEV; PROD requires status `STABLE`.
-- **Compatibility group** (`PUT .../contract/compatibility-group`): a label only.
+- **Compatibility group** (`PUT .../contract/compatibility-group`): an artifact label. Each new
+  version copies the artifact's current group into its own labels (`CompatibilityGroupDecorator`,
+  so KafkaSQL journals it), and a compatibility rule compares a new version only with the versions
+  of the same group. Versions created before a group was set belong to no group; without a group,
+  all versions are compared.
 - **Metadata** (`PUT .../contract/metadata`): replaces the descriptive fields (owner, domain,
   contact, classification, compatibility group) and keeps every other contract label, so the
   artifact stays linked to its ODCS contract. Status and stage change only when given, by the same
   rules as the status and promote endpoints; omitting them keeps them.
+
+Status transitions, promotion and metadata updates are compare-and-set: while holding the artifact
+row lock, the write checks that status and stage still have the values it validated against, and
+returns 409 (`ContractStateConflictException`) otherwise. Of two concurrent requests, one wins.
 
 `GET .../contract/metadata` maps the labels to a DTO (`ContractMetadataMapper`); it finds the
 contract through the `contract.{id}.id` label and falls back to un-namespaced `contract.*` labels
@@ -352,6 +360,7 @@ The feature was delivered in phases; the design above is their current combined 
 | 7 | Contract events, audit log, contract search, serializer integration |
 | 8 | Global rulesets, UI contract tab and global contract rules page |
 | [#10958](https://github.com/Apicurio/apicurio-registry/issues/10958) | Projection lifecycle (deletion, re-projection that keeps API-set state, cleanup, rollback), case-preserving label merges, inline tag extraction, serializers evaluating all rule scopes, complete audit log, deletion of contract rules and audit with the artifact |
+| [#11176](https://github.com/Apicurio/apicurio-registry/pull/11176) | Fixed: compatibility rules use the compatibility group; status transitions, promotion and metadata updates are compare-and-set and return 409 on a conflict ([#10969](https://github.com/Apicurio/apicurio-registry/issues/10969), [#10971](https://github.com/Apicurio/apicurio-registry/issues/10971)) |
 
 Earlier revisions of this ADR also recorded, and resolved: un-namespaced projection, which allowed
 only one contract per schema (fixed by namespacing with the contract ID); read-modify-write label

@@ -170,7 +170,7 @@ part "Step 10: disabling and deleting a referenced artifact"
 status PUT /groups/common-manual/artifacts/Country/versions/1/state '{"state": "DISABLED"}' > /dev/null
 check "a DISABLED target still resolves" "enum" \
   "$(get "$order?references=DEREFERENCE" | jq -r '.fields[2].type.fields[2].type.type')"
-check "deleting a referenced artifact is allowed (#11029)" 204 "$(status DELETE /groups/common-manual/artifacts/Money)"
+check "deleting a referenced artifact is allowed (#10047)" 204 "$(status DELETE /groups/common-manual/artifacts/Money)"
 check "the referrer still lists the reference" "common-manual/Address@1,common-manual/Money@1" "$(refs orders-manual Order)"
 deref=$(curl -s --max-time 30 -w '\n%{http_code}' "$V3$order?references=DEREFERENCE")
 check "but it can no longer be dereferenced: 422" 422 "$(tail -n1 <<< "$deref")"

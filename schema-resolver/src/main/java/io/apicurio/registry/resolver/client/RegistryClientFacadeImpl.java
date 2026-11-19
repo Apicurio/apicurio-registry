@@ -78,12 +78,20 @@ public class RegistryClientFacadeImpl implements RegistryClientFacade {
      */
     @Override
     public String getSchemaByContentId(Long contentId, boolean dereferenced) {
-        InputStream rawSchema = client.ids().contentIds().byContentId(contentId).get(config -> {
+        return IoUtil.toString(fetchSchemaByContentId(contentId, dereferenced));
+    }
+
+    @Override
+    public byte[] getSchemaBytesByContentId(Long contentId, boolean dereferenced) {
+        return IoUtil.toBytes(fetchSchemaByContentId(contentId, dereferenced));
+    }
+
+    private InputStream fetchSchemaByContentId(Long contentId, boolean dereferenced) {
+        return client.ids().contentIds().byContentId(contentId).get(config -> {
             if (dereferenced) {
                 config.queryParameters.references = HandleReferencesType.DEREFERENCE;
             }
         });
-        return IoUtil.toString(rawSchema);
     }
 
     @Override
@@ -161,12 +169,20 @@ public class RegistryClientFacadeImpl implements RegistryClientFacade {
      */
     @Override
     public String getSchemaByContentHash(String contentHash, boolean dereferenced) {
-        InputStream rawSchema = client.ids().contentHashes().byContentHash(contentHash).get(config -> {
+        return IoUtil.toString(fetchSchemaByContentHash(contentHash, dereferenced));
+    }
+
+    @Override
+    public byte[] getSchemaBytesByContentHash(String contentHash, boolean dereferenced) {
+        return IoUtil.toBytes(fetchSchemaByContentHash(contentHash, dereferenced));
+    }
+
+    private InputStream fetchSchemaByContentHash(String contentHash, boolean dereferenced) {
+        return client.ids().contentHashes().byContentHash(contentHash).get(config -> {
             if (dereferenced) {
                 config.queryParameters.references = HandleReferencesType.DEREFERENCE;
             }
         });
-        return IoUtil.toString(rawSchema);
     }
 
     @Override

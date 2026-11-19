@@ -67,9 +67,8 @@ public interface SchemaParser<S, U> {
     }
 
     /**
-     * Whether schemas of this type can be fetched dereferenced by content ID or content hash. Formats whose
-     * dereferenced form is not text (Protobuf returns a binary descriptor) return false, so the resolver keeps
-     * fetching their references instead.
+     * Whether schemas of this type can be fetched dereferenced by content ID or content hash. Formats that
+     * return false keep fetching their references instead.
      *
      * @return true if dereferenced content lookups can be used for this format
      */

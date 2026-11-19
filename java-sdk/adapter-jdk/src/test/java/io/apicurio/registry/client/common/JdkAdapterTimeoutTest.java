@@ -36,7 +36,7 @@ class JdkAdapterTimeoutTest {
 
     @BeforeEach
     void startSilentServer() throws Exception {
-        server = new ServerSocket(0, 50, InetAddress.getLoopbackAddress());
+        server = new ServerSocket(0, 50, InetAddress.getByName("127.0.0.1"));
         Thread acceptor = new Thread(() -> {
             try {
                 while (!server.isClosed()) {

@@ -274,7 +274,9 @@ public class AgentInventorySyncService implements AgentInventorySyncHandler {
      */
     private void requireWriteAccess(String groupId, List<InventoryItem> items, List<Missing> missing) {
         for (InventoryItem item : items) {
-            if (item.content() != null && storage.isArtifactExists(raw(groupId), item.artifactId())) {
+            // New artifacts too: per-resource grants can deny creating a name; owner-only
+            // authorization allows resources that do not exist yet.
+            if (item.content() != null) {
                 accessGuard.requireAccess(AuthorizedLevel.Write, AuthorizedResource.artifact(groupId, item.artifactId()));
             }
         }

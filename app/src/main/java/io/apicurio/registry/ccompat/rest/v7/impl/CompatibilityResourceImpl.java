@@ -19,6 +19,7 @@ import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.rules.violation.RuleViolationException;
 import io.apicurio.registry.rules.violation.UnprocessableSchemaException;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.RuleNotFoundException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.types.ArtifactType;
@@ -115,9 +116,18 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
     public CompatibilityCheckResponse checkAllCompatibility(String subject, Boolean verbose, Boolean normalize, String groupId, RegisterSchemaRequest request) {
         final GA ga = getGA(groupId, subject);
         try {
-            // Same baseline as the v3 rules: published versions only.
-            final List<String> versions = storage.getArtifactVersions(ga.getRawGroupIdWithNull(),
-                    ga.getRawArtifactId(), Set.of(VersionState.ENABLED, VersionState.DEPRECATED));
+            // Same baseline as the v3 rules: published versions only. The filtered query throws when
+            // nothing matches, so an artifact that only has drafts must be told apart from a missing one.
+            List<String> versions;
+            try {
+                versions = storage.getArtifactVersions(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(),
+                        Set.of(VersionState.ENABLED, VersionState.DEPRECATED));
+            } catch (ArtifactNotFoundException ex) {
+                if (!storage.isArtifactExists(ga.getRawGroupIdWithNull(), ga.getRawArtifactId())) {
+                    throw ex;
+                }
+                versions = List.of();
+            }
             for (String version : versions) {
                 final ArtifactVersionMetaDataDto artifactVersionMetaData = storage.getArtifactVersionMetaData(
                         ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), version);

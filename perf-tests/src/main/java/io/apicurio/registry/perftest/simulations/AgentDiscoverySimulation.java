@@ -12,14 +12,19 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static io.apicurio.registry.perftest.simulations.RegistryApiSimulation.CACHED_TOKEN;
 import static io.apicurio.registry.perftest.simulations.RegistryApiSimulation.REGISTRY_URL;
@@ -78,6 +83,7 @@ public class AgentDiscoverySimulation extends Simulation {
     private static final String IMPORT_GROUP = "perf-import";
 
     private static final AtomicInteger IMPORT_COUNTER = new AtomicInteger();
+    private static final AtomicBoolean AUTH_FAILURE_LOGGED = new AtomicBoolean();
     private static final AtomicLong QUERY_COUNTER = new AtomicLong();
     // Server artifacts of each run get new IDs, so a rerun against the same registry imports again
     private static final String RUN_ID = Long.toString(System.currentTimeMillis(), 36);
@@ -220,11 +226,47 @@ public class AgentDiscoverySimulation extends Simulation {
             request.header(AUTHORIZATION_HEADER, "Bearer " + token);
         }
         HttpResponse<String> response = SETUP_HTTP_CLIENT.send(request.build(), HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() == 401 && AUTH_FAILURE_LOGGED.compareAndSet(false, true)) {
+            logAuthFailure(response, token);
+        }
         if (response.statusCode() != 200) {
             if (log.isWarnEnabled()) {
                 log.warn("Seeding {}/{} failed: HTTP {} {}", group, artifactId, response.statusCode(), response.body());
             }
             throw new IllegalStateException("HTTP " + response.statusCode());
         }
+    }
+
+    /**
+     * Why the registry refused the token, once per run: its WWW-Authenticate header, and the
+     * token's issuer, audience, authorized party, and validity times. Never the token itself.
+     */
+    private static void logAuthFailure(HttpResponse<String> response, String token) {
+        String challenge = response.headers().firstValue("WWW-Authenticate").orElse("(none)");
+        log.warn("The registry refused the seeding token (HTTP 401). WWW-Authenticate: {}. Token claims: {}",
+                challenge, tokenClaims(token));
+    }
+
+    // The registered claims of a JWT, decoded from its payload without verifying it
+    static String tokenClaims(String token) {
+        if (token == null) {
+            return "(no token sent)";
+        }
+        String[] parts = token.split("\\.");
+        if (parts.length < 2) {
+            return "(not a JWT)";
+        }
+        String payload;
+        try {
+            payload = new String(Base64.getUrlDecoder().decode(parts[1]), StandardCharsets.UTF_8);
+        } catch (IllegalArgumentException e) {
+            return "(undecodable payload)";
+        }
+        StringBuilder claims = new StringBuilder();
+        for (String claim : List.of("iss", "aud", "azp", "iat", "exp")) {
+            Matcher m = Pattern.compile("\"" + claim + "\"\\s*:\\s*(\"[^\"]*\"|\\[[^\\]]*\\]|[0-9]+)").matcher(payload);
+            claims.append(claim).append('=').append(m.find() ? m.group(1) : "(absent)").append(' ');
+        }
+        return claims.append("now=").append(System.currentTimeMillis() / 1000).toString();
     }
 }

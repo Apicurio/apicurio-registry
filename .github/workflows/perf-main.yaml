@@ -334,6 +334,10 @@ jobs:
           mkdir -p /tmp/agent-perf-results
           kubectl -n default logs job/agent-perf-test-runner --tail=-1 > /tmp/agent-perf-results/agent-perf-test-runner.log || true
           kubectl -n default cp "$POD:/results" /tmp/agent-perf-results || true
+          # The registry's side of the run, for example why it refused a token
+          for p in $(kubectl -n default get pods -l app=perf-test-app -o name 2>/dev/null); do
+            kubectl -n default logs "$p" --since=30m > "/tmp/agent-perf-results/registry-${p##*/}.log" 2>&1 || true
+          done
           kubectl -n default delete -f common/agent-perf-job.yaml --ignore-not-found || true
           test "$(cat /tmp/agent-perf-results/exit-code 2>/dev/null || echo 1)" = "0"
 

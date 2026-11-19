@@ -79,7 +79,9 @@ trace of its own, not the producer's.
 
 The HTTP call to the registry carries the trace context if the application instruments its HTTP
 client, or if `apicurio.registry.otel.enabled=true` (default `false`), which makes the Java SDK
-(`OTelRequestAdapterDecorator`) inject `traceparent` and `tracestate` on every request.
+(`OTelRequestAdapterDecorator`) inject the trace context through the globally configured propagator.
+That needs a W3C propagator to be registered (the default one is a no-op) and a current span context:
+then every request carries `traceparent`, and `tracestate` when the context has one.
 
 ## Metrics
 

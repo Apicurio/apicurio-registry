@@ -83,7 +83,8 @@ provider as the single source of truth for credentials and roles, while those to
 
 `GET /system/uiConfig` tells the console the type (`oidc`, `basic` or `none`) and the OIDC settings
 (`apicurio.ui.auth.oidc.*`); a separately deployed console reads `REGISTRY_AUTH_*`. The console uses
-the authorization code flow with a public client, and hides what the roles do not allow.
+the authorization code flow with a public client, and hides what the roles do not allow. The
+console's design is [ADR-0027](0027-web-console.md).
 
 ### Behaviour across storage variants
 

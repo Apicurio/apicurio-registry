@@ -79,6 +79,10 @@ public class KubernetesManager extends AbstractPollingDataSourceManager<Kubernet
                 previousResourceVersion, currentResourceVersion);
 
         List<PollingDataFile> files = new ArrayList<>();
+        // Only used to look up the configured file suffixes (isMetadataFile); a file's own parse or
+        // format error travels on the file itself (PollingDataFile.getParseError/getFormatError) and
+        // is picked up by the real ProcessingState built in AbstractPollingDataSourceManager.process,
+        // not on this disposable one.
         ProcessingState tempState = new ProcessingState(config, null);
 
         // Track the most recent ConfigMap modification time for stable timestamps
@@ -94,12 +98,6 @@ public class KubernetesManager extends AbstractPollingDataSourceManager<Kubernet
 
         log.debug("Found {} data files across {} ConfigMaps",
                 files.size(), configMapList.getItems().size());
-
-        if (!tempState.isSuccessful()) {
-            for (var error : tempState.getErrors()) {
-                log.warn("ConfigMap parse error: {}", error);
-            }
-        }
 
         var marker = new KubernetesOpsMarker(sourceId, currentResourceVersion, commitTime);
         return PollingResult.withChanges(marker, files,

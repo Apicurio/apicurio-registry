@@ -106,6 +106,8 @@ Since 3.3.0 the REST API rejects a rule violation with 400; it was 409 before, a
 
 ## Learn more
 
+- [ADR-0022: Client SDKs and CLI](../../adr/0022-client-sdks-and-cli.md): how the SDKs are
+  generated and kept in step, the Java SDK options, the error model and the CLI.
 - *Managing Apicurio Registry content using an SDK* in the Registry documentation
   ([source](../../docs/modules/ROOT/pages/getting-started/assembly-using-the-registry-client.adoc)).
 - *Managing Apicurio Registry content using the command-line interface*

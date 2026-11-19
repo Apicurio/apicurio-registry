@@ -327,6 +327,19 @@ jobs:
           # address (run-external-load.sh), so request the token from wherever the registry trusts now.
           AUTH_SERVER_URL=$(kubectl -n default get apicurioregistry3 perf-test -o jsonpath='{.spec.app.auth.authServerUrl}')
           echo "Agent baseline tokens from: $AUTH_SERVER_URL"
+          # The operator applies the resource to the Deployment: wait until the serving pods trust
+          # this issuer, or the tokens would be refused just the same.
+          for _ in $(seq 1 36); do
+            TEMPLATE_URL=$(kubectl -n default get deployment perf-test-app-deployment \
+              -o jsonpath='{.spec.template.spec.containers[0].env[?(@.name=="QUARKUS_OIDC_AUTH_SERVER_URL")].value}')
+            [ "$TEMPLATE_URL" = "$AUTH_SERVER_URL" ] && break
+            sleep 5
+          done
+          if [ "$TEMPLATE_URL" != "$AUTH_SERVER_URL" ]; then
+            echo "::error::The registry Deployment trusts '$TEMPLATE_URL', not '$AUTH_SERVER_URL'; skipping the agent baseline."
+            exit 1
+          fi
+          kubectl -n default rollout status deployment/perf-test-app-deployment --timeout=3m
           sed -e "s|\${PERF_TEST_IMAGE}|$PERF_TEST_IMAGE|" \
               -e "s|http://keycloak.default.svc:8080/realms/registry/protocol/openid-connect/token|${AUTH_SERVER_URL}/protocol/openid-connect/token|" \
               common/agent-perf-job.yaml | kubectl -n default apply -f -

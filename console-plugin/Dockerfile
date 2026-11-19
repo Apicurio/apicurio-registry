@@ -37,6 +37,11 @@ COPY --from=java-builder /opt/app-root/src/target/quarkus-app/ /deployments/
 
 EXPOSE 9443
 
-ENV JAVA_OPTS_APPEND="-Dquarkus.http.host=0.0.0.0"
+# NOTE: -XX:-UseBASE64Intrinsics mitigates CVE-2026-114938 ("Java4Shell"), a memory corruption
+# vulnerability in the OpenJDK Base64 decoder on x86-64 CPUs with AVX-512 VBMI support. Remove
+# this flag once the base image ships a fixed OpenJDK build. JAVA_OPTS_APPEND is used (rather
+# than JAVA_OPTIONS) so the image's computed default options are preserved.
+# See: https://quarkus.io/blog/java4shell/
+ENV JAVA_OPTS_APPEND="-Dquarkus.http.host=0.0.0.0 -XX:-UseBASE64Intrinsics"
 
 ENTRYPOINT ["java", "-jar", "/deployments/quarkus-run.jar"]

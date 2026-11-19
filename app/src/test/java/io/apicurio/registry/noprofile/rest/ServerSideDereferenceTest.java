@@ -373,6 +373,35 @@ public class ServerSideDereferenceTest extends AbstractResourceTestBase {
         assertResolvedAddress(bySubjectVersion);
     }
 
+    /**
+     * "resolved" is not a valid Protobuf format, so with DEREFERENCE configured and no format
+     * parameter, Protobuf schemas must be returned as stored instead of failing.
+     */
+    @Test
+    public void testCCompatServerSideDereference_ProtobufWithoutFormatReturnsStoredContent() throws Exception {
+        String protoContent = "syntax = \"proto3\";\npackage com.example;\n\nmessage Simple {\n  string name = 1;\n}\n";
+        String subject = "testCCompatProtobufDefault";
+        var metadata = createArtifact("default", subject, ArtifactType.PROTOBUF, protoContent,
+                ContentTypes.APPLICATION_PROTOBUF);
+
+        String byId = given().when().pathParam("id", metadata.getVersion().getContentId())
+                .get("/ccompat/v7/schemas/ids/{id}/schema").then().statusCode(200).extract().asString();
+        Assertions.assertEquals(protoContent, byId);
+
+        String byIdWrapped = given().when().pathParam("id", metadata.getVersion().getContentId())
+                .get("/ccompat/v7/schemas/ids/{id}").then().statusCode(200).extract().path("schema");
+        Assertions.assertEquals(protoContent, byIdWrapped);
+
+        String bySubjectVersion = given().when().pathParam("subject", subject)
+                .get("/ccompat/v7/subjects/{subject}/versions/1").then().statusCode(200).extract()
+                .path("schema");
+        Assertions.assertEquals(protoContent, bySubjectVersion);
+
+        // An explicit format keeps today's validation
+        given().when().pathParam("id", metadata.getVersion().getContentId()).queryParam("format", "resolved")
+                .get("/ccompat/v7/schemas/ids/{id}").then().statusCode(400);
+    }
+
     private static void assertResolvedAddress(String schema) {
         Assertions.assertNotNull(schema);
         Assertions.assertFalse(schema.contains("com.example.common.Address"),

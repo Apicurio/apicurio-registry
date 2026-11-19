@@ -128,6 +128,7 @@ public class AdminResourceImpl implements AdminResource {
         if (data.getConfig() == null || data.getConfig().isEmpty()) {
             throw new MissingRequiredParameterException("Config");
         }
+        ParameterValidationUtils.validateRuleConfig(type, data.getConfig());
 
         RuleConfigurationDto configDto = new RuleConfigurationDto();
         configDto.setConfiguration(data.getConfig());
@@ -175,6 +176,7 @@ public class AdminResourceImpl implements AdminResource {
     @Audited
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public Rule updateGlobalRuleConfig(RuleType rule, Rule data) {
+        ParameterValidationUtils.validateRuleConfig(rule, data.getConfig());
         RuleConfigurationDto configDto = new RuleConfigurationDto();
         configDto.setConfiguration(data.getConfig());
         try {

@@ -80,7 +80,7 @@ iterates over the rule types and, for each, takes the first configuration found:
 | 3 | Global rule | Stored, managed through `/admin/rules` |
 | 4 | Default global rule | `apicurio.rules.global.<type>`; listed by `GET /admin/rules` and overridable there, but cannot be deleted through the API (409) |
 
-Creating or updating a global, group or artifact rule through the v3 API checks the config against
+Creating or updating a global, group or artifact rule through the v2 or v3 API checks the config against
 the levels of the rule type and returns 400 if it is not one of them
 (`ParameterValidationUtils.validateRuleConfig`).
 
@@ -186,17 +186,14 @@ API writes; they apply rules when they load data, with different version selecti
 
 ## Limitations and open work
 
-1. **The v2 API does not validate rule configs** when they are saved: an invalid level is stored,
-   and later writes to the affected artifacts fail. The v3 API rejects it with 400
-   ([#11000](https://github.com/Apicurio/apicurio-registry/issues/11000) fixed the v3 paths only; [#11307](https://github.com/Apicurio/apicurio-registry/issues/11307)).
-2. **No effective-rules view:** the API returns the rules of one scope; clients compute the
+1. **No effective-rules view:** the API returns the rules of one scope; clients compute the
    effective set themselves.
-3. **Imported data is not checked**, and changing a rule never revalidates stored versions.
-4. **GitOps and KubernetesOps select versions differently** from API writes: all preceding versions
+2. **Imported data is not checked**, and changing a rule never revalidates stored versions.
+3. **GitOps and KubernetesOps select versions differently** from API writes: all preceding versions
    regardless of state, and by default only the last version is checked.
-5. **Types without a compatibility checker** accept any change under every compatibility level,
+4. **Types without a compatibility checker** accept any change under every compatibility level,
    without telling the client.
-6. **The OpenAPI description still documents 409** in some shared examples, although 400 is the
+5. **The OpenAPI description still documents 409** in some shared examples, although 400 is the
    default since 3.3.0.
 
 ## Alternatives
@@ -249,3 +246,4 @@ API writes; they apply rules when they load data, with different version selecti
 | 3.3.0 | Rule violations return 400 instead of 409 by default (`apicurio.rest.legacy-error-codes.enabled` restores 409) |
 | This ADR | First written record of the rules engine, with a verified example |
 | [#11175](https://github.com/Apicurio/apicurio-registry/pull/11175), [#11176](https://github.com/Apicurio/apicurio-registry/pull/11176) | Fixed: publishing a draft no longer compares it with itself (#11001); the v3 API rejects an invalid rule config with 400 instead of storing it (#11000); compatibility rules honour data contract compatibility groups (#10969) |
+| [#11319](https://github.com/Apicurio/apicurio-registry/pull/11319) | Fixed: the v2 API rejects invalid rule configs with 400, like v3 (#11307) |

@@ -85,7 +85,8 @@ surface. The cost is one more deployable and a network hop per tool call.
 | Inbound authentication | None: the client owns the process | OIDC bearer token (Quarkus OIDC); audience via `QUARKUS_OIDC_TOKEN_AUDIENCE` |
 | Identity seen by the registry | The `apicurio.mcp.auth.*` service account, or anonymous if auth is disabled | The caller's forwarded token |
 | Registry client | One shared client built at startup | A new client per request with the caller's token, sharing cached transport options |
-| Startup check | `system.info()` call, plus the token check when auth is enabled | Config validation; TCP probe of `registry.url` |
+| Startup check | Token request to the token endpoint when auth is enabled (does not contact the registry) | Config validation; TCP probe of `registry.url` only when client-credentials auth is disabled |
+| Registry `system.info()` probe | On first use of the shared client (the bean is created lazily), so stdio starts even if the registry is down | Same, when a shared client is needed (auth enabled or `forward-token=false`) |
 
 **Token forwarding.** `RegistryClientResolver.getClient()` takes the token from the request's
 `SecurityIdentity` (`AccessTokenCredential`) or `JsonWebToken`. It rejects a JWT whose `exp` is more
@@ -144,9 +145,12 @@ MCP prompts: `create_new_artifact_version` (`MCPPrompts`) and `render_registry_p
   to detect the type from.
 - **Safe mode** (`apicurio.mcp.safe-mode`, default `true`): `update_configuration_property` may only
   change `apicurio.rest.mutability.artifact-version-content.enabled`.
-- **Paging:** list and search tools ask for `apicurio.mcp.paging.limit + 1` items; with
-  `limit-error=true` (default) they fail when more exist instead of returning a silently truncated
-  list.
+- **Paging threshold:** the `list_*` and `search_*` tools for groups, artifacts and versions, plus
+  `discover_agents`, `search_mcp_tools` and `list_mcp_prompts`, request one page of
+  `apicurio.mcp.paging.limit + 1` items. With `limit-error=true` (default) they fail when the
+  registry's total match count exceeds the limit; with `false` they return that page as is (up to
+  `limit + 1` items). `ard_search` pages with `pageSize` and `pageToken`, and
+  `list_configuration_properties` is not limited.
 - There is no read-only mode and no experimental flag on individual tools: what a caller can change
   is decided by the registry's authorization.
 
@@ -163,8 +167,8 @@ Properties come from [`McpConfig`](../mcp/src/main/java/io/apicurio/registry/mcp
 | `apicurio.mcp.auth.enabled` | `false` | OAuth2 client credentials to the registry |
 | `apicurio.mcp.auth.token-endpoint`, `.client-id`, `.client-secret`, `.scope` | (none) | Client-credentials settings; the first three are required when enabled |
 | `apicurio.mcp.safe-mode` | `true` | Whitelist for `update_configuration_property` |
-| `apicurio.mcp.paging.limit` | `200` | Maximum items a list or search tool returns |
-| `apicurio.mcp.paging.limit-error` | `true` | Fail instead of truncating above the limit |
+| `apicurio.mcp.paging.limit` | `200` | Match-count threshold for the limited list and search tools; they request `limit + 1` items |
+| `apicurio.mcp.paging.limit-error` | `true` | Fail when the total match count exceeds the limit; `false` returns the requested page unchanged |
 | `apicurio.mcp.tls.trust-all` / `.verify-host` | `false` / `true` | TLS to the registry and token endpoint |
 | `apicurio.mcp.tls.truststore.*`, `.keystore.*` | (none) | JKS, PKCS12 or PEM trust store; JKS or PKCS12 key store for mTLS |
 | `quarkus.mcp.server.stdio.enabled`, `quarkus.mcp.server.http.enabled` | `true`, `true` | Transports compiled in (build time) |
@@ -186,8 +190,9 @@ Properties come from [`McpConfig`](../mcp/src/main/java/io/apicurio/registry/mcp
 
 ## Limitations and open work
 
-1. List and search tools cannot page; they fail above `apicurio.mcp.paging.limit`
-   ([#10641](https://github.com/Apicurio/apicurio-registry/issues/10641)).
+1. The limited list and search tools (not `ard_search`) cannot page; above
+   `apicurio.mcp.paging.limit` they fail with `limit-error=true`, or return only the first page with
+   `false` ([#10641](https://github.com/Apicurio/apicurio-registry/issues/10641)).
 2. Tool results include an empty `additionalData` on every object
    ([#10957](https://github.com/Apicurio/apicurio-registry/issues/10957)).
 3. No rule-management tools; only `test_schema_rules`
@@ -216,8 +221,9 @@ Properties come from [`McpConfig`](../mcp/src/main/java/io/apicurio/registry/mcp
 ## Consequences
 
 - **Benefits:** the registry's authorization applies unchanged to AI clients; HTTP callers keep their
-  own roles and ownership; misconfiguration (no OIDC, wrong secret, unreachable registry) fails at
-  startup; the tools follow the API through the generated SDK.
+  own roles and ownership; missing OIDC and wrong client credentials fail at startup, and so does an
+  unreachable registry in HTTP mode without client credentials (otherwise it surfaces on the first
+  tool call); the tools follow the API through the generated SDK.
 - **Costs:** a second artifact and image to release and run; each tool is hand-written and the user
   documentation lists them separately, so new API features need new tools; HTTP mode needs several
   Quarkus OIDC settings beyond `apicurio.mcp.*`.

@@ -228,4 +228,4 @@ What it registers is [ADR-0008](0008-artifact-references.md) and the
 | [#11289](https://github.com/Apicurio/apicurio-registry/pull/11289) | Maven plugin errors name the HTTP status |
 | [#11321](https://github.com/Apicurio/apicurio-registry/pull/11321) | CLI connect and read timeouts |
 | This ADR | First written record |
-| this PR | CLI exits with code 3 on any `ApiException` and names the HTTP status ([#11338](https://github.com/Apicurio/apicurio-registry/issues/11338)) |
+| [#11374](https://github.com/Apicurio/apicurio-registry/pull/11374) | CLI exits with code 3 on any `ApiException` and names the HTTP status ([#11338](https://github.com/Apicurio/apicurio-registry/issues/11338)) |

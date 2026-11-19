@@ -3,8 +3,8 @@
 - **Status:** Accepted (documents the current implementation).
 - **Decision date:** 2026-11-10.
 - **Author:** Apicurio Registry maintainers.
-- **Tracking:** [#11029](https://github.com/Apicurio/apicurio-registry/issues/11029),
-  [#11030](https://github.com/Apicurio/apicurio-registry/issues/11030),
+- **Tracking:** [#11029](https://github.com/Apicurio/apicurio-registry/issues/11029) (closed as a duplicate of [#10047](https://github.com/Apicurio/apicurio-registry/issues/10047)),
+  [#11030](https://github.com/Apicurio/apicurio-registry/issues/11030) (fixed),
   [#9626](https://github.com/Apicurio/apicurio-registry/issues/9626).
 - **Scope:** How a schema refers to types defined in other artifacts: the reference model, storage
   and hashing, resolution (dereference, rewrite, graph), integrity, deletion, and the clients that
@@ -92,6 +92,9 @@ Confluent-compatible API uses it with `apicurio.ccompat.use-canonical-hash`.
 
 Resolution walks the graph breadth-first (`ReferenceGraphWalker`), up to
 `apicurio.storage.references.max-depth` (default 100, then 409). Visited nodes are not expanded again.
+Before dereferencing (v3 `references=DEREFERENCE`, v2 `dereference=true`, Confluent-compatible
+`format`), the whole graph is walked: if a target is missing, or the graph has a cycle, the request
+fails with 422 naming the missing references or the cycle.
 
 ### Integrity
 
@@ -104,7 +107,7 @@ a reference may point at a version that does not exist yet.
 | Target | Effect on referrers |
 |---|---|
 | `DISABLED` | Still resolves |
-| Deleted (core API) | Allowed. The reference stays listed; resolution skips it or fails (Avro: 500) ([#11029](https://github.com/Apicurio/apicurio-registry/issues/11029), [#9626](https://github.com/Apicurio/apicurio-registry/issues/9626)) |
+| Deleted (core API) | Allowed. The reference stays listed; `DEREFERENCE` fails with 422 naming the missing reference ([#10047](https://github.com/Apicurio/apicurio-registry/issues/10047)) |
 | Deleted (Confluent-compatible API) | Refused with 422 `REFERENCE_EXISTS` while referenced |
 | Content no longer used by any version | Removed by `OrphanedContentReaper` (`apicurio.storage.orphan-cleanup.every`, default `1h`) |
 
@@ -149,11 +152,13 @@ the API.
 ## Limitations and open work
 
 1. Deleting a referenced artifact is not prevented in the core API, and breaks its referrers
-   ([#11029](https://github.com/Apicurio/apicurio-registry/issues/11029)).
+   ([#10047](https://github.com/Apicurio/apicurio-registry/issues/10047)).
 2. A failed reference load is skipped rather than reported, and two targets with the same name
    collapse into one ([#9626](https://github.com/Apicurio/apicurio-registry/issues/9626), #9000).
-3. `NO_CIRCULAR_REFERENCES` misses a cycle closed by the version being created, and dereferencing a
-   cycle fails with 500 ([#11030](https://github.com/Apicurio/apicurio-registry/issues/11030)).
+3. `NO_CIRCULAR_REFERENCES` catches a cycle closed by the version being written only when that
+   version's ID is known before the rules run (given explicitly, or `1` for a new artifact). When the
+   storage generates a later version's ID, such a cycle is still accepted; `DEREFERENCE` then
+   returns 422 ([#11030](https://github.com/Apicurio/apicurio-registry/issues/11030) fixed the other cases; [#11309](https://github.com/Apicurio/apicurio-registry/issues/11309)).
 4. The legacy SQL resolver truncates at the depth limit with only a warning (#10635).
 5. References cannot follow `latest`; moving a dependency needs a new version of every referrer.
 
@@ -164,7 +169,7 @@ the API.
 | References to `latest` | Not selected: a schema's meaning, and a content ID, would change under consumers |
 | References per version rather than per content | Not selected: the content ID must identify text and dependencies together |
 | Always dereference on write | Not selected: loses the shared types, and their evolution |
-| Block deletion of referenced artifacts | Open: done in the Confluent-compatible API only ([#11029](https://github.com/Apicurio/apicurio-registry/issues/11029)) |
+| Block deletion of referenced artifacts | Open: done in the Confluent-compatible API only ([#10047](https://github.com/Apicurio/apicurio-registry/issues/10047)) |
 
 ## Consequences
 
@@ -203,3 +208,4 @@ the API.
 |---|---|
 | 3.4.0 | Server-side auto-references; breadth-first resolution with a depth limit; reference authorization batching (ADR-0005) |
 | This ADR | First written record, with a verified example |
+| [#11175](https://github.com/Apicurio/apicurio-registry/pull/11175) | Fixed: `NO_CIRCULAR_REFERENCES` rejects a version that closes a cycle when its ID is known (#11030); dereferencing a cycle or a missing target returns 422 naming it, instead of 500 (#11030, #11059) |

@@ -5,7 +5,7 @@
 - **Author:** Apicurio Registry maintainers.
 - **Tracking:** [#11043](https://github.com/Apicurio/apicurio-registry/issues/11043),
   [#11044](https://github.com/Apicurio/apicurio-registry/issues/11044),
-  [#11046](https://github.com/Apicurio/apicurio-registry/issues/11046).
+  [#11046](https://github.com/Apicurio/apicurio-registry/issues/11046) (all fixed; #11044 partly, see limitation 1).
 - **Scope:** How the registry establishes who is calling: the mechanisms, how they combine, the
   401/403 contract, the coarse role-based gates that consume the identity, the web console's login,
   and how clients authenticate. Which resources an identity may use (per-resource rules, owner bypass)
@@ -77,7 +77,7 @@ provider as the single source of truth for credentials and roles, while those to
 | Invalid token, wrong password or secret | 401 |
 | Identified, role does not allow the operation (or no role) | 403 |
 | Anonymous read with `apicurio.auth.anonymous-read-access.enabled` | 200 for reads, 401 for writes |
-| Malformed basic header with client credentials | 500 ([#11043](https://github.com/Apicurio/apicurio-registry/issues/11043)) |
+| Malformed basic header (not Base64) | 401, as if no credentials were sent |
 
 ### Web console
 
@@ -122,17 +122,15 @@ stored like other registry data on every variant.
 
 ## Limitations and open work
 
-1. A malformed basic header returns 500 with an internal message when client credentials are enabled
-   ([#11043](https://github.com/Apicurio/apicurio-registry/issues/11043)).
-2. Resetting a dynamic setting such as anonymous read access has no effect until restart
-   ([#11044](https://github.com/Apicurio/apicurio-registry/issues/11044)); set it explicitly instead.
-3. The Java SDK's `bearerToken()` only works with the JDK adapter
-   ([#11046](https://github.com/Apicurio/apicurio-registry/issues/11046)).
-4. The challenge (`WWW-Authenticate`) comes from the last mechanism of the chain only.
-5. A token fetch that hangs, rather than fails, blocks the requests waiting for it (no timeout).
-6. When the Kubernetes API is unavailable, Kubernetes callers become anonymous; with anonymous read
+1. Resetting a dynamic setting such as anonymous read access (`DELETE /admin/config/properties/{name}`)
+   takes effect at once on the replica that served the request, but other replicas do not see the
+   reset: their periodic refresh detects changed properties, not deleted ones. In a multi-replica
+   deployment, set the value explicitly instead ([#11044](https://github.com/Apicurio/apicurio-registry/issues/11044) fixed the single-replica case; [#11308](https://github.com/Apicurio/apicurio-registry/issues/11308)).
+2. The challenge (`WWW-Authenticate`) comes from the last mechanism of the chain only.
+3. A token fetch that hangs, rather than fails, blocks the requests waiting for it (no timeout).
+4. When the Kubernetes API is unavailable, Kubernetes callers become anonymous; with anonymous read
    enabled they can still read.
-7. Proxy-header authentication trusts the network: the registry must not be reachable except through
+5. Proxy-header authentication trusts the network: the registry must not be reachable except through
    the proxy, and the proxy must overwrite the headers.
 
 ## Alternatives
@@ -182,3 +180,4 @@ stored like other registry data on every variant.
 | 3.3.0 | Kubernetes TokenReview authentication (experimental) |
 | 3.3.1 | Form authentication |
 | This ADR | First written record, with a verified example |
+| [#11175](https://github.com/Apicurio/apicurio-registry/pull/11175), [#11176](https://github.com/Apicurio/apicurio-registry/pull/11176) | Fixed: a malformed basic header returns 401 instead of 500 (#11043); resetting a dynamic setting takes effect without a restart on the replica that served it (#11044); the Java SDK's `bearerToken()` works with the default Vert.x adapter (#11046) |

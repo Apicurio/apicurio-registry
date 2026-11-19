@@ -177,7 +177,7 @@ the cycle. `REFS_EXIST` prevents the first step altogether, so use `FULL`.
   not from the schemas that already use it.
 - Deleting a referenced artifact is **allowed** today. The referrer still lists the reference, but
   dereferencing it now fails with `422`, naming the missing reference, and so do consumers that resolve it
-  ([#11029](https://github.com/Apicurio/apicurio-registry/issues/11029)). Check `refType=INBOUND`
+  ([#10047](https://github.com/Apicurio/apicurio-registry/issues/10047)). Check `refType=INBOUND`
   before deleting. The Confluent-compatible API does refuse such deletes.
 
 ## Step 11: Kafka serializers and references
@@ -222,7 +222,7 @@ docker compose down -v
 |---|---|
 | `build.sh failed` | It needs JDK 21 or later; run `./build.sh` to see the errors. |
 | A Maven plugin execution fails | Run it by hand: `../../mvnw -f registration io.apicurio:apicurio-registry-maven-plugin:3.4.0-SNAPSHOT:register@avro-manual -Dregistry.url=http://localhost:8081/apis/registry/v3`. |
-| `DEREFERENCE` returns 422 | The detail names the problem: a referenced version that no longer exists (#11029), or a cycle. |
+| `DEREFERENCE` returns 422 | The detail names the problem: a referenced version that no longer exists (#10047), or a cycle. |
 | The serdes step times out | Kafka is not reachable on `localhost:9092`; see [Using other ports](#using-other-ports). |
 
 ## Using other ports

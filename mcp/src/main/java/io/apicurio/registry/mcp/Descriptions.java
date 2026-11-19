@@ -139,7 +139,7 @@ public final class Descriptions {
 
     public static final String ARD_SEARCH_TYPE = """
             Restrict results to one or more ARD entry types. \
-            Provide a comma-separated list, e.g. "application/agent-card+json,application/mcp-server-card+json". \
+            Provide a comma-separated list, e.g. "application/a2a-agent-card+json,application/mcp-server-card+json". \
             Leave empty to search across all types.""";
 
     public static final String ARD_SEARCH_TAGS = """

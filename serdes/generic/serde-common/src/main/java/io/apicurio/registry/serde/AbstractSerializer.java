@@ -1,5 +1,6 @@
 package io.apicurio.registry.serde;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.contracts.rules.RuleDefinition;
 import io.apicurio.registry.contracts.rules.RuleExecutionEngine;
 import io.apicurio.registry.contracts.rules.RuleExecutionResult;
@@ -66,6 +67,7 @@ public abstract class AbstractSerializer<T, U> implements AutoCloseable {
     private boolean contractRulesEnabled = false;
     private boolean contractRulesFailOnError = true;
     private RuleExecutionEngine ruleEngine;
+    private DeadLetterQueue deadLetterQueue;
     private ContractRuleLoader ruleLoader;
 
     public AbstractSerializer() {
@@ -156,8 +158,8 @@ public abstract class AbstractSerializer<T, U> implements AutoCloseable {
                     DefaultSchemaResolver.currentOperation.set("SERIALIZE");
                     try {
                         SerdeMetadata resolverMetadata = new SerdeMetadata(topic, baseSerde.isKey());
-                        schema = baseSerde.getSchemaResolver()
-                                .resolveSchema(new SerdeRecord<>(resolverMetadata, data));
+                        schema = tracer.traceSchemaResolve(topic, "serialize", resolveSpan -> baseSerde
+                                .getSchemaResolver().resolveSchema(new SerdeRecord<>(resolverMetadata, data)));
                     } finally {
                         DefaultSchemaResolver.currentOperation.remove();
                     }
@@ -169,16 +171,9 @@ public abstract class AbstractSerializer<T, U> implements AutoCloseable {
 
                 SerDesTracer.setSchemaAttributes(span, schema, cacheHit);
 
-                if (contractRulesEnabled) {
-                    executeContractRulesForWrite(schema, data);
-                }
+                U toWrite = applyContractRulesForWrite(topic, schema, data);
 
-                ByteArrayOutputStream out = new ByteArrayOutputStream(DEFAULT_BUFFER_SIZE);
-                out.write(MAGIC_BYTE);
-                baseSerde.getIdHandler().writeId(schema.toArtifactReference(), out);
-                this.serializeData(schema.getParsedSchema(), data, out);
-
-                byte[] result = out.toByteArray();
+                byte[] result = writeRecord(schema, toWrite);
                 span.setAttribute(SerDesAttributes.DATA_SIZE, (long) result.length);
                 return result;
             } catch (IOException e) {
@@ -187,37 +182,77 @@ public abstract class AbstractSerializer<T, U> implements AutoCloseable {
         });
     }
 
+    private byte[] writeRecord(SchemaLookupResult<T> schema, U data) throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream(DEFAULT_BUFFER_SIZE);
+        out.write(MAGIC_BYTE);
+        baseSerde.getIdHandler().writeId(schema.toArtifactReference(), out);
+        this.serializeData(schema.getParsedSchema(), data, out);
+        return out.toByteArray();
+    }
+
+    /**
+     * Sets the dead letter queue that receives the records failing a contract rule with
+     * {@code onFailure: DLQ}.
+     */
+    public void setDeadLetterQueue(DeadLetterQueue deadLetterQueue) {
+        this.deadLetterQueue = deadLetterQueue;
+    }
+
     public BaseSerde<T, U> getSerdeConfigurer() {
         return baseSerde;
     }
 
-    @SuppressWarnings("unchecked")
-    private void executeContractRulesForWrite(SchemaLookupResult<T> schema, U data) {
+    /**
+     * Applies the WRITE-mode contract rules to a record, when contract rules are enabled, and returns the
+     * record to serialize: the output of the TRANSFORM rules if any transformed it, otherwise the record.
+     *
+     * @throws ContractRuleViolationException if a rule fails and fail-on-error is enabled, or a rule with
+     *         {@code onFailure: DLQ} fails (after sending the record to the dead letter queue)
+     */
+    public U applyContractRulesForWrite(String topic, SchemaLookupResult<T> schema, U data) {
+        if (!contractRulesEnabled) {
+            return data;
+        }
+        RuleExecutionResult result;
         try {
             var ref = schema.toArtifactReference();
             if (ref.getArtifactId() == null || ref.getArtifactId().isEmpty()) {
-                return;
+                return data;
             }
             List<RuleDefinition> rules = ruleLoader.domainRules(ref.getGroupId(), ref.getArtifactId(),
                     ref.getVersion());
             if (rules.isEmpty()) {
-                return;
+                return data;
             }
-            Map<String, Object> recordMap = dataToMap(data);
-            RuleExecutionResult result = ruleEngine.execute(rules, "WRITE", recordMap);
-            if (!result.isPassed()) {
-                String msg = "Contract rule validation failed (WRITE): " + result.getViolations();
-                if (contractRulesFailOnError) {
-                    throw new RuntimeException(msg);
-                }
-                LOG.warning(msg);
-            }
+            result = ruleEngine.execute(rules, "WRITE", toRuleRecord(data));
         } catch (RuntimeException e) {
             if (contractRulesFailOnError) {
                 throw e;
             }
             LOG.warning("Contract rule execution failed: " + e.getMessage());
+            return data;
         }
+        if (!result.isPassed()) {
+            if (ContractRuleOutcomes.hasDeadLetterViolation(result)) {
+                ContractRuleOutcomes.requireDeadLetterQueue(deadLetterQueue, result);
+                try {
+                    deadLetterQueue.send(topic, writeRecord(schema, data), result.getViolations());
+                } catch (IOException e) {
+                    throw new UncheckedIOException(e);
+                }
+                throw new ContractRuleViolationException("WRITE", result.getViolations(), deadLetterQueue.topic());
+            }
+            ContractRuleViolationException violation = new ContractRuleViolationException("WRITE",
+                    result.getViolations(), null);
+            if (contractRulesFailOnError) {
+                throw violation;
+            }
+            LOG.warning(violation.getMessage());
+        }
+        if (result.getTransformedRecord() == null || !supportsTransformResult(data)) {
+            return data;
+        }
+        return fromRuleRecord(result.getTransformedRecord(), schema.getParsedSchema(), data);
     }
 
     static List<RuleDefinition> toRuleDefinitions(ContractRuleSet ruleset) {
@@ -239,8 +274,12 @@ public abstract class AbstractSerializer<T, U> implements AutoCloseable {
         return ContractRuleLoader.toRuleDefinition(r, 0);
     }
 
+    /**
+     * Converts a record to the map the contract rule engine works on. The default handles maps and
+     * records whose {@code toString()} is JSON; formats override it to convert faithfully.
+     */
     @SuppressWarnings("unchecked")
-    private Map<String, Object> dataToMap(U data) {
+    protected Map<String, Object> toRuleRecord(U data) {
         if (data == null) {
             return Map.of();
         }
@@ -248,12 +287,35 @@ public abstract class AbstractSerializer<T, U> implements AutoCloseable {
             return (Map<String, Object>) data;
         }
         try {
-            var mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-            String json = data.toString();
-            return mapper.readValue(json, Map.class);
+            return new ObjectMapper().readValue(data.toString(), Map.class);
         } catch (Exception e) {
             return Map.of();
         }
+    }
+
+    /**
+     * Whether {@link #fromRuleRecord} can turn the output of TRANSFORM rules back into a record like
+     * {@code data}. When it cannot, the rules still run (and can fail the write) but the original record
+     * is serialized.
+     */
+    protected boolean supportsTransformResult(U data) {
+        return data instanceof Map;
+    }
+
+    /**
+     * Builds the record to serialize from the output of the TRANSFORM rules.
+     *
+     * @param record the transformed record
+     * @param schema the schema of the record
+     * @param original the record as given to the serializer
+     */
+    @SuppressWarnings("unchecked")
+    protected U fromRuleRecord(Map<String, Object> record, ParsedSchema<T> schema, U original) {
+        if (original instanceof Map) {
+            return (U) record;
+        }
+        throw new UnsupportedOperationException("Transform results are not supported by "
+                + getClass().getSimpleName());
     }
 
     @Override

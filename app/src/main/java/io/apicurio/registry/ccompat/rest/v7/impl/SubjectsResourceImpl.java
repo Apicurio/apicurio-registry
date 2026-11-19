@@ -1,5 +1,6 @@
 package io.apicurio.registry.ccompat.rest.v7.impl;
 
+import io.apicurio.registry.references.ReferenceResolution;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import io.apicurio.registry.auth.Authorized;
@@ -552,6 +553,8 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
     private StoredArtifactVersionDto applyFormat(StoredArtifactVersionDto storedArtifact, String artifactType,
             String effectiveFormat) {
         if (effectiveFormat != null && !effectiveFormat.trim().isEmpty()) {
+            ReferenceResolution.requireDereferenceable(storedArtifact.getReferences(),
+                    accessGuard.referenceLoader());
             Map<String, TypedContent> resolvedReferences = resolveReferenceDtos(storedArtifact.getReferences());
             ContentHandle formattedContent = formatService.applyFormat(storedArtifact.getContent(), artifactType,
                     effectiveFormat, resolvedReferences);

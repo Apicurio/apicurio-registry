@@ -146,11 +146,21 @@ same `contract.{id}.*` artifact labels, so the metadata view, search and export 
   `lifecycle.deprecated-date`.
 - **Promotion stage** (`POST .../contract/promote`, `PromotionService`): `DEV → STAGE → PROD`,
   forward and one step at a time, starting at DEV; PROD requires status `STABLE`.
-- **Compatibility group** (`PUT .../contract/compatibility-group`): a label only.
+- **Compatibility group** (`PUT .../contract/compatibility-group`): an artifact label. Each new
+  version copies the artifact's current group into its own labels (`CompatibilityGroupDecorator`,
+  so KafkaSQL journals it), and a compatibility rule compares a new version only with the versions
+  of the same group. Versions created before a group was set belong to no group; without a group,
+  all versions are compared.
 - **Metadata** (`PUT .../contract/metadata`): replaces the descriptive fields (owner, domain,
   contact, classification, compatibility group) and keeps every other contract label, so the
   artifact stays linked to its ODCS contract. Status and stage change only when given, by the same
   rules as the status and promote endpoints; omitting them keeps them.
+
+Status transitions, promotion and metadata updates are compare-and-set: while holding the artifact
+row lock, the write checks that status and stage still have the values it validated against, and
+returns 409 (`ContractStateConflictException`) otherwise. Of two concurrent requests that change the
+status or the stage, one wins. Other metadata fields (owner, contact, and so on) are not guarded: of
+two concurrent metadata updates that leave status and stage alone, the later overwrites the earlier.
 
 `GET .../contract/metadata` maps the labels to a DTO (`ContractMetadataMapper`); it finds the
 contract through the `contract.{id}.id` label and falls back to un-namespaced `contract.*` labels
@@ -202,9 +212,15 @@ There are three callers, and they see different rules:
 The serializers are opt-in (`apicurio.registry.serde.contract-rules.enabled`, default `false`).
 They run `WRITE` rules after resolving the schema and before writing, and `READ` rules after
 reading. With `contract-rules.fail-on-error` (default `true`) any failed rule throws; otherwise it
-is logged. Records are converted to maps by parsing their JSON `toString()`. The output of
-TRANSFORM rules and of deserializer migrations is not applied to the record (see
-[Limitations](#limitations-and-open-work)).
+is logged. Avro generic records and JSON Schema records are converted to maps field by field
+(each deserializer's `toRuleRecord`, and the same in the serializers); Protobuf messages through
+their canonical JSON form; other records by parsing their JSON `toString()`. The output of TRANSFORM
+domain rules replaces the record (`fromRuleRecord`): the serializer writes it, and the deserializer
+returns the output of `READ` transforms. A failed rule with `onFailure: DLQ` sends the record to
+`contract-rules.dlq.topic` and throws `ContractRuleViolationException`. A deserializer migration returns the transformed record
+as a record of the target version (`fromRuleRecord`: an Avro `GenericRecord` built and validated
+against the target version's schema, or JSON Schema data of the type read); Protobuf messages and
+Avro specific records are returned as written, with a warning logged once.
 
 Running the rules in the client keeps the serializer's hot path free of a registry call per record,
 at the cost of a rules cache that can be up to one TTL out of date. A ruleset that cannot be
@@ -254,7 +270,7 @@ The server has no contract-specific configuration. The serializers and deseriali
 | `apicurio.registry.serde.contract-rules.enabled` | `false` | Evaluate the artifact's contract rules on write (serializer) and read (deserializer) |
 | `apicurio.registry.serde.contract-rules.fail-on-error` | `true` | Throw on any failed rule; when `false`, log and continue |
 | `apicurio.registry.serde.contract-rules.cache.ttl.seconds` | `60` | How long a fetched ruleset is cached |
-| `apicurio.registry.serde.contract-rules.migration.enabled` | `false` | Run migration rules in the deserializer (the result is currently discarded) |
+| `apicurio.registry.serde.contract-rules.migration.enabled` | `false` | Run migration rules in the deserializer and return the migrated record |
 | `apicurio.registry.serde.contract-rules.migration.target-version` | none | Target version for deserializer migration |
 
 ## Source map
@@ -276,22 +292,15 @@ The server has no contract-specific configuration. The serializers and deseriali
 
 ## Limitations and open work
 
-1. **Serializers do not apply TRANSFORM output**, and nothing implements `DLQ` routing: `onFailure`
-   other than `ERROR` only changes whether evaluation continues
-   ([#10968](https://github.com/Apicurio/apicurio-registry/issues/10968)).
-2. **The compatibility group is not used** by compatibility checking; it is a label that can be
-   searched ([#10969](https://github.com/Apicurio/apicurio-registry/issues/10969)).
-3. **`GovernanceRuleExecutor`** (completeness levels NONE/BASIC/FULL) is not called
-   ([#10970](https://github.com/Apicurio/apicurio-registry/issues/10970)).
-4. **Lifecycle checks are not atomic.** Promotion and status changes validate the current label,
-   then write the new one; two concurrent requests can both pass
-   ([#10971](https://github.com/Apicurio/apicurio-registry/issues/10971)).
-5. **Inline tags are read only on the v3 REST create paths.** Versions created through the
+1. **Inline tags are read only on the v3 REST create paths.** Versions created through the
    Confluent-compatible API, and draft content updates, get no `INLINE` tags.
-6. **The export covers one artifact.** It rebuilds the contract from that artifact's projection
+2. **The export covers one artifact.** It rebuilds the contract from that artifact's projection
    and its latest version's tags, not the submitted multi-schema YAML.
-7. **Direct label edits can diverge from the YAML.** The ODCS artifact is authoritative;
+3. **Direct label edits can diverge from the YAML.** The ODCS artifact is authoritative;
    re-submitting it repairs what it projects.
+4. **Only Avro generic records and JSON Schema data are migrated in consumers.** For Protobuf
+   messages and Avro specific records the deserializer runs the migration rules but returns the
+   record as written, and logs a warning once.
 
 ## Alternatives
 
@@ -317,10 +326,10 @@ The server has no contract-specific configuration. The serializers and deseriali
 ## Example and verification
 
 - **Example:** [`examples/odcs-data-contracts`](../examples/odcs-data-contracts/):
-  `docker compose up -d && ./demo.sh` checks the contract artifact, the projected labels, rule and
-  field tags, and rule execution on a valid and an invalid record. Its
-  [guide](../examples/odcs-data-contracts/GUIDE.md) walks through every behaviour in this ADR,
-  including the Kafka serializer.
+  `./demo.sh` checks every step of its [guide](../examples/odcs-data-contracts/GUIDE.md): the
+  projection, rule execution, global rules and overrides, the Kafka serializer rejecting invalid
+  records, lifecycle, search and audit, migration in the registry and in a consumer, updating and
+  deleting the contract. CI runs it with this commit's images and serde.
 - **User documentation:** [`assembly-data-contracts.adoc`](../docs/modules/ROOT/pages/getting-started/assembly-data-contracts.adoc).
 
 
@@ -353,6 +362,8 @@ The feature was delivered in phases; the design above is their current combined 
 | 7 | Contract events, audit log, contract search, serializer integration |
 | 8 | Global rulesets, UI contract tab and global contract rules page |
 | [#10958](https://github.com/Apicurio/apicurio-registry/issues/10958) | Projection lifecycle (deletion, re-projection that keeps API-set state, cleanup, rollback), case-preserving label merges, inline tag extraction, serializers evaluating all rule scopes, complete audit log, deletion of contract rules and audit with the artifact |
+| [#11176](https://github.com/Apicurio/apicurio-registry/pull/11176) | Fixed: compatibility rules use the compatibility group; status transitions, promotion and metadata updates are compare-and-set and return 409 on a conflict ([#10969](https://github.com/Apicurio/apicurio-registry/issues/10969), [#10971](https://github.com/Apicurio/apicurio-registry/issues/10971)) |
+| [#11206](https://github.com/Apicurio/apicurio-registry/pull/11206) | Governance rules run (`GOVERNANCE` rule type: `NONE`, `BASIC`, `FULL`); serializers apply TRANSFORM output and route to a DLQ ([#10968](https://github.com/Apicurio/apicurio-registry/issues/10968), [#10970](https://github.com/Apicurio/apicurio-registry/issues/10970)) |
 
 Earlier revisions of this ADR also recorded, and resolved: un-namespaced projection, which allowed
 only one contract per schema (fixed by namespacing with the contract ID); read-modify-write label

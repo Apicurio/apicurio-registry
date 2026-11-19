@@ -572,6 +572,22 @@ public interface RegistryStorage extends DynamicConfigStorage {
     }
 
     /**
+     * Atomically sets labels on an artifact if its current labels still have the expected values:
+     * a compare-and-set used to apply a change that was validated against the current state. Labels
+     * not in {@code labels} are untouched.
+     *
+     * @param expected the expected value of each label key; a {@code null} value means the label
+     *                 must be absent
+     * @throws io.apicurio.registry.storage.error.ContractStateConflictException if a label does not
+     *         have its expected value
+     */
+    default void compareAndSetArtifactLabels(String groupId, String artifactId, Map<String, String> expected,
+            Map<String, String> labels) throws RegistryStorageException {
+        throw new RegistryStorageException(
+                "compareAndSetArtifactLabels not supported by this storage implementation");
+    }
+
+    /**
      * Atomically merges labels into an artifact version: deletes all labels matching the
      * prefix, then inserts the provided labels.
      */
@@ -597,9 +613,22 @@ public interface RegistryStorage extends DynamicConfigStorage {
     }
 
     /**
+     * Same as {@link #updateContractMetadata(String, String, String, Map)}, but only if the
+     * artifact's current labels still have the expected values (see
+     * {@link #compareAndSetArtifactLabels(String, String, Map, Map)}).
+     */
+    default void updateContractMetadata(String groupId, String artifactId, String prefix,
+            Map<String, String> labels, Map<String, String> expected) throws RegistryStorageException {
+        throw new RegistryStorageException(
+                "updateContractMetadata not supported by this storage implementation");
+    }
+
+    /**
      * Transitions the contract status of an artifact, updating the status label and any
      * lifecycle date label implied by the target status. Fires a contract status changed
-     * event. The caller is responsible for validating that the transition is legal.
+     * event. The caller is responsible for validating that the transition is legal; the status
+     * is only changed if it is still {@code fromStatus}, otherwise a
+     * {@link io.apicurio.registry.storage.error.ContractStateConflictException} is thrown.
      *
      * @param effectiveDate the ISO date recorded on the lifecycle label for the target status.
      *                      It is resolved by the caller rather than read from the clock here so

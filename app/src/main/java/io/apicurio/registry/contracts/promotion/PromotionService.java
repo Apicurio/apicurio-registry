@@ -6,10 +6,12 @@ import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ContractStatus;
 import io.apicurio.registry.storage.dto.PromotionStage;
+import io.apicurio.registry.storage.error.ContractStateConflictException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.BadRequestException;
 
+import java.util.HashMap;
 import java.util.Map;
 
 @ApplicationScoped
@@ -26,12 +28,23 @@ public class PromotionService {
         ArtifactMetaDataDto meta = storage.getArtifactMetaData(groupId, artifactId);
         Map<String, String> labels = meta.getLabels() != null ? meta.getLabels() : Map.of();
 
-        PromotionStage currentStage = parseStage(labels.get(prefix + ContractLabels.SUFFIX_STAGE));
-        validateTransition(currentStage, targetStage,
-                parseStatus(labels.get(prefix + ContractLabels.SUFFIX_STATUS)));
+        String stageKey = prefix + ContractLabels.SUFFIX_STAGE;
+        String statusKey = prefix + ContractLabels.SUFFIX_STATUS;
+        PromotionStage currentStage = parseStage(labels.get(stageKey));
+        if (currentStage == targetStage) {
+            // Typically a concurrent promotion to the same stage that committed first: a conflict, like
+            // losing the compare-and-set below, rather than an invalid transition
+            throw new ContractStateConflictException("The contract of artifact '" + groupId + "/" + artifactId
+                    + "' is already at stage " + targetStage + ".");
+        }
+        validateTransition(currentStage, targetStage, parseStatus(labels.get(statusKey)));
 
-        storage.mergeArtifactLabels(groupId, artifactId, prefix + ContractLabels.SUFFIX_STAGE,
-                Map.of(prefix + ContractLabels.SUFFIX_STAGE, targetStage.name()));
+        // The promotion was validated against the current stage and status: apply it only if
+        // neither changed since (a concurrent request gets a 409 conflict).
+        Map<String, String> expected = new HashMap<>();
+        expected.put(stageKey, labels.get(stageKey));
+        expected.put(statusKey, labels.get(statusKey));
+        storage.compareAndSetArtifactLabels(groupId, artifactId, expected, Map.of(stageKey, targetStage.name()));
 
         return targetStage;
     }

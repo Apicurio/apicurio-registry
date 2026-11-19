@@ -44,7 +44,13 @@ public class CredentialsHelper {
                 if (current.toLowerCase(Locale.ENGLISH).startsWith(LOWERCASE_BASIC_PREFIX)) {
                     String base64Challenge = current.substring(PREFIX_LENGTH);
                     String plainChallenge;
-                    byte[] decode = Base64.getDecoder().decode(base64Challenge);
+                    byte[] decode;
+                    try {
+                        decode = Base64.getDecoder().decode(base64Challenge);
+                    } catch (IllegalArgumentException e) {
+                        // Malformed Base64: treat as missing credentials so the request gets a 401
+                        continue;
+                    }
 
                     plainChallenge = new String(decode, charset);
                     int colonPos;

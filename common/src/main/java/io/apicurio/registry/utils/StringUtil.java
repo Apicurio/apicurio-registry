@@ -36,8 +36,15 @@ public class StringUtil {
             return value;
         }
 
+        if (limit <= 0) {
+            return "";
+        }
+
         if (value.length() > limit) {
             if (withEllipsis) {
+                if (limit <= 3) {
+                    return "...".substring(0, limit);
+                }
                 return value.substring(0, limit - 3).concat("...");
             } else {
                 return value.substring(0, limit);
@@ -63,7 +70,7 @@ public class StringUtil {
                 sb.append((char) b);
             } else {
                 // Show as hex for non-printable bytes
-                sb.append(String.format("\\%02X", b & 0xFF));
+                sb.append(String.format(Locale.ROOT, "\\%02X", b & 0xFF));
             }
         }
         sb.append("]");

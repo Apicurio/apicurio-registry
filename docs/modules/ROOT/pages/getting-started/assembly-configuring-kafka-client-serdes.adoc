@@ -232,6 +232,8 @@ When {registry} is served over HTTPS with certificates that the default Java tru
 |`true`
 |===
 
+For a running example of a producer and a consumer that call {registry} over mutual TLS, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/tls[TLS example].
+
 The following example configures a producer with a PKCS12 trust store:
 
 [source,properties]
@@ -323,9 +325,19 @@ The `DefaultSchemaResolver` uses the following properties to configure how to lo
 |`false`
 |`DEREFERENCE_SCHEMA`
 |`apicurio.registry.dereference-schema`
-|Used by serializers and deserializers. Configures the SerDes to dereference the schema. After the schema is registered, this property instructs the SerDes to request the dereferenced schema from the server. It also instructs the serializer to dereference the schema before registering it in {registry}, but this is only supported for Avro.
+|Used by serializers and deserializers, unless overridden by `apicurio.registry.serializer.dereference-schema` or `apicurio.registry.deserializer.dereference-schema`. Configures the serializer to dereference the schema before registering it in {registry} (Avro only), and the deserializer to request dereferenced schemas from {registry}.
 |`boolean`
 |`false`
+|`SERIALIZER_DEREFERENCE_SCHEMA`
+|`apicurio.registry.serializer.dereference-schema`
+|Used by serializers only. Overrides `apicurio.registry.dereference-schema`: whether the serializer registers the schema dereferenced, without references. Only supported for Avro.
+|`boolean`
+|The value of `apicurio.registry.dereference-schema`
+|`DESERIALIZER_DEREFERENCE_SCHEMA`
+|`apicurio.registry.deserializer.dereference-schema`
+|Used by deserializers only. Overrides `apicurio.registry.dereference-schema`: whether the deserializer requests dereferenced schemas instead of fetching each reference separately. Lookups by content ID or content hash are only dereferenced when this property is set explicitly; they require both the {registry} server and the SerDes to be 3.4.0 or later, and do not apply to Protobuf, which keeps fetching references.
+|`boolean`
+|The value of `apicurio.registry.dereference-schema`
 |`AUTO_REGISTER_ARTIFACT_IF_EXISTS`
 |`apicurio.registry.auto-register.if-exists`
 |Used by serializers only. Configures the behavior of the client when a conflict occurs while creating an artifact because the artifact already exists. Available values are `FAIL`, `CREATE_VERSION`, or `FIND_OR_CREATE_VERSION`.
@@ -387,6 +399,15 @@ The `DefaultSchemaResolver` uses the following properties to configure how to lo
 |`boolean`
 |`false`
 |===
+
+NOTE: `apicurio.registry.dereference-schema` alone keeps its previous behavior: deserializers only dereference
+lookups by global ID. To also dereference lookups by content ID or content hash, which is the default
+(`apicurio.registry.use-id` is `contentId`), set `apicurio.registry.deserializer.dereference-schema` to `true`
+explicitly. This requires a {registry} server at version 3.4.0 or later, because earlier servers ignore the
+dereference request on those lookups. Content-ID and content-hash dereferencing does not apply to Protobuf,
+which keeps fetching references. The deserialized data is the same. When one resolver is shared between a
+serializer and a deserializer, as in Kafka Connect, and the two sides use different dereference values, a
+cached schema can be in either form, dereferenced or with references. Both forms decode to the same data.
 
 **Configuration to read and write registry artifacts in Kafka**
 

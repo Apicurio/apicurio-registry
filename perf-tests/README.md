@@ -41,6 +41,33 @@ expensive to run per-PR; see the workflow file for details) as a matrix job acro
   committed baseline and posts a GitHub Actions job summary. This is informational (surfaces
   potential regressions for review), not a hard merge gate - see the script's docstring.
 
+## Agent registry scale baseline
+
+`AgentDiscoverySimulation` records discovery latency and MCP import throughput for the agent
+registry graduation plan (#10294, #11093). The numbers are evidence, not thresholds. `perf-main`
+runs it on both scenarios after every other run, so its seeded artifacts don't affect the runs
+compared with a baseline. A failure is reported in the job summary without failing the workflow.
+
+- Setup: 1000 Agent Cards and 1000 MCP tools (`PERF_AGENT_SEED`, `PERF_TOOL_SEED`).
+- Discovery: `PERF_USERS` users for `PERF_DURATION_SECONDS` each send, in turn, agent discovery by
+  skill, ARD search by text and MCP tool search by name.
+- Import: then 10 imports (`PERF_IMPORT_RUNS`) of 500 tools (`PERF_IMPORT_TOOLS`) from an MCP
+  server the perf-test container serves (`McpToolsStub`, reached through the `perf-mcp` Service),
+  each into a new server artifact.
+
+The registry runs with the agent features enabled (`registry-cr.yaml`), the Job and Service are in
+`k8s/common/agent-perf-job.yaml`, and `scripts/summarize-agent-baseline.py` turns the Gatling
+report into the job summary table. To run it locally against a registry with those features
+enabled and `apicurio.mcp-import.allowed-hosts` covering the MCP server:
+
+```
+PERF_SIMULATION=agent-discovery REGISTRY_URL=http://localhost:8080/apis/registry/v3 \
+  PERF_MCP_URL=http://127.0.0.1:8099/mcp java -jar perf-tests/target/*-jar-with-dependencies.jar
+```
+
+(for a local registry, also set `apicurio.mcp-import.loopback.enabled` and
+`apicurio.mcp-import.insecure-http.enabled`).
+
 ## Running locally
 
 Deploy a scenario:

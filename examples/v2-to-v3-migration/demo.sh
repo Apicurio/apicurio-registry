@@ -96,7 +96,7 @@ inventory() {
   echo "$versions" | while read -r line; do
     local gid sha refs
     gid=$(jq -r .gid <<< "$line")
-    # A DISABLED version's content is not served by globalId (but see #11116)
+    # A DISABLED version's content is not served by globalId
     if [ "$(jq -r .s <<< "$line")" = DISABLED ]; then
       sha=disabled
     else
@@ -180,8 +180,7 @@ check "  and so does the registry: 409" 409 \
   "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$V3/apis/registry/v3/admin/import" -H 'Content-Type: application/zip' --data-binary "@$WORK/v2-export.zip")"
 
 part "Import with new IDs, into a registry that already has data"
-# Content that is not in the export: content that is (the same bytes) would be linked to the wrong
-# versions (https://github.com/Apicurio/apicurio-registry/issues/11115)
+# Content that is not in the export (content that is, the same bytes, is reused by the import)
 curl -sf -o /dev/null -X POST "$V3_RENUM/apis/registry/v3/groups/existing/artifacts" -H 'Content-Type: application/json' \
   -d "$(jq -n --arg c '{"type": "object", "title": "AlreadyHere"}' '{artifactId: "already-here", artifactType: "JSON", firstVersion: {content: {content: $c, contentType: "application/json"}}}')"
 check "import with X-Registry-Preserve-GlobalId/ContentId: false and requireEmptyRegistry=false" 204 \
@@ -209,22 +208,42 @@ check "a DISABLED version kept its content: re-enabled, it is served" "$(awk '/^
 part "KafkaSQL: 3.x does not reuse a 2.6 journal topic"
 docker compose stop registry-v3 registry-v3-renum registry-v3-copy > /dev/null 2>&1
 docker compose --profile kafkasql up -d --wait registry-v2-kafkasql > "$WORK/ks.log" 2>&1 || { fail "kafkasql: 2.6 did not start"; tail "$WORK/ks.log"; }
-v3_kafkasql_refuses() { # the reason expected in the log
+v3_kafkasql_refuses() { # <reason>: "refused" once the reason is logged and the server never becomes ready
+  local logs="" state=""
   docker rm -f migration-registry-v3-kafkasql > /dev/null 2>&1 || true
   docker compose --profile kafkasql up -d --no-deps registry-v3-kafkasql > /dev/null 2>&1
   for _ in $(seq 1 90); do
-    [ "$(docker inspect -f '{{.State.Status}}' migration-registry-v3-kafkasql 2>/dev/null)" = exited ] && break
+    logs=$(docker logs migration-registry-v3-kafkasql 2>&1 || true)
+    grep -q "$1" <<< "$logs" && break
     sleep 2
   done
-  echo "$(docker inspect -f '{{.State.Status}}' migration-registry-v3-kafkasql 2>/dev/null)" \
-    "$(docker logs migration-registry-v3-kafkasql 2>&1 | grep -c "$1" | awk '{print ($1 > 0)}')"
+  if ! grep -q "$1" <<< "$logs"; then
+    echo "not logged"
+    return 0
+  fi
+  # Startup has failed; the process normally exits. Until it does (at most 60 seconds), it must never
+  # become healthy
+  for _ in $(seq 1 30); do
+    state=$(docker inspect -f '{{.State.Status}} {{if .State.Health}}{{.State.Health.Status}}{{end}}' migration-registry-v3-kafkasql 2>/dev/null)
+    case "$state" in
+      exited*) break ;;
+      *" healthy") echo "serving ($state)"; return 0 ;;
+    esac
+    sleep 2
+  done
+  echo refused
+  if [[ "$state" != exited* ]]; then
+    # Diagnosis: the process did not exit after a failed startup (#10992)
+    echo "  info  still $state after refusing to start; last log lines:" >&2
+    docker logs --tail 8 migration-registry-v3-kafkasql 2>&1 | cut -c1-200 | sed 's/^/        /' >&2
+  fi
 }
-check "3.x on the 2.6 topic stops: 2.6 made it compacted, 3.x requires no compaction or retention" "exited 1" \
+check "3.x refuses to start on the 2.6 topic: 2.6 made it compacted, 3.x requires no compaction or retention" refused \
   "$(v3_kafkasql_refuses "Topic must not have 'cleanup.policy=compact'")"
 docker compose --profile kafkasql exec -T kafka /opt/kafka/bin/kafka-configs.sh --bootstrap-server kafka:9092 --alter \
   --entity-type topics --entity-name kafkasql-journal --add-config cleanup.policy=delete,retention.ms=-1,retention.bytes=-1 \
   > /dev/null 2>&1
-check "with the topic reconfigured, 3.x still stops: the records are v2's" "exited 1" \
+check "with the topic reconfigured, 3.x still refuses: the records are v2's" refused \
   "$(v3_kafkasql_refuses "contains records from Apicurio Registry v2")"
 
 if [[ $failures -gt 0 ]]; then

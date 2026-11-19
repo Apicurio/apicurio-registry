@@ -135,6 +135,8 @@ public class SqlArtifactRepository {
             handle.createUpdate(sqlStatements.deleteContractAuditEntriesByGroupId())
                     .bind(0, normalizeGroupId(groupId)).execute();
 
+            List<String> artifactIds = getArtifactIdsInGroup(groupId);
+
             // Delete all artifacts
             int rowCount = handle.createUpdate(sqlStatements.deleteArtifactsByGroupId())
                     .bind(0, normalizeGroupId(groupId)).execute();
@@ -143,7 +145,17 @@ public class SqlArtifactRepository {
                 throw new ArtifactNotFoundException(groupId, null);
             }
 
+            artifactIds.forEach(
+                    artifactId -> outboxEvent.fire(SqlOutboxEvent.of(ArtifactDeleted.of(groupId, artifactId))));
+
             return null;
+        });
+    }
+
+    public List<String> getArtifactIdsInGroup(String groupId) {
+        return handles.withHandleNoException(handle -> {
+            return handle.createQuery(sqlStatements.selectArtifactIdsByGroupId())
+                    .bind(0, normalizeGroupId(groupId)).mapTo(String.class).list();
         });
     }
 

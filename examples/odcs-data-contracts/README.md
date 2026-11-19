@@ -20,8 +20,9 @@ as a script for a team demo.
 Requires Docker (or Podman) with Compose v2, `curl` and `jq`.
 
 ```bash
+./build.sh               # builds the serde and the Kafka producer/consumer (JDK 17+)
 docker compose up -d     # starts the Registry, its UI and Kafka
-./demo.sh                # registers the schema, submits the contract, then checks the result
+./demo.sh                # checks every step of the guide (SKIP_KAFKA=1: without Java)
 ```
 
 `demo.sh` prints one line per check and ends with `All checks passed.` (it exits non-zero if a check
@@ -61,7 +62,8 @@ Stop and remove everything with `docker compose down -v`.
 | [`docker-compose.yml`](docker-compose.yml) | The three services |
 | [`contracts/orders-contract.yaml`](contracts/orders-contract.yaml) | The ODCS contract |
 | [`schemas/`](schemas) | Versions 1 and 2 of the `OrderEvent` Avro schema |
-| [`demo.sh`](demo.sh) | Creates the sample data and checks the projection and rule execution |
+| [`demo.sh`](demo.sh) | Checks every step of the guide, including the Kafka producer and consumer |
+| [`build.sh`](build.sh), [`ci.env`](ci.env) | Builds the serde from this checkout; CI settings |
 | [`demo-env.sh`](demo-env.sh) | Shell helpers (`call`, `status`, `submit`, `check`) for the API |
 | [`src/main/java/.../ContractSerdesDemo.java`](src/main/java/io/apicurio/registry/examples/ContractSerdesDemo.java) | Kafka producer and consumer with contract rules enabled |
 

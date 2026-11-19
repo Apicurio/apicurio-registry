@@ -1,5 +1,9 @@
 package io.apicurio.registry.client.common.auth;
 
+import com.microsoft.kiota.RequestAdapter;
+import io.apicurio.registry.client.common.RegistryClientOptions;
+import io.apicurio.registry.client.common.VertxAdapterFactory;
+import io.kiota.http.vertx.VertXRequestAdapter;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;
 import io.vertx.ext.web.client.WebClient;
@@ -13,6 +17,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -64,6 +69,25 @@ class VertXAuthFactoryTest {
         if (vertx != null) {
             vertx.close();
         }
+    }
+
+    @Test
+    void sendsBearerToken() throws Exception {
+        WebClient client = VertXAuthFactory.buildBearerAuthWebClient(vertx, null, "my-token");
+        try {
+            callProtectedEndpoint(client);
+        } finally {
+            client.close();
+        }
+
+        assertEquals("Bearer my-token", capturedAuthorizationHeader.get());
+    }
+
+    @Test
+    void vertxAdapterAcceptsBearerToken() {
+        RequestAdapter adapter = VertxAdapterFactory.createAdapter(
+                RegistryClientOptions.create("http://localhost:" + port, vertx).bearerToken("my-token"));
+        assertInstanceOf(VertXRequestAdapter.class, adapter);
     }
 
     @Test

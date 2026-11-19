@@ -345,6 +345,8 @@ Existing monitoring endpoints continue to function:
 * Health check endpoints (`/health/ready`, `/health/live`) are served on the management port (default 9000).
 * All existing Micrometer-based metrics continue to function.
 
+For a running example that traces requests from Kafka producers, consumers and Debezium through {registry}, and checks the traces in Jaeger, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/otel-tracing[OpenTelemetry tracing example].
+
 
 // ref-otel-performance
 [id="otel-performance_{context}"]

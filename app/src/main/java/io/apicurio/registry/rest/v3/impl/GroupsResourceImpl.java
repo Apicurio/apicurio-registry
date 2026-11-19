@@ -33,7 +33,6 @@ import io.apicurio.registry.references.auto.ReferenceMatch;
 import io.apicurio.registry.references.auto.ReferenceMatcher;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.logging.audit.Audited;
-import io.apicurio.registry.metrics.OTelMetricsProvider;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.model.BranchId;
@@ -160,9 +159,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
     @Inject
     Instance<McpToolImportHandler> mcpToolImportHandler;
-
-    @Inject
-    OTelMetricsProvider otelMetrics;
 
     @Inject
     ArtifactTypeUtilProviderFactory factory;
@@ -673,15 +669,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
         ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
 
-        String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
-        String artifactType = null;
-        try {
-            artifactType = storage.getArtifactMetaData(rawGroupId, artifactId).getArtifactType();
-        } catch (ArtifactNotFoundException e) {
-            // Artifact may already be gone; proceed with delete and record with null type
-        }
-        storage.deleteArtifact(rawGroupId, artifactId);
-        otelMetrics.recordArtifactDeleted(rawGroupId, artifactType);
+        storage.deleteArtifact(new GroupId(groupId).getRawGroupIdWithNull(), artifactId);
     }
 
     /**
@@ -852,6 +840,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         if (data.getConfig() == null || data.getConfig().trim().isEmpty()) {
             throw new MissingRequiredParameterException("config");
         }
+        ParameterValidationUtils.validateRuleConfig(data.getRuleType(), data.getConfig());
 
         if (new GroupId(groupId).isDefaultGroup()) {
             throw new NotAllowedException("Default group is not allowed");
@@ -880,6 +869,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         if (data.getConfig() == null || data.getConfig().trim().isEmpty()) {
             throw new MissingRequiredParameterException("config");
         }
+        ParameterValidationUtils.validateRuleConfig(ruleType, data.getConfig());
 
         RuleConfigurationDto dto = new RuleConfigurationDto(data.getConfig());
         storage.updateGroupRule(new GroupId(groupId).getRawGroupIdWithNull(), ruleType, dto);
@@ -953,6 +943,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         if (data.getConfig() == null || data.getConfig().trim().isEmpty()) {
             throw new MissingRequiredParameterException("config");
         }
+        ParameterValidationUtils.validateRuleConfig(data.getRuleType(), data.getConfig());
 
         RuleConfigurationDto config = new RuleConfigurationDto();
         config.setConfiguration(data.getConfig());
@@ -1018,6 +1009,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         if (data.getConfig() == null || data.getConfig().trim().isEmpty()) {
             throw new MissingRequiredParameterException("config");
         }
+        ParameterValidationUtils.validateRuleConfig(ruleType, data.getConfig());
 
         RuleConfigurationDto dto = new RuleConfigurationDto(data.getConfig());
         storage.updateArtifactRule(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, ruleType, dto);
@@ -1297,9 +1289,14 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                     .referenceDtosToReferences(artifact.getReferences());
 
             TypedContent typedContent = TypedContent.create(artifact.getContent(), artifact.getContentType());
-            rulesService.applyRules(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(),
-                    vmd.getArtifactType(), typedContent, RuleApplicationType.UPDATE, references,
-                    resolvedReferences);
+            // The draft is not DISABLED, so it is among the enabled versions: exclude it, so it is not
+            // compared with itself.
+            List<Long> existingContentIds = new ArrayList<>(storage.getEnabledArtifactContentIds(
+                    gav.getRawGroupIdWithNull(), gav.getRawArtifactId()));
+            existingContentIds.removeIf(id -> id.equals(artifact.getContentId()));
+            rulesService.applyRules(storage, gav.getRawGroupIdWithNull(), gav.getRawArtifactId(),
+                    gav.getRawVersionId(), vmd.getArtifactType(), typedContent, new LazyContentList(storage, existingContentIds),
+                    references, resolvedReferences);
             if (data.getState() != VersionState.DISABLED) {
                 afterPublish = beforePublish(new VersionWriteContext(VersionWriteContext.Operation.PUBLISH_DRAFT,
                         storage, gav, vmd.getArtifactType(), securityIdentity.getPrincipal().getName()),
@@ -1581,9 +1578,11 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 // Apply any configured rules unless it is a DRAFT version (unless draft production mode is enabled)
                 TypedContent effectiveTypedContent = TypedContent.create(effectiveContent, effectiveContentType);
                 if (!firstVersionIsDraft || restConfig.isDraftProductionModeEnabled()) {
-                    rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId,
-                            artifactType, effectiveTypedContent, RuleApplicationType.CREATE,
-                            withAutoMatched(references, autoMatched), resolvedReferences);
+                    // A first version without an explicit id is stored as "1".
+                    rulesService.applyRulesForNewVersion(new GroupId(groupId).getRawGroupIdWithNull(), artifactId,
+                            firstVersion != null ? firstVersion : "1", artifactType, effectiveTypedContent,
+                            RuleApplicationType.CREATE,
+                            V3ApiUtil.referenceDtosToReferences(referencesAsDtos), resolvedReferences);
                 }
                 // Let write hooks inspect the content BEFORE the artifact is persisted, so a hook
                 // rejection (e.g. a malformed 'x-agent-card' extension) fails this write exactly like
@@ -1605,7 +1604,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                     firstVersion, firstVersionContent, firstVersionMetaData,
                     firstVersionBranches, firstVersionIsDraft, dryRun != null && dryRun, owner);
 
-            recordArtifactCreated(groupId, artifactType, dryRun, storageResult, afterPublish);
+            if (isNotDryRun(dryRun)) {
+                afterPublish.forEach(Runnable::run);
+            }
 
             // Now return both the artifact metadata and (if available) the version metadata
             CreateArtifactResponse rval = CreateArtifactResponse.builder()
@@ -1672,18 +1673,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                     throw new BadRequestException(EMPTY_CONTENT_ERROR_MESSAGE);
                 }
             }
-        }
-    }
-
-    private void recordArtifactCreated(String groupId, String artifactType, Boolean dryRun,
-            Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> storageResult, List<Runnable> afterPublish) {
-        if (isNotDryRun(dryRun)) {
-            String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
-            otelMetrics.recordArtifactCreated(rawGroupId, artifactType);
-            if (storageResult.getRight() != null) {
-                otelMetrics.recordVersionCreated(rawGroupId, artifactType);
-            }
-            afterPublish.forEach(Runnable::run);
         }
     }
 
@@ -1776,8 +1765,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         // Apply rules unless the version is DRAFT (unless draft production mode is enabled)
         if (!isDraft || restConfig.isDraftProductionModeEnabled()) {
-            applyUpdateRules(groupId, artifactId, artifactType, TypedContent.create(effectiveContent, effectiveContentType),
-                    withAutoMatched(data.getContent().getReferences(), autoMatched), referencesAsDtos, hookPlan);
+            applyUpdateRules(groupId, artifactId, data.getVersion(), artifactType,
+                    TypedContent.create(effectiveContent, effectiveContentType), referencesAsDtos, hookPlan);
         }
 
         // Let write hooks inspect the content BEFORE the version is persisted, so a hook rejection
@@ -1803,7 +1792,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 contentDto, metaDataDto, data.getBranches(), isDraft, dryRun != null && dryRun, owner);
 
         if (isNotDryRun(dryRun)) {
-            otelMetrics.recordVersionCreated(new GroupId(groupId).getRawGroupIdWithNull(), artifactType);
             afterPublish.forEach(Runnable::run);
         }
 
@@ -2082,7 +2070,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         references.addAll(autoMatched);
         ContentWrapperDto merged = ContentWrapperDto.builder().content(content).contentType(contentType)
                 .references(references).build();
-        return new UpdateContentPlan(merged, hookPlan, autoMatched);
+        return new UpdateContentPlan(merged, hookPlan);
     }
 
     /**
@@ -2095,10 +2083,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      *
      * @param content the content, content type and all references to store
      * @param hookPlan the write hooks' plan
-     * @param autoMatched the references added by {@code autoReferences} matching, also in {@code content}
      */
-    private record UpdateContentPlan(ContentWrapperDto content, HookPlan hookPlan,
-            List<ArtifactReferenceDto> autoMatched) {
+    private record UpdateContentPlan(ContentWrapperDto content, HookPlan hookPlan) {
     }
 
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
@@ -2109,8 +2095,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         String description = theVersion.getDescription();
         List<String> branches = theVersion.getBranches();
         Map<String, String> labels = theVersion.getLabels();
-        List<ArtifactReference> references = withAutoMatched(theVersion.getContent().getReferences(),
-                prepared.autoMatched());
         String contentType = prepared.content().getContentType();
         ContentHandle content = prepared.content().getContent();
         boolean isDraftVersion = theVersion.getIsDraft() != null && theVersion.getIsDraft();
@@ -2123,8 +2107,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         // Apply rules only if not a draft version (unless draft production mode is enabled)
         if (!isDraftVersion || restConfig.isDraftProductionModeEnabled()) {
-            applyUpdateRules(groupId, artifactId, artifactType, TypedContent.create(content, contentType),
-                    references, referencesAsDtos, prepared.hookPlan());
+            applyUpdateRules(groupId, artifactId, version, artifactType, TypedContent.create(content, contentType),
+                    referencesAsDtos, prepared.hookPlan());
         }
 
         // Let write hooks inspect the content BEFORE the version is persisted, so a hook rejection
@@ -2148,7 +2132,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 artifactType, contentDto, metaData, branches, isDraftVersion, dryRun != null && dryRun, owner);
 
         if (isNotDryRun(dryRun)) {
-            otelMetrics.recordVersionCreated(new GroupId(groupId).getRawGroupIdWithNull(), artifactType);
             afterPublish.forEach(Runnable::run);
         }
 
@@ -2179,12 +2162,13 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      * Resolves references (seeing a hook's planned, not-yet-persisted content through {@code hookPlan})
      * and applies the configured rules for a version update.
      */
-    private void applyUpdateRules(String groupId, String artifactId, String artifactType, TypedContent typedContent,
-            List<ArtifactReference> references, List<ArtifactReferenceDto> referencesAsDtos, HookPlan hookPlan) {
+    private void applyUpdateRules(String groupId, String artifactId, String version, String artifactType,
+            TypedContent typedContent, List<ArtifactReferenceDto> referencesAsDtos, HookPlan hookPlan) {
         final Map<String, TypedContent> resolvedReferences = ReferenceResolution.recursivelyResolveReferences(
                 referencesAsDtos, hookPlan.loader(accessGuard.referenceLoader()));
-        rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType,
-                typedContent, RuleApplicationType.UPDATE, references, resolvedReferences);
+        rulesService.applyRulesForNewVersion(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, version,
+                artifactType, typedContent, RuleApplicationType.UPDATE,
+                V3ApiUtil.referenceDtosToReferences(referencesAsDtos), resolvedReferences);
     }
 
     /**
@@ -2220,25 +2204,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         // Store the raw group ID, exactly as explicit references are stored (see toReferenceDtos)
         match.matched().forEach(ref -> ref.setGroupId(new GroupId(ref.getGroupId()).getRawGroupIdWithNull()));
         return match.matched();
-    }
-
-    /**
-     * The references to give to the rules: the caller's explicit references plus the ones matched by
-     * {@code autoReferences}, so that integrity rules (e.g. {@code ALL_REFS_MAPPED}) see the same mappings
-     * that are stored.
-     *
-     * @param explicit the references supplied in the request, may be null
-     * @param autoMatched the auto-matched references
-     * @return the combined references, or {@code explicit} unchanged if nothing was auto-matched
-     */
-    private static List<ArtifactReference> withAutoMatched(List<ArtifactReference> explicit,
-            List<ArtifactReferenceDto> autoMatched) {
-        if (autoMatched.isEmpty()) {
-            return explicit;
-        }
-        List<ArtifactReference> combined = explicit == null ? new ArrayList<>() : new ArrayList<>(explicit);
-        combined.addAll(V3ApiUtil.referenceDtosToReferences(autoMatched));
-        return combined;
     }
 
     private List<ArtifactReferenceDto> toReferenceDtos(List<ArtifactReference> references) {
@@ -2493,8 +2458,12 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             }
         }
 
-        // Persist the metadata and fire the metadata updated event
-        storage.updateContractMetadata(rawGroupId, artifactId, prefix, contractLabels);
+        // Persist the metadata and fire the metadata updated event. The status and stage changes were
+        // validated against their current values, so they only apply if neither changed since.
+        Map<String, String> expected = new HashMap<>();
+        expected.put(prefix + ContractLabels.SUFFIX_STATUS, existingLabels.get(prefix + ContractLabels.SUFFIX_STATUS));
+        expected.put(prefix + ContractLabels.SUFFIX_STAGE, existingLabels.get(prefix + ContractLabels.SUFFIX_STAGE));
+        storage.updateContractMetadata(rawGroupId, artifactId, prefix, contractLabels, expected);
 
         // Audit log
         contractAuditService.recordAction(rawGroupId, artifactId, null,

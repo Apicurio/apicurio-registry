@@ -1,5 +1,6 @@
 package io.apicurio.registry.storage.impl.sql.repositories;
 
+import io.apicurio.registry.rules.app.governance.GovernanceLevel;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.rules.integrity.IntegrityLevel;
 import io.apicurio.registry.rules.validity.ValidityLevel;
@@ -460,6 +461,9 @@ public class SqlRuleRepository {
             case INTEGRITY -> outboxEvent.fire(SqlOutboxEvent.of(ArtifactRuleConfigured.of(groupId,
                     artifactId, rule,
                     RuleConfigurationDto.builder().configuration(IntegrityLevel.NONE.name()).build())));
+            case GOVERNANCE -> outboxEvent.fire(SqlOutboxEvent.of(ArtifactRuleConfigured.of(groupId,
+                    artifactId, rule,
+                    RuleConfigurationDto.builder().configuration(GovernanceLevel.NONE.name()).build())));
         }
     }
 
@@ -471,6 +475,8 @@ public class SqlRuleRepository {
                     RuleConfigurationDto.builder().configuration(CompatibilityLevel.NONE.name()).build())));
             case INTEGRITY -> outboxEvent.fire(SqlOutboxEvent.of(GroupRuleConfigured.of(groupId, rule,
                     RuleConfigurationDto.builder().configuration(IntegrityLevel.NONE.name()).build())));
+            case GOVERNANCE -> outboxEvent.fire(SqlOutboxEvent.of(GroupRuleConfigured.of(groupId, rule,
+                    RuleConfigurationDto.builder().configuration(GovernanceLevel.NONE.name()).build())));
         }
     }
 
@@ -482,6 +488,8 @@ public class SqlRuleRepository {
                     RuleConfigurationDto.builder().configuration(CompatibilityLevel.NONE.name()).build())));
             case INTEGRITY -> outboxEvent.fire(SqlOutboxEvent.of(GlobalRuleConfigured.of(rule,
                     RuleConfigurationDto.builder().configuration(IntegrityLevel.NONE.name()).build())));
+            case GOVERNANCE -> outboxEvent.fire(SqlOutboxEvent.of(GlobalRuleConfigured.of(rule,
+                    RuleConfigurationDto.builder().configuration(GovernanceLevel.NONE.name()).build())));
         }
     }
 

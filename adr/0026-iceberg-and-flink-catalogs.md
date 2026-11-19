@@ -249,4 +249,4 @@ are counted in the exception mapper, so they cover every Iceberg endpoint.
 | [#7579](https://github.com/Apicurio/apicurio-registry/pull/7579) | Iceberg integration tests |
 | [#7637](https://github.com/Apicurio/apicurio-registry/pull/7637) | Views |
 | This ADR | First written record |
-| this PR | View rename checks write access on the destination namespace, as table rename does |
+| [#11368](https://github.com/Apicurio/apicurio-registry/pull/11368) | View rename checks write access on the destination namespace, as table rename does |

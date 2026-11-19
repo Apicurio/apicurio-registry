@@ -209,4 +209,4 @@ setting is ignored and the registry starts without HTTPS, while the system prope
 | 3.3.1 | Form authentication |
 | This ADR | First written record, with a verified example |
 | [#11175](https://github.com/Apicurio/apicurio-registry/pull/11175), [#11176](https://github.com/Apicurio/apicurio-registry/pull/11176) | Fixed: a malformed basic header returns 401 instead of 500 (#11043); resetting a dynamic setting takes effect without a restart on the replica that served it (#11044); the Java SDK's `bearerToken()` works with the default Vert.x adapter (#11046) |
-| This section | Transport security recorded, with the [TLS example](../examples/tls/) |
+| [#11350](https://github.com/Apicurio/apicurio-registry/pull/11350) | Transport security recorded, with the [TLS example](../examples/tls/) |

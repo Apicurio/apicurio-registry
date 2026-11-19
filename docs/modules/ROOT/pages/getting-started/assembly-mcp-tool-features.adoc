@@ -534,6 +534,8 @@ Each tool, and the `MCP_SERVER` artifact, has one of the following statuses:
 |The previous server version referenced the tool, but the server no longer lists it. The tool's artifact is not changed or deleted, and the new server version does not reference it.
 |===
 
+A tool is `UNCHANGED` only when a stored version has exactly the content that the import would store: the tool's `name`, `title`, `description`, `inputSchema`, `outputSchema`, and `annotations`, in that order, as compact JSON. Formatting is not ignored, because a canonical comparison could hide a change to a numeric bound. A version that you registered by hand with the same definition but different formatting is therefore not matched, and the first import adds a new version with the same content.
+
 Each tool is published like any other version: rules, write hooks, authorization, and auditing apply to each tool. Before any tool is written, the import checks that the server lists no tool name twice and that you can write every existing tool artifact, so these failures leave nothing imported. A rule rejecting one tool does not stop the others. Tools are otherwise not imported atomically: if another error occurs partway through, tools that were already accepted stay stored. In a dry run, the report states whether a new server version would be added, but the server version is not checked against rules, because the tools it would reference do not exist yet.
 
 The new server version references exactly the imported tools. References that you added to an earlier version by hand are not carried over.

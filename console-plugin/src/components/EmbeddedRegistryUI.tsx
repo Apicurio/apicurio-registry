@@ -2,9 +2,7 @@ import {
   Bullseye,
   EmptyState,
   EmptyStateBody,
-  EmptyStateIcon,
   Spinner,
-  Title,
 } from "@patternfly/react-core";
 import { ExclamationTriangleIcon } from "@patternfly/react-icons";
 import { useState } from "react";
@@ -29,9 +27,11 @@ const EmbeddedRegistryUI: React.FC<EmbeddedRegistryUIProps> = ({
 
   if (!directUrl) {
     return (
-      <EmptyState>
-        <EmptyStateIcon icon={ExclamationTriangleIcon} />
-        <Title headingLevel="h4" size="lg">{t("Registry UI Unavailable")}</Title>
+      <EmptyState
+        titleText={t("Registry UI Unavailable")}
+        headingLevel="h4"
+        icon={ExclamationTriangleIcon}
+      >
         <EmptyStateBody>
           {t("Unable to determine the Registry UI URL for this instance.")}
         </EmptyStateBody>
@@ -41,8 +41,7 @@ const EmbeddedRegistryUI: React.FC<EmbeddedRegistryUIProps> = ({
 
   if (authEnabled) {
     return (
-      <EmptyState>
-        <Title headingLevel="h4" size="lg">{t("Registry UI")}</Title>
+      <EmptyState titleText={t("Registry UI")} headingLevel="h4">
         <EmptyStateBody>
           {t("This registry is secured with authentication. The Registry UI must be opened directly.")}
           <br /><br />

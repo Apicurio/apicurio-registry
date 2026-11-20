@@ -1,4 +1,5 @@
 import { K8sModel } from "@openshift-console/dynamic-plugin-sdk";
+import { isTlsEnabled, normalizeHostUrl } from "./registry-url";
 
 export const ApicurioRegistry3Model: K8sModel = {
   apiGroup: "registry.apicur.io",
@@ -199,13 +200,13 @@ export function isAuthEnabled(registry: ApicurioRegistry3): boolean {
 }
 
 export function getAppUrl(registry: ApicurioRegistry3): string | null {
-  const host = registry.spec?.app?.ingress?.host;
-  return host ? `https://${host}` : null;
+  const ingress = registry.spec?.app?.ingress;
+  return normalizeHostUrl(ingress?.host, { isTls: isTlsEnabled(ingress) });
 }
 
 export function getUiUrl(registry: ApicurioRegistry3): string | null {
-  const host = registry.spec?.ui?.ingress?.host;
-  return host ? `https://${host}` : null;
+  const ingress = registry.spec?.ui?.ingress;
+  return normalizeHostUrl(ingress?.host, { isTls: isTlsEnabled(ingress) });
 }
 
 export function isReady(registry: ApicurioRegistry3): boolean {

@@ -73,6 +73,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.concurrent.Semaphore;
 import java.util.function.Supplier;
@@ -189,6 +190,9 @@ public class McpToolImportService implements McpToolImportHandler {
         accessGuard.requireAccess(AuthorizedLevel.Write, AuthorizedResource.group(toolGroupId));
         Map<String, String> headers = validHeaders(request.getHeaders());
         boolean dryRun = Boolean.TRUE.equals(request.getDryRun());
+        if (!dryRun) {
+            requireNotRunning(groupId, serverArtifactId);
+        }
 
         acquire();
         try {
@@ -216,17 +220,19 @@ public class McpToolImportService implements McpToolImportHandler {
         accessGuard.requireAccess(AuthorizedLevel.Write, AuthorizedResource.group(toolGroupId));
         Map<String, String> headers = validHeaders(request.getHeaders());
         checkTarget(groupId, serverArtifactId, request.getUrl());
+        requireNotRunning(groupId, serverArtifactId);
 
         acquire();
         boolean started = false;
         try {
+            String importId = UUID.randomUUID().toString();
             Instant startedOn = Instant.now();
-            statusStore.running(groupId, serverArtifactId, startedOn, startedOn);
+            statusStore.started(groupId, serverArtifactId, importId, startedOn);
             SecurityIdentity identity = identityAssociation.getIdentity();
             String sourceIp = auditContext.getSourceIp();
             String forwardedFor = auditContext.getForwardedFor();
             executor.execute(() -> runInBackground(identity, sourceIp, forwardedFor,
-                    () -> recorded(groupId, serverArtifactId, request, toolGroupId, headers, startedOn)));
+                    () -> recorded(groupId, serverArtifactId, request, toolGroupId, headers, importId, startedOn)));
             started = true;
 
             McpToolImportJobStatus status = new McpToolImportJobStatus();
@@ -271,27 +277,37 @@ public class McpToolImportService implements McpToolImportHandler {
 
     private McpToolImportResult recorded(String groupId, String serverArtifactId, McpToolImportRequest request,
             String toolGroupId, Map<String, String> headers) {
+        String importId = UUID.randomUUID().toString();
         Instant startedOn = Instant.now();
-        statusStore.running(groupId, serverArtifactId, startedOn, startedOn);
-        return recorded(groupId, serverArtifactId, request, toolGroupId, headers, startedOn);
+        statusStore.started(groupId, serverArtifactId, importId, startedOn);
+        return recorded(groupId, serverArtifactId, request, toolGroupId, headers, importId, startedOn);
+    }
+
+    private void requireNotRunning(String groupId, String serverArtifactId) {
+        try {
+            statusStore.requireNotRunning(groupId, serverArtifactId);
+        } catch (McpImportException e) {
+            failure(e.getReason());
+            throw e;
+        }
     }
 
     /** Imports and records the outcome of an import already recorded as running. */
     private McpToolImportResult recorded(String groupId, String serverArtifactId, McpToolImportRequest request,
-            String toolGroupId, Map<String, String> headers, Instant startedOn) {
-        Progress progress = new Progress(groupId, serverArtifactId, startedOn);
+            String toolGroupId, Map<String, String> headers, String importId, Instant startedOn) {
+        Progress progress = new Progress(groupId, serverArtifactId, importId, startedOn);
         McpToolImportResult result;
         try {
             result = importTools(groupId, serverArtifactId, request, toolGroupId, headers, false, progress);
         } catch (RuntimeException e) {
             try {
-                statusStore.failed(groupId, serverArtifactId, startedOn, reason(e));
+                statusStore.failed(groupId, serverArtifactId, importId, startedOn, reason(e));
             } catch (RuntimeException recordFailure) {
                 log.warn("The failure of an MCP import could not be recorded", recordFailure);
             }
             throw e;
         }
-        statusStore.completed(groupId, serverArtifactId, startedOn, result);
+        statusStore.completed(groupId, serverArtifactId, importId, startedOn, result);
         return result;
     }
 
@@ -311,12 +327,14 @@ public class McpToolImportService implements McpToolImportHandler {
 
         private final String groupId;
         private final String artifactId;
+        private final String importId;
         private final Instant startedOn;
         private Instant reportedOn;
 
-        Progress(String groupId, String artifactId, Instant startedOn) {
+        Progress(String groupId, String artifactId, String importId, Instant startedOn) {
             this.groupId = groupId;
             this.artifactId = artifactId;
+            this.importId = importId;
             this.startedOn = startedOn;
             this.reportedOn = startedOn;
         }
@@ -325,7 +343,7 @@ public class McpToolImportService implements McpToolImportHandler {
         public void run() {
             Instant now = Instant.now();
             if (reportedOn.plus(statusStore.progressInterval()).isBefore(now)) {
-                statusStore.running(groupId, artifactId, startedOn, now);
+                statusStore.progress(groupId, artifactId, importId, startedOn, now);
                 reportedOn = now;
             }
         }

@@ -16,6 +16,9 @@ public class McpImportLabels implements FeatureLabelOwner {
 
     static final String PREFIX = "apicurio.mcp-import.";
 
+    /** A random ID of the import the status belongs to. */
+    static final String ID = PREFIX + "id";
+
     /** {@code RUNNING}, {@code COMPLETED} or {@code FAILED}. */
     static final String STATE = PREFIX + "state";
 

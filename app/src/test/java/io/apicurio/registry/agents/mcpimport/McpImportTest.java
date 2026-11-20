@@ -50,6 +50,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -82,6 +83,9 @@ public class McpImportTest extends AbstractResourceTestBase {
 
     @Inject
     McpToolImportService importService;
+
+    @Inject
+    McpImportGateHook gateHook;
 
     String group;
 
@@ -116,8 +120,17 @@ public class McpImportTest extends AbstractResourceTestBase {
      */
     @AfterEach
     void awaitBackgroundImports() {
+        gateHook.reset();
         await().atMost(Duration.ofSeconds(30))
                 .until(() -> importService.availablePermits() == importConfig.getMaxConcurrent());
+    }
+
+    /** Moves the test to a new group whose tool writes {@link McpImportGateHook} can hold. */
+    private void useGatedGroup() throws Exception {
+        group = McpImportGateHook.GROUP_PREFIX + TestUtils.generateGroupId();
+        createArtifact(group, SERVER, ArtifactType.MCP_SERVER,
+                "{\"name\":\"io.github.test/srv\",\"description\":\"A server\",\"version\":\"1.0.0\"}",
+                ContentTypes.APPLICATION_JSON);
     }
 
     private String path(String artifactId) {
@@ -125,10 +138,29 @@ public class McpImportTest extends AbstractResourceTestBase {
     }
 
     private ValidatableResponse importTools(Map<String, Object> request) {
+        return importInto(SERVER, request);
+    }
+
+    private ValidatableResponse importInto(String serverArtifactId, Map<String, Object> request) {
         Map<String, Object> body = new HashMap<>(request);
         body.putIfAbsent("url", mcp.url());
-        return given().contentType(ContentTypes.APPLICATION_JSON).body(body).post(path(SERVER) + "/mcp-import")
-                .then();
+        return given().contentType(ContentTypes.APPLICATION_JSON).body(body)
+                .post(path(serverArtifactId) + "/mcp-import").then();
+    }
+
+    /**
+     * MCP_SERVER artifacts besides {@link #SERVER}, one per import to hold: imports into one artifact
+     * cannot overlap.
+     */
+    private List<String> otherServers(int count) throws Exception {
+        List<String> servers = new ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            servers.add("held" + i);
+            createArtifact(group, "held" + i, ArtifactType.MCP_SERVER,
+                    "{\"name\":\"io.github.test/held\",\"description\":\"A server\",\"version\":\"1.0.0\"}",
+                    ContentTypes.APPLICATION_JSON);
+        }
+        return servers;
     }
 
     private ValidatableResponse importTools() {
@@ -470,11 +502,13 @@ public class McpImportTest extends AbstractResourceTestBase {
         mcp.release = release;
         int before = mcp.requests.get();
         double busy = count(McpToolImportService.METRIC_FAILURES, "reason", "busy");
+        List<String> servers = otherServers(limit);
         ExecutorService executor = Executors.newFixedThreadPool(limit);
         List<CompletableFuture<Integer>> held = new ArrayList<>();
         try {
-            for (int i = 0; i < limit; i++) {
-                held.add(CompletableFuture.supplyAsync(() -> importTools().extract().statusCode(), executor));
+            for (String server : servers) {
+                held.add(CompletableFuture.supplyAsync(() -> importInto(server, Map.of()).extract().statusCode(),
+                        executor));
             }
             // Each import takes its permit before it contacts the MCP server.
             await().atMost(Duration.ofSeconds(10)).until(() -> mcp.requests.get() >= before + limit);
@@ -773,13 +807,15 @@ public class McpImportTest extends AbstractResourceTestBase {
         mcp.release = release;
         int before = mcp.requests.get();
         double busy = count(McpToolImportService.METRIC_FAILURES, "reason", "busy");
+        List<String> servers = otherServers(limit);
         try {
-            for (int i = 0; i < limit; i++) {
-                importTools(Map.of("async", true)).statusCode(202);
+            for (String server : servers) {
+                importInto(server, Map.of("async", true)).statusCode(202);
             }
             await().atMost(Duration.ofSeconds(10)).until(() -> mcp.requests.get() >= before + limit);
             int inFlight = mcp.requests.get();
-            importStatus().statusCode(200).body("state", equalTo("RUNNING"));
+            given().get(path(servers.get(0)) + "/mcp-import/status").then().statusCode(200)
+                    .body("state", equalTo("RUNNING"));
 
             importTools(Map.of("async", true)).statusCode(429)
                     .body("title", equalTo("Too many MCP imports are running. Try again later."));
@@ -791,6 +827,115 @@ public class McpImportTest extends AbstractResourceTestBase {
             mcp.release = null;
             release.complete(null);
         }
-        awaitFinished().body("state", equalTo("COMPLETED"));
+        await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> given().get(path(servers.get(0))
+                + "/mcp-import/status").then().statusCode(200).body("state", equalTo("COMPLETED")));
+        importStatus().statusCode(404);
+    }
+
+    @Test
+    void importIntoAServerWithARunningImportIsRefused() throws Exception {
+        useGatedGroup();
+        mcp.tools(McpTestServer.tool("search", "string"), McpTestServer.tool("fetch", "string"));
+        CompletableFuture<Void> gate = gateHook.hold(SERVER + ".fetch");
+        double alreadyRunning = count(McpToolImportService.METRIC_FAILURES, "reason", "already-running");
+
+        importTools(Map.of("async", true)).statusCode(202);
+        await().atMost(Duration.ofSeconds(10)).until(() -> gateHook.reached(SERVER + ".fetch"));
+        String first = labels().get(McpImportLabels.ID);
+        int requests = mcp.requests.get();
+
+        importTools().statusCode(409).body("title", equalTo("An import into this MCP server is already running."));
+        importTools(Map.of("async", true)).statusCode(409)
+                .body("title", equalTo("An import into this MCP server is already running."));
+
+        assertEquals(requests, mcp.requests.get(), "a refused import must not contact the MCP server");
+        assertEquals(2, count(McpToolImportService.METRIC_FAILURES, "reason", "already-running") - alreadyRunning);
+        assertEquals(first, labels().get(McpImportLabels.ID));
+        importStatus().statusCode(200).body("state", equalTo("RUNNING"));
+
+        gate.complete(null);
+        awaitFinished().body("state", equalTo("COMPLETED")).body("counts", equalTo(Map.of("CREATED", 2)));
+        assertEquals(first, labels().get(McpImportLabels.ID));
+    }
+
+    @Test
+    void runningImportRecordedByAnotherInstanceRefusesImportsButNotDryRuns() {
+        mcp.tools(McpTestServer.tool("search", "string"));
+        String now = Instant.now().toString();
+        setLabels(Map.of(McpImportLabels.ID, "elsewhere", McpImportLabels.STATE, "RUNNING",
+                McpImportLabels.STARTED_ON, now, McpImportLabels.UPDATED_ON, now));
+        int requests = mcp.requests.get();
+
+        importTools().statusCode(409);
+        importTools(Map.of("async", true)).statusCode(409);
+        assertEquals(requests, mcp.requests.get());
+        importTools(Map.of("dryRun", true)).statusCode(200).body("tools[0].status", equalTo("CREATED"));
+        assertEquals("elsewhere", labels().get(McpImportLabels.ID));
+
+        // Once that import is stale, it no longer blocks.
+        setLabels(Map.of(McpImportLabels.ID, "elsewhere", McpImportLabels.STATE, "RUNNING",
+                McpImportLabels.STARTED_ON, "2020-01-01T00:00:00Z", McpImportLabels.UPDATED_ON,
+                "2020-01-01T00:00:00Z"));
+        importTools().statusCode(200).body("version", equalTo("2"));
+        importStatus().statusCode(200).body("state", equalTo("COMPLETED"));
+        assertNotEquals("elsewhere", labels().get(McpImportLabels.ID));
+    }
+
+    /**
+     * Another instance can start an import between this import's start and its end, because the
+     * label check is not atomic. This import then leaves that newer status alone.
+     */
+    @Test
+    void olderImportDoesNotOverwriteTheStatusOfANewerOne() throws Exception {
+        useGatedGroup();
+        mcp.tools(McpTestServer.tool("search", "string"), McpTestServer.tool("fetch", "string"));
+        CompletableFuture<Void> gate = gateHook.hold(SERVER + ".fetch");
+
+        importTools(Map.of("async", true)).statusCode(202);
+        await().atMost(Duration.ofSeconds(10)).until(() -> gateHook.reached(SERVER + ".fetch"));
+        String now = Instant.now().toString();
+        setLabels(Map.of(McpImportLabels.ID, "newer", McpImportLabels.STATE, "RUNNING",
+                McpImportLabels.STARTED_ON, now, McpImportLabels.UPDATED_ON, now));
+        gate.complete(null);
+        await().atMost(Duration.ofSeconds(30))
+                .until(() -> importService.availablePermits() == importConfig.getMaxConcurrent());
+
+        // The older import finished: both tools and the server version are written...
+        assertEquals(List.of("fetch=srv.fetch@1", "search=srv.search@1"), references("2"));
+        // ...but its COMPLETED did not replace the newer import's status.
+        Map<String, String> labels = labels();
+        assertEquals("newer", labels.get(McpImportLabels.ID));
+        assertEquals("RUNNING", labels.get(McpImportLabels.STATE));
+        assertEquals(now, labels.get(McpImportLabels.UPDATED_ON));
+        assertFalse(labels.containsKey(McpImportLabels.FINISHED_ON));
+        importStatus().statusCode(200).body("state", equalTo("RUNNING"));
+    }
+
+    @Test
+    void malformedStatusLabelsGiveADefinedStatus() {
+        // A failure without a reason, and dates that cannot be read
+        setLabels(Map.of(McpImportLabels.STATE, "FAILED", McpImportLabels.STARTED_ON, "yesterday",
+                McpImportLabels.FINISHED_ON, "2026-13-45"));
+        importStatus().statusCode(200).body("state", equalTo("FAILED"))
+                .body("reason", equalTo("The import failed.")).body("startedOn", nullValue())
+                .body("finishedOn", nullValue());
+
+        // Counts that are not numbers are left out; the others are reported
+        setLabels(Map.of(McpImportLabels.STATE, "COMPLETED", McpImportLabels.VERSION, "7",
+                McpImportLabels.COUNT_PREFIX + "created", "many", McpImportLabels.COUNT_PREFIX + "unchanged", "3",
+                McpImportLabels.COUNT_PREFIX + "bogus", "1"));
+        importStatus().statusCode(200).body("state", equalTo("COMPLETED")).body("version", equalTo("7"))
+                .body("counts", equalTo(Map.of("UNCHANGED", 3))).body("reason", nullValue());
+
+        // A running import with no time it can be judged by is reported as stale
+        setLabels(Map.of(McpImportLabels.STATE, "RUNNING", McpImportLabels.STARTED_ON, "soon"));
+        importStatus().statusCode(200).body("state", equalTo("FAILED"))
+                .body("reason", equalTo("The import stopped reporting progress before it finished."));
+
+        // A state that is empty, or not in upper case, is not a recorded import
+        setLabels(Map.of(McpImportLabels.STATE, ""));
+        importStatus().statusCode(404);
+        setLabels(Map.of(McpImportLabels.STATE, "completed"));
+        importStatus().statusCode(404);
     }
 }

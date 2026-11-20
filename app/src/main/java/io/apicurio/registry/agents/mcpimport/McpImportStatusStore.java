@@ -12,6 +12,8 @@ import io.apicurio.registry.storage.RegistryStorage;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.NotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -34,6 +36,8 @@ public class McpImportStatusStore {
     static final String REASON_FORBIDDEN = "forbidden";
     static final String REASON_FAILED = "failed";
 
+    private static final Logger log = LoggerFactory.getLogger(McpImportStatusStore.class);
+
     private static final Map<String, String> REASONS = Map.of(
             McpImportException.Reason.HOST_DENIED.tag(), "The MCP server URL is not allowed by this registry.",
             McpImportException.Reason.TIMEOUT.tag(), "The MCP server did not respond in time.",
@@ -52,16 +56,35 @@ public class McpImportStatusStore {
     @Inject
     McpImportConfig config;
 
-    void running(String groupId, String artifactId, Instant startedOn, Instant updatedOn) {
-        Map<String, String> labels = new HashMap<>();
-        labels.put(McpImportLabels.STATE, McpToolImportJobState.RUNNING.name());
-        labels.put(McpImportLabels.STARTED_ON, startedOn.toString());
-        labels.put(McpImportLabels.UPDATED_ON, updatedOn.toString());
-        write(groupId, artifactId, labels);
+    /**
+     * Refuses to start an import into an artifact whose recorded import is still running and not
+     * stale. Like every write below, this reads the labels and then writes them: the storage has no
+     * compare-and-set for labels, so two instances starting imports into one artifact at the same
+     * moment can both pass. The import ID then makes each import write only its own status.
+     *
+     * @throws McpImportException with {@link McpImportException.Reason#ALREADY_RUNNING}
+     */
+    void requireNotRunning(String groupId, String artifactId) {
+        Map<String, String> labels = labels(groupId, artifactId);
+        if (state(labels.get(McpImportLabels.STATE)) == McpToolImportJobState.RUNNING && !isStale(labels)) {
+            throw new McpImportException(McpImportException.Reason.ALREADY_RUNNING,
+                    "An import into this MCP server is already running.");
+        }
     }
 
-    void completed(String groupId, String artifactId, Instant startedOn, McpToolImportResult result) {
-        Map<String, String> labels = finished(McpToolImportJobState.COMPLETED, startedOn);
+    /** Records a new running import, replacing the status of any earlier one. */
+    void started(String groupId, String artifactId, String importId, Instant startedOn) {
+        write(groupId, artifactId, runningLabels(importId, startedOn, startedOn));
+    }
+
+    /** Records that the import is still making progress, unless a newer import replaced it. */
+    void progress(String groupId, String artifactId, String importId, Instant startedOn, Instant updatedOn) {
+        writeIfOwned(groupId, artifactId, importId, runningLabels(importId, startedOn, updatedOn));
+    }
+
+    void completed(String groupId, String artifactId, String importId, Instant startedOn,
+            McpToolImportResult result) {
+        Map<String, String> labels = finished(McpToolImportJobState.COMPLETED, importId, startedOn);
         if (result.getVersion() != null) {
             labels.put(McpImportLabels.VERSION, result.getVersion());
         }
@@ -71,44 +94,68 @@ public class McpImportStatusStore {
         }
         counts.forEach((status, count) -> labels.put(McpImportLabels.COUNT_PREFIX + tag(status),
                 String.valueOf(count)));
-        write(groupId, artifactId, labels);
+        writeIfOwned(groupId, artifactId, importId, labels);
     }
 
     /**
      * @param reason a reason tag: a {@link McpImportException.Reason#tag()} or one of the
      *               {@code REASON_} constants
      */
-    void failed(String groupId, String artifactId, Instant startedOn, String reason) {
-        Map<String, String> labels = finished(McpToolImportJobState.FAILED, startedOn);
+    void failed(String groupId, String artifactId, String importId, Instant startedOn, String reason) {
+        Map<String, String> labels = finished(McpToolImportJobState.FAILED, importId, startedOn);
         labels.put(McpImportLabels.REASON, reason);
+        writeIfOwned(groupId, artifactId, importId, labels);
+    }
+
+    private Map<String, String> runningLabels(String importId, Instant startedOn, Instant updatedOn) {
+        Map<String, String> labels = new HashMap<>();
+        labels.put(McpImportLabels.ID, importId);
+        labels.put(McpImportLabels.STATE, McpToolImportJobState.RUNNING.name());
+        labels.put(McpImportLabels.STARTED_ON, startedOn.toString());
+        labels.put(McpImportLabels.UPDATED_ON, updatedOn.toString());
+        return labels;
+    }
+
+    /**
+     * Writes only while the recorded status is still this import's, so an older import never
+     * replaces the status of a newer one. Not atomic: see {@link #requireNotRunning}.
+     */
+    private void writeIfOwned(String groupId, String artifactId, String importId, Map<String, String> labels) {
+        if (!importId.equals(labels(groupId, artifactId).get(McpImportLabels.ID))) {
+            log.debug("Not recording the status of MCP import {} into {}/{}: a newer import replaced it", importId,
+                    groupId, artifactId);
+            return;
+        }
         write(groupId, artifactId, labels);
     }
 
     /**
+     * The labels can be edited by hand, so each one is read defensively and never fails the
+     * request: a missing or unknown state means no import is recorded (404); a date or count that
+     * cannot be read is left out; a failure with a missing or unknown reason gets the generic one;
+     * and a running import with no readable time is reported as stale.
+     *
      * @throws NotFoundException when no import was recorded for the artifact
      */
     McpToolImportJobStatus read(String groupId, String artifactId) {
-        Map<String, String> labels = storage.getArtifactMetaData(raw(groupId), artifactId).getLabels();
-        McpToolImportJobState state = labels == null ? null : state(labels.get(McpImportLabels.STATE));
+        Map<String, String> labels = labels(groupId, artifactId);
+        McpToolImportJobState state = state(labels.get(McpImportLabels.STATE));
         if (state == null) {
             throw new NotFoundException("No MCP import was recorded for this artifact.");
         }
         McpToolImportJobStatus status = new McpToolImportJobStatus();
         status.setState(state);
-        Instant startedOn = instant(labels.get(McpImportLabels.STARTED_ON));
-        status.setStartedOn(startedOn == null ? null : Date.from(startedOn));
+        status.setStartedOn(date(labels.get(McpImportLabels.STARTED_ON)));
         if (state == McpToolImportJobState.RUNNING) {
-            Instant updatedOn = instant(labels.get(McpImportLabels.UPDATED_ON));
-            if (isStale(updatedOn != null ? updatedOn : startedOn)) {
+            if (isStale(labels)) {
                 status.setState(McpToolImportJobState.FAILED);
-                status.setReason(REASONS.get(REASON_STALE));
+                status.setReason(reason(REASON_STALE));
             }
             return status;
         }
-        Instant finishedOn = instant(labels.get(McpImportLabels.FINISHED_ON));
-        status.setFinishedOn(finishedOn == null ? null : Date.from(finishedOn));
+        status.setFinishedOn(date(labels.get(McpImportLabels.FINISHED_ON)));
         if (state == McpToolImportJobState.FAILED) {
-            status.setReason(REASONS.getOrDefault(labels.get(McpImportLabels.REASON), REASONS.get(REASON_FAILED)));
+            status.setReason(reason(labels.get(McpImportLabels.REASON)));
             return status;
         }
         status.setVersion(labels.get(McpImportLabels.VERSION));
@@ -121,6 +168,22 @@ public class McpImportStatusStore {
         }
         status.setCounts(counts);
         return status;
+    }
+
+    /** The fixed sentence for a reason tag; the generic one for a missing or unknown tag. */
+    private static String reason(String tag) {
+        String reason = tag == null ? null : REASONS.get(tag);
+        return reason != null ? reason : REASONS.get(REASON_FAILED);
+    }
+
+    private boolean isStale(Map<String, String> labels) {
+        Instant updatedOn = instant(labels.get(McpImportLabels.UPDATED_ON));
+        return isStale(updatedOn != null ? updatedOn : instant(labels.get(McpImportLabels.STARTED_ON)));
+    }
+
+    private Map<String, String> labels(String groupId, String artifactId) {
+        Map<String, String> labels = storage.getArtifactMetaData(raw(groupId), artifactId).getLabels();
+        return labels == null ? Map.of() : labels;
     }
 
     /**
@@ -138,8 +201,9 @@ public class McpImportStatusStore {
         return Duration.ofSeconds(Math.max(1, config.getTotalTimeoutSeconds() / 2));
     }
 
-    private Map<String, String> finished(McpToolImportJobState state, Instant startedOn) {
+    private Map<String, String> finished(McpToolImportJobState state, String importId, Instant startedOn) {
         Map<String, String> labels = new HashMap<>();
+        labels.put(McpImportLabels.ID, importId);
         labels.put(McpImportLabels.STATE, state.name());
         labels.put(McpImportLabels.STARTED_ON, startedOn.toString());
         labels.put(McpImportLabels.FINISHED_ON, Instant.now().toString());
@@ -156,6 +220,11 @@ public class McpImportStatusStore {
         } catch (IllegalArgumentException e) {
             return null;
         }
+    }
+
+    private static Date date(String value) {
+        Instant instant = instant(value);
+        return instant == null ? null : Date.from(instant);
     }
 
     private static Instant instant(String value) {

@@ -1,5 +1,5 @@
 import React from "react";
-import { VariableSchema } from "./promptTemplateVariables";
+import { VariableSchema, classifyHandlebarsTag } from "./promptTemplateVariables";
 
 export type TemplateTokenKind = "plain" | "variable" | "block";
 
@@ -7,15 +7,6 @@ export interface TemplateToken {
     text: string;
     kind: TemplateTokenKind;
 }
-
-const classifyTag = (tag: string): "variable" | "block" => {
-    const inner = tag.replace(/^\{+|\}+$/g, "").trim();
-    const head = inner.split(/\s+/, 1)[0];
-    if (head.startsWith("#") || head.startsWith("/") || head.startsWith("^") || head === "else") {
-        return "block";
-    }
-    return "variable";
-};
 
 const tagCloserAt = (template: string, openerIndex: number): { closer: string; openerLength: number } => {
     if (template.startsWith("{{!--", openerIndex)) {
@@ -72,7 +63,7 @@ export const tokenizeTemplate = (template: string): TemplateToken[] => {
         }
         const tagEnd = found.closerIndex + found.closerLength;
         const tag = template.substring(openerIndex, tagEnd);
-        const kind = tag.startsWith("{{!") ? "plain" : classifyTag(tag);
+        const kind = tag.startsWith("{{!") ? "plain" : classifyHandlebarsTag(tag);
         tokens.push({ text: tag, kind });
         lastIndex = tagEnd;
     }

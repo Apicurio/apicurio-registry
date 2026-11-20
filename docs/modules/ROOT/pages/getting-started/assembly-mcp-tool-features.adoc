@@ -508,6 +508,7 @@ curl -X POST http://localhost:8080/apis/registry/v3/groups/my-servers/artifacts/
 * `headers`: HTTP headers to send to the MCP server, for example credentials. They are sent to the MCP server only, and are never stored, returned, logged, or audited. Headers that the transport sets itself, such as `Host`, `Content-Type`, `Accept`, and `Mcp-Session-Id`, are refused.
 * `toolGroupId`: the group for the `MCP_TOOL` artifacts. Defaults to the group of the `MCP_SERVER` artifact.
 * `dryRun`: when `true`, the server is contacted and the report is returned, but nothing is written.
+* `async`: when `true`, the import runs in the background, for servers with many tools whose import can take longer than an HTTP client or gateway waits. See xref:mcp-importing-tools-async_{context}[Importing in the background]. Cannot be combined with `dryRun`.
 
 . Read the report. For example:
 +
@@ -559,6 +560,28 @@ A tool is `UNCHANGED` only when a stored version has exactly the content that th
 Each tool is published like any other version: rules, write hooks, authorization, and auditing apply to each tool. Before any tool is written, the import checks that the server lists no tool name twice and that you can write every existing tool artifact, so these failures leave nothing imported. A rule rejecting one tool does not stop the others. Tools are otherwise not imported atomically: if another error occurs partway through, tools that were already accepted stay stored. In a dry run, the report states whether a new server version would be added, but the server version is not checked against rules, because the tools it would reference do not exist yet.
 
 The new server version references exactly the imported tools. References that you added to an earlier version by hand are not carried over.
+
+[id="mcp-importing-tools-async_{context}"]
+=== Importing in the background
+
+With `"async": true`, the request is checked as a synchronous import is (the feature, the storage, the `MCP_SERVER` artifact, write access, the headers, the URL, and the concurrent import limit), and a refused import returns the same error. The import then runs in the background, as the caller, and the response is HTTP 202 with the status of the import and a `Location` header naming its status URL:
+
+[source,bash]
+----
+curl http://localhost:8080/apis/registry/v3/groups/my-servers/artifacts/weather/mcp-import/status
+----
+
+[source,json]
+----
+{ "state": "COMPLETED", "startedOn": "2026-11-20T10:15:30Z", "finishedOn": "2026-11-20T10:16:12Z",
+  "version": "2", "counts": { "CREATED": 498, "UNCHANGED": 2 } }
+----
+
+The `state` is `RUNNING`, `COMPLETED`, or `FAILED`. A completed import reports the server version and the number of tools by status, but not the per-tool report: read the tool artifacts or the server version references for the details. A failed import reports a fixed `reason`; tools written before the failure stay stored.
+
+The status URL reports the last import into the artifact, synchronous or not; dry runs are not recorded. While the recorded import into an artifact is running, another import into it, synchronous or not, returns HTTP 409 with `An import into this MCP server is already running.`; dry runs are allowed. The check reads the labels before writing them, so two registry instances that start imports into one artifact at the same moment can both start; each then records only its own status. It needs read access to the artifact, and returns HTTP 404 when no import was recorded. The status is kept in labels of the `MCP_SERVER` artifact under `apicurio.mcp-import.`, so every registry instance reports the same status. Editing the artifact labels keeps them unless you send them. An import still `RUNNING` that has not reported progress for longer than `apicurio.mcp-import.total-timeout.seconds` plus `apicurio.mcp-import.timeout.seconds`, for example because the registry instance running it stopped, is reported as `FAILED`.
+
+A background import has no HTTP request, so it cannot read roles from a request header: with `apicurio.auth.role-source=header`, use synchronous imports.
 
 [id="mcp-importing-tools-security_{context}"]
 === Outbound connection security

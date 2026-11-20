@@ -37,9 +37,12 @@ import static io.gatling.javaapi.core.CoreDsl.constantConcurrentUsers;
 import static io.gatling.javaapi.core.CoreDsl.exec;
 import static io.gatling.javaapi.core.CoreDsl.global;
 import static io.gatling.javaapi.core.CoreDsl.atOnceUsers;
+import static io.gatling.javaapi.core.CoreDsl.jsonPath;
+import static io.gatling.javaapi.core.CoreDsl.pause;
 import static io.gatling.javaapi.core.CoreDsl.rampConcurrentUsers;
 import static io.gatling.javaapi.core.CoreDsl.repeat;
 import static io.gatling.javaapi.core.CoreDsl.scenario;
+import static io.gatling.javaapi.http.HttpDsl.header;
 import static io.gatling.javaapi.http.HttpDsl.http;
 import static io.gatling.javaapi.http.HttpDsl.status;
 
@@ -56,7 +59,9 @@ import static io.gatling.javaapi.http.HttpDsl.status;
  *   <li><b>Import</b>: afterwards, one user imports {@code PERF_IMPORT_RUNS} times (default 10)
  *       from the MCP server started by {@code PerfTestRunner}, which lists
  *       {@code PERF_IMPORT_TOOLS} tools (default 500), each time into a new server artifact.
- *       Import throughput is the tool count divided by the import response time.</li>
+ *       Each import runs asynchronously and its status is polled every 2 seconds; import
+ *       throughput is the tool count divided by the duration of the {@code MCP import} group,
+ *       from starting the import to reading that it completed.</li>
  * </ol>
  * Requires the registry to run with A2A, MCP tools, AI Catalog, ARD and MCP import enabled, and
  * {@code PERF_MCP_URL} (default {@code http://perf-mcp.default.svc:8099/mcp}) allowed for import.
@@ -77,6 +82,9 @@ public class AgentDiscoverySimulation extends Simulation {
     public static final int IMPORT_TOOLS = Integer.parseInt(envOrDefault("PERF_IMPORT_TOOLS", "500"));
     private static final int IMPORT_RUNS = Integer.parseInt(envOrDefault("PERF_IMPORT_RUNS", "10"));
     private static final String MCP_URL = envOrDefault("PERF_MCP_URL", "http://perf-mcp.default.svc:8099/mcp");
+    private static final Duration IMPORT_POLL_INTERVAL = Duration.ofSeconds(2);
+    // Ten minutes of polls: far beyond any import, but a stuck one still ends the run
+    private static final int IMPORT_MAX_POLLS = 300;
 
     private static final String AGENT_GROUP = "perf-agents";
     private static final String TOOL_GROUP = "perf-tools";
@@ -122,10 +130,24 @@ public class AgentDiscoverySimulation extends Simulation {
                                         + "\"version\":\"1.0.0\"}")
                                 + "}}}")).asJson()
                         .check(status().is(200)))
-                .exec(http("MCP import (" + IMPORT_TOOLS + " tools)").post(path + "/#{server}/mcp-import")
-                        .header(AUTHORIZATION_HEADER, RegistryApiSimulation::authHeader)
-                        .body(StringBody("{\"url\":\"" + MCP_URL + "\"}")).asJson()
-                        .check(status().is(200)));
+                // A large import outlasts HTTP timeouts, so it runs in the background (#11407): the
+                // group's duration is the time from starting it to reading that it completed.
+                .group("MCP import (" + IMPORT_TOOLS + " tools)").on(
+                        exec(http("Start MCP import").post(path + "/#{server}/mcp-import")
+                                .header(AUTHORIZATION_HEADER, RegistryApiSimulation::authHeader)
+                                .body(StringBody("{\"url\":\"" + MCP_URL + "\",\"async\":true}")).asJson()
+                                .check(status().is(202), header("Location").saveAs("importStatus")))
+                        .exec(session -> session.set("importState", "RUNNING"))
+                        .asLongAs(session -> "RUNNING".equals(session.getString("importState"))
+                                && session.getInt("statusPolls") < IMPORT_MAX_POLLS, "statusPolls").on(
+                                pause(IMPORT_POLL_INTERVAL)
+                                        .exec(http("Read MCP import status").get("#{importStatus}")
+                                                .header(AUTHORIZATION_HEADER, RegistryApiSimulation::authHeader)
+                                                .check(status().is(200), jsonPath("$.state").saveAs("importState"))))
+                        // Fails as a request unless the import completed within the polls allowed
+                        .exec(http("MCP import completed").get("#{importStatus}")
+                                .header(AUTHORIZATION_HEADER, RegistryApiSimulation::authHeader)
+                                .check(status().is(200), jsonPath("$.state").is("COMPLETED"))));
     }
 
     public AgentDiscoverySimulation() {

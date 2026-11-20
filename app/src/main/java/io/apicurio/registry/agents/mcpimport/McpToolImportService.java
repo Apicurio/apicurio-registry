@@ -21,6 +21,8 @@ import io.apicurio.registry.rest.v3.beans.CreateArtifactResponse;
 import io.apicurio.registry.rest.v3.beans.CreateVersion;
 import io.apicurio.registry.rest.v3.beans.Headers;
 import io.apicurio.registry.rest.v3.beans.IfArtifactExists;
+import io.apicurio.registry.rest.v3.beans.McpToolImportJobState;
+import io.apicurio.registry.rest.v3.beans.McpToolImportJobStatus;
 import io.apicurio.registry.rest.v3.beans.McpToolImportRequest;
 import io.apicurio.registry.rest.v3.beans.McpToolImportResult;
 import io.apicurio.registry.rest.v3.beans.McpToolImportStatus;
@@ -44,13 +46,25 @@ import io.apicurio.registry.types.ContentTypes;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.modelcontextprotocol.spec.McpSchema;
+import io.quarkus.arc.Arc;
+import io.quarkus.arc.ManagedContext;
+import io.quarkus.security.ForbiddenException;
+import io.quarkus.security.identity.CurrentIdentityAssociation;
+import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.BadRequestException;
+import org.eclipse.microprofile.context.ManagedExecutor;
+import org.eclipse.microprofile.context.ThreadContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.URI;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -59,8 +73,10 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.concurrent.Semaphore;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_ARTIFACT_ID;
@@ -77,6 +93,11 @@ import static io.apicurio.registry.rest.MethodParameterKeys.MPK_GROUP_ID;
  * <p>
  * Nothing is checked or written atomically across tools: tools accepted before a later failure
  * stay stored, as they would after the same calls made one by one.
+ * <p>
+ * Every import that writes, synchronous or not, records its status in labels of the server
+ * artifact through {@link McpImportStatusStore}. An asynchronous import runs on its own request
+ * context, with the caller's identity and audit source, so its writes are authorized, owned and
+ * audited as the caller's.
  */
 @ApplicationScoped
 public class McpToolImportService implements McpToolImportHandler {
@@ -86,6 +107,8 @@ public class McpToolImportService implements McpToolImportHandler {
     static final String AUDIT_INVOKER = "apicurio.audit";
     static final String AUDIT_ACTION = "mcpImportTarget";
     static final String AUDIT_TARGET = "target";
+
+    private static final Logger log = LoggerFactory.getLogger(McpToolImportService.class);
 
     // The tool name becomes part of an artifact ID, so it is held to the MCP specification's
     // recommended form: 1 to 128 ASCII letters, digits, '_', '-' or '.'.
@@ -122,13 +145,38 @@ public class McpToolImportService implements McpToolImportHandler {
     @Inject
     AuditLogService auditLog;
 
+    @Inject
+    McpImportStatusStore statusStore;
+
+    @Inject
+    CurrentIdentityAssociation identityAssociation;
+
+    @Inject
+    AuditHttpRequestContext auditContext;
+
     private final JacksonMcpJsonMapper jsonMapper = new JacksonMcpJsonMapper();
 
     private Semaphore running;
 
+    // No context is propagated: the request context of the call that started an import ends when
+    // the 202 is sent, so each background import activates its own.
+    private ManagedExecutor executor;
+
     @PostConstruct
     void init() {
         running = new Semaphore(Math.max(0, config.getMaxConcurrent()));
+        executor = ManagedExecutor.builder().maxAsync(Math.max(1, config.getMaxConcurrent()))
+                .propagated(ThreadContext.NONE).cleared(ThreadContext.ALL_REMAINING).build();
+    }
+
+    @PreDestroy
+    void shutdown() {
+        executor.shutdownNow();
+    }
+
+    /** The number of imports that could start now. */
+    int availablePermits() {
+        return running.availablePermits();
     }
 
     /**
@@ -138,29 +186,192 @@ public class McpToolImportService implements McpToolImportHandler {
     @Override
     public McpToolImportResult importTools(String groupId, String serverArtifactId, McpToolImportRequest request) {
         requireImportable(groupId, serverArtifactId, request);
-        String toolGroupId = request.getToolGroupId() == null || request.getToolGroupId().isBlank()
-                ? groupId : request.getToolGroupId();
+        String toolGroupId = toolGroupId(groupId, request);
         accessGuard.requireAccess(AuthorizedLevel.Write, AuthorizedResource.group(toolGroupId));
         Map<String, String> headers = validHeaders(request.getHeaders());
         boolean dryRun = Boolean.TRUE.equals(request.getDryRun());
-
-        if (!running.tryAcquire()) {
-            failure(McpImportException.Reason.BUSY);
-            throw new McpImportException(McpImportException.Reason.BUSY,
-                    "Too many MCP imports are running. Try again later.");
+        if (!dryRun) {
+            requireNotRunning(groupId, serverArtifactId);
         }
+
+        acquire();
         try {
-            return importTools(groupId, serverArtifactId, request, toolGroupId, headers, dryRun);
+            if (dryRun) {
+                return importTools(groupId, serverArtifactId, request, toolGroupId, headers, true, () -> { });
+            }
+            return recorded(groupId, serverArtifactId, request, toolGroupId, headers);
         } finally {
             running.release();
         }
     }
 
+    /**
+     * Checks everything {@link #importTools(String, String, McpToolImportRequest)} checks before
+     * contacting the MCP server, including the URL, so a refused import is still answered with an
+     * error. The permit taken here is released when the background import ends.
+     */
+    @Override
+    public McpToolImportJobStatus startImport(String groupId, String serverArtifactId, McpToolImportRequest request) {
+        requireImportable(groupId, serverArtifactId, request);
+        if (Boolean.TRUE.equals(request.getDryRun())) {
+            throw new BadRequestException("An asynchronous import cannot be a dry run.");
+        }
+        String toolGroupId = toolGroupId(groupId, request);
+        accessGuard.requireAccess(AuthorizedLevel.Write, AuthorizedResource.group(toolGroupId));
+        Map<String, String> headers = validHeaders(request.getHeaders());
+        checkTarget(groupId, serverArtifactId, request.getUrl());
+        requireNotRunning(groupId, serverArtifactId);
+
+        acquire();
+        boolean started = false;
+        try {
+            String importId = UUID.randomUUID().toString();
+            Instant startedOn = Instant.now();
+            statusStore.started(groupId, serverArtifactId, importId, startedOn);
+            SecurityIdentity identity = identityAssociation.getIdentity();
+            String sourceIp = auditContext.getSourceIp();
+            String forwardedFor = auditContext.getForwardedFor();
+            executor.execute(() -> runInBackground(identity, sourceIp, forwardedFor,
+                    () -> recorded(groupId, serverArtifactId, request, toolGroupId, headers, importId, startedOn)));
+            started = true;
+
+            McpToolImportJobStatus status = new McpToolImportJobStatus();
+            status.setState(McpToolImportJobState.RUNNING);
+            status.setStartedOn(Date.from(startedOn));
+            return status;
+        } finally {
+            if (!started) {
+                running.release();
+            }
+        }
+    }
+
+    @Override
+    public McpToolImportJobStatus getImportStatus(String groupId, String serverArtifactId) {
+        if (!config.isEnabled()) {
+            throw new ConflictException("Importing tools from MCP servers is not enabled.");
+        }
+        return statusStore.read(groupId, serverArtifactId);
+    }
+
+    /**
+     * Runs an import on a request context of its own, as the caller who started it. Its outcome is
+     * in the status labels; the error is only logged here.
+     */
+    private void runInBackground(SecurityIdentity identity, String sourceIp, String forwardedFor,
+            Supplier<McpToolImportResult> work) {
+        ManagedContext requestContext = Arc.container().requestContext();
+        requestContext.activate();
+        try {
+            identityAssociation.setIdentity(identity);
+            auditContext.setSourceIp(sourceIp);
+            auditContext.setForwardedFor(forwardedFor);
+            work.get();
+        } catch (RuntimeException e) {
+            log.warn("An asynchronous MCP import failed", e);
+        } finally {
+            requestContext.terminate();
+            running.release();
+        }
+    }
+
+    private McpToolImportResult recorded(String groupId, String serverArtifactId, McpToolImportRequest request,
+            String toolGroupId, Map<String, String> headers) {
+        String importId = UUID.randomUUID().toString();
+        Instant startedOn = Instant.now();
+        statusStore.started(groupId, serverArtifactId, importId, startedOn);
+        return recorded(groupId, serverArtifactId, request, toolGroupId, headers, importId, startedOn);
+    }
+
+    private void requireNotRunning(String groupId, String serverArtifactId) {
+        try {
+            statusStore.requireNotRunning(groupId, serverArtifactId);
+        } catch (McpImportException e) {
+            failure(e.getReason());
+            throw e;
+        }
+    }
+
+    /** Imports and records the outcome of an import already recorded as running. */
+    private McpToolImportResult recorded(String groupId, String serverArtifactId, McpToolImportRequest request,
+            String toolGroupId, Map<String, String> headers, String importId, Instant startedOn) {
+        Progress progress = new Progress(groupId, serverArtifactId, importId, startedOn);
+        McpToolImportResult result;
+        try {
+            result = importTools(groupId, serverArtifactId, request, toolGroupId, headers, false, progress);
+        } catch (RuntimeException e) {
+            try {
+                statusStore.failed(groupId, serverArtifactId, importId, startedOn, reason(e));
+            } catch (RuntimeException recordFailure) {
+                log.warn("The failure of an MCP import could not be recorded", recordFailure);
+            }
+            throw e;
+        }
+        statusStore.completed(groupId, serverArtifactId, importId, startedOn, result);
+        return result;
+    }
+
+    /** A reason tag for the status: never the message, which may not be a fixed sentence. */
+    private static String reason(RuntimeException e) {
+        if (e instanceof McpImportException mcp) {
+            return mcp.getReason().tag();
+        }
+        if (e instanceof ForbiddenException) {
+            return McpImportStatusStore.REASON_FORBIDDEN;
+        }
+        return McpImportStatusStore.REASON_FAILED;
+    }
+
+    /** Records that a running import is still making progress, at most once per interval. */
+    private final class Progress implements Runnable {
+
+        private final String groupId;
+        private final String artifactId;
+        private final String importId;
+        private final Instant startedOn;
+        private Instant reportedOn;
+
+        Progress(String groupId, String artifactId, String importId, Instant startedOn) {
+            this.groupId = groupId;
+            this.artifactId = artifactId;
+            this.importId = importId;
+            this.startedOn = startedOn;
+            this.reportedOn = startedOn;
+        }
+
+        @Override
+        public void run() {
+            Instant now = Instant.now();
+            if (reportedOn.plus(statusStore.progressInterval()).isBefore(now)) {
+                statusStore.progress(groupId, artifactId, importId, startedOn, now);
+                reportedOn = now;
+            }
+        }
+    }
+
+    private void acquire() {
+        if (!running.tryAcquire()) {
+            failure(McpImportException.Reason.BUSY);
+            throw new McpImportException(McpImportException.Reason.BUSY,
+                    "Too many MCP imports are running. Try again later.");
+        }
+    }
+
+    private static String toolGroupId(String groupId, McpToolImportRequest request) {
+        return request.getToolGroupId() == null || request.getToolGroupId().isBlank()
+                ? groupId : request.getToolGroupId();
+    }
+
+    /**
+     * @param progress run between tools, so that a long import is not reported as stale
+     */
     private McpToolImportResult importTools(String groupId, String serverArtifactId, McpToolImportRequest request,
-            String toolGroupId, Map<String, String> headers, boolean dryRun) {
+            String toolGroupId, Map<String, String> headers, boolean dryRun, Runnable progress) {
         ServerTools listed = listTools(groupId, serverArtifactId, request.getUrl(), headers);
+        progress.run();
         Map<String, String> existingTypes = new HashMap<>();
-        Set<String> listedNames = checkBeforeWriting(listed.tools(), toolGroupId, serverArtifactId, existingTypes);
+        Set<String> listedNames = checkBeforeWriting(listed.tools(), toolGroupId, serverArtifactId, existingTypes,
+                progress);
 
         List<McpToolImportToolResult> results = new ArrayList<>();
         List<ArtifactReference> references = new ArrayList<>();
@@ -170,6 +381,7 @@ public class McpToolImportService implements McpToolImportHandler {
                     existingTypes.get(toolArtifactId), dryRun);
             results.add(result);
             count(result.getStatus(), dryRun);
+            progress.run();
             if (result.getStatus() != McpToolImportStatus.REJECTED) {
                 references.add(reference(tool.name(), result));
             }
@@ -219,14 +431,30 @@ public class McpToolImportService implements McpToolImportHandler {
      * credentials.
      */
     private ServerTools listTools(String groupId, String serverArtifactId, String url, Map<String, String> headers) {
+        return audited(groupId, serverArtifactId, url, true,
+                () -> toolsClient.listTools(targetPolicy.check(url), headers));
+    }
+
+    /**
+     * Checks the URL before an asynchronous import starts, so a refused one is answered with an
+     * error. Only a refusal is audited: the import audits the connection when it lists the tools.
+     */
+    private void checkTarget(String groupId, String serverArtifactId, String url) {
+        audited(groupId, serverArtifactId, url, false, () -> targetPolicy.check(url));
+    }
+
+    private <T> T audited(String groupId, String serverArtifactId, String url, boolean auditSuccess,
+            Supplier<T> action) {
         Map<String, String> audit = new HashMap<>();
         audit.put(MPK_GROUP_ID, groupId);
         audit.put(MPK_ARTIFACT_ID, serverArtifactId);
         audit.put(AUDIT_TARGET, target(url));
         try {
-            ServerTools tools = toolsClient.listTools(targetPolicy.check(url), headers);
-            auditLog.log(AUDIT_INVOKER, AUDIT_ACTION, AuditHttpRequestContext.SUCCESS, audit, null);
-            return tools;
+            T value = action.get();
+            if (auditSuccess) {
+                auditLog.log(AUDIT_INVOKER, AUDIT_ACTION, AuditHttpRequestContext.SUCCESS, audit, null);
+            }
+            return value;
         } catch (McpImportException e) {
             failure(e.getReason());
             audit.put("reason", e.getReason().tag());
@@ -255,10 +483,11 @@ public class McpToolImportService implements McpToolImportHandler {
      *
      * @param existingTypes filled with the artifact type of each listed tool's existing artifact, so
      *                      the import does not look each one up again
+     * @param progress      run after each tool, so that a long check is not reported as stale
      * @return the names of the listed tools
      */
     private Set<String> checkBeforeWriting(List<McpSchema.Tool> tools, String toolGroupId, String serverArtifactId,
-            Map<String, String> existingTypes) {
+            Map<String, String> existingTypes, Runnable progress) {
         Set<String> listedNames = new HashSet<>();
         for (McpSchema.Tool tool : tools) {
             if (!listedNames.add(tool.name())) {
@@ -278,6 +507,7 @@ public class McpToolImportService implements McpToolImportHandler {
                 accessGuard.requireAccess(AuthorizedLevel.Write, AuthorizedResource.artifact(toolGroupId,
                         toolArtifactId));
             }
+            progress.run();
         }
         return listedNames;
     }

@@ -279,7 +279,7 @@ curl -X POST http://localhost:8080/apis/registry/v3/groups/demo/artifacts/weathe
 .Verification
 * The report's `status` and every tool's `status` are `UNCHANGED`: importing again from the same server writes nothing.
 
-The stack allows imports only from `weather-mcp`, over plain HTTP, because it runs on the stack's private network. For the settings, the import results, and the outbound connection rules, see xref:getting-started/assembly-mcp-tool-features.adoc[MCP tool definition features].
+The stack allows imports only from `weather-mcp`, over plain HTTP, because it runs on the stack's private network. For the settings, the import results, importing in the background with `"async": true` for servers with many tools, and the outbound connection rules, see xref:getting-started/assembly-mcp-tool-features.adoc[MCP tool definition features].
 
 NOTE: Importing tools from a running MCP server is available from {registry} 3.4.
 

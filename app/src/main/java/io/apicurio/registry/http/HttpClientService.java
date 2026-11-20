@@ -13,6 +13,7 @@ import org.eclipse.microprofile.faulttolerance.Retry;
 import org.eclipse.microprofile.faulttolerance.Timeout;
 
 import java.time.temporal.ChronoUnit;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 @ApplicationScoped
@@ -47,10 +48,44 @@ public class HttpClientService {
     @ExponentialBackoff
     @Timeout(value = 10, unit = ChronoUnit.SECONDS)
     public <I, O> O post(String url, I body, Class<O> outputClass) throws HttpClientException {
+        return doPost(url, null, body, outputClass);
+    }
+
+    /**
+     * Sends an HTTP POST request with additional headers to the given URL and deserializes the response body.
+     *
+     * <p>Behaves like {@link #post(String, Object, Class)}, and also sends each of the given {@code headers}
+     * with the request, for example an {@code Authorization} header configured for a webhook. The request is
+     * always sent as JSON: a {@code Content-Type} entry in {@code headers} is ignored. Entries with a
+     * {@code null} or blank name, or a {@code null} value, are skipped.
+     *
+     * @param headers additional HTTP headers to send, may be {@code null}
+     * @throws HttpClientContentException if an empty body or malformed JSON is returned when a
+     *                                    non-{@code Void} return type was expected
+     * @throws HttpClientErrorException   if the server returns a 4xx client error status
+     * @throws HttpClientInterruptedException if the request is interrupted
+     * @throws HttpClientException        if the server returns a 5xx status or any other I/O error occurs
+     */
+    @Retry(maxRetries = 8, delay = 100, jitter = 50, abortOn = {
+            HttpClientInterruptedException.class,
+            HttpClientContentException.class,
+            HttpClientErrorException.class,
+            InterruptedException.class
+    })
+    @ExponentialBackoff
+    @Timeout(value = 10, unit = ChronoUnit.SECONDS)
+    public <I, O> O post(String url, Map<String, String> headers, I body, Class<O> outputClass) throws HttpClientException {
+        return doPost(url, headers, body, outputClass);
+    }
+
+    // Shared by both post methods. Not annotated: each public method carries its own fault tolerance
+    // annotations, and Quarkus also intercepts self-invocation, so one post must not call the other.
+    private <I, O> O doPost(String url, Map<String, String> headers, I body, Class<O> outputClass) throws HttpClientException {
         try {
             // POST the request to the webhook endpoint
-            HttpRequest<Buffer> request = webClient.postAbs(url).putHeader("Content-Type", ContentTypes.APPLICATION_JSON)
-                    .followRedirects(true);
+            HttpRequest<Buffer> request = webClient.postAbs(url).followRedirects(true);
+            applyHeaders(request, headers);
+            request.putHeader("Content-Type", ContentTypes.APPLICATION_JSON);
             Future<HttpResponse<Buffer>> future = request.sendJson(body);
 
             // Wait for the response (vert.x is async).
@@ -66,6 +101,17 @@ public class HttpClientService {
             Thread.currentThread().interrupt();
             throw new HttpClientInterruptedException(e);
         }
+    }
+
+    private static void applyHeaders(HttpRequest<Buffer> request, Map<String, String> headers) {
+        if (headers == null) {
+            return;
+        }
+        headers.forEach((name, value) -> {
+            if (name != null && !name.isBlank() && value != null && !"Content-Type".equalsIgnoreCase(name)) {
+                request.putHeader(name, value);
+            }
+        });
     }
 
     private <O> O processResponse(HttpResponse<Buffer> httpResponse, Class<O> outputClass) throws HttpClientException {

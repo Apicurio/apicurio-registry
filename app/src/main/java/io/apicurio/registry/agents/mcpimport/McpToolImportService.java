@@ -36,6 +36,8 @@ import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RegistryStorage.RetrievalBehavior;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
+import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
+import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.ReadOnlyStorageException;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
@@ -157,13 +159,15 @@ public class McpToolImportService implements McpToolImportHandler {
     private McpToolImportResult importTools(String groupId, String serverArtifactId, McpToolImportRequest request,
             String toolGroupId, Map<String, String> headers, boolean dryRun) {
         ServerTools listed = listTools(groupId, serverArtifactId, request.getUrl(), headers);
-        Set<String> listedNames = checkBeforeWriting(listed.tools(), toolGroupId, serverArtifactId);
+        Map<String, String> existingTypes = new HashMap<>();
+        Set<String> listedNames = checkBeforeWriting(listed.tools(), toolGroupId, serverArtifactId, existingTypes);
 
         List<McpToolImportToolResult> results = new ArrayList<>();
         List<ArtifactReference> references = new ArrayList<>();
         for (McpSchema.Tool tool : listed.tools()) {
-            McpToolImportToolResult result = importTool(toolGroupId, serverArtifactId + "." + tool.name(), tool,
-                    dryRun);
+            String toolArtifactId = serverArtifactId + "." + tool.name();
+            McpToolImportToolResult result = importTool(toolGroupId, toolArtifactId, tool,
+                    existingTypes.get(toolArtifactId), dryRun);
             results.add(result);
             count(result.getStatus(), dryRun);
             if (result.getStatus() != McpToolImportStatus.REJECTED) {
@@ -249,9 +253,12 @@ public class McpToolImportService implements McpToolImportHandler {
      * two tools with one name would map to one artifact, and an existing tool artifact may be one
      * the caller cannot write (owner-only or per-resource authorization).
      *
+     * @param existingTypes filled with the artifact type of each listed tool's existing artifact, so
+     *                      the import does not look each one up again
      * @return the names of the listed tools
      */
-    private Set<String> checkBeforeWriting(List<McpSchema.Tool> tools, String toolGroupId, String serverArtifactId) {
+    private Set<String> checkBeforeWriting(List<McpSchema.Tool> tools, String toolGroupId, String serverArtifactId,
+            Map<String, String> existingTypes) {
         Set<String> listedNames = new HashSet<>();
         for (McpSchema.Tool tool : tools) {
             if (!listedNames.add(tool.name())) {
@@ -262,12 +269,26 @@ public class McpToolImportService implements McpToolImportHandler {
             String toolArtifactId = serverArtifactId + "." + tool.name();
             // A tool with an invalid name is rejected without a lookup: some databases cannot even
             // compare such an ID (MySQL fails on non-ASCII characters, #11180).
-            if (isValidTool(tool, toolArtifactId) && storage.isArtifactExists(raw(toolGroupId), toolArtifactId)) {
+            if (!isValidTool(tool, toolArtifactId)) {
+                continue;
+            }
+            String existingType = existingType(toolGroupId, toolArtifactId);
+            if (existingType != null) {
+                existingTypes.put(toolArtifactId, existingType);
                 accessGuard.requireAccess(AuthorizedLevel.Write, AuthorizedResource.artifact(toolGroupId,
                         toolArtifactId));
             }
         }
         return listedNames;
+    }
+
+    /** The type of the artifact, or {@code null} when it does not exist: one lookup for both. */
+    private String existingType(String groupId, String artifactId) {
+        try {
+            return storage.getArtifactMetaData(raw(groupId), artifactId).getArtifactType();
+        } catch (ArtifactNotFoundException e) {
+            return null;
+        }
     }
 
     /** The tools the previous server version referenced that the server no longer lists. */
@@ -308,8 +329,12 @@ public class McpToolImportService implements McpToolImportHandler {
         }
     }
 
+    /**
+     * @param existingType the type of the tool's existing artifact, as found before writing, or
+     *                     {@code null} when there was none
+     */
     private McpToolImportToolResult importTool(String groupId, String artifactId, McpSchema.Tool tool,
-            boolean dryRun) {
+            String existingType, boolean dryRun) {
         McpToolImportToolResult result = new McpToolImportToolResult();
         result.setName(tool.name());
         result.setGroupId(groupId);
@@ -323,11 +348,10 @@ public class McpToolImportService implements McpToolImportHandler {
             return result;
         }
 
-        boolean exists = storage.isArtifactExists(raw(groupId), artifactId);
+        boolean exists = existingType != null;
         List<String> previousVersions = List.of();
         if (exists) {
-            String type = storage.getArtifactMetaData(raw(groupId), artifactId).getArtifactType();
-            if (!ArtifactType.MCP_TOOL.equals(type)) {
+            if (!ArtifactType.MCP_TOOL.equals(existingType)) {
                 result.setStatus(McpToolImportStatus.REJECTED);
                 result.setCauses(List.of(cause("An artifact with this ID exists and is not an MCP_TOOL.",
                         "/artifactType")));
@@ -348,8 +372,11 @@ public class McpToolImportService implements McpToolImportHandler {
             // Exact matching, not canonical: the MCP_TOOL canonicalizer reads numbers as doubles, so
             // two bounds that round to the same double would match and the change skip its rules.
             // The definition is serialized the same way every time, so equal tools match exactly.
+            // A tool the preflight found missing must still be missing: if another request created
+            // the artifact since, it has not been authorized or type-checked, so it is not touched.
             CreateArtifactResponse response = groups.createArtifact(groupId,
-                    IfArtifactExists.FIND_OR_CREATE_VERSION, false, dryRun, create);
+                    exists ? IfArtifactExists.FIND_OR_CREATE_VERSION : IfArtifactExists.FAIL, false, dryRun,
+                    create);
             String stored = response.getVersion().getVersion();
             if (!exists) {
                 result.setStatus(McpToolImportStatus.CREATED);
@@ -361,6 +388,10 @@ public class McpToolImportService implements McpToolImportHandler {
                 result.setStatus(McpToolImportStatus.NEW_VERSION);
                 result.setVersion(dryRun ? null : stored);
             }
+        } catch (ArtifactAlreadyExistsException e) {
+            result.setStatus(McpToolImportStatus.REJECTED);
+            result.setCauses(List.of(cause("An artifact with this ID was created while the tools were being"
+                    + " imported.", "/artifactId")));
         } catch (RuleViolationException e) {
             result.setStatus(McpToolImportStatus.REJECTED);
             result.setCauses(e.getCauses().stream().map(McpToolImportService::cause).toList());

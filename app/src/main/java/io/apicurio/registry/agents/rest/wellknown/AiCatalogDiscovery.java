@@ -388,7 +388,7 @@ public class AiCatalogDiscovery {
                 .tags(formatTags(artifact.getLabels()))
                 .representativeQueries(representativeQueries)
                 .build();
-        return new AiCatalogCandidate(entry, artifact.getLabels(), artifact);
+        return new AiCatalogCandidate(entry, artifact.getLabels(), artifact, root);
     }
 
     private AiCatalogCandidate buildToolCandidate(SearchedArtifactDto artifact, String baseUrl,
@@ -409,7 +409,7 @@ public class AiCatalogDiscovery {
                 .updatedAt(formatUpdatedAt(artifact))
                 .tags(formatTags(artifact.getLabels()))
                 .build();
-        return new AiCatalogCandidate(entry, artifact.getLabels(), artifact);
+        return new AiCatalogCandidate(entry, artifact.getLabels(), artifact, root);
     }
 
     /**
@@ -773,12 +773,15 @@ public class AiCatalogDiscovery {
         final AiCatalogEntry entry;
         final Map<String, String> labels;
         final SearchedArtifactDto artifact;
+        /** The latest version's parsed content, read once, or a missing node if it could not be read. */
+        final JsonNode content;
 
         private AiCatalogCandidate(AiCatalogEntry entry, Map<String, String> labels,
-                SearchedArtifactDto artifact) {
+                SearchedArtifactDto artifact, JsonNode content) {
             this.entry = entry;
             this.labels = labels;
             this.artifact = artifact;
+            this.content = content;
         }
     }
 }

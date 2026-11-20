@@ -36,6 +36,7 @@ import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RegistryStorage.RetrievalBehavior;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
+import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.ReadOnlyStorageException;
 import io.apicurio.registry.types.ArtifactType;
@@ -371,8 +372,11 @@ public class McpToolImportService implements McpToolImportHandler {
             // Exact matching, not canonical: the MCP_TOOL canonicalizer reads numbers as doubles, so
             // two bounds that round to the same double would match and the change skip its rules.
             // The definition is serialized the same way every time, so equal tools match exactly.
+            // A tool the preflight found missing must still be missing: if another request created
+            // the artifact since, it has not been authorized or type-checked, so it is not touched.
             CreateArtifactResponse response = groups.createArtifact(groupId,
-                    IfArtifactExists.FIND_OR_CREATE_VERSION, false, dryRun, create);
+                    exists ? IfArtifactExists.FIND_OR_CREATE_VERSION : IfArtifactExists.FAIL, false, dryRun,
+                    create);
             String stored = response.getVersion().getVersion();
             if (!exists) {
                 result.setStatus(McpToolImportStatus.CREATED);
@@ -384,6 +388,10 @@ public class McpToolImportService implements McpToolImportHandler {
                 result.setStatus(McpToolImportStatus.NEW_VERSION);
                 result.setVersion(dryRun ? null : stored);
             }
+        } catch (ArtifactAlreadyExistsException e) {
+            result.setStatus(McpToolImportStatus.REJECTED);
+            result.setCauses(List.of(cause("An artifact with this ID was created while the tools were being"
+                    + " imported.", "/artifactId")));
         } catch (RuleViolationException e) {
             result.setStatus(McpToolImportStatus.REJECTED);
             result.setCauses(e.getCauses().stream().map(McpToolImportService::cause).toList());

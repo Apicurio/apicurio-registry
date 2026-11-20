@@ -12,6 +12,8 @@ import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.net.URI;
 import java.util.concurrent.TimeUnit;
@@ -36,33 +38,86 @@ public class Client {
     private static final int IDLE_TIMEOUT_SECONDS = 120;
     private static final int MAX_REDIRECTS = 5;
 
+    // Registry calls: without a read timeout, a request whose connection stalls (no bytes, no error)
+    // waits forever. A long-running request (an import) gets a longer one.
+    static final long REGISTRY_READ_IDLE_TIMEOUT_MILLIS = 120_000;
+    static final long REGISTRY_LONG_REQUEST_READ_IDLE_TIMEOUT_MILLIS = 3_600_000;
+
     private RegistryClient registryClient;
 
     private HttpClient httpClient;
 
+    /**
+     * Set from {@code --verbose}, before the command runs. Makes the Registry client log the raw
+     * request and response of every call it makes.
+     */
+    @Setter
+    @Getter
+    private boolean httpLoggingEnabled;
+
     public RegistryClient getRegistryClient() {
-        var currentContext = config.read();
-        if (isBlank(currentContext.getCurrentContext())) {
+        requireCurrentContext();
+        if (registryClient == null) {
+            registryClient = createRegistryClient(httpLoggingEnabled, true);
+        }
+        return registryClient;
+    }
+
+    /**
+     * A Registry client that never logs request or response bodies, even with {@code --verbose}.
+     * For calls whose body carries secrets the SDK cannot recognise, such as headers forwarded to
+     * another server. Always a new client: the cached one may have been created with logging on
+     * by an earlier command in the same JVM.
+     */
+    public RegistryClient getRegistryClientWithoutHttpLogging() {
+        return createRegistryClient(false, true);
+    }
+
+    /**
+     * A Registry client for a request the server may take long to answer without sending anything,
+     * such as an import: its read timeout is an hour rather than two minutes.
+     */
+    public RegistryClient getRegistryClientForLongRequests() {
+        return createRegistryClient(httpLoggingEnabled, false);
+    }
+
+    private void requireCurrentContext() {
+        if (isBlank(config.read().getCurrentContext())) {
             throw new CliException("No current context is set. " +
                     "Run `acr context use <context>` " +
                     "or `acr context create <name> <url>`.", APPLICATION_ERROR_RETURN_CODE);
-        } else {
-            if (registryClient == null) {
-                try {
-                    var uri = new URI(currentContext.getContext().get(currentContext.getCurrentContext()).getRegistryUrl());
-                    if (uri.getPath() == null) {
-                        uri = uri.resolve("/apis/registry/v3");
-                    }
-                    final var options = RegistryClientOptions.create(uri.toString(), vertx);
-                    final var context = currentContext.getContext().get(currentContext.getCurrentContext());
-                    configureAuth(options, context, currentContext.getCurrentContext());
-                    registryClient = RegistryClientFactory.create(options);
-                } catch (Exception ex) {
-                    throw new CliException("Could not create Registry client: " + ex.getMessage(),
-                            APPLICATION_ERROR_RETURN_CODE);
-                }
+        }
+    }
+
+    /**
+     * The options of a Registry client, before authentication is configured.
+     */
+    static RegistryClientOptions registryClientOptions(final String url, final Vertx vertx, final boolean logHttp,
+            final boolean shortReadTimeout) {
+        final var options = RegistryClientOptions.create(url, vertx);
+        options.requestTimeout(CONNECT_TIMEOUT_MILLIS,
+                shortReadTimeout ? REGISTRY_READ_IDLE_TIMEOUT_MILLIS : REGISTRY_LONG_REQUEST_READ_IDLE_TIMEOUT_MILLIS);
+        if (logHttp) {
+            options.enableHttpLogging();
+        }
+        return options;
+    }
+
+    private RegistryClient createRegistryClient(final boolean logHttp, final boolean shortReadTimeout) {
+        requireCurrentContext();
+        var currentContext = config.read();
+        try {
+            var uri = new URI(currentContext.getContext().get(currentContext.getCurrentContext()).getRegistryUrl());
+            if (uri.getPath() == null) {
+                uri = uri.resolve("/apis/registry/v3");
             }
-            return registryClient;
+            final var options = registryClientOptions(uri.toString(), vertx, logHttp, shortReadTimeout);
+            final var context = currentContext.getContext().get(currentContext.getCurrentContext());
+            configureAuth(options, context, currentContext.getCurrentContext());
+            return RegistryClientFactory.create(options);
+        } catch (Exception ex) {
+            throw new CliException("Could not create Registry client: " + ex.getMessage(),
+                    APPLICATION_ERROR_RETURN_CODE);
         }
     }
 
@@ -116,5 +171,6 @@ public class Client {
     public void reset() {
         registryClient = null;
         httpClient = null;
+        httpLoggingEnabled = false;
     }
 }

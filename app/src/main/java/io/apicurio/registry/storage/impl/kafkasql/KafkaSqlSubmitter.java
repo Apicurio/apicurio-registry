@@ -64,13 +64,11 @@ public class KafkaSqlSubmitter {
     }
 
     /**
-     * Sends a message to the Kafka topic.
-     *
-     * @param key
-     * @param value
+     * Sends a message to the Kafka topic. The caller supplies the request ID: tracked
+     * sends get one from the coordinator, untracked sends a random UUID that keeps the
+     * header shape journal-record classification relies on.
      */
-    private CompletableFuture<UUID> send(KafkaSqlMessageKey key, KafkaSqlMessage value) {
-        UUID requestId = coordinator.get().createUUID();
+    private CompletableFuture<UUID> send(KafkaSqlMessageKey key, KafkaSqlMessage value, UUID requestId) {
         RecordHeader requestIdHeader = new RecordHeader(REQUEST_ID_HEADER,
                 requestId.toString().getBytes(StandardCharsets.UTF_8));
         RecordHeader messageTypeHeader = new RecordHeader(MESSAGE_TYPE_HEADER,
@@ -88,12 +86,38 @@ public class KafkaSqlSubmitter {
     public void submitBootstrap(String bootstrapId) {
         KafkaSqlMessageKey key = KafkaSqlMessageKey.builder().messageType(BOOTSTRAP_MESSAGE_TYPE).uuid(bootstrapId)
                 .build();
-        blockOnResult(send(key, null));
+        blockOnResult(send(key, null, UUID.randomUUID()));
     }
 
+    /**
+     * Submits a message whose result a caller will wait for; pass the returned UUID to
+     * KafkaSqlCoordinator.waitForResponse (see createUUID). Messages nobody waits for go
+     * through submitMessageWithoutResponse instead.
+     */
     public CompletableFuture<UUID> submitMessage(KafkaSqlMessage message) {
         var key = message.getKey();
-        return send(key, message);
+        KafkaSqlCoordinator kafkaSqlCoordinator = coordinator.get();
+        UUID requestId = kafkaSqlCoordinator.createUUID();
+        try {
+            // A failed send means the caller will never wait, so drop the pending entry.
+            return send(key, message, requestId).whenComplete((uuid, error) -> {
+                if (error != null) {
+                    kafkaSqlCoordinator.forget(requestId);
+                }
+            });
+        } catch (Throwable e) {
+            kafkaSqlCoordinator.forget(requestId);
+            throw e;
+        }
+    }
+
+    /**
+     * Submits a message whose result nobody waits for. The request id still goes into the journal header,
+     * but the coordinator never learns about it, so no pending entry is kept for the message.
+     * Callers must handle a failed send themselves.
+     */
+    public CompletableFuture<UUID> submitMessageWithoutResponse(KafkaSqlMessage message) {
+        return send(message.getKey(), message, UUID.randomUUID());
     }
 
 }

@@ -44,7 +44,7 @@ public class ImportLifecycleBean {
         if (StorageEventType.READY.equals(ev.getType())) {
             if (importExportProps.registryImportUrlProp.isPresent()) {
                 log.info("Import URL exists.");
-                final URL registryImportUrl = importExportProps.registryImportUrlProp.get();
+                final URL registryImportUrl = importExportProps.registryImportUrlProp.orElseThrow();
                 importStatus = ImportStatus.STARTED;
                 try (final InputStream registryImportZip = new BufferedInputStream(
                         registryImportUrl.openStream())) {

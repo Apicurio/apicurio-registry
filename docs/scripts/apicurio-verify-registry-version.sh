@@ -13,6 +13,8 @@
 # Environment Variables (optional):
 #   REGISTRY_URL              - Registry base URL (e.g., https://registry.example.com)
 #   REGISTRY_VERSION          - API version to test (default: v3)
+#   MANAGEMENT_URL            - Base URL of the health endpoints (default: REGISTRY_URL). Registry 3.x
+#                               serves them on the management port (9000), not on the API port
 #   AUTH_ENABLED              - Set to "true" to enable OAuth2 authentication
 #   AUTH_TOKEN_URL            - OAuth2 token endpoint URL
 #   AUTH_CLIENT_ID            - OAuth2 client ID
@@ -131,7 +133,7 @@ echo ""
 
 # Check 1: Health endpoint
 check "1. Checking health endpoint..."
-HEALTH_URL="${REGISTRY_URL}/health/live"
+HEALTH_URL="${MANAGEMENT_URL:-$REGISTRY_URL}/health/live"
 HEALTH_STATUS=$(curl $CURL_OPTS -s -o /dev/null -w "%{http_code}" "$HEALTH_URL" || echo "000")
 
 if [ "$HEALTH_STATUS" -eq 200 ]; then

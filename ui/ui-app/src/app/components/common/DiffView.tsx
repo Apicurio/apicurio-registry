@@ -1,11 +1,10 @@
 import { FunctionComponent, useState } from "react";
 import "./DiffView.css";
 import { ToggleGroup, ToggleGroupItem } from "@patternfly/react-core";
-import { editor } from "monaco-editor";
-import { DiffEditor } from "@monaco-editor/react";
+import type { editor } from "monaco-editor";
+import { RegistryDiffEditor } from "@app/components/codeEditor/RegistryEditors.tsx";
 import { ArrowsAltHIcon } from "@patternfly/react-icons";
-import IDiffEditorConstructionOptions = editor.IDiffEditorConstructionOptions;
-import { registerCustomLanguages } from "@editors/registerLanguages.ts";
+type IDiffEditorConstructionOptions = editor.IDiffEditorConstructionOptions;
 
 /**
  * Properties
@@ -17,6 +16,8 @@ export type DiffViewProps = {
     modifiedLabel: string;
     originalAriaLabel?: string;
     modifiedAriaLabel?: string;
+    /** A fixed editor height, for containers that don't give the editor one. */
+    height?: string;
 };
 
 /**
@@ -28,7 +29,8 @@ export const DiffView: FunctionComponent<DiffViewProps> = ({
     modified,
     modifiedLabel,
     originalAriaLabel = "Original",
-    modifiedAriaLabel = "Modified"
+    modifiedAriaLabel = "Modified",
+    height
 }: DiffViewProps) => {
     const [diffEditorContentOptions, setDiffEditorContentOptions] = useState({
         renderSideBySide: true,
@@ -85,9 +87,9 @@ export const DiffView: FunctionComponent<DiffViewProps> = ({
                 <span className="after">{modifiedLabel}</span>
             </div>
             <div className="diff-editor">
-                <DiffEditor
-                    beforeMount={registerCustomLanguages}
+                <RegistryDiffEditor
                     className="text-editor"
+                    height={height}
                     original={original}
                     modified={modified}
                     options={diffEditorContentOptions}

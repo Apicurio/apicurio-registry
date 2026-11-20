@@ -62,6 +62,7 @@ public class CompatibilityResourceImpl implements CompatibilityResource {
     private CompatibilityCheckResponse convertResponse(io.apicurio.registry.ccompat.rest.v7.beans.CompatibilityCheckResponse v7Response) {
         CompatibilityCheckResponse response = new CompatibilityCheckResponse();
         response.setIsCompatible(v7Response.getIsCompatible());
+        response.setMessages(v7Response.getMessages());
         return response;
     }
 }

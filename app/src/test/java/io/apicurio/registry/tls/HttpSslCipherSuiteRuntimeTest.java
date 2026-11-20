@@ -28,8 +28,12 @@ public class HttpSslCipherSuiteRuntimeTest {
         TrustManager[] trustAllCerts = new TrustManager[]{
             new X509TrustManager() {
                 public X509Certificate[] getAcceptedIssuers() { return null; }
-                public void checkClientTrusted(X509Certificate[] certs, String authType) {}
-                public void checkServerTrusted(X509Certificate[] certs, String authType) {}
+                public void checkClientTrusted(X509Certificate[] certs, String authType) {
+                    // Intentionally trusts all certificates: test-only self-signed setup.
+                }
+                public void checkServerTrusted(X509Certificate[] certs, String authType) {
+                    // Intentionally trusts all certificates: test-only self-signed setup.
+                }
             }
         };
 
@@ -53,12 +57,10 @@ public class HttpSslCipherSuiteRuntimeTest {
         SSLContext disallowedCtx = SSLContext.getInstance("TLSv1.3");
         disallowedCtx.init(null, trustAllCerts, new SecureRandom());
         SSLSocketFactory disallowedFactory = disallowedCtx.getSocketFactory();
-        Assertions.assertThrows(IOException.class, () -> {
-            try (SSLSocket socket = (SSLSocket) disallowedFactory.createSocket(host, port)) {
-                socket.setEnabledProtocols(new String[]{"TLSv1.3"});
-                socket.setEnabledCipherSuites(new String[]{"TLS_AES_128_GCM_SHA256"});
-                socket.startHandshake();
-            }
-        });
+        try (SSLSocket socket = (SSLSocket) disallowedFactory.createSocket(host, port)) {
+            socket.setEnabledProtocols(new String[]{"TLSv1.3"});
+            socket.setEnabledCipherSuites(new String[]{"TLS_AES_128_GCM_SHA256"});
+            Assertions.assertThrows(IOException.class, socket::startHandshake);
+        }
     }
 }

@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.apitomy.datamodels.Library;
 import io.apitomy.datamodels.models.Document;
 import io.apitomy.datamodels.models.Node;
+import io.apitomy.datamodels.models.asyncapi.AsyncApiMultiFormatSchema;
 import io.apitomy.datamodels.refs.LocalReferenceResolver;
 import io.apitomy.datamodels.refs.ResolvedReference;
 import io.apicurio.registry.content.TypedContent;
@@ -13,6 +14,7 @@ import io.apicurio.registry.content.refs.JsonPointerExternalReference;
 import io.apicurio.registry.content.util.ContentTypeUtil;
 
 import java.io.IOException;
+import java.util.Locale;
 import java.util.Map;
 
 public class RegistryReferenceResolver extends LocalReferenceResolver {
@@ -49,8 +51,8 @@ public class RegistryReferenceResolver extends LocalReferenceResolver {
     private ReferencedContentType detectContentType(TypedContent resolvedRefContent) {
         String contentType = resolvedRefContent.getContentType();
 
-        // Check for Protobuf first (text-based)
-        if (contentType != null && (contentType.contains("protobuf") || contentType.contains("proto"))) {
+        // Check for Protobuf first (text-based). The content type may be a media type or an artifact type name.
+        if (contentType != null && contentType.toLowerCase(Locale.ROOT).contains("proto")) {
             return ReferencedContentType.PROTOBUF;
         }
 
@@ -76,18 +78,8 @@ public class RegistryReferenceResolver extends LocalReferenceResolver {
             // Check for Avro (has "type" and optionally "name", "namespace", "fields")
             // Avro records have: type, name, namespace (optional), fields
             // Avro primitives/enums/arrays/maps also have "type"
-            if (node.has("type")) {
-                JsonNode typeNode = node.get("type");
-                if (typeNode.isTextual()) {
-                    String type = typeNode.asText();
-                    // Avro types: null, boolean, int, long, float, double, bytes, string,
-                    // record, enum, array, map, fixed
-                    if (type.equals("record") || type.equals("enum") || type.equals("fixed")
-                            || type.equals("array") || type.equals("map")
-                            || (node.has("name") && (node.has("fields") || node.has("symbols")))) {
-                        return ReferencedContentType.AVRO;
-                    }
-                }
+            if (isAvro(node)) {
+                return ReferencedContentType.AVRO;
             }
 
         } catch (IOException e) {
@@ -95,6 +87,21 @@ public class RegistryReferenceResolver extends LocalReferenceResolver {
         }
 
         return ReferencedContentType.OTHER;
+    }
+
+    private static boolean isAvro(JsonNode node) {
+        if (node.has("type")) {
+            JsonNode typeNode = node.get("type");
+            if (typeNode.isTextual()) {
+                String type = typeNode.asText();
+                // Avro types: null, boolean, int, long, float, double, bytes, string,
+                // record, enum, array, map, fixed
+                return type.equals("record") || type.equals("enum") || type.equals("fixed")
+                        || type.equals("array") || type.equals("map")
+                        || (node.has("name") && (node.has("fields") || node.has("symbols")));
+            }
+        }
+        return false;
     }
 
     /**
@@ -151,13 +158,14 @@ public class RegistryReferenceResolver extends LocalReferenceResolver {
                         // The dereferencer will wrap it in a Multi-Format Schema Object
                         JsonNode avroNode = ContentTypeUtil.parseJsonOrYaml(resolvedRefContent);
                         return ResolvedReference.fromJson(avroNode,
-                                "application/vnd.apache.avro+json");
+                                AsyncApiSchemaFormats.forAvro(declaredSchemaFormat(from)));
 
                     case PROTOBUF:
                         // For Protobuf, return as text with appropriate media type
                         // The dereferencer will wrap it in a Multi-Format Schema Object
                         String protoContent = resolvedRefContent.getContent().content();
-                        return ResolvedReference.fromText(protoContent, "application/x-protobuf");
+                        return ResolvedReference.fromText(protoContent,
+                                AsyncApiSchemaFormats.forProtobuf(declaredSchemaFormat(from), protoContent));
 
                     case OTHER:
                         // For Other, return as text with no media type
@@ -171,6 +179,27 @@ public class RegistryReferenceResolver extends LocalReferenceResolver {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    /**
+     * Returns the schemaFormat declared on the Multi-Format Schema Object containing the reference, or
+     * null if there is none. A versioned declaration of the matching family is kept on the inlined schema;
+     * versionless declarations on referencing wrappers are fixed up after dereferencing by
+     * {@link AsyncApiSchemaFormats#normalizeVersionless}.
+     *
+     * @param from the node containing the unresolved reference
+     * @return the declared schemaFormat, or null
+     */
+    private static String declaredSchemaFormat(Node from) {
+        // The $ref may be on the Multi-Format Schema Object itself or on its "schema" property
+        Node node = from;
+        for (int depth = 0; node != null && depth < 2; depth++) {
+            if (node instanceof AsyncApiMultiFormatSchema multiFormatSchema) {
+                return multiFormatSchema.getSchemaFormat();
+            }
+            node = node.parent();
+        }
+        return null;
     }
 
 }

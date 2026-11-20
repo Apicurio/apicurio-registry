@@ -1,0 +1,41 @@
+name: 'Newer Than Published'
+description: 'Whether this commit is newer than the ones published snapshot images were built from'
+
+# Verify publishes snapshot images (latest-snapshot) from push runs on main. A
+# retried run can pass after a newer commit was published, and must not move
+# the tags back to its older commit (#10380, D4). Images carry the commit they
+# were built from in the org.opencontainers.image.revision label, and
+# newer-than-published.sh compares that commit with this one. It answers
+# 'false' when this commit is older than any of the images' commits, and fails
+# when it can't tell.
+#
+# The caller must not run two of these and their pushes at once, or both can
+# pass the check and then overwrite each other: Verify gives each publish job a
+# concurrency group per branch, with queue: max.
+#
+# Checkout is not part of this action: a local composite action is resolved
+# from the workspace, so the repository must already be checked out.
+
+inputs:
+  images:
+    description: 'Published images to compare with, one per line, e.g. quay.io/apicurio/apicurio-registry:latest-snapshot. Must be readable without credentials'
+    required: true
+
+outputs:
+  publish:
+    description: "'false' when this commit is older than one of the images' commits, else 'true'"
+    value: ${{ steps.compare.outputs.publish }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Compare with the published commits
+      id: compare
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        IMAGES: ${{ inputs.images }}
+        SHA: ${{ github.sha }}
+      run: |
+        mapfile -t images < <(grep -v '^[[:space:]]*$' <<<"$IMAGES")
+        "$GITHUB_ACTION_PATH/newer-than-published.sh" "${images[@]}"

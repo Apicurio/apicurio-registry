@@ -11,7 +11,7 @@ import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.impl.polling.model.Type;
 import io.apicurio.registry.storage.impl.polling.model.v0.Artifact;
 import io.apicurio.registry.storage.impl.polling.model.v0.Version;
-import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
+import io.apicurio.registry.references.ReferenceResolution;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -121,7 +121,7 @@ public class PollingDataValidator {
                             return ref;
                         })
                         .toList();
-                resolvedReferences = RegistryContentUtils.recursivelyResolveReferences(
+                resolvedReferences = ReferenceResolution.recursivelyResolveReferences(
                         refDtos, storage::getContentByReference);
             } else {
                 references = Collections.emptyList();
@@ -130,7 +130,8 @@ public class PollingDataValidator {
 
             try {
                 rulesService.applyRules(storage,
-                        artifact.getGroupId(), artifact.getArtifactId(), artifact.getArtifactType(),
+                        artifact.getGroupId(), artifact.getArtifactId(), current.getVersion(),
+                        artifact.getArtifactType(),
                         currentContent, existingContent,
                         references, resolvedReferences);
             } catch (RuleViolationException e) {

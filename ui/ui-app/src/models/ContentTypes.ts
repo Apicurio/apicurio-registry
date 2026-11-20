@@ -9,5 +9,6 @@ export class ContentTypes {
     public static APPLICATION_OCTET_STREAM: string = "application/octet-stream";
     public static APPLICATION_WSDL: string = "application/wsdl+xml";
     public static TEXT_XML: string = "text/xml";
+    public static TEXT_PROMPT_TEMPLATE: string = "text/x-prompt-template";
 
 }

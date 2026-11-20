@@ -1,0 +1,11 @@
+{
+  "name": "bad_required_tool",
+  "description": "inputSchema declares 'required' as a string instead of an array",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "city": { "type": "string" }
+    },
+    "required": "city"
+  }
+}

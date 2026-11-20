@@ -45,12 +45,20 @@ public class UsageTelemetryBuffer {
         String dedupKey = (event.getGlobalId() > 0 ? "g" + event.getGlobalId() : "c" + event.getContentId())
                 + ":" + event.getClientId();
         long now = System.currentTimeMillis();
-        Long lastSeen = dedupMap.get(dedupKey);
-        if (lastSeen != null && (now - lastSeen) < DEDUP_WINDOW_MS) {
-            return;
+        // Decide and stamp in one atomic step, so concurrent calls for the same key buffer a
+        // single event. The flag carries the decision out because the new timestamp on its own
+        // cannot: two calls in the same millisecond would both look like the winner.
+        boolean[] accepted = new boolean[1];
+        dedupMap.compute(dedupKey, (key, lastSeen) -> {
+            if (lastSeen != null && (now - lastSeen) < DEDUP_WINDOW_MS) {
+                return lastSeen;
+            }
+            accepted[0] = true;
+            return now;
+        });
+        if (accepted[0]) {
+            buffer.add(event);
         }
-        dedupMap.put(dedupKey, now);
-        buffer.add(event);
     }
 
     @Scheduled(delay = 5, delayUnit = TimeUnit.SECONDS, concurrentExecution = SKIP, every = "{apicurio.usage.flush.every}")

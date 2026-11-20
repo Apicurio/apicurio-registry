@@ -28,7 +28,7 @@ import {
     FlexItem
 } from "@patternfly/react-core";
 import { SearchIcon, CubesIcon, ExternalLinkAltIcon } from "@patternfly/react-icons";
-import { RootPageHeader } from "@app/components";
+import { IfFeature, RootPageHeader } from "@app/components";
 import { AGENTS_PAGE_IDX, PageDataLoader, PageError, PageErrorHandler, PageProperties, toPageError } from "@app/pages";
 import {
     AgentSearchFilters,
@@ -171,6 +171,7 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
     }, []);
 
     const renderAgentCard = (agent: AgentSearchResult): React.ReactElement => {
+        const primaryInterface = agent.supportedInterfaces?.[0];
         return (
             <Card
                 key={`${agent.groupId}-${agent.artifactId}`}
@@ -194,12 +195,17 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
                         {agent.description || <span className="no-description">No description</span>}
                     </div>
 
-                    {agent.url && (
+                    {primaryInterface?.url && (
                         <div className="agent-url">
-                            <a href={agent.url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}>
-                                {agent.url}
+                            <a href={primaryInterface.url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}>
+                                {primaryInterface.url}
                                 <ExternalLinkAltIcon className="external-icon" />
                             </a>
+                            {primaryInterface.protocolBinding && (
+                                <Label color="teal" isCompact className="agent-protocol-binding">
+                                    {primaryInterface.protocolBinding}
+                                </Label>
+                            )}
                         </div>
                     )}
 
@@ -331,16 +337,18 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
                             Search
                         </Button>
                     </ToolbarItem>
-                    <ToolbarItem>
-                        <Button variant="secondary" onClick={() => setIsCreateAgentModalOpen(true)}>
-                            Create Agent
-                        </Button>
-                    </ToolbarItem>
-                    <ToolbarItem>
-                        <Button variant="secondary" onClick={() => setIsImportAgentModalOpen(true)}>
-                            Import Agent
-                        </Button>
-                    </ToolbarItem>
+                    <IfFeature feature="readOnly" isNot={true}>
+                        <ToolbarItem>
+                            <Button variant="secondary" onClick={() => setIsCreateAgentModalOpen(true)}>
+                                Create Agent
+                            </Button>
+                        </ToolbarItem>
+                        <ToolbarItem>
+                            <Button variant="secondary" onClick={() => setIsImportAgentModalOpen(true)}>
+                                Import Agent
+                            </Button>
+                        </ToolbarItem>
+                    </IfFeature>
                     <ToolbarItem variant="pagination" align={{ default: "alignEnd" }}>
                         <Pagination
                             itemCount={results.count}

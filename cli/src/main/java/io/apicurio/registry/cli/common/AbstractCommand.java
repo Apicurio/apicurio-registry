@@ -1,14 +1,18 @@
 package io.apicurio.registry.cli.common;
 
+import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.cli.Acr;
 import io.apicurio.registry.cli.config.Config;
 import io.apicurio.registry.cli.services.Client;
 import io.apicurio.registry.cli.services.UpdateNotifier;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.rest.client.models.ProblemDetails;
+import io.apicurio.registry.rest.client.models.RuleViolationCause;
+import io.apicurio.registry.rest.client.models.RuleViolationDetails;
 import io.apicurio.registry.rest.client.models.RuleViolationProblemDetails;
 import jakarta.inject.Inject;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -46,8 +50,14 @@ public abstract class AbstractCommand implements Callable<Integer> {
     public Integer call() {
         var output = new OutputBuffer(config.getStdOut(), config.getStdErr());
         try {
-            configureLogging();
+            var verbose = isVerbose();
+            configureLogging(verbose);
+            client.setHttpLoggingEnabled(verbose);
             updateNotifier.checkAndNotify(getTopLevelCommandName());
+            if (isInteractiveRequested() && supportsInteractive()) {
+                runInteractive(output);
+                return OK_RETURN_CODE;
+            }
             run(output);
             return OK_RETURN_CODE;
         } catch (CliException ex) {
@@ -57,7 +67,14 @@ public abstract class AbstractCommand implements Callable<Integer> {
             handleRuleViolation(output, ex);
             return SERVER_ERROR_RETURN_CODE;
         } catch (ProblemDetails ex) {
-            handleProblemDetails(output, ex);
+            if (hasRuleViolationCauses(ex)) {
+                handleRuleViolation(output, ex);
+            } else {
+                handleProblemDetails(output, ex);
+            }
+            return SERVER_ERROR_RETURN_CODE;
+        } catch (ApiException ex) {
+            handleApiException(output, ex);
             return SERVER_ERROR_RETURN_CODE;
         } catch (Exception ex) {
             log.error("Unexpected error", ex);
@@ -70,26 +87,69 @@ public abstract class AbstractCommand implements Callable<Integer> {
 
     public abstract void run(OutputBuffer output) throws Exception;
 
+    /**
+     * Commands that support --interactive should override this.
+     * Default: interactive mode isn't available for this command.
+     */
+    public boolean supportsInteractive() {
+        return false;
+    }
+
+    /**
+     * Runs the TUI loop. Only called if supportsInteractive() is true
+     * and the --interactive flag was passed.
+     */
+    public void runInteractive(OutputBuffer output) {
+        throw new UnsupportedOperationException("Interactive mode not implemented for this command.");
+    }
+
+    private boolean isInteractiveRequested() {
+        return InteractiveMixin.isRequested(spec.commandLine().getParseResult());
+    }
+
     private static void handleCliException(final OutputBuffer output, final CliException ex) {
         if (!ex.isQuiet()) {
             output.writeStdErrChunk(out -> out.append(ERROR_PREFIX).append(ex.getMessage()).append("\n"));
         }
     }
 
-    private static void handleRuleViolation(final OutputBuffer output, final RuleViolationProblemDetails ex) {
+    static void handleRuleViolation(final OutputBuffer output, final RuleViolationProblemDetails ex) {
+        printRuleViolation(output, Optional.ofNullable(ex.getDetail()).orElse(ex.getMessage()), ex.getCauses());
+    }
+
+    static void handleRuleViolation(final OutputBuffer output, final ProblemDetails ex) {
+        List<RuleViolationCause> causes = Optional.ofNullable(ex.getRuleViolation())
+                .map(RuleViolationDetails::getCauses)
+                .orElse(null);
+        printRuleViolation(output, Optional.ofNullable(ex.getDetail()).orElse(ex.getMessage()), causes);
+    }
+
+    private static void printRuleViolation(final OutputBuffer output, final String message, final List<RuleViolationCause> causes) {
         output.writeStdErrChunk(err -> {
-            err.append(ERROR_PREFIX).append(Optional.ofNullable(ex.getDetail()).orElse(ex.getMessage())).append('\n');
-            Optional.ofNullable(ex.getCauses()).ifPresent(causes ->
-                    causes.forEach(cause ->
-                            err.append("  -> ").append(Optional.ofNullable(cause.getContext()).orElse(""))
-                                    .append(": ").append(Optional.ofNullable(cause.getDescription()).orElse("")).append('\n')));
+            err.append(ERROR_PREFIX).append(message).append('\n');
+            if (causes != null) {
+                causes.forEach(cause ->
+                        err.append("  -> ").append(Optional.ofNullable(cause.getContext()).orElse(""))
+                                .append(": ").append(Optional.ofNullable(cause.getDescription()).orElse("")).append('\n'));
+            }
         });
+    }
+
+    static boolean hasRuleViolationCauses(final ProblemDetails ex) {
+        return ex.getRuleViolation() != null
+                && ex.getRuleViolation().getCauses() != null
+                && !ex.getRuleViolation().getCauses().isEmpty();
     }
 
     protected static void handleProblemDetails(final OutputBuffer output, final ProblemDetails ex) {
         output.writeStdErrChunk(err -> {
             err.append(ERROR_PREFIX).append(Optional.ofNullable(ex.getDetail()).orElse(ex.getMessage())).append('\n');
         });
+    }
+
+    static void handleApiException(final OutputBuffer output, final ApiException ex) {
+        output.writeStdErrChunk(err -> err.append(ERROR_PREFIX).append("Registry returned HTTP status ")
+                .append(ex.getResponseStatusCode()).append(": ").append(ex.getMessage()).append('\n'));
     }
 
     private String getTopLevelCommandName() {
@@ -103,6 +163,10 @@ public abstract class AbstractCommand implements Callable<Integer> {
     private static final String LOG_CATEGORY_PREFIX = "quarkus.log.category.\"";
     private static final String LOG_CATEGORY_SUFFIX = "\".level";
 
+    private boolean isVerbose() {
+        return spec.root().userObject() instanceof Acr acr && acr.isVerbose();
+    }
+
     /**
      * Configures logging for the current command.
      * <p>
@@ -115,9 +179,8 @@ public abstract class AbstractCommand implements Callable<Integer> {
      * and Quarkus resolves {@code quarkus.log.*} at build time, so per-package levels in the CLI
      * config are never picked up by Quarkus's own logging setup.
      */
-    private void configureLogging() {
-        var root = spec.root().userObject();
-        if (!(root instanceof Acr acr) || !acr.isVerbose()) {
+    private void configureLogging(boolean verbose) {
+        if (!verbose) {
             return;
         }
 

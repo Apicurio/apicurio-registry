@@ -124,6 +124,14 @@ The MCP server currently supports the following operations:
 - Groups - create, get, list, search, update
 - Artifacts - create, get, list, search, update
 - Versions - create, get, list, search, update
+- A2A agents / MCP tools - discover, get
+- ARD (Agentic Resource Discovery) search - `ard_search` wraps the registry's
+  `POST /.well-known/ard/search` endpoint so LLM orchestrators can query the ARD index
+  natively via MCP, per the ARD spec's Protocol Wrappers section. It accepts a
+  natural-language query plus optional `type` / `tags` / `capabilities` / `publisher`
+  filters, and returns matching entries in the ARD entry format. Requires ARD support to
+  be enabled on the target registry (`apicurio.ard.enabled=true`); otherwise the call
+  fails with an error indicating ARD support is disabled.
 
 *(\*) Some operations are restricted for safety reasons.*
 

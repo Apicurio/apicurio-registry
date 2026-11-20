@@ -1,0 +1,50 @@
+# Custom artifact types example: a registry with two artifact types of its own.
+#
+#   apicurio-registry     built from the Dockerfile: the "-mutable" registry image plus the Java
+#                         providers of the MARKDOWN type, re-augmented; artifact-types.json declares
+#                         MARKDOWN (Java classes) and CSV (webhooks)
+#   csv-webhook           the CSV type's providers, as an HTTP service (webhook/server.py)
+#   apicurio-registry-ui  the registry UI
+#
+# For local demonstration only: no authentication, no TLS.
+# Host ports: 8080 (API), 8888 (UI); override with REGISTRY_PORT and UI_PORT.
+services:
+  apicurio-registry:
+    build:
+      context: .
+      args:
+        REGISTRY_IMAGE: "${REGISTRY_MUTABLE_IMAGE:-apicurio/apicurio-registry:latest-snapshot-mutable}"
+    image: custom-artifact-types-registry:local
+    container_name: custom-artifact-types-registry
+    ports:
+      - "${REGISTRY_PORT:-8080}:8080"
+    depends_on:
+      csv-webhook: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9000/health/ready > /dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+
+  csv-webhook:
+    image: python:3.12-alpine
+    container_name: custom-artifact-types-csv-webhook
+    command: ["python", "/app/server.py"]
+    volumes:
+      - ./webhook/server.py:/app/server.py:ro,z
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO /dev/null http://127.0.0.1:8080/health"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  apicurio-registry-ui:
+    image: ${REGISTRY_UI_IMAGE:-apicurio/apicurio-registry-ui:latest-snapshot}
+    container_name: custom-artifact-types-registry-ui
+    ports:
+      - "${UI_PORT:-8888}:8080"
+    environment:
+      REGISTRY_API_URL: "http://localhost:${REGISTRY_PORT:-8080}/apis/registry/v3"
+    depends_on:
+      apicurio-registry:
+        condition: service_healthy

@@ -23,7 +23,27 @@ vi.mock("@utils/rest.utils.ts", async (importOriginal) => {
     };
 });
 
-import { FilterBy, useSearchService } from "./useSearchService";
+import { FilterBy, toPartialNameFilter, useSearchService } from "./useSearchService";
+
+describe("toPartialNameFilter", () => {
+    it("returns empty string for empty or whitespace input", () => {
+        expect(toPartialNameFilter("")).toBe("");
+        expect(toPartialNameFilter("   ")).toBe("");
+        expect(toPartialNameFilter(undefined)).toBe("");
+    });
+
+    it("wraps fragment in wildcards for substring matching", () => {
+        expect(toPartialNameFilter("Cart")).toBe("*Cart*");
+        expect(toPartialNameFilter("  Cart  ")).toBe("*Cart*");
+    });
+
+    it("preserves explicit user-provided wildcards", () => {
+        expect(toPartialNameFilter("Cart*")).toBe("Cart*");
+        expect(toPartialNameFilter("*Cart")).toBe("*Cart");
+        expect(toPartialNameFilter("*Cart*")).toBe("*Cart*");
+        expect(toPartialNameFilter("*")).toBe("*");
+    });
+});
 
 // Regression test for issue #9086: the `limit` query param must always equal
 // `pageSize`, regardless of which page is being requested. Previously it was
@@ -89,5 +109,110 @@ describe("useSearchService pagination", () => {
             expect(params.limit).toBe(10);
             expect(params.offset).toBe(pagesToCheck[i].expectedOffset);
         });
+    });
+});
+
+// Regression test for issue #10128: name filter must wrap input in wildcards
+// so partial names return matching artifacts/versions in console search.
+describe("useSearchService name filter wildcard wrapping (#10128)", () => {
+    it("wraps partial name in wildcards for searchArtifacts", async () => {
+        const get = vi.fn().mockResolvedValue({ count: 0, artifacts: [] });
+        getRegistryClientMock.mockReturnValue({ search: { artifacts: { get } } });
+
+        const service = useSearchService();
+        await service.searchArtifacts(
+            [{ by: FilterBy.name, value: "Cart" }], "name" as any, "asc" as any, { page: 1, pageSize: 10 }
+        );
+
+        expect(get).toHaveBeenCalledTimes(1);
+        expect(get.mock.calls[0][0].queryParameters.name).toBe("*Cart*");
+        expect(get.mock.calls[0][0].queryParameters.nameCaseInsensitive).toBe(true);
+    });
+
+    it("preserves explicit wildcards in searchArtifacts", async () => {
+        const get = vi.fn().mockResolvedValue({ count: 0, artifacts: [] });
+        getRegistryClientMock.mockReturnValue({ search: { artifacts: { get } } });
+
+        const service = useSearchService();
+        await service.searchArtifacts(
+            [{ by: FilterBy.name, value: "Cart*" }], "name" as any, "asc" as any, { page: 1, pageSize: 10 }
+        );
+
+        expect(get).toHaveBeenCalledTimes(1);
+        expect(get.mock.calls[0][0].queryParameters.name).toBe("Cart*");
+        expect(get.mock.calls[0][0].queryParameters.nameCaseInsensitive).toBe(true);
+    });
+
+    it("wraps partial name in wildcards for searchVersions", async () => {
+        const get = vi.fn().mockResolvedValue({ count: 0, versions: [] });
+        getRegistryClientMock.mockReturnValue({ search: { versions: { get } } });
+
+        const service = useSearchService();
+        await service.searchVersions(
+            [{ by: FilterBy.name, value: "Cart" }], "name" as any, "asc" as any, { page: 1, pageSize: 10 }
+        );
+
+        expect(get).toHaveBeenCalledTimes(1);
+        expect(get.mock.calls[0][0].queryParameters.name).toBe("*Cart*");
+        expect(get.mock.calls[0][0].queryParameters.nameCaseInsensitive).toBe(true);
+    });
+
+    it("preserves explicit wildcards in searchVersions", async () => {
+        const get = vi.fn().mockResolvedValue({ count: 0, versions: [] });
+        getRegistryClientMock.mockReturnValue({ search: { versions: { get } } });
+
+        const service = useSearchService();
+        await service.searchVersions(
+            [{ by: FilterBy.name, value: "*Cart" }], "name" as any, "asc" as any, { page: 1, pageSize: 10 }
+        );
+
+        expect(get).toHaveBeenCalledTimes(1);
+        expect(get.mock.calls[0][0].queryParameters.name).toBe("*Cart");
+        expect(get.mock.calls[0][0].queryParameters.nameCaseInsensitive).toBe(true);
+    });
+});
+
+describe("useSearchService resource permissions", () => {
+    it("returns the permissions of the group searched for", async () => {
+        const get = vi.fn().mockResolvedValue({
+            count: 1,
+            groups: [{ groupId: "team-b", permissions: { read: true, write: false, admin: false } }]
+        });
+        getRegistryClientMock.mockReturnValue({ search: { groups: { get } } });
+
+        const permissions = await useSearchService().groupPermissions("team-b");
+
+        expect(permissions).toEqual({ read: true, write: false, admin: false });
+        expect(get.mock.calls[0][0].queryParameters).toEqual({ groupId: "team-b", limit: 1 });
+    });
+
+    it("returns the permissions of the artifact searched for", async () => {
+        const get = vi.fn().mockResolvedValue({
+            count: 1,
+            artifacts: [{ groupId: "team-a", artifactId: "orders", permissions: { read: true, write: true, admin: false } }]
+        });
+        getRegistryClientMock.mockReturnValue({ search: { artifacts: { get } } });
+
+        const permissions = await useSearchService().artifactPermissions("team-a", "orders");
+
+        expect(permissions).toEqual({ read: true, write: true, admin: false });
+        expect(get.mock.calls[0][0].queryParameters).toEqual({ groupId: "team-a", artifactId: "orders", limit: 1 });
+    });
+
+    it("returns undefined when the server reports no permissions", async () => {
+        const get = vi.fn().mockResolvedValue({ count: 1, groups: [{ groupId: "team-b" }] });
+        getRegistryClientMock.mockReturnValue({ search: { groups: { get } } });
+
+        expect(await useSearchService().groupPermissions("team-b")).toBeUndefined();
+    });
+
+    it("returns undefined when the resource is not found or the search fails", async () => {
+        const notFound = vi.fn().mockResolvedValue({ count: 0, artifacts: [] });
+        getRegistryClientMock.mockReturnValue({ search: { artifacts: { get: notFound } } });
+        expect(await useSearchService().artifactPermissions("team-a", "missing")).toBeUndefined();
+
+        const failing = vi.fn().mockRejectedValue(new Error("403"));
+        getRegistryClientMock.mockReturnValue({ search: { groups: { get: failing } } });
+        expect(await useSearchService().groupPermissions("team-b")).toBeUndefined();
     });
 });

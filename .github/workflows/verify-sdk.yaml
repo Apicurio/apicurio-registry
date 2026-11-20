@@ -18,20 +18,21 @@ jobs:
   verify-python-sdk:
     name: Verify Python SDK
     runs-on: ubuntu-latest
+    timeout-minutes: 15  # longest green run, week to 2026-10-01: 1 min
     steps:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up JDK ${{ inputs.java-version }}
-        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6
+        uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6
         with:
           java-version: ${{ inputs.java-version }}
           distribution: 'temurin'
           cache: 'maven'
 
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
-          python-version: '3.14.7'
+          python-version: '3.15.2'
 
       - name: Install Poetry
         uses: snok/install-poetry@d45b6d76012debf457ab49dffc7fb7b2efe8071d
@@ -44,7 +45,14 @@ jobs:
         working-directory: python-sdk
         run: make lint-check
 
-      - uses: apicurio/apicurio-github-actions/load-docker-image@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
+      # PyPI rejects platform-tagged wheels; check the release build produces a pure one
+      - name: Build and verify the wheel
+        working-directory: python-sdk
+        run: |
+          make build
+          make verify-wheel
+
+      - uses: apicurio/apicurio-github-actions/load-docker-image@bd19cbe33797325a571cd7ffd58f639b62e128a2 # v2
         with:
           artifact-name: 'apicurio-registry-${{ inputs.image-tag }}.tar'
           image-file: '/tmp/apicurio-registry-${{ inputs.image-tag }}.tar'
@@ -54,30 +62,34 @@ jobs:
       - name: Run the tests
         working-directory: python-sdk
         run: |
-          docker run -d -p 8080:8080 apicurio/apicurio-registry:${{ inputs.image-tag }}
-          sleep 5
+          docker run -d --name registry -p 8080:8080 apicurio/apicurio-registry:${{ inputs.image-tag }}
+          # Wait for the API rather than a fixed sleep: when the registry is not up yet, the SDK tests
+          # fall back to starting a local jar that does not exist in this job.
+          for i in $(seq 1 60); do curl -sf http://localhost:8080/apis/registry/v3/system/info > /dev/null && break; sleep 1; done
+          curl -sf http://localhost:8080/apis/registry/v3/system/info > /dev/null || { docker logs registry; exit 1; }
           make test
 
   verify-go-sdk:
     name: Verify Go SDK
     runs-on: ubuntu-latest
+    timeout-minutes: 15  # longest green run, week to 2026-10-01: 2 min
     steps:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up JDK ${{ inputs.java-version }}
-        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6
+        uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6
         with:
           java-version: ${{ inputs.java-version }}
           distribution: 'temurin'
           cache: 'maven'
 
       - name: Go - Setup Go
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7
         with:
-          go-version: '1.27.0'
+          go-version: '1.27.4'
 
-      - uses: apicurio/apicurio-github-actions/load-docker-image@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
+      - uses: apicurio/apicurio-github-actions/load-docker-image@bd19cbe33797325a571cd7ffd58f639b62e128a2 # v2
         with:
           artifact-name: 'apicurio-registry-${{ inputs.image-tag }}.tar'
           image-file: '/tmp/apicurio-registry-${{ inputs.image-tag }}.tar'
@@ -87,6 +99,9 @@ jobs:
       - name: Run the tests
         working-directory: go-sdk
         run: |
-          docker run -d -p 8080:8080 apicurio/apicurio-registry:${{ inputs.image-tag }}
-          sleep 5
+          docker run -d --name registry -p 8080:8080 apicurio/apicurio-registry:${{ inputs.image-tag }}
+          # Wait for the API rather than a fixed sleep: when the registry is not up yet, the SDK tests
+          # fall back to starting a local jar that does not exist in this job.
+          for i in $(seq 1 60); do curl -sf http://localhost:8080/apis/registry/v3/system/info > /dev/null && break; sleep 1; done
+          curl -sf http://localhost:8080/apis/registry/v3/system/info > /dev/null || { docker logs registry; exit 1; }
           make test

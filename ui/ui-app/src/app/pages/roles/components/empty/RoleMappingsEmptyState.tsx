@@ -8,6 +8,7 @@ import {
 } from "@patternfly/react-core";
 import { PlusCircleIcon } from "@patternfly/react-icons";
 import { If } from "@apitomy/common-ui-components";
+import { IfFeature } from "@app/components";
 
 /**
  * Properties
@@ -31,11 +32,13 @@ export const RoleMappingsEmptyState: FunctionComponent<RoleMappingsEmptyStatePro
                 <EmptyStateBody>
                     There are currently no role mappings configured for the registry.  Click the "Grant access" button above to grant access to a user.
                 </EmptyStateBody>
-                <EmptyStateFooter>
-                    <EmptyStateActions>
-                        <Button variant="primary" data-testid="btn-grant-access" onClick={props.onCreateRoleMapping}>Grant access</Button>
-                    </EmptyStateActions>
-                </EmptyStateFooter>
+                <IfFeature feature="readOnly" isNot={true}>
+                    <EmptyStateFooter>
+                        <EmptyStateActions>
+                            <Button variant="primary" data-testid="btn-grant-access" onClick={props.onCreateRoleMapping}>Grant access</Button>
+                        </EmptyStateActions>
+                    </EmptyStateFooter>
+                </IfFeature>
             </If>
         </EmptyState>
     );

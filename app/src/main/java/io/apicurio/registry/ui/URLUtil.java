@@ -67,9 +67,9 @@ public class URLUtil {
 
             // Host
             targetHost = requestURL.getHost();
-            if (urlOverrideHost.isPresent() && !urlOverrideHost.get().isBlank()) {
+            if (urlOverrideHost.isPresent() && !urlOverrideHost.orElseThrow().isBlank()) {
                 log.debug("Generating absolute URL: Using configured override for the host.");
-                targetHost = urlOverrideHost.get();
+                targetHost = urlOverrideHost.orElseThrow();
             } else if (forwardedHostHeaderValue != null && !forwardedHostHeaderValue.isBlank()) {
                 log.debug("Generating absolute URL: Using X-Forwarded-Host header value for the host.");
                 targetHost = forwardedHostHeaderValue;
@@ -77,9 +77,9 @@ public class URLUtil {
 
             // Port
             targetPort = requestURL.getPort();
-            if (urlOverridePort.isPresent() && urlOverridePort.get() > 0) {
+            if (urlOverridePort.isPresent() && urlOverridePort.orElseThrow() > 0) {
                 log.debug("Generating absolute URL: Using configured override for the port.");
-                targetPort = urlOverridePort.get();
+                targetPort = urlOverridePort.orElseThrow();
             }
 
             if (("https".equals(targetProtocol) && targetPort == 443)

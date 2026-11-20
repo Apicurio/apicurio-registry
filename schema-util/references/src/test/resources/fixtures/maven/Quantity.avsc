@@ -1,0 +1,15 @@
+{
+    "namespace": "io.apicurio.test.trade",
+    "type": "record",
+    "name": "Quantity",
+    "fields": [
+        {
+            "name": "value",
+            "type": "long"
+        },
+        {
+            "name": "unit",
+            "type": "string"
+        }
+    ]
+}

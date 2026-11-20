@@ -1,0 +1,106 @@
+name: Reusable Notify
+
+# The Slack notification that ends the release, website and docs workflows,
+# called as their last job with the results of every other job. Policy:
+# "Notifications" in README.md.
+#
+# Success is posted only when the caller asks (notify-success): one message
+# per release, from release.yaml, the workflow a person runs. The workflows
+# the release sets off report only failures, so silence means they succeeded.
+#
+# Callers run this under `!cancelled()`, so a run cancelled by hand says
+# nothing, and a job cancelled in a run that was not cancelled timed out: a
+# failure. A job that already reported its own failure sets the output
+# `notified: success` and is left out (release-operator's release-post, which
+# posts before opening its tmate session).
+#
+# Owner: these workflows mostly run as apicurio-ci. release.yaml creates the
+# release with its token, so every workflow triggered by the release runs as
+# apicurio-ci, as does release-operator, which release-images dispatches, and
+# publish-docs for release.yaml's version-bump pushes. The action never
+# mentions apicurio-ci. The person behind such a run is whoever ran
+# release.yaml: its run named "Release <version>", or the latest run when
+# there is no version.
+
+on:
+  workflow_call:
+    inputs:
+      results:
+        description: The caller's needs context, as toJSON(needs)
+        required: true
+        type: string
+      version:
+        description: Version being released, named in the message; empty if there is none
+        type: string
+        default: ''
+      notify-success:
+        description: Post success to the general channel
+        type: boolean
+        default: false
+      success-text:
+        description: The success message, instead of "<workflow> finished for <version>"
+        type: string
+        default: ''
+    secrets:
+      SLACK_USER_MAP:
+        required: false
+      SLACK_IMPORTANT_NOTIFICATION_WEBHOOK:
+        required: false
+      SLACK_GENERAL_NOTIFICATION_WEBHOOK:
+        required: false
+
+permissions:
+  actions: read
+
+jobs:
+  notify:
+    name: Notify
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Read results
+        id: results
+        env:
+          RESULTS: ${{ inputs.results }}
+        run: |
+          failed=$(jq -r '[to_entries[] | select((.value.result == "failure" or .value.result == "cancelled") and .value.outputs.notified != "success") | .key] | join(", ")' <<< "$RESULTS")
+          outcome=$(jq -r '[.[].result] | if any(. == "failure" or . == "cancelled") then "failure" elif any(. == "success") then "success" else "skipped" end' <<< "$RESULTS")
+          echo "failed=$failed" >> "$GITHUB_OUTPUT"
+          echo "outcome=$outcome" >> "$GITHUB_OUTPUT"
+
+      # A lookup that fails only costs the mention, never the message.
+      - name: Find who ran the release
+        id: owner
+        if: steps.results.outputs.failed != '' && github.triggering_actor == 'apicurio-ci'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          if ! login=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/release.yaml/runs?event=workflow_dispatch&per_page=30" \
+              --jq '[.workflow_runs[] | select(env.VERSION == "" or .display_title == "Release " + env.VERSION)][0].triggering_actor.login // ""'); then
+            echo "::warning::Could not look up the release.yaml run; notifying without an owner"
+            login=""
+          fi
+          echo "Release owner: ${login:-unknown}"
+          echo "login=$login" >> "$GITHUB_OUTPUT"
+
+      - name: Notify failure
+        if: steps.results.outputs.failed != ''
+        uses: Apicurio/apicurio-github-actions/notify-slack@bd19cbe33797325a571cd7ffd58f639b62e128a2 # v2.4.0
+        with:
+          level: important
+          text: ":x: ${{ github.workflow }} failed${{ inputs.version && format(' for {0}', inputs.version) || '' }} in ${{ steps.results.outputs.failed }}"
+          link: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          mention: ${{ github.triggering_actor }},${{ steps.owner.outputs.login }}
+          user-map: ${{ secrets.SLACK_USER_MAP }}
+          important-webhook: ${{ secrets.SLACK_IMPORTANT_NOTIFICATION_WEBHOOK }}
+
+      # Every job skipped (e.g. a release not tagged 3.*): say nothing.
+      - name: Notify success
+        if: inputs.notify-success && steps.results.outputs.outcome == 'success'
+        uses: Apicurio/apicurio-github-actions/notify-slack@bd19cbe33797325a571cd7ffd58f639b62e128a2 # v2.4.0
+        with:
+          level: general
+          text: "${{ inputs.success-text || format(':white_check_mark: {0} finished{1}', github.workflow, inputs.version && format(' for {0}', inputs.version) || '') }}"
+          link: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          general-webhook: ${{ secrets.SLACK_GENERAL_NOTIFICATION_WEBHOOK }}

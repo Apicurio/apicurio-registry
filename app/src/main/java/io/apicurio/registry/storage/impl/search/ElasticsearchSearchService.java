@@ -11,6 +11,8 @@ import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
+import io.apicurio.registry.storage.dto.AuthorizationFilter;
+import io.apicurio.registry.storage.dto.AuthorizationNames;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
@@ -51,6 +53,15 @@ public class ElasticsearchSearchService {
      */
     private static final Set<SearchFilterType> INDEX_ONLY_FILTER_TYPES = EnumSet.of(
             SearchFilterType.content, SearchFilterType.structure);
+
+    private static final String FIELD_GA_KEY = "ga_key";
+    private static final String FIELD_ARTIFACT_COUNT = "artifact_count";
+    private static final String FIELD_DESCRIPTION = "description";
+    private static final String FIELD_CREATED_ON = "createdOn";
+    private static final String FIELD_MODIFIED_ON = "modifiedOn";
+    private static final String FIELD_GROUP_ID = "groupId";
+    private static final String FIELD_ARTIFACT_ID = "artifactId";
+    private static final String FIELD_ARTIFACT_TYPE = "artifactType";
 
     @Inject
     ElasticsearchClient client;
@@ -157,7 +168,7 @@ public class ElasticsearchSearchService {
         SearchResponse<Map> response = client.search(s -> {
             s.index(config.getIndexName())
                     .query(query)
-                    .collapse(c -> c.field("ga_key"))
+                    .collapse(c -> c.field(FIELD_GA_KEY))
                     .from(offset)
                     .size(limit);
 
@@ -165,11 +176,11 @@ public class ElasticsearchSearchService {
                 s.sort(sortOption);
             }
             s.sort(SortOptions.of(so -> so.field(FieldSort.of(f -> f
-                    .field("ga_key").order(SortOrder.Asc)))));
+                    .field(FIELD_GA_KEY).order(SortOrder.Asc)))));
 
             if (!skipCount) {
-                s.aggregations("artifact_count", a -> a
-                        .cardinality(ca -> ca.field("ga_key").precisionThreshold(40000)));
+                s.aggregations(FIELD_ARTIFACT_COUNT, a -> a
+                        .cardinality(ca -> ca.field(FIELD_GA_KEY).precisionThreshold(40000)));
             }
 
             return s;
@@ -177,9 +188,9 @@ public class ElasticsearchSearchService {
 
         long totalCount = 0;
         if (!skipCount && response.aggregations() != null
-                && response.aggregations().containsKey("artifact_count")) {
+                && response.aggregations().containsKey(FIELD_ARTIFACT_COUNT)) {
             totalCount = (long) response.aggregations()
-                    .get("artifact_count").cardinality().value();
+                    .get(FIELD_ARTIFACT_COUNT).cardinality().value();
         }
 
         List<SearchedArtifactDto> artifacts = new ArrayList<>();
@@ -250,10 +261,13 @@ public class ElasticsearchSearchService {
         case groupId:
             String groupValue = filter.getStringValue() == null ? "default"
                     : filter.getStringValue();
-            return buildTermOrWildcardQuery("groupId", groupValue);
+            return buildTermOrWildcardQuery(FIELD_GROUP_ID, groupValue);
+
+        case authorization:
+            return buildAuthorizationQuery(filter.getAuthorizationValue());
 
         case artifactId:
-            return buildTermOrWildcardQuery("artifactId", filter.getStringValue());
+            return buildTermOrWildcardQuery(FIELD_ARTIFACT_ID, filter.getStringValue());
 
         case version:
             return Query.of(q -> q.term(t -> t
@@ -261,7 +275,7 @@ public class ElasticsearchSearchService {
 
         case artifactType:
             return Query.of(q -> q.term(t -> t
-                    .field("artifactType").value(filter.getStringValue())));
+                    .field(FIELD_ARTIFACT_TYPE).value(filter.getStringValue())));
 
         case state:
             return Query.of(q -> q.term(t -> t
@@ -278,8 +292,11 @@ public class ElasticsearchSearchService {
         case name:
             return buildNameQuery(filter.getStringValue());
 
+        case nameCaseInsensitive:
+            return buildCaseInsensitiveNameQuery(filter.getStringValue());
+
         case description:
-            return buildTextQuery("description", filter.getStringValue());
+            return buildTextQuery(FIELD_DESCRIPTION, filter.getStringValue());
 
         case content:
             return buildTextQuery("content", filter.getStringValue());
@@ -312,6 +329,60 @@ public class ElasticsearchSearchService {
     }
 
     /**
+     * Builds the per-resource authorization restriction. Artifact name patterns are decomposed by
+     * {@link AuthorizationNames}, exactly as in the SQL implementation and point access. The index
+     * does not store artifact ownership, so owned artifacts are matched by the names in
+     * {@link AuthorizationFilter#ownedArtifacts()}.
+     */
+    Query buildAuthorizationQuery(AuthorizationFilter filter) {
+        Query allowed = filter.allowAll() ? Query.of(q -> q.matchAll(m -> m))
+                : anyNameMatches(filter.allowExact(), filter.allowPrefix());
+        Query denied = anyNameMatches(filter.denyExact(), filter.denyPrefix());
+        Query byGrants = Query.of(q -> q.bool(b -> b.must(allowed).mustNot(denied)));
+        if (filter.ownedArtifacts().isEmpty()) {
+            return byGrants;
+        }
+        // Owners always see their artifacts (resolved by ElasticsearchSearchDecorator)
+        Query owned = anyNameMatches(filter.ownedArtifacts(), Set.of());
+        return Query.of(q -> q.bool(b -> b.should(byGrants).should(owned).minimumShouldMatch("1")));
+    }
+
+    /** Matches documents whose artifact name equals one of {@code exact} or starts with a prefix. */
+    private static Query anyNameMatches(Set<String> exact, Set<String> prefixes) {
+        List<Query> clauses = new ArrayList<>();
+        for (String name : exact) {
+            AuthorizationNames.artifactsNamed(name).forEach(c -> clauses.add(clauseQuery(c)));
+        }
+        for (String prefix : prefixes) {
+            AuthorizationNames.artifactsWithPrefix(prefix).forEach(c -> clauses.add(clauseQuery(c)));
+        }
+        if (clauses.isEmpty()) {
+            return Query.of(q -> q.matchNone(m -> m));
+        }
+        return Query.of(q -> q.bool(b -> b.should(clauses).minimumShouldMatch("1")));
+    }
+
+    /** The default group is indexed with the group ID {@code default}. */
+    private static Query clauseQuery(AuthorizationNames.Clause clause) {
+        Query group = clause.groupPrefix() ? prefixQuery(FIELD_GROUP_ID, clause.group())
+                : termQuery(FIELD_GROUP_ID, clause.group());
+        if (clause.artifact() == null) {
+            return group;
+        }
+        Query artifact = clause.artifactPrefix() ? prefixQuery(FIELD_ARTIFACT_ID, clause.artifact())
+                : termQuery(FIELD_ARTIFACT_ID, clause.artifact());
+        return Query.of(q -> q.bool(b -> b.must(group).must(artifact)));
+    }
+
+    private static Query termQuery(String field, String value) {
+        return Query.of(q -> q.term(t -> t.field(field).value(value)));
+    }
+
+    private static Query prefixQuery(String field, String value) {
+        return Query.of(q -> q.prefix(p -> p.field(field).value(value)));
+    }
+
+    /**
      * Builds a query for the name filter. Searches both "name" (full-text) and "artifactId"
      * (exact match) to match SQL behavior.
      *
@@ -323,8 +394,43 @@ public class ElasticsearchSearchService {
                 .should(Query.of(sq -> sq.match(m -> m
                         .field("name").query(value).operator(Operator.And))))
                 .should(Query.of(sq -> sq.term(t -> t
-                        .field("artifactId").value(value))))
+                        .field(FIELD_ARTIFACT_ID).value(value))))
         ));
+    }
+
+    /**
+     * Builds a case-insensitive wildcard query for the name and artifact ID fields. Only a leading
+     * or trailing {@code *} is treated as a wildcard, matching the SQL storage behavior.
+     *
+     * @param value the search value
+     * @return a query that matches name or artifactId without regard to case
+     */
+    private Query buildCaseInsensitiveNameQuery(String value) {
+        String escapedValue = escapeCaseInsensitiveNamePattern(value);
+        return Query.of(q -> q.bool(b -> b
+                .should(Query.of(sq -> sq.wildcard(w -> w
+                        .field("name.keyword").value(escapedValue).caseInsensitive(true))))
+                .should(Query.of(sq -> sq.wildcard(w -> w
+                        .field(FIELD_ARTIFACT_ID).value(escapedValue).caseInsensitive(true))))
+        ));
+    }
+
+    /**
+     * Escapes Elasticsearch wildcard syntax inside a name search while preserving an intentional
+     * leading or trailing {@code *}. SQL treats interior {@code *}, {@code ?}, and backslashes as
+     * literal characters, so escaping them here keeps both storage paths consistent.
+     */
+    private static String escapeCaseInsensitiveNamePattern(String value) {
+        StringBuilder escaped = new StringBuilder(value.length());
+        for (int idx = 0; idx < value.length(); idx++) {
+            char character = value.charAt(idx);
+            boolean boundaryWildcard = character == '*' && (idx == 0 || idx == value.length() - 1);
+            if (!boundaryWildcard && (character == '*' || character == '?' || character == '\\')) {
+                escaped.append('\\');
+            }
+            escaped.append(character);
+        }
+        return escaped.toString();
     }
 
     /**
@@ -431,10 +537,10 @@ public class ElasticsearchSearchService {
             fieldName = "name.keyword";
             break;
         case createdOn:
-            fieldName = "createdOn";
+            fieldName = FIELD_CREATED_ON;
             break;
         case modifiedOn:
-            fieldName = "modifiedOn";
+            fieldName = FIELD_MODIFIED_ON;
             break;
         case globalId:
             fieldName = "globalId";
@@ -443,13 +549,13 @@ public class ElasticsearchSearchService {
             fieldName = "version";
             break;
         case groupId:
-            fieldName = "groupId";
+            fieldName = FIELD_GROUP_ID;
             break;
         case artifactId:
-            fieldName = "artifactId";
+            fieldName = FIELD_ARTIFACT_ID;
             break;
         case artifactType:
-            fieldName = "artifactType";
+            fieldName = FIELD_ARTIFACT_TYPE;
             break;
         default:
             return List.of(SortOptions.of(s -> s.score(sc -> sc)));
@@ -482,12 +588,12 @@ public class ElasticsearchSearchService {
         }
 
         // String fields
-        builder.groupId(toStr(source.get("groupId")));
-        builder.artifactId(toStr(source.get("artifactId")));
+        builder.groupId(toStr(source.get(FIELD_GROUP_ID)));
+        builder.artifactId(toStr(source.get(FIELD_ARTIFACT_ID)));
         builder.version(toStr(source.get("version")));
-        builder.artifactType(toStr(source.get("artifactType")));
+        builder.artifactType(toStr(source.get(FIELD_ARTIFACT_TYPE)));
         builder.name(toStr(source.get("name")));
-        builder.description(toStr(source.get("description")));
+        builder.description(toStr(source.get(FIELD_DESCRIPTION)));
         builder.owner(toStr(source.get("owner")));
         builder.modifiedBy(toStr(source.get("modifiedBy")));
 
@@ -498,12 +604,12 @@ public class ElasticsearchSearchService {
         }
 
         // Timestamps
-        Object createdOn = source.get("createdOn");
+        Object createdOn = source.get(FIELD_CREATED_ON);
         if (createdOn != null) {
             builder.createdOn(new Date(toLong(createdOn)));
         }
 
-        Object modifiedOn = source.get("modifiedOn");
+        Object modifiedOn = source.get(FIELD_MODIFIED_ON);
         if (modifiedOn != null) {
             builder.modifiedOn(new Date(toLong(modifiedOn)));
         }
@@ -525,20 +631,20 @@ public class ElasticsearchSearchService {
     SearchedArtifactDto mapToSearchedArtifactDto(Map<String, Object> source) {
         SearchedArtifactDto.SearchedArtifactDtoBuilder builder = SearchedArtifactDto.builder();
 
-        builder.groupId(toStr(source.get("groupId")));
-        builder.artifactId(toStr(source.get("artifactId")));
+        builder.groupId(toStr(source.get(FIELD_GROUP_ID)));
+        builder.artifactId(toStr(source.get(FIELD_ARTIFACT_ID)));
         builder.name(toStr(source.get("name")));
-        builder.description(toStr(source.get("description")));
-        builder.artifactType(toStr(source.get("artifactType")));
+        builder.description(toStr(source.get(FIELD_DESCRIPTION)));
+        builder.artifactType(toStr(source.get(FIELD_ARTIFACT_TYPE)));
         builder.owner(toStr(source.get("owner")));
         builder.modifiedBy(toStr(source.get("modifiedBy")));
 
-        Object createdOn = source.get("createdOn");
+        Object createdOn = source.get(FIELD_CREATED_ON);
         if (createdOn != null) {
             builder.createdOn(new Date(toLong(createdOn)));
         }
 
-        Object modifiedOn = source.get("modifiedOn");
+        Object modifiedOn = source.get(FIELD_MODIFIED_ON);
         if (modifiedOn != null) {
             builder.modifiedOn(new Date(toLong(modifiedOn)));
         }

@@ -1,6 +1,7 @@
 package io.apicurio.deployment;
 
 import io.fabric8.kubernetes.api.model.Namespace;
+import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
@@ -38,6 +39,14 @@ public class RegistryDeploymentManager implements TestExecutionListener {
     // Guards against failsafe's rerun re-executing the test plan (and therefore the
     // deployment) in the same JVM.
     private static final AtomicBoolean DEPLOYED = new AtomicBoolean(false);
+
+    // Set when handleInfraDeployment() throws below. testPlanExecutionStarted() cannot
+    // abort the JUnit Platform launcher's test plan from a TestExecutionListener callback,
+    // so a failure here used to be logged and silently ignored: tests then ran against a
+    // half-seeded/never-restarted deployment and failed with confusing, unrelated
+    // assertion errors far away from the actual root cause. ApicurioRegistryBaseIT checks
+    // this in its @BeforeAll so every test class fails fast with the real error instead.
+    private static volatile Throwable deploymentFailure;
 
     static List<LogWatch> logWatch;
 
@@ -85,6 +94,7 @@ public class RegistryDeploymentManager implements TestExecutionListener {
                 handleInfraDeployment();
             } catch (Exception e) {
                 LOGGER.error("Error starting registry deployment", e);
+                deploymentFailure = e;
             }
 
             // Namespace cleanup must not run at test-plan end either: that method
@@ -108,6 +118,22 @@ public class RegistryDeploymentManager implements TestExecutionListener {
             }
         } catch (Exception e) {
             LOGGER.error("Exception closing log watchers", e);
+        }
+    }
+
+    /**
+     * Fails fast, with the real root cause, if test-infra deployment failed during
+     * testPlanExecutionStarted(). Must be called from every test class's setup (see
+     * ApicurioRegistryBaseIT#prepareRestAssured) since a TestExecutionListener cannot itself
+     * abort the test plan it was notified about.
+     */
+    public static void verifyDeploymentSucceeded() throws Exception {
+        if (deploymentFailure != null) {
+            throw new IllegalStateException(
+                    "Registry test-infra deployment failed during test-plan startup; "
+                            + "no tests can run against a broken/incomplete deployment. "
+                            + "See the 'Error starting registry deployment' log entry for the root cause.",
+                    deploymentFailure);
         }
     }
 
@@ -259,26 +285,87 @@ public class RegistryDeploymentManager implements TestExecutionListener {
     }
 
     static final int POD_WAIT_TIMEOUT_SECONDS = 360;
-    static final int POD_WAIT_MAX_ATTEMPTS = 2;
+    static final int POD_WAIT_MAX_ATTEMPTS = 5;
 
+    /**
+     * Waits for every pod in the test namespace to become ready.
+     * <p>
+     * A fixed number of fixed-length attempts conflates two different situations. In the
+     * KafkaSQL snapshotting job the pods were not stuck, they were slow: after the first 360s
+     * attempt none of the three registry replicas were ready, and after the second, two of
+     * three were - so the deployment was progressing steadily and the wait simply ran out of
+     * budget while replaying the snapshot topic on a contended runner. Meanwhile a genuinely
+     * wedged deployment burned the full budget before reporting anything.
+     * <p>
+     * So this keeps waiting while the number of ready pods is still climbing, and gives up as
+     * soon as a whole attempt passes with no additional pod becoming ready. That makes the
+     * slow case pass and the stuck case fail sooner, instead of trading one against the other
+     * by tuning a timeout.
+     */
     static void waitForAllPodsReady() {
+        waitForAllPodsReady(kubernetesClient);
+    }
+
+    static void waitForAllPodsReady(KubernetesClient client) {
+        int previousReadyCount = -1;
         for (int attempt = 1; attempt <= POD_WAIT_MAX_ATTEMPTS; attempt++) {
             try {
-                kubernetesClient.pods().inNamespace(TEST_NAMESPACE)
+                client.pods().inNamespace(TEST_NAMESPACE)
                         .waitUntilReady(POD_WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
                 return;
             } catch (KubernetesClientTimeoutException e) {
-                logPodStatus();
+                int readyCount = countReadyPods(client);
+
+                // A failed listing (-1) means "unknown", not "no progress" - treating it as a
+                // regression would abort a run that was in fact still coming up.
+                boolean progressUnknown = readyCount < 0 || previousReadyCount < 0;
+                if (attempt > 1 && !progressUnknown && readyCount <= previousReadyCount) {
+                    throw new RuntimeException(
+                            "Pods not ready and no longer making progress: " + readyCount
+                                    + " ready after attempt " + attempt + " of "
+                                    + POD_WAIT_MAX_ATTEMPTS + " (" + POD_WAIT_TIMEOUT_SECONDS
+                                    + "s each), unchanged from the previous attempt",
+                            e);
+                }
                 if (attempt == POD_WAIT_MAX_ATTEMPTS) {
                     throw new RuntimeException(
                             "Pods not ready after " + POD_WAIT_MAX_ATTEMPTS + " attempts ("
-                                    + POD_WAIT_TIMEOUT_SECONDS + "s each)",
+                                    + POD_WAIT_TIMEOUT_SECONDS + "s each), still making progress "
+                                    + "at the last attempt (" + readyCount + " ready)",
                             e);
                 }
-                LOGGER.warn("Pod wait attempt {}/{} timed out, retrying: {}",
-                        attempt, POD_WAIT_MAX_ATTEMPTS, e.getMessage());
+
+                LOGGER.warn("Pod wait attempt {}/{} timed out with {} pod(s) ready "
+                        + "(previously {}), still progressing - retrying: {}",
+                        attempt, POD_WAIT_MAX_ATTEMPTS, readyCount, previousReadyCount,
+                        e.getMessage());
+                previousReadyCount = readyCount;
             }
         }
+    }
+
+    /**
+     * Number of pods currently reporting a true Ready condition, or -1 if they could not be
+     * listed. A transient listing failure must not fail the run, so it is reported as unknown
+     * and the caller keeps waiting rather than mistaking it for a lack of progress.
+     */
+    static int countReadyPods(KubernetesClient client) {
+        try {
+            var pods = client.pods().inNamespace(TEST_NAMESPACE).list().getItems();
+            pods.forEach(pod -> LOGGER.info("Pod {}: phase={}, ready={}", pod.getMetadata().getName(),
+                    pod.getStatus() != null ? pod.getStatus().getPhase() : "unknown", isPodReady(pod)));
+            return (int) pods
+                    .stream().filter(RegistryDeploymentManager::isPodReady).count();
+        } catch (Exception ex) {
+            LOGGER.warn("Could not count ready pods: {}", ex.getMessage());
+            return -1;
+        }
+    }
+
+    private static boolean isPodReady(Pod pod) {
+        return pod.getStatus() != null && pod.getStatus().getConditions() != null
+                && pod.getStatus().getConditions().stream()
+                        .anyMatch(c -> "Ready".equals(c.getType()) && "True".equals(c.getStatus()));
     }
 
     static void logPodStatus() {
@@ -287,10 +374,7 @@ public class RegistryDeploymentManager implements TestExecutionListener {
             pods.getItems().forEach(pod -> {
                 String name = pod.getMetadata().getName();
                 String phase = pod.getStatus() != null ? pod.getStatus().getPhase() : "unknown";
-                boolean ready = pod.getStatus() != null && pod.getStatus().getConditions() != null
-                        && pod.getStatus().getConditions().stream()
-                                .anyMatch(c -> "Ready".equals(c.getType()) && "True".equals(c.getStatus()));
-                LOGGER.info("Pod {}: phase={}, ready={}", name, phase, ready);
+                LOGGER.info("Pod {}: phase={}, ready={}", name, phase, isPodReady(pod));
             });
         } catch (Exception e) {
             LOGGER.warn("Could not list pods for diagnostics: {}", e.getMessage());

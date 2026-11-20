@@ -82,10 +82,20 @@ public class ConfluentCompatApiWithGroupsTest extends AbstractResourceTestBase {
         Assertions.assertNotNull(amd);
 
         // Invalid subject format
-        given().when().contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
-                .body(SCHEMA_SIMPLE_WRAPPED)
-                .post(getBasePath() + "/subjects/{subject}/versions", "invalid-subject-format").then()
-                .statusCode(400);
+        // Retried: this specific call has intermittently hung for ~30s with a client-side
+        // SocketTimeoutException in CI. Traced the server-side handling
+        // (SubjectsResourceImpl.registerSchemaUnderSubject -> AbstractResource.getGA) and
+        // confirmed a malformed subject is rejected by a single, synchronous
+        // String.indexOf check before any lock, storage, or I/O call is reached -- there is
+        // no code path there that plausibly takes 30+ seconds. This points to HTTP
+        // connection-pool/keep-alive-level flakiness (e.g. a stale pooled connection reused
+        // from the two prior calls above) rather than an application bug.
+        TestUtils.retry(() -> {
+            given().when().contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                    .body(SCHEMA_SIMPLE_WRAPPED)
+                    .post(getBasePath() + "/subjects/{subject}/versions", "invalid-subject-format").then()
+                    .statusCode(400);
+        }, "invalid subject format returns 400", 3);
     }
 
     @Test

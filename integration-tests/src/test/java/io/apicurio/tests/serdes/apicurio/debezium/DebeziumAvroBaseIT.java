@@ -15,6 +15,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.TestMethodOrder;
+import org.rnorth.ducttape.TimeoutException;
 import org.rnorth.ducttape.unreliables.Unreliables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -294,7 +296,7 @@ public abstract class DebeziumAvroBaseIT extends ApicurioRegistryBaseIT {
             throws Exception {
         List<GenericRecord> records = new ArrayList<>();
 
-        Unreliables.retryUntilTrue((int) timeout.getSeconds(), TimeUnit.SECONDS, () -> {
+        pollUntilTrue(timeout, () -> {
             consumer.poll(Duration.ofMillis(500)).forEach(record -> {
                 try {
                     if (record.value() == null || record.value().length < 5) {
@@ -326,7 +328,7 @@ public abstract class DebeziumAvroBaseIT extends ApicurioRegistryBaseIT {
             String expectedData) throws Exception {
         List<GenericRecord> records = new ArrayList<>();
 
-        Unreliables.retryUntilTrue((int) timeout.getSeconds(), TimeUnit.SECONDS, () -> {
+        pollUntilTrue(timeout, () -> {
             consumer.poll(Duration.ofMillis(500)).forEach(record -> {
                 try {
                     if (record.value() == null || record.value().length < 5) {
@@ -354,10 +356,49 @@ public abstract class DebeziumAvroBaseIT extends ApicurioRegistryBaseIT {
         return records;
     }
 
+    /**
+     * Repeatedly calls {@code check} on the CALLING thread until it returns true or the timeout
+     * elapses, then throws the same {@link TimeoutException} type Unreliables.retryUntilTrue
+     * would have thrown.
+     *
+     * Deliberately does NOT delegate to Unreliables.retryUntilTrue/retryUntilSuccess: those
+     * submit the retry loop to a separate, shared daemon thread pool
+     * (org.rnorth.ducttape.timeouts.Timeouts#getWithTimeout) and, on timeout, simply give up
+     * waiting on the Future WITHOUT cancelling it — the submitted loop keeps running in the
+     * background until its own next doContinue check. Every caller here polls this class's
+     * shared, mutable, non-thread-safe `consumer` field, which the next test's @BeforeEach
+     * reassigns (after closing the old one). A timed-out test's leaked background thread can
+     * still be mid-poll() when that happens, and end up calling poll()/close() concurrently on
+     * whichever consumer `this.consumer` now refers to — producing "KafkaConsumer is not safe
+     * for multi-threaded access" and cascading failures through every later test in the class
+     * (observed in CI: one timeout in test N caused all of tests N+1..11 to fail). Polling on
+     * the calling thread has no such leak: once the deadline is hit, nothing from this call
+     * touches the consumer again.
+     */
+    protected void pollUntilTrue(Duration timeout, Callable<Boolean> check) throws Exception {
+        long deadlineNanos = System.nanoTime() + timeout.toNanos();
+        Exception lastException = null;
+        while (System.nanoTime() < deadlineNanos) {
+            try {
+                if (check.call()) {
+                    return;
+                }
+                lastException = null;
+            }
+            catch (Exception e) {
+                lastException = e;
+            }
+        }
+        if (lastException != null) {
+            throw new TimeoutException("Timeout waiting for result with exception", lastException);
+        }
+        throw new TimeoutException(new RuntimeException("Not ready yet"));
+    }
+
     protected void waitForConsumerReady(Duration timeout) throws Exception {
         log.info("Waiting for consumer to complete partition assignment...");
 
-        Unreliables.retryUntilTrue((int) timeout.getSeconds(), TimeUnit.SECONDS, () -> {
+        pollUntilTrue(timeout, () -> {
             consumer.poll(Duration.ofMillis(100));
             boolean hasAssignment = !consumer.assignment().isEmpty();
 
@@ -367,6 +408,7 @@ public abstract class DebeziumAvroBaseIT extends ApicurioRegistryBaseIT {
             else {
                 log.debug("Consumer waiting for partition assignment...");
             }
+
 
             return hasAssignment;
         });

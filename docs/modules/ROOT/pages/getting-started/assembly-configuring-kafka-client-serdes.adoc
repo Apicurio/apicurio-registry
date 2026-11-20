@@ -61,7 +61,7 @@ public class SerdeConfig {
 
 [source,java,subs="+quotes,attributes"]
 ----
-public class SerdeBasedConverter<S, T> extends SchemaResolverConfigurer<S, T> implements Converter, Closeable {
+public class SerdeBasedConverter<S, T> implements Converter, Closeable {
 
    public static final String REGISTRY_CONVERTER_SERIALIZER_PARAM = "apicurio.registry.converter.serializer";
    public static final String REGISTRY_CONVERTER_DESERIALIZER_PARAM = "apicurio.registry.converter.deserializer";
@@ -73,9 +73,9 @@ public class SerdeBasedConverter<S, T> extends SchemaResolverConfigurer<S, T> im
 [role="_additional-resources"]
 .Additional resources
 * xref:registry-serdes-config-props_{context}[]
-* xref:registry-serdes-types-avro_registry[]
-* xref:registry-serdes-types-json_registry[]
-* xref:registry-serdes-types-protobuf_registry[]
+* xref:registry-serdes-types-avro_{context}[]
+* xref:registry-serdes-types-json_{context}[]
+* xref:registry-serdes-types-protobuf_{context}[]
 * {kafka-client-serdes}
 * link:https://github.com/Apicurio/apicurio-registry/blob/main/utils/converter/src/main/java/io/apicurio/registry/utils/converter/SerdeBasedConverter.java[SerdeBasedConverter Java class]
 
@@ -232,6 +232,8 @@ When {registry} is served over HTTPS with certificates that the default Java tru
 |`true`
 |===
 
+For a running example of a producer and a consumer that call {registry} over mutual TLS, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/tls[TLS example].
+
 The following example configures a producer with a PKCS12 trust store:
 
 [source,properties]
@@ -291,6 +293,11 @@ The `DefaultSchemaResolver` uses the following properties to configure how to lo
 |Used by serializers only. Fully qualified Java class name that implements `ArtifactReferenceResolverStrategy` and maps each Kafka message to an `ArtifactReference` (`groupId`, `artifactId`, and version). For example, the default strategy uses the topic name as the schema `artifactId`.
 |`String`
 |`io.apicurio.registry.serde.strategy.TopicIdStrategy`
+|`REFERENCE_NAMING_STRATEGY`
+|`apicurio.registry.reference-naming-strategy`
+|Used by serializers only. Fully qualified Java class name that implements `ReferenceNamingStrategy` and decides the `groupId` and `artifactId` under which schemas referenced by another schema are auto-registered. The reference name is not changed. `io.apicurio.registry.resolver.strategy.NamespaceGroupReferenceNamingStrategy` registers each referenced schema in a group named after its Avro namespace or Protobuf package.
+|`String`
+|`io.apicurio.registry.resolver.strategy.DefaultReferenceNamingStrategy`
 |`EXPLICIT_ARTIFACT_GROUP_ID`
 |`apicurio.registry.artifact.group-id`
 |Used by serializers only. Sets the `groupId` used for querying or creating an artifact. Overrides the `groupId` returned by the `ArtifactResolverStrategy`.
@@ -318,14 +325,24 @@ The `DefaultSchemaResolver` uses the following properties to configure how to lo
 |`false`
 |`DEREFERENCE_SCHEMA`
 |`apicurio.registry.dereference-schema`
-|Used by serializers and deserializers. Configures the SerDes to dereference the schema. After the schema is registered, this property instructs the SerDes to request the dereferenced schema from the server. It also instructs the serializer to dereference the schema before registering it in {registry}, but this is only supported for Avro.
+|Used by serializers and deserializers, unless overridden by `apicurio.registry.serializer.dereference-schema` or `apicurio.registry.deserializer.dereference-schema`. Configures the serializer to dereference the schema before registering it in {registry} (Avro only), and the deserializer to request dereferenced schemas from {registry}.
 |`boolean`
 |`false`
+|`SERIALIZER_DEREFERENCE_SCHEMA`
+|`apicurio.registry.serializer.dereference-schema`
+|Used by serializers only. Overrides `apicurio.registry.dereference-schema`: whether the serializer registers the schema dereferenced, without references. Only supported for Avro.
+|`boolean`
+|The value of `apicurio.registry.dereference-schema`
+|`DESERIALIZER_DEREFERENCE_SCHEMA`
+|`apicurio.registry.deserializer.dereference-schema`
+|Used by deserializers only. Overrides `apicurio.registry.dereference-schema`: whether the deserializer requests dereferenced schemas instead of fetching each reference separately. Lookups by content ID or content hash are only dereferenced when this property is set explicitly; they require both the {registry} server and the SerDes to be 3.4.0 or later.
+|`boolean`
+|The value of `apicurio.registry.dereference-schema`
 |`AUTO_REGISTER_ARTIFACT_IF_EXISTS`
 |`apicurio.registry.auto-register.if-exists`
-|Used by serializers only. Configures the behavior of the client when a conflict occurs while creating an artifact because the artifact already exists. Available values are `FAIL`, `UPDATE`, `RETURN`, or `RETURN_OR_UPDATE`.
+|Used by serializers only. Configures the behavior of the client when a conflict occurs while creating an artifact because the artifact already exists. Available values are `FAIL`, `CREATE_VERSION`, or `FIND_OR_CREATE_VERSION`.
 |`String`
-|`RETURN_OR_UPDATE`
+|`FIND_OR_CREATE_VERSION`
 |`CHECK_PERIOD_MS`
 |`apicurio.registry.check-period-ms`
 |Used by serializers and deserializers. Specifies how long to cache artifacts before auto-eviction (milliseconds). If set to zero, artifacts are fetched every time.
@@ -338,9 +355,19 @@ The `DefaultSchemaResolver` uses the following properties to configure how to lo
 |`300`
 |`RETRY_COUNT`
 |`apicurio.registry.retry-count`
-|Used by serializers and deserializers. If the SerDes cannot retrieve a schema from the registry, they can retry a number of times. This configuration option controls the number of retry attempts.
+|Used by serializers and deserializers. **To retry registry outages, set `apicurio.registry.retry.transient-errors=true` and preferably `apicurio.registry.retry.total-timeout-ms`.** This key then controls how many times the schema cache retries a failed load. By default the cache only retries HTTP 429; raising `retry-count` alone does not cover network or registry-down failures.
 |`non-negative Number, or integer String`
 |`3`
+|`RETRY_TRANSIENT_ERRORS`
+|`apicurio.registry.retry.transient-errors`
+|Used by serializers and deserializers. **Activation step for outage retries.** When `false` (default), schema-cache retries stay limited to HTTP 429 (historical behavior). When `true`, also retries 502/503/504 and retriable network failures (including `NoRouteToHostException`). Enabling this increases worst-case blocking because each cache attempt may run a full HTTP client retry ladder (see `apicurio.registry.client.retry.max-attempts`). Set `apicurio.registry.retry.total-timeout-ms` when enabling.
+|`boolean`
+|`false`
+|`RETRY_TOTAL_TIMEOUT_MS`
+|`apicurio.registry.retry.total-timeout-ms`
+|Used by serializers and deserializers. Optional wall-clock budget (milliseconds) for one schema-cache load retry loop. Checked before each re-attempt; it does not interrupt an in-flight cache attempt (that attempt may still run a full HTTP client retry ladder and request timeouts). `0` means unlimited. Recommended when `apicurio.registry.retry.transient-errors=true` to bound blocking on Kafka `Producer.send()` / Connect polls.
+|`java.time.Duration, non-negative Number, or integer String`
+|`0`
 |`FAULT_TOLERANT_REFRESH`
 |`apicurio.registry.fault-tolerant-refresh`
 |Used by serializers and deserializers. If `true`, the SerDes log exceptions instead of throwing them when an error occurs while refreshing a schema in the cache. This is useful for production situations where a stale schema is better than completely failing schema resolution. This does not affect retry attempts, because the SerDes attempt retries before considering this flag.
@@ -373,6 +400,14 @@ The `DefaultSchemaResolver` uses the following properties to configure how to lo
 |`false`
 |===
 
+NOTE: `apicurio.registry.dereference-schema` alone keeps its previous behavior: deserializers only dereference
+lookups by global ID. To also dereference lookups by content ID or content hash, which is the default
+(`apicurio.registry.use-id` is `contentId`), set `apicurio.registry.deserializer.dereference-schema` to `true`
+explicitly. This requires a {registry} server at version 3.4.0 or later, because earlier servers ignore the
+dereference request on those lookups. The deserialized data is the same. When one resolver is shared between a
+serializer and a deserializer, as in Kafka Connect, and the two sides use different dereference values, a
+cached schema can be in either form, dereferenced or with references. Both forms decode to the same data.
+
 **Configuration to read and write registry artifacts in Kafka**
 
 The `DefaultSchemaResolver` uses the following properties to configure how artifact information is written to and read from Kafka.
@@ -394,7 +429,7 @@ The `DefaultSchemaResolver` uses the following properties to configure how artif
 |`apicurio.registry.headers.handler`
 |Used by serializers and deserializers. Fully qualified Java class name that implements `HeadersHandler` and writes and reads the artifact identifier to and from the Kafka message headers.
 |`String`
-|`io.apicurio.registry.serde.headers.DefaultHeadersHandler`
+|`io.apicurio.registry.serde.kafka.headers.DefaultHeadersHandler`
 |`ID_HANDLER`
 |`apicurio.registry.id-handler`
 |Used by serializers and deserializers. Fully qualified Java class name of a class that implements `IdHandler` and writes and reads the artifact identifier to and from the message payload. Defaults to a 4-byte format that includes the `contentId` in the message payload.
@@ -454,7 +489,12 @@ For more details, see the https://quarkus.io/guides/config#overriding-properties
 
 [role="_additional-resources"]
 .Additional resources
+ifndef::service-registry-downstream[]
+* xref:getting-started/assembly-using-the-registry-client.adoc#registry-sdk-config_{context}[{registry} Java SDK configuration]
+endif::[]
+ifdef::service-registry-downstream[]
 * xref:registry-sdk-config_{context}[]
+endif::[]
 * link:https://github.com/Apicurio/apicurio-registry/blob/main/serdes/generic/serde-common/src/main/java/io/apicurio/registry/serde/config/SerdeConfig.java[SerdeConfig Java class]
 
 
@@ -526,9 +566,9 @@ private static KafkaConsumer<Long, GenericRecord> createKafkaConsumer() {
     // Configure the {registry} location
     props.putIfAbsent(SerdeConfig.REGISTRY_URL, REGISTRY_URL);
 
-    // No other configuration needed because the schema globalId the deserializer uses is sent
-    // in the payload. The deserializer extracts the globalId and uses it to look up the schema
-    // from the registry.
+    // No other configuration needed because the schema ID the deserializer uses (the content ID by
+    // default) is sent in the payload. The deserializer extracts the ID and uses it to look up the
+    // schema from the registry.
 
     // Create the Kafka consumer
     KafkaConsumer<Long, GenericRecord> consumer = new KafkaConsumer<>(props);
@@ -580,10 +620,9 @@ The property name is `apicurio.registry.headers.enabled`.
 
 You can customize how the SerDes encode the schema ID when they pass it in the Kafka message body. Set the `apicurio.registry.id-handler` configuration property to a class that implements the `io.apicurio.registry.serde.IdHandler` interface. {registry} provides the following implementations:
 
-* `io.apicurio.registry.serde.Default4ByteIdHandler`: Stores the ID as a 4-byte integer
-* `io.apicurio.registry.serde.Legacy8ByteIdHandler`: Stores the ID as an 8-byte long
-
-{registry} represents the schema ID as a long, but for legacy reasons, or for compatibility with other registries or SerDe classes, you might want to use 4 bytes when sending the ID.
+* `io.apicurio.registry.serde.Default4ByteIdHandler`: Stores the ID as a 4-byte integer. This is the default, and the format used by Confluent SerDe classes.
+* `io.apicurio.registry.serde.Legacy8ByteIdHandler`: Stores the ID as an 8-byte long, as {registry} 2.x did by default.
+* `io.apicurio.registry.serde.OptimisticFallbackIdHandler`: Writes 4 bytes, and reads both 4-byte and 8-byte IDs. Use it in consumers while producers move from 8-byte to 4-byte IDs.
 
 **Avro datum provider**
 
@@ -671,6 +710,43 @@ The nested `Exchange` schema is defined as follows:
 ----
 
 When you use these schemas with Avro SerDes, {registry} creates two artifacts, one for the `TradeKey` schema and one for the `Exchange` schema. Whenever a message that uses the `TradeKey` schema is serialized or deserialized, both schemas are retrieved, allowing you to split your definitions into different files.
+
+**Choosing where referenced schemas are registered**
+
+When a serializer auto-registers a schema that references other schemas, it also registers the referenced
+schemas. By default, each referenced schema is registered in the group that the artifact resolver strategy
+chooses for it, or in the group set by `apicurio.registry.artifact.group-id`, and its artifact ID is the
+reference name, for example `com.example.Address` for an Avro record or `common/address.proto` for a Protobuf
+import.
+
+To register referenced schemas elsewhere, set `apicurio.registry.reference-naming-strategy`. For example,
+`io.apicurio.registry.resolver.strategy.NamespaceGroupReferenceNamingStrategy` registers the Avro record
+`com.example.Address` as artifact `Address` in group `com.example`, and the Protobuf import
+`common/address.proto` with package `example.common` as artifact `common/address.proto` in group
+`example.common`. Avro schemas registered this way are also found when you create an artifact with
+`autoReferences` set to `true`, because {registry} also looks for an Avro reference in the group named after
+its namespace. Protobuf imports are matched only in the group of the artifact that you create, so for a
+Protobuf dependency in another group, list the reference explicitly.
+
+You can also implement `io.apicurio.registry.resolver.strategy.ReferenceNamingStrategy`:
+
+[source,java]
+----
+import io.apicurio.registry.resolver.strategy.ReferenceCoordinates;
+import io.apicurio.registry.resolver.strategy.ReferenceNamingContext;
+import io.apicurio.registry.resolver.strategy.ReferenceNamingStrategy;
+
+public class SharedGroupStrategy implements ReferenceNamingStrategy {
+    @Override
+    public ReferenceCoordinates name(ReferenceNamingContext context) {
+        return new ReferenceCoordinates("shared-types", context.referenceName());
+    }
+}
+----
+
+The strategy is not used when `apicurio.registry.dereference-schema` is `true` for Avro, because the schema is
+registered without references. JSON Schema SerDes do not auto-register referenced schemas (see
+https://github.com/Apicurio/apicurio-registry/issues/11051).
 
 **Custom logical type conversions for the Avro Kafka Connect converter**
 
@@ -979,9 +1055,13 @@ COMMAND = 4;
 
 In this example, {registry} stores two Protobuf artifacts, one for `TableInfo` and one for `Mode`. However, because `Mode` is part of `TableInfo`, whenever `TableInfo` is fetched to check a message in the SerDes, `Mode` is also returned as an artifact referenced by `TableInfo`.
 
+To choose the group and artifact ID under which imported Protobuf files are registered, set
+`apicurio.registry.reference-naming-strategy`, as described for Avro in
+xref:registry-serdes-types-avro_{context}[] under "Choosing where referenced schemas are registered".
+
 [role="_additional-resources"]
 .Additional resources
-* xref:registry-serdes-concepts-constants_registry[]
-* xref:registry-serdes-types-avro_registry[]
+* xref:registry-serdes-concepts-constants_{context}[]
+* xref:registry-serdes-types-avro_{context}[]
 * link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[Protobuf Bean and Protobuf Find Latest examples]
 * link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[SerDes with references example]

@@ -74,10 +74,19 @@ checked without a cluster; the live OLM v1 smoke run is the end-to-end backstop,
   install modes and the SingleNamespace boundary, neither of which v1 exposes today.
 - **`ChannelValidationOLMITTest`** validates channel metadata (names, heads, default channel) against
   the live catalog.
-- **`UpgradeOLMITTest`** installs an older version from the catalog and verifies OLM upgrades it to the
-  current version. It discovers available versions from the live `PackageManifest` at runtime rather than
-  hardcoding version strings, so it works with both upstream catalogs (built from `catalog.template.yaml`)
-  and downstream IIB images (where CSV names have productized suffixes like `-r1`).
+- **`UpgradeOLMITTest`** (OLM v0 only) installs an older version from the catalog and verifies OLM upgrades
+  it to the current version, driven by a `Subscription`/`InstallPlan`. It discovers available versions from
+  the live catalog at runtime rather than hardcoding version strings, so it works with both upstream
+  catalogs (built from `catalog.template.yaml`) and downstream IIB images (where CSV names have
+  productized suffixes like `-r1`).
+- **`UpgradeOLMv1ITTest`** (OLM v1 only) is the `ClusterExtension` counterpart of `UpgradeOLMITTest`,
+  covering the same scenarios except manual-approval upgrade (see below). OLM v1 has no `Subscription`
+  auto-resolve-to-newest-in-channel behavior, so "upgrading" means patching
+  `spec.source.catalog.version`/`channels` on the `ClusterExtension` directly and waiting for the operator
+  deployment to follow. Catalog discovery (channels, versions, heads) is shared with `UpgradeOLMITTest` via
+  `CatalogDiscovery`, which under OLM v1 reads File-Based Catalog content from catalogd (via
+  `CatalogdClient`, extracted from `ChannelValidationOLMITTest`) instead of exec'ing into the catalog pod,
+  and feeds it through the same FBC parser used by OLM v0.
 
 ## OLM upgrade test scenarios
 
@@ -138,11 +147,35 @@ The version goes into `3.2.x` only, not `3.x`. Tests involving the rolling chann
 | Downgrade rejected | No | Version is not in `3.x` |
 | Channel switch noop | No | Version is not in `3.x` |
 
+### OLM v1 coverage and its limits
+
+`UpgradeOLMv1ITTest` covers upgrade within a minor channel, cross-minor upgrade, channel switch
+(rolling→minor, and the noop case at channel head), minor channel isolation, fresh install on a minor
+channel, and rejected downgrade — the same scenarios `UpgradeOLMITTest` covers, minus manual-approval
+upgrade. OLM v1's `ClusterExtension` has no `InstallPlan`/approval concept: resolution is either automatic
+(whatever version satisfies the constraint at reconcile time) or explicit user-driven (edit the constraint
+yourself), with no intermediate "pending approval" object to approve. `testManualApprovalUpgrade` therefore
+stays OLM v0-only, gated off entirely for v1 the same way the rest of `UpgradeOLMITTest` already is.
+
+For "fresh install on a minor channel," `UpgradeOLMv1ITTest` deploys a channel-only `ClusterExtension`
+with no `spec.source.catalog.version` — the same shape as OLM v0's `startingCSV`-less Subscription — and
+asserts that OLM v1 resolves it to the discovered channel head. The resolved version is read back from
+the installed operator deployment, so the test exercises OLM v1's default channel-head resolution rather
+than re-checking a version it pinned itself.
+
+The cross-minor upgrade test only runs when the rolling channel's cross-minor entry is at least
+`3.3.2`, the first release whose bundle carries the cluster-tier CSV RBAC an OLM v1 `ClusterExtension`
+install needs. Earlier bundles rely on an OLM v0 `OperatorGroup` to scope the operator's watch, which
+`ClusterExtension` has no equivalent for, so upgrades starting from them stay covered by
+`UpgradeOLMITTest` (OLM v0) only.
+
 ### How tests determine applicability
 
-Tests query the live `PackageManifest` (OLM v0) or catalog pod (OLM v1) after the `CatalogSource` is
-created. The discovery result is cached for the duration of the test run. Each test checks its
-preconditions and logs the reason when skipping:
+Tests query the live catalog after the `CatalogSource`/`ClusterCatalog` is created: OLM v0 reads FBC
+content by exec'ing into the catalog pod, OLM v1 reads the same FBC format from catalogd over HTTP. Both
+paths are parsed by the same `CatalogDiscovery.parseFBC` method into a shared `CatalogInfo` model, and the
+discovery result is cached for the duration of the test run. Each test checks its preconditions against
+that model and logs the reason when skipping:
 
 - **Is the current version in `3.x`?** Check if `3.x` channel entries contain a CSV matching the current
   package version.

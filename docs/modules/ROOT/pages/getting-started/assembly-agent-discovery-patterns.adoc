@@ -1,7 +1,7 @@
 include::{mod-loc}shared/all-attributes.adoc[]
 
 :dp-support-scope: link:https://access.redhat.com/support/offerings/devpreview[Developer Preview Support Scope]
-[id="agent-discovery-patterns_{context}"]
+[id="assembly-agent-discovery-patterns_{context}"]
 = Agent discovery and multi-agent orchestration
 
 :_mod-docs-content-type: ASSEMBLY
@@ -22,8 +22,9 @@ endif::[]
 [role="_abstract"]
 {registry} exposes well-known endpoints for agent discovery, MCP tool discovery, and JSON schema retrieval. Each endpoint serves a specific role in the A2A and MCP ecosystems.
 
-The following table lists all available well-known endpoints.
+The following table lists the available well-known endpoints.
 
+.Well-known endpoints
 [cols="3,1,4",options="header"]
 |===
 |Path |Method |Description
@@ -31,10 +32,6 @@ The following table lists all available well-known endpoints.
 |`/.well-known/agent.json`
 |GET
 |Returns the agent card for this {registry} instance. Use this endpoint for standard A2A protocol discovery.
-
-|`/.well-known/a2a`
-|GET
-|Returns the agent card for this {registry} instance. As the canonical A2A v1.0 discovery endpoint, it returns the same response as `/.well-known/agent.json`.
 
 |`/.well-known/agent-card.json`
 |GET
@@ -56,22 +53,79 @@ The following table lists all available well-known endpoints.
 |GET
 |Returns a specific registered MCP tool definition by group ID and artifact ID. Accepts an optional `version` query parameter that defaults to the latest version.
 
+|`/.well-known/mcp-tools/\{groupId}/\{artifactId}/compatible`
+|GET
+|Returns the registered MCP tool definitions that can receive the structured output of the specified tool as their input. Accepts an optional `version` query parameter and supports pagination with `offset` and `limit` parameters.
+
+|`/.well-known/mcp-tools/\{groupId}/\{artifactId}/compatibility`
+|GET
+|Returns the verdict of comparing the structured output of the specified tool with the input of each registered MCP tool definition, with the reasons and limitations that decide it. Accepts optional `version` and `verdict` query parameters and supports pagination with `offset` and `limit` parameters.
+
 |`/.well-known/schemas/\{type}/\{version}`
 |GET
 |Returns the JSON schema for a specific LLM artifact type. Supported types are `prompt-template`, `model-schema`, and `mcp-tool`, each with version `v1`.
+
+|`/.well-known/ai-catalog.json`
+|GET
+ifndef::service-registry-downstream[]
+|Returns an AI Catalog document (see xref:getting-started/assembly-ai-catalog-ard.adoc[AI Catalog and ARD discovery]) projecting registered `AGENT_CARD` and `MCP_TOOL` artifacts.
+endif::[]
+ifdef::service-registry-downstream[]
+|Returns an AI Catalog document projecting registered `AGENT_CARD` and `MCP_TOOL` artifacts.
+endif::[]
+
+|`/.well-known/ard.json`
+|GET
+|Returns the same document as `/.well-known/ai-catalog.json`, at the path mandated by the ARD (Agentic Resource Discovery) specification.
 |===
 
-The `/.well-known/agent.json` and `/.well-known/a2a` endpoints return the {registry} instance agent card, which represents the registry itself as an A2A agent. These endpoints require no authentication.
+The `/.well-known/agent.json` endpoint returns the {registry} instance agent card, which represents the registry itself as an A2A agent. This endpoint requires no authentication.
 
-The `/.well-known/agents` and `/.well-known/agents/\{groupId}/\{artifactId}` endpoints operate on agent cards that you store in {registry} as `AGENT_CARD` artifacts. These endpoints require read-level authorization.
+The `/.well-known/agents` and `/.well-known/agents/\{groupId}/\{artifactId}` endpoints operate on agent cards that you store in {registry} as `AGENT_CARD` artifacts. The search endpoint requires no authentication. When OIDC or basic authentication is enabled, the search endpoint returns only the agent cards that the caller has permission to view, based on the `apicurio.agent.visibility` label. The `/.well-known/agents/\{groupId}/\{artifactId}` endpoint requires read-level authorization.
 
-The `/.well-known/mcp-tools` and `/.well-known/mcp-tools/\{groupId}/\{artifactId}` endpoints operate on MCP tool definitions that you store in {registry} as `MCP_TOOL` artifacts. These endpoints require read-level authorization and are available only when MCP tools support is enabled.
+The `/.well-known/mcp-tools`, `/.well-known/mcp-tools/\{groupId}/\{artifactId}`, `/.well-known/mcp-tools/\{groupId}/\{artifactId}/compatible`, and `/.well-known/mcp-tools/\{groupId}/\{artifactId}/compatibility` endpoints operate on MCP tool definitions that you store in {registry} as `MCP_TOOL` artifacts. These endpoints require read-level authorization and are available only when MCP tools support is enabled. {registry} also serves them under `/apis/registry/v3/well-known/mcp-tools`, which is where the generated SDK clients call them. Unlike `/.well-known/agents`, these endpoints are not filtered by the `apicurio.agent.visibility` label: they return every MCP tool definition the caller is authorized to see. See xref:getting-started/assembly-mcp-tool-features.adoc#mcp-tool-visibility_{context}[MCP tool visibility] for details.
+
+The `/.well-known/mcp-tools/\{groupId}/\{artifactId}/compatible` endpoint compares the `outputSchema` of the specified tool with the `inputSchema` of each candidate tool, as if the whole output object were passed to the candidate. A candidate is returned only when the comparison proves that it accepts every output that the `outputSchema` permits:
+
+* Every input that the candidate requires is also required by the `outputSchema`.
+* The type of each property in the output, and of everything nested inside it, is accepted by the candidate.
+* Any property that the output can contain, but that the candidate does not declare, is allowed by the `additionalProperties` of the candidate.
+
+An `outputSchema` that declares no `type` permits values other than objects, because `properties`, `required`, and `additionalProperties` apply only to objects. No candidate whose `inputSchema` declares a `type` is returned for such a tool, since it would reject those values. The same applies to any node nested inside the schema that declares object or array keywords without a `type`.
+
+An output that leaves its structure unconstrained is not accepted by a candidate that constrains it. A node that declares `type: array` without `items` permits elements of any type, and a node that declares `type: object` without `properties` or `additionalProperties` permits properties with any value, so no candidate that constrains the elements or the properties of that node is returned. The reverse is allowed: a candidate that leaves them unconstrained accepts an output that constrains them.
+
+The comparison evaluates `type`, `properties`, `required`, `additionalProperties`, and an `items` given as a single schema, at every level of each schema, including a node that declares several types. A node that can be `null` is accepted only by a candidate that also accepts `null`, because `null` is a value like any other. A node that declares `integer` is accepted where the candidate declares `number`, but a node that declares `number` is not accepted where the candidate declares `integer`. Annotations such as `title`, `description`, `default`, `examples`, and `$comment` do not affect the result. A candidate is not returned when either schema uses any other keyword, such as `enum` or `$ref`, gives `type` as an array on the schema root rather than on a node inside it, lists a name in `type` that is not a JSON type or lists the same type twice, gives `items` as anything other than a single schema, nests objects or arrays more than five levels below the schema root, or declares a `$schema` dialect other than JSON Schema draft-04, draft-06, draft-07, 2019-09, or 2020-12. A schema that does not declare `$schema` is treated as JSON Schema 2020-12, which is the default dialect in the MCP specification. A candidate is also not returned when the result depends on the specified tool producing only the properties that it declares, which can happen when any object in its `outputSchema`, at any level, declares properties and does not set `additionalProperties`.
+
+The `format` keyword is evaluated on neither schema. A candidate that uses `format` in its `inputSchema` is not returned, because `format` might reject values that the comparison accepts. A `format` in the `outputSchema` of the specified tool is ignored instead, because it only narrows the values that the tool produces, and no keyword that the comparison evaluates constrains the contents of a value.
+
+The `/.well-known/mcp-tools/\{groupId}/\{artifactId}/compatibility` endpoint makes the same comparison and returns every compared candidate with its `verdict`. A `COMPATIBLE` candidate is one that the `/compatible` endpoint returns. An `INCOMPATIBLE` candidate lists in `reasons` the mismatches that rule it out, each with a JSON Pointer into both tool definitions. An `INDETERMINATE` candidate lists in `limitations` what prevented the comparison from deciding, such as a keyword that the comparison does not evaluate. To return only some verdicts, set the `verdict` query parameter to `COMPATIBLE`, `INCOMPATIBLE`, or `INDETERMINATE`, and repeat it to select more than one. By default, all three verdicts are returned. When the `outputSchema` of the specified tool is absent or cannot be compared, no candidate is compared, and the top-level `limitations` field explains why, for example with `SOURCE_HAS_NO_OUTPUT_SCHEMA`.
+
+Both endpoints compare the specified tool with at most the 500 newest MCP tools, by creation date. The `/compatibility` response reports the coverage of that scan in the following fields:
+
+* `candidateTotal`: the number of MCP tools in {registry}, including the specified tool. When per-resource authorization is enabled, only the tools that the caller can read are counted.
+* `evaluated`: the number of candidates compared with the specified tool. A tool that is deleted during the scan, or that has no enabled or deprecated version, is skipped.
+* `scanLimit`: the maximum number of MCP tools that are scanned.
+* `complete`: `false` when older MCP tools were not compared because only the newest `scanLimit` tools are scanned. A `true` value reports the coverage of the scan, not that every verdict is conclusive.
+* `totals`: the number of compared candidates with each verdict, before the `verdict` filter.
+* `count`: the number of candidates that match the `verdict` filter, before pagination.
+
+Both endpoints page their results with `offset` and `limit`, which the `/compatibility` endpoint applies after the `verdict` filter. An `offset` or `limit` sent without a value takes its default, 0 or 20. A negative `offset` is treated as 0, a negative `limit` as 1, and a `limit` above 1000 as 1000, including values outside the 32-bit integer range. An `offset` or `limit` that is not a number is rejected with a `404` error, which the conversion of the request parameters returns before the endpoint runs. An unknown `verdict` value is rejected with a `400` error.
+
+IMPORTANT: The `offset` and `limit` parameters of the `/.well-known/mcp-tools/\{groupId}/\{artifactId}/compatible` endpoint now follow these rules. Earlier versions of {registry} returned one tool for a `limit` of 0, where an empty page is now returned, and returned an error for an `offset` or `limit` sent without a value or outside the 32-bit integer range, or for a `limit` close to the 32-bit maximum combined with a non-zero `offset`, where the values now take their defaults or are normalized.
+
+IMPORTANT: The `/.well-known/mcp-tools/\{groupId}/\{artifactId}/compatible` endpoint now returns a different set of tools than earlier versions of {registry}, which returned any candidate whose `inputSchema` declared every property in the `outputSchema` of the specified tool. A candidate that ignores part of the output is now returned. A candidate is no longer returned when it requires an input that the `outputSchema` does not require, when it rejects a value that the output can contain, such as `null`, or when the comparison cannot evaluate part of either schema. Structure nested inside a property is now compared as well, so a candidate whose nested types or nested required inputs do not match the output is no longer returned.
 
 The `/.well-known/schemas/\{type}/\{version}` endpoint serves built-in JSON schemas that you can use for IDE autocompletion and validation of `PROMPT_TEMPLATE`, `MODEL_SCHEMA`, and `MCP_TOOL` artifacts. This endpoint requires no authentication.
 
+The `/.well-known/ai-catalog.json` and `/.well-known/ard.json` endpoints require read-level authorization when authentication is enabled. Anonymous clients can read them only if anonymous read access is enabled. {registry} filters agent card entries by the same visibility labels as `/.well-known/agents`, but does not filter MCP tool entries by visibility.
+ifndef::service-registry-downstream[]
+See xref:getting-started/assembly-ai-catalog-ard.adoc[AI Catalog and ARD discovery] for the full ARD search API.
+endif::[]
+
 [role="_additional-resources"]
 .Additional resources
-* xref:assembly-a2a-features_{context}[]
+* xref:getting-started/assembly-a2a-features.adoc[A2A protocol features]
 
 // con-agent-discovery-patterns-overview
 [id="agent-discovery-patterns-overview_{context}"]
@@ -123,7 +177,7 @@ To find agents that accept image input and produce text output:
 $ curl "http://localhost:8080/.well-known/agents?inputMode=image&outputMode=text"
 ----
 
-Name-based search:: You can filter agents by name by using partial matching. {registry} matches the `name` parameter against the artifact name:
+Name-based search:: You can filter agents by name by using partial matching. {registry} matches the `name` parameter against the artifact name or artifact ID. A value without `*` matches anywhere, and you can use `*` as a prefix or suffix wildcard:
 +
 [source,bash]
 ----
@@ -162,33 +216,20 @@ You can orchestrate multi-agent workflows by combining {registry} discovery endp
 [role="_abstract"]
 In a sequential pipeline, each agent receives the original message and the accumulated outputs from all previous agents. Each agent builds on the work of the agents that ran before it.
 
-Use a sequential pipeline when:
+Use a sequential pipeline in the following situations:
 
 * Each processing step depends on results from previous steps
 * You need to accumulate context across a multi-step workflow
 * Agent outputs serve as inputs to subsequent agents
 
-The `examples/a2a-real-world-integration` example in the {registry} repository shows context chaining with four agents that process a customer complaint:
+For example, a pipeline that handles a customer complaint can run four agents in turn:
 
 . **Sentiment agent**: analyzes the original message and produces a sentiment score
 . **Issue analyzer**: receives the original message and the sentiment output, then identifies specific issues
 . **Response generator**: receives the original message, sentiment, and analysis, then generates a response
 . **Translation agent**: receives the generated response and translates it
 
-Each step stores its output under a context key. Subsequent steps reference previous outputs by using `\{{variable}}` template placeholders. A `WorkflowContext` object tracks the original message and all agent outputs:
-
-[source,java]
-----
-WorkflowContext context = new WorkflowContext();
-context.originalMessage = customerMessage;
-
-// After each step completes:
-context.agentOutputs.put("sentiment", sentimentResult);
-context.agentOutputs.put("analysis", analysisResult);
-
-// Build prompt for the next step:
-String prompt = context.buildPrompt("Original: {{original}}\nSentiment: {{sentiment}}");
-----
+The orchestrator stores each step's output under a key, and builds the next agent's input from the original message and the earlier outputs. The `agent-registry` example in the {registry} repository runs a pipeline of this kind, in which the orchestrator discovers each agent in {registry} by role: link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/agent-registry[agent-registry example].
 
 // con-parallel-fan-out
 [id="parallel-fan-out_{context}"]
@@ -199,7 +240,7 @@ String prompt = context.buildPrompt("Original: {{original}}\nSentiment: {{sentim
 [role="_abstract"]
 In a parallel fan-out, you send the same input to multiple agents simultaneously and aggregate the results. You discover the agents by using `/.well-known/agents` with appropriate filters.
 
-Use parallel fan-out when:
+Use parallel fan-out in the following situations:
 
 * Multiple independent agents can process the same input
 * You want to reduce total processing time
@@ -216,7 +257,7 @@ In a typical parallel fan-out, the orchestrator discovers agents with a specific
 [role="_abstract"]
 In conditional routing, you use agent capabilities and skills to decide which agent handles a request. You inspect agent cards to select the best match.
 
-Use conditional routing when:
+Use conditional routing in the following situations:
 
 * Different request types require different agents
 * You want to select agents based on their reported capabilities
@@ -233,13 +274,14 @@ In a typical conditional routing flow, the orchestrator determines the required 
 [role="_abstract"]
 When you build multi-agent workflows, you must handle agent unavailability, version changes, and unexpected errors. The following table lists common error scenarios and recommended handling strategies.
 
+.Error scenarios and handling
 [cols="2,1,3",options="header"]
 |===
 |Scenario |HTTP status |Recommended handling
 
 |A2A support is disabled
 |404
-|Verify that `apicurio.a2a.enabled` is set to `true` in the {registry} configuration.
+|Verify that `apicurio.agents.enabled` or `apicurio.a2a.enabled` is set to `true` in the {registry} configuration, and that `apicurio.a2a.enabled` is not set to `false`.
 
 |Agent card not found
 |404
@@ -342,6 +384,20 @@ Follow semantic versioning for agent cards:
 |`agent_card:tag:<value>`
 |Each value in the `tags` array within each skill (deduplicated across skills)
 |===
+
+[NOTE]
+====
+Artifact-level structured content search is supported by `sql`, `kafkasql`, `gitops`, and `kubernetesops`. The index follows the latest published, non-disabled branch tip. Draft writes do not replace published entries; publication, disable/restore, deletion and imported versions/branches refresh the index transactionally.
+
+Import populates the index without requiring re-upload. OpenAPI/AsyncAPI YAML is normalized to JSON before extraction. Full `type:kind:value`, partial `kind:value`, and plain `value` filters use case-insensitive exact value matching; SQL wildcard characters in partial kinds are treated literally. Blank components are rejected. Negated structure filters require a positive artifact-type constraint to avoid matching unrelated artifact families. Elasticsearch full-text/version-level search remains a separate feature.
+
+Values are indexed using a SHA-256 equality key over the full lowercased value, not a truncated prefix. Long skill IDs sharing their first 256 characters therefore remain distinct. Live indexing, upgrade backfill and lookup use the same encoding; original values remain in artifact content. Empty or whitespace-only `skill`, `capability`, `inputMode`, and `outputMode` parameters return HTTP 400. Capability suffixes must be `:true` or `:false`.
+====
+
+[NOTE]
+====
+Database upgrade 110 backfills existing published content for built-in types with structured extractors, skipping no-op extractors. It follows the published branch tip, with a latest-published-version fallback when imported branch metadata is absent. Progress is logged every 500 artifacts. Plan for a one-time startup cost proportional to eligible content. Extraction errors are logged and counted; SQL failures abort the transaction instead of claiming a successful partially aborted write. Custom provider backfill requires a separately registered provider available to the upgrader.
+====
 
 Design your agent cards with consistent skill IDs and capability names across your organization. With consistent naming, discovery queries return accurate results. For example, use `translation` rather than `translate` or `translator` as the skill ID across all translation agents.
 

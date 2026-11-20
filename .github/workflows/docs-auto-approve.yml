@@ -1,0 +1,60 @@
+name: Docs Auto-Approve
+
+# Approves docs-only PRs by maintainers once their Verify run passes, so the
+# author can merge without waiting for a second person (see the "Docs-only
+# PRs" section of .github/PR_LIFECYCLE.md). The rules are in
+# .github/scripts/docs-auto-approve.js and the docs_only section of
+# .github/pr-lifecycle.yml; files on its review_required_paths list still need
+# a human review.
+#
+# Requires the repository setting "Allow GitHub Actions to create and approve
+# pull requests" (Settings > Actions > General). Without it the approval is
+# refused and this job fails saying so. Also requires "Dismiss stale pull
+# request approvals when new commits are pushed" on the branch protection of
+# main and 3.3.x: the approval is for one commit, and only that setting stops
+# it from carrying over to a push that adds non-docs changes.
+#
+# workflow_run runs this file and the scripts from the default branch, never
+# from the PR, and the job never checks out the run's head commit (see the
+# test-result job in pr-lifecycle.yml for why).
+
+on:
+  workflow_run:
+    workflows: ["Verify"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-auto-approve-${{ github.event.workflow_run.head_sha }}
+  cancel-in-progress: false
+
+jobs:
+  approve:
+    name: Approve Docs-Only PR
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: >-
+      github.repository_owner == 'Apicurio'
+      && github.event.workflow_run.event == 'pull_request'
+      && github.event.workflow_run.conclusion == 'success'
+    permissions:
+      contents: read
+      actions: write        # dispatch pr-lifecycle.yml to reconcile labels
+      pull-requests: write  # approve, comment
+      issues: write         # comment
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Convert config to JSON
+        run: yq -o json .github/pr-lifecycle.yml > .github/pr-lifecycle.json
+
+      - name: Approve if eligible
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        with:
+          script: |
+            const config = require('./.github/pr-lifecycle.json');
+            const { handleVerifyCompleted } = require('./.github/scripts/docs-auto-approve.js');
+            await handleVerifyCompleted({ github, context, core, config });

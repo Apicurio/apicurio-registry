@@ -46,6 +46,8 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class ProtobufData {
 
+    private static final String VALUE_FIELD = "value";
+
     private static final String DEFAULT_PACKAGE = "io.apicurio.registry.connect";
     private static final String DEFAULT_MESSAGE = "ConnectMessage";
 
@@ -186,7 +188,7 @@ public class ProtobufData {
             Map<Object, Object> map = (Map<Object, Object>) value;
             Descriptors.Descriptor entryDescriptor = protoField.getMessageType();
             Descriptors.FieldDescriptor keyField = entryDescriptor.findFieldByName("key");
-            Descriptors.FieldDescriptor valueField = entryDescriptor.findFieldByName("value");
+            Descriptors.FieldDescriptor valueField = entryDescriptor.findFieldByName(VALUE_FIELD);
             for (Map.Entry<Object, Object> entry : map.entrySet()) {
                 DynamicMessage mapEntry = DynamicMessage.newBuilder(entryDescriptor)
                         .setField(keyField, toProtoValue(keyField, schema.keySchema(), entry.getKey(), nameMap))
@@ -291,7 +293,7 @@ public class ProtobufData {
         if (field.isMapField()) {
             Descriptors.Descriptor entry = field.getMessageType();
             Schema keySchema = toConnectFieldSchema(entry.findFieldByName("key"));
-            Schema valueSchema = toConnectFieldSchema(entry.findFieldByName("value"));
+            Schema valueSchema = toConnectFieldSchema(entry.findFieldByName(VALUE_FIELD));
             return SchemaBuilder.map(keySchema, valueSchema).optional().build();
         }
         if (field.isRepeated()) {
@@ -410,7 +412,7 @@ public class ProtobufData {
         if (field.isMapField()) {
             Map<Object, Object> result = new LinkedHashMap<>();
             Descriptors.FieldDescriptor keyField = field.getMessageType().findFieldByName("key");
-            Descriptors.FieldDescriptor valueField = field.getMessageType().findFieldByName("value");
+            Descriptors.FieldDescriptor valueField = field.getMessageType().findFieldByName(VALUE_FIELD);
             for (Message entry : (Collection<Message>) value) {
                 Object key = toConnectFieldValue(schema.keySchema(), keyField, entry.getField(keyField));
                 Object mapValue = toConnectFieldValue(schema.valueSchema(), valueField, entry.getField(valueField));
@@ -702,7 +704,7 @@ public class ProtobufData {
                     .setName(entryName)
                     .setOptions(DescriptorProtos.MessageOptions.newBuilder().setMapEntry(true));
             entry.addField(toMapField("key", schema.keySchema(), 1));
-            entry.addField(toMapField("value", schema.valueSchema(), 2));
+            entry.addField(toMapField(VALUE_FIELD, schema.valueSchema(), 2));
             file.addMessageType(entry);
             return entryName;
         }

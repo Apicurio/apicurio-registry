@@ -10,6 +10,10 @@ import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.resolver.client.RegistryClientFacadeImpl;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
+import io.apicurio.registry.resolver.strategy.NamespaceGroupReferenceNamingStrategy;
+import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.rest.client.models.CreateVersion;
+import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.serde.avro.*;
 import io.apicurio.registry.serde.avro.strategy.QualifiedRecordIdStrategy;
@@ -716,5 +720,154 @@ public class AvroSerdeTest extends AbstractClientFacadeTestBase {
             GenericData.Record ir = (GenericData.Record) deserializer.deserialize(subject, bytes);
             Assertions.assertEquals("somebar", ir.get("bar").toString());
         }
+    }
+
+    private static Schema orderWithAddress(String ns) {
+        return new Schema.Parser().parse("{\"type\":\"record\",\"namespace\":\"" + ns + ".order\",\"name\":\"Order\","
+                + "\"fields\":[{\"name\":\"address\",\"type\":{\"type\":\"record\",\"namespace\":\"" + ns
+                + "\",\"name\":\"Address\",\"fields\":[{\"name\":\"street\",\"type\":\"string\"}]}}]}");
+    }
+
+    private List<String> referencesOf(String groupId, String artifactId) {
+        return isolatedClientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .byVersionExpression("branch=latest").references().get().stream()
+                .map(r -> r.getName() + " -> " + r.getGroupId() + "/" + r.getArtifactId() + "@" + r.getVersion())
+                .toList();
+    }
+
+    private void serializeOrder(Schema order, String group, String topic, boolean namespaceStrategy) {
+        try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<>(
+                new RegistryClientFacadeImpl(isolatedClientV3))) {
+            Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
+            config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, group);
+            if (namespaceStrategy) {
+                config.put(SerdeConfig.REFERENCE_NAMING_STRATEGY,
+                        NamespaceGroupReferenceNamingStrategy.class.getName());
+            }
+            serializer.configure(config, false);
+            serializer.serialize(topic, orderRecord(order));
+        }
+    }
+
+    private GenericData.Record orderRecord(Schema order) {
+        GenericData.Record address = new GenericData.Record(order.getField("address").schema());
+        address.put("street", "Main");
+        GenericData.Record record = new GenericData.Record(order);
+        record.put("address", address);
+        return record;
+    }
+
+    private GenericData.Record roundTrip(String group, String topic, Schema order, boolean serializerDeref,
+            boolean deserializerDeref) {
+        RegistryClientFacade facade = new RegistryClientFacadeImpl(isolatedClientV3);
+        try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<>(facade);
+                AvroKafkaDeserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(facade)) {
+            Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
+            config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, group);
+            config.put(SerdeConfig.SERIALIZER_DEREFERENCE_SCHEMA, serializerDeref);
+            config.put(SerdeConfig.DESERIALIZER_DEREFERENCE_SCHEMA, deserializerDeref);
+            serializer.configure(config, false);
+            deserializer.configure(config, false);
+            byte[] bytes = serializer.serialize(topic, orderRecord(order));
+            return deserializer.deserialize(topic, bytes);
+        }
+    }
+
+    @Test
+    public void serializerDereferencesWhileDeserializerKeepsReferences() {
+        String ns = "com.acme.n" + UUID.randomUUID().toString().replace("-", "");
+        Schema order = orderWithAddress(ns);
+        String group = TestUtils.generateGroupId();
+
+        GenericData.Record read = roundTrip(group, "orders", order, true, false);
+
+        assertEquals("Main", ((GenericData.Record) read.get("address")).get("street").toString());
+        assertEquals(List.of(), referencesOf(group, "orders-value"));
+    }
+
+    @Test
+    public void deserializerDereferencesWhileSerializerKeepsReferences() {
+        String ns = "com.acme.n" + UUID.randomUUID().toString().replace("-", "");
+        Schema order = orderWithAddress(ns);
+        String group = TestUtils.generateGroupId();
+
+        GenericData.Record read = roundTrip(group, "orders", order, false, true);
+
+        assertEquals("Main", ((GenericData.Record) read.get("address")).get("street").toString());
+        assertEquals(List.of(ns + ".Address -> " + group + "/" + ns + ".Address@1"),
+                referencesOf(group, "orders-value"));
+    }
+
+    @Test
+    public void avroReferencesRegisteredInNamespaceGroup() throws Exception {
+        String ns = "com.acme.n" + UUID.randomUUID().toString().replace("-", "");
+        String group = TestUtils.generateGroupId();
+        String artifactId = generateArtifactId();
+        serializeOrder(orderWithAddress(ns), group, artifactId, true);
+
+        assertEquals(List.of(ns + ".Address -> " + ns + "/Address@1"), referencesOf(group, artifactId + "-value"));
+    }
+
+    @Test
+    public void identicalSchemaOnTwoTopicsIsRegisteredForEachTopic() {
+        // #11053: one serializer, same schema, two topics -> two artifacts, each message carrying its own ID.
+        String ns = "com.acme.n" + UUID.randomUUID().toString().replace("-", "");
+        Schema order = orderWithAddress(ns);
+        String group = TestUtils.generateGroupId();
+        try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<>(
+                new RegistryClientFacadeImpl(isolatedClientV3))) {
+            Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
+            config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, group);
+            serializer.configure(config, false);
+            GenericData.Record address = new GenericData.Record(order.getField("address").schema());
+            address.put("street", "Main");
+            GenericData.Record record = new GenericData.Record(order);
+            record.put("address", address);
+            serializer.serialize("topic-a", record);
+            serializer.serialize("topic-b", record);
+        }
+
+        List<String> artifacts = isolatedClientV3.groups().byGroupId(group).artifacts().get().getArtifacts()
+                .stream().map(a -> a.getArtifactId()).sorted().toList();
+        assertEquals(List.of(ns + ".Address", "topic-a-value", "topic-b-value"), artifacts);
+        assertEquals(List.of(ns + ".Address -> " + group + "/" + ns + ".Address@1"),
+                referencesOf(group, "topic-b-value"));
+    }
+
+    @Test
+    public void avroReferencesKeepDefaultCoordinatesWithoutStrategy() throws Exception {
+        String ns = "com.acme.n" + UUID.randomUUID().toString().replace("-", "");
+        String group = TestUtils.generateGroupId();
+        String artifactId = generateArtifactId();
+        serializeOrder(orderWithAddress(ns), group, artifactId, false);
+
+        assertEquals(List.of(ns + ".Address -> " + group + "/" + ns + ".Address@1"),
+                referencesOf(group, artifactId + "-value"));
+    }
+
+    @Test
+    public void serdeNamespaceGroupReferenceIsFoundByAutoReferences() throws Exception {
+        String ns = "com.acme.n" + UUID.randomUUID().toString().replace("-", "");
+        serializeOrder(orderWithAddress(ns), TestUtils.generateGroupId(), generateArtifactId(), true);
+
+        String group = TestUtils.generateGroupId();
+        String invoice = "{\"type\":\"record\",\"namespace\":\"" + ns + ".billing\",\"name\":\"Invoice\","
+                + "\"fields\":[{\"name\":\"to\",\"type\":\"" + ns + ".Address\"}]}";
+        CreateArtifact create = new CreateArtifact();
+        create.setArtifactId("Invoice");
+        create.setArtifactType(ArtifactType.AVRO);
+        CreateVersion version = new CreateVersion();
+        version.setAutoReferences(true);
+        VersionContent content = new VersionContent();
+        content.setContent(invoice);
+        content.setContentType(ContentTypes.APPLICATION_JSON);
+        version.setContent(content);
+        create.setFirstVersion(version);
+        isolatedClientV3.groups().byGroupId(group).artifacts().post(create);
+
+        assertEquals(List.of(ns + ".Address -> " + ns + "/Address@1"), referencesOf(group, "Invoice"));
     }
 }

@@ -3,7 +3,19 @@
 // Automatically assigns or unassigns contributors to issues when they comment with trigger commands.
 // Commands: /assign-me, /unassign-me (aliases: /claim, /unassign)
 
+const fs = require('fs');
+const path = require('path');
+
 const MAX_ASSIGNED_ISSUES = 3;
+
+// Issues carrying one of these labels are maintainer-only and not open to
+// self-assignment. Matched case-insensitively against the issue's labels.
+// The refusal message names the label rather than the area, so adding a label
+// here is all it takes to extend the policy.
+const MAINTAINER_ONLY_LABELS = ['area/CI'];
+
+// Team pinged in the rejection message when a contributor wants an exception.
+const MAINTAINERS_TEAM = '@Apicurio/maintainers';
 
 const KNOWN_BOTS = new Set([
   'renovate[bot]',
@@ -17,6 +29,40 @@ const KNOWN_BOTS = new Set([
   'codecov[bot]',
   'codecov',
 ]);
+
+/**
+ * Maintainer logins, from the single source of truth shared with the PR lifecycle
+ * orchestrator (.github/pr-lifecycle.yml, converted to JSON by the workflow).
+ * A missing or unreadable file is not fatal: it only means nobody is treated as a
+ * maintainer, so the maintainer-only check applies to everyone.
+ */
+function loadMaintainers(core) {
+  const configPath = path.join(process.cwd(), '.github', 'pr-lifecycle.json');
+  try {
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    return (config.maintainers || []).map(m => m.toLowerCase());
+  } catch (error) {
+    core.warning(`Could not read maintainers from ${configPath}: ${error.message}. Treating all commenters as non-maintainers.`);
+    return [];
+  }
+}
+
+/**
+ * Returns the maintainer-only label present on the issue (original casing), or null.
+ *
+ * A label nested under a restricted one (area/CI/automation under area/CI)
+ * is restricted too. The classifier always applies the parent alongside a
+ * child, but a label added by hand need not be — and the policy is about the
+ * area, not about which of its labels happened to be applied.
+ */
+function findMaintainerOnlyLabel(issue) {
+  const labelNames = (issue.labels || []).map(l => (typeof l === 'string' ? l : l.name)).filter(Boolean);
+  return labelNames.find(name => MAINTAINER_ONLY_LABELS.some(restricted => {
+    const label = name.toLowerCase();
+    const area = restricted.toLowerCase();
+    return label === area || label.startsWith(`${area}/`);
+  })) || null;
+}
 
 /**
  * Main handler for issue comment events.
@@ -83,13 +129,41 @@ async function handleIssueComment({ github, context, core }) {
   const assigneeLogins = currentAssignees.map(a => a.login.toLowerCase());
 
   if (assignMatch) {
-    await handleAssign(github, core, owner, repo, issueNumber, commenterOriginal, commenter, currentAssignees, assigneeLogins);
+    await handleAssign(github, core, owner, repo, issueNumber, commenterOriginal, commenter, currentAssignees, assigneeLogins, freshIssue);
   } else if (unassignMatch) {
     await handleUnassign(github, core, owner, repo, issueNumber, commenterOriginal, commenter, assigneeLogins);
   }
 }
 
-async function handleAssign(github, core, owner, repo, issueNumber, commenterOriginal, commenter, currentAssignees, assigneeLogins) {
+async function handleAssign(github, core, owner, repo, issueNumber, commenterOriginal, commenter, currentAssignees, assigneeLogins, issue) {
+  // Maintainer-only areas are not open to self-assignment. Maintainers themselves
+  // are exempt — the policy is that they do this work, not that the issue cannot
+  // be claimed at all.
+  const restrictedLabel = findMaintainerOnlyLabel(issue);
+  const maintainers = restrictedLabel ? loadMaintainers(core) : [];
+  if (restrictedLabel && !maintainers.includes(commenter)) {
+    core.info(`Issue #${issueNumber} carries the maintainer-only label "${restrictedLabel}"; refusing self-assignment for ${commenterOriginal}.`);
+    // Point at one person when the issue was reported by a maintainer — they can
+    // act on the request themselves. Otherwise the team is the only useful target.
+    const author = issue.user && issue.user.login;
+    const pingList = author && maintainers.includes(author.toLowerCase())
+      ? `@${author}`
+      : MAINTAINERS_TEAM;
+    await postComment(
+      github,
+      core,
+      owner,
+      repo,
+      issueNumber,
+      `@${commenterOriginal} Thanks for offering to help! This issue is labelled \`${restrictedLabel}\`, which marks work that is handled by the maintainers, ` +
+      `so it is not available for self-assignment. We would really appreciate it if you picked a different issue — ` +
+      `there are plenty that are open for contribution.\n\n` +
+      `Labels are applied automatically, so if you think \`${restrictedLabel}\` does not really fit this issue, or you would like an exception, ` +
+      `you can say so in a comment and ping ${pingList}. A maintainer can remove the label or assign the issue to you directly.`
+    );
+    return;
+  }
+
   // If already assigned
   if (assigneeLogins.length > 0) {
     if (assigneeLogins.includes(commenter)) {
@@ -234,5 +308,7 @@ async function postComment(github, core, owner, repo, issueNumber, body) {
 
 module.exports = {
   handleIssueComment,
+  MAINTAINER_ONLY_LABELS,
+  MAX_ASSIGNED_ISSUES,
 };
 

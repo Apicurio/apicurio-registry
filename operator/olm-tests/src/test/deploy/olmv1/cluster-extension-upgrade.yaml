@@ -1,0 +1,21 @@
+apiVersion: olm.operatorframework.io/v1
+kind: ClusterExtension
+metadata:
+  name: apicurio-registry-operator-ce
+spec:
+  namespace: ${PLACEHOLDER_NAMESPACE}
+  serviceAccount:
+    name: apicurio-registry-operator-installer
+  source:
+    sourceType: Catalog
+    catalog:
+      selector:
+        matchLabels:
+          app: apicurio-registry-operator-catalog
+          app.kubernetes.io/name: apicurio-registry-operator-catalog
+          app.kubernetes.io/version: ${PLACEHOLDER_VERSION}
+          olm.operatorframework.io/metadata.name: apicurio-registry-operator-catalog # Intentional for development and testing.
+      packageName: ${PLACEHOLDER_PACKAGE_NAME}
+      channels:
+        - ${PLACEHOLDER_UPGRADE_CHANNEL}
+      version: ${PLACEHOLDER_UPGRADE_VERSION}

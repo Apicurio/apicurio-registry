@@ -129,7 +129,11 @@ public class EntityReader {
                 new String[] { "json" }, true);
         for (File file : allFiles) {
             String path = file.getAbsolutePath();
-            EntityType type = parseEntityType(path);
+            EntityType type = parseEntityType(file.getName());
+            if (type == null) {
+                // Not an entity file (no "<name>.<EntityType>.json" pattern) - skip it.
+                continue;
+            }
             EntityInfo entityInfo = new EntityInfo(path, type);
             switch (type) {
                 case Artifact:
@@ -182,7 +186,7 @@ public class EntityReader {
             versions.sort((v1, v2) -> {
                 long v1GlobalId = getArtifactVersionGlobalId(v1);
                 long v2GlobalId = getArtifactVersionGlobalId(v2);
-                return (int) (v1GlobalId - v2GlobalId);
+                return Long.compare(v1GlobalId, v2GlobalId);
             });
         }
 
@@ -286,12 +290,15 @@ public class EntityReader {
             : readEntry(entry, io.apicurio.registry.utils.impexp.v2.GlobalRuleEntity.class);
     }
 
-    private EntityType parseEntityType(String path) {
-        String[] split = path.split("\\.");
+    private EntityType parseEntityType(String fileName) {
+        String[] split = fileName.split("\\.");
         if (split.length > 2) {
             String typeStr = split[split.length - 2];
-            EntityType type = EntityType.valueOf(typeStr);
-            return type;
+            try {
+                return EntityType.valueOf(typeStr);
+            } catch (IllegalArgumentException e) {
+                return null;
+            }
         }
         return null;
     }

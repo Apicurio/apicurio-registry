@@ -28,10 +28,12 @@ public class CatalogInfo {
 
         private final String csvName;
         private final Semver version;
+        private final String replaces;
 
-        ChannelEntry(String csvName, Semver version) {
+        ChannelEntry(String csvName, Semver version, String replaces) {
             this.csvName = csvName;
             this.version = version;
+            this.replaces = replaces;
         }
     }
 
@@ -64,8 +66,9 @@ public class CatalogInfo {
     }
 
     /**
-     * Returns a suitable "previous" entry for upgrade testing — the second entry in the channel
-     * (i.e., the one immediately before the head). Returns null if the channel has fewer than 2 entries.
+     * Returns the direct predecessor of the channel head for upgrade testing. Entries are ordered
+     * by the replaces chain (head first), so the second entry is the head's direct predecessor.
+     * Returns null if the channel has fewer than 2 entries in the chain.
      */
     public ChannelEntry getPreviousEntry(String channelName) {
         var entries = channels.get(channelName);

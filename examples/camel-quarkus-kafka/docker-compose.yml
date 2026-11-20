@@ -1,64 +1,66 @@
-version: '3.8'
-
+# Camel Quarkus Kafka example: a single-node Kafka broker, Apicurio Registry and its UI. The Camel
+# application runs on the host (demo.sh starts it; see README.md).
+#
+# For local demonstration only: no authentication, in-memory storage (data is lost on restart).
+#
+# The Registry images default to latest-snapshot; set REGISTRY_IMAGE and REGISTRY_UI_IMAGE to run
+# others (CI sets them to the images built for the pull request).
+#
+# Host ports default to 9092 (Kafka), 8081 (API) and 8888 (UI); override them with KAFKA_PORT,
+# REGISTRY_PORT and UI_PORT if they are in use.
 services:
-  zookeeper:
-    image: quay.io/strimzi/kafka:0.41.0-kafka-3.7.0
-    container_name: camel-demo-zookeeper
-    command: [
-      "sh", "-c",
-      "bin/zookeeper-server-start.sh config/zookeeper.properties"
-    ]
-    ports:
-      - "2181:2181"
-    environment:
-      LOG_DIR: /tmp/logs
-    networks:
-      - camel-demo-network
-
   kafka:
-    image: quay.io/strimzi/kafka:0.41.0-kafka-3.7.0
-    container_name: camel-demo-kafka
-    command: [
-      "sh", "-c",
-      "bin/kafka-server-start.sh config/server.properties --override listeners=$${KAFKA_LISTENERS} --override advertised.listeners=$${KAFKA_ADVERTISED_LISTENERS} --override zookeeper.connect=$${KAFKA_ZOOKEEPER_CONNECT}"
-    ]
-    depends_on:
-      - zookeeper
-    ports:
-      - "9092:9092"
+    image: apache/kafka:3.8.1
+    container_name: kafka-camel
     environment:
-      LOG_DIR: "/tmp/logs"
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-    networks:
-      - camel-demo-network
+      # Single-node KRaft broker (no ZooKeeper), reachable from the Camel application on the host
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      # HOST: for the Camel application on the host; INTERNAL: for kafka-topics.sh inside the container
+      KAFKA_LISTENERS: HOST://:9092,INTERNAL://:29092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: HOST://localhost:${KAFKA_PORT:-9092},INTERNAL://kafka:29092
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,HOST:PLAINTEXT,INTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      # One broker, so internal topics cannot be replicated
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      # Let the Camel consumers start reading immediately
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    ports:
+      - "${KAFKA_PORT:-9092}:9092"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:29092 --list > /dev/null"]
+      interval: 5s
+      timeout: 10s
+      retries: 30
 
   apicurio-registry:
-    image: apicurio/apicurio-registry:latest-snapshot
-    container_name: camel-demo-registry
-    depends_on:
-      - kafka
-    ports:
-      - "8080:8080"
+    image: ${REGISTRY_IMAGE:-apicurio/apicurio-registry:latest-snapshot}
+    container_name: apicurio-registry-api-camel
     environment:
-      apicurio.rest.deletion.group.enabled: "true"
+      # Let demo.sh delete the greetings-value artifact, so it can run again
       apicurio.rest.deletion.artifact.enabled: "true"
-      apicurio.rest.deletion.artifact-version.enabled: "true"
+      # The UI runs on another origin (port) and calls the API from the browser
       QUARKUS_HTTP_CORS_ORIGINS: "*"
-    networks:
-      - camel-demo-network
+    ports:
+      - "${REGISTRY_PORT:-8081}:8080"
+    # Readiness is served on the management port (9000), not the API port
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9000/health/ready > /dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
 
   apicurio-registry-ui:
-    image: apicurio/apicurio-registry-ui:latest-snapshot
-    container_name: camel-demo-registry-ui
-    depends_on:
-      - apicurio-registry
+    image: ${REGISTRY_UI_IMAGE:-apicurio/apicurio-registry-ui:latest-snapshot}
+    container_name: apicurio-registry-ui-camel
+    environment:
+      REGISTRY_API_URL: "http://localhost:${REGISTRY_PORT:-8081}/apis/registry/v3"
     ports:
-      - "8888:8080"
-    networks:
-      - camel-demo-network
-
-networks:
-  camel-demo-network:
-    driver: bridge
+      - "${UI_PORT:-8888}:8080"
+    depends_on:
+      apicurio-registry:
+        condition: service_healthy

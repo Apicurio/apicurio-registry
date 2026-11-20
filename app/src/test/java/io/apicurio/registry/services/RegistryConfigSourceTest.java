@@ -1,10 +1,8 @@
 package io.apicurio.registry.services;
 
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -12,16 +10,9 @@ import java.util.Set;
 /**
  * Unit tests for RegistryConfigSource.
  * Tests the ConfigSource SPI contract: getPropertyNames() must return property keys,
- * and must be safe to call before getProperties().
+ * and must be safe to call on a source with no properties.
  */
 public class RegistryConfigSourceTest {
-
-    private RegistryConfigSource configSource;
-
-    @BeforeEach
-    public void setUp() {
-        configSource = new RegistryConfigSource();
-    }
 
     /**
      * Test that getPropertyNames() returns property keys (not values).
@@ -29,13 +20,13 @@ public class RegistryConfigSourceTest {
      * a Set of property names (keys), not the property values.
      */
     @Test
-    public void testGetPropertyNamesReturnsKeys() throws Exception {
+    public void testGetPropertyNamesReturnsKeys() {
         Map<String, String> properties = new HashMap<>();
         properties.put("%prod.my.key1", "value1");
         properties.put("%prod.my.key2", "value2");
         properties.put("%prod.another.setting", "another_value");
-        
-        setPropertiesViaReflection(properties);
+
+        RegistryConfigSource configSource = new RegistryConfigSource(properties);
 
         Set<String> propertyNames = configSource.getPropertyNames();
 
@@ -55,33 +46,30 @@ public class RegistryConfigSourceTest {
     }
 
     /**
-     * Test that getPropertyNames() is safe to call before getProperties().
-     * This verifies that getPropertyNames() does not throw NullPointerException
-     * when the internal properties field is null (before lazy initialization).
-     * The method must handle the lazy initialization safely.
+     * Test that getPropertyNames() is safe to call on a source with an empty property map (no
+     * REGISTRY_PROPERTIES_PREFIX-matching env vars found).
      */
     @Test
-    public void testGetPropertyNamesBeforeGetProperties() throws Exception {
-        setPropertiesViaReflection(null);
+    public void testGetPropertyNamesWithNoProperties() {
+        RegistryConfigSource configSource = new RegistryConfigSource(new HashMap<>());
 
-        Set<String> propertyNames = Assertions.assertDoesNotThrow(() -> {
-            return configSource.getPropertyNames();
-        }, "getPropertyNames() should not throw NPE when called before getProperties()");
+        Set<String> propertyNames = Assertions.assertDoesNotThrow(configSource::getPropertyNames,
+                "getPropertyNames() should not throw when there are no properties");
 
-        Assertions.assertNotNull(propertyNames,
-                "getPropertyNames() should return a Set, not null");
-        Assertions.assertTrue(propertyNames instanceof Set,
-                "getPropertyNames() should return a Set instance");
+        Assertions.assertNotNull(propertyNames, "getPropertyNames() should return a Set, not null");
+        Assertions.assertTrue(propertyNames.isEmpty(), "getPropertyNames() should be empty");
     }
 
     /**
-     * Helper method to inject properties via reflection.
-     * This allows unit tests to control the properties without relying on
-     * System.getenv() which is difficult to mock.
+     * The public, no-arg constructor computes properties from real environment variables - this
+     * just verifies it doesn't throw and always returns a non-null, usable ConfigSource, since
+     * REGISTRY_PROPERTIES_PREFIX won't normally be set in a test environment.
      */
-    private void setPropertiesViaReflection(Map<String, String> props) throws Exception {
-        Field propertiesField = RegistryConfigSource.class.getDeclaredField("properties");
-        propertiesField.setAccessible(true);
-        propertiesField.set(configSource, props);
+    @Test
+    public void testDefaultConstructorComputesFromEnvironment() {
+        RegistryConfigSource configSource = new RegistryConfigSource();
+
+        Assertions.assertNotNull(configSource.getProperties());
+        Assertions.assertNotNull(configSource.getPropertyNames());
     }
 }

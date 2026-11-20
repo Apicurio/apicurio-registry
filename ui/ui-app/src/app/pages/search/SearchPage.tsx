@@ -13,24 +13,28 @@ import {
     SearchPageToolbar,
     toPageError, SearchGroupList, SearchVersionList
 } from "@app/pages";
-import { RootPageHeader } from "@app/components";
+import { CreateArtifactModal, InvalidContentModal, RootPageHeader } from "@app/components";
 import { If, ListWithToolbar } from "@apitomy/common-ui-components";
 import { SearchType } from "@app/pages/search/SearchType.ts";
 import { Paging } from "@models/Paging.ts";
 import { FilterBy, SearchFilter, useSearchService } from "@services/useSearchService.ts";
+import { useGroupsService } from "@services/useGroupsService.ts";
 import {
     ArtifactSearchResults,
     ArtifactSortBy,
     ArtifactSortByObject,
+    CreateArtifact,
     GroupSearchResults,
     GroupSortBy,
     GroupSortByObject, SearchedGroup, SearchedVersion,
     VersionSearchResults,
     VersionSortBy,
-    VersionSortByObject
+    VersionSortByObject,
+    RuleViolationProblemDetails
 } from "@sdk/lib/generated-client/models";
 import { SortOrder } from "@models/SortOrder.ts";
 import { useAppNavigation } from "@services/useAppNavigation.ts";
+import { isRuleViolation, SubmittedContent, toSubmittedContent } from "@utils/ruleViolation.utils.ts";
 
 const EMPTY_RESULTS: ArtifactSearchResults = {
     artifacts: [],
@@ -85,9 +89,33 @@ export const SearchPage: FunctionComponent<PageProperties> = () => {
     const [isSearching, setSearching] = useState<boolean>(false);
     const [paging, setPaging] = useState<Paging>(DEFAULT_PAGING);
     const [results, setResults] = useState<ArtifactSearchResults | GroupSearchResults | VersionSearchResults>(EMPTY_RESULTS);
+    const [isCreateArtifactModalOpen, setIsCreateArtifactModalOpen] = useState<boolean>(false);
+    const [invalidContentError, setInvalidContentError] = useState<RuleViolationProblemDetails>();
+    const [invalidContent, setInvalidContent] = useState<SubmittedContent>();
 
     const searchSvc = useSearchService();
     const appNav = useAppNavigation();
+    const groups = useGroupsService();
+
+    const doCreateArtifact = (groupId: string | undefined, data: CreateArtifact): void => {
+        setIsCreateArtifactModalOpen(false);
+        groups.createArtifact(groupId ?? null, data)
+            .then((response) => {
+                const gid = encodeURIComponent(response.artifact?.groupId || "default");
+                const aid = encodeURIComponent(response.artifact?.artifactId || "");
+                appNav.navigateTo(`/explore/${gid}/${aid}`);
+            })
+            .catch((error) => {
+                // Only rule violations go to the dialog; anything else (an existing artifact, a bad id)
+                // keeps the page error these pages have always shown.
+                if (isRuleViolation(error)) {
+                    setInvalidContentError(error);
+                    setInvalidContent(toSubmittedContent(data.firstVersion?.content));
+                } else {
+                    setPageError(toPageError(error, "Error creating artifact."));
+                }
+            });
+    };
 
     const createLoaders = (): Promise<any> => {
         return search(searchType, filters, sortBy, sortOrder, paging);
@@ -246,7 +274,12 @@ export const SearchPage: FunctionComponent<PageProperties> = () => {
     const emptyState = (
         <SearchPageEmptyState
             searchType={searchType}
-            isFiltered={isFiltered()}/>
+            isFiltered={isFiltered()}
+            onCreateArtifact={
+                searchType === SearchType.ARTIFACT
+                    ? () => setIsCreateArtifactModalOpen(true)
+                    : undefined
+            }/>
     );
 
     return (
@@ -294,6 +327,20 @@ export const SearchPage: FunctionComponent<PageProperties> = () => {
                     </ListWithToolbar>
                 </PageSection>
             </PageDataLoader>
+            <CreateArtifactModal
+                isOpen={isCreateArtifactModalOpen}
+                onClose={() => setIsCreateArtifactModalOpen(false)}
+                onCreate={doCreateArtifact}
+            />
+            <InvalidContentModal
+                error={invalidContentError}
+                content={invalidContent?.content}
+                contentType={invalidContent?.contentType}
+                isOpen={invalidContentError !== undefined}
+                onClose={() => {
+                    setInvalidContentError(undefined);
+                    setInvalidContent(undefined);
+                }} />
         </PageErrorHandler>
     );
 

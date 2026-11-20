@@ -28,6 +28,8 @@ import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.OutboxEvent;
+import io.apicurio.registry.storage.dto.PeerDto;
+import io.apicurio.registry.storage.dto.PeerSearchResultsDto;
 import io.apicurio.registry.storage.dto.RoleMappingDto;
 import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
@@ -40,6 +42,7 @@ import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.dto.VersionContentDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.registry.storage.dto.VersionWithArtifactMetaDataDto;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.CommitFailedException;
 import io.apicurio.registry.storage.error.RegistryStorageException;
@@ -63,6 +66,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -300,6 +304,11 @@ public class TestInMemoryRegistryStorage implements RegistryStorage {
     }
 
     @Override
+    public ContentWrapperDto getContentAndArtifactTypeById(long contentId) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public ContentWrapperDto getContentByHash(String contentHash) {
         throw new UnsupportedOperationException();
     }
@@ -456,6 +465,16 @@ public class TestInMemoryRegistryStorage implements RegistryStorage {
     }
 
     @Override
+    public VersionWithArtifactMetaDataDto getArtifactVersionWithArtifactMetaData(Long globalId) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public List<ArtifactMetaDataDto> getArtifactsMetaData(Collection<GA> artifacts) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public ArtifactVersionMetaDataDto getArtifactVersionMetaDataByVersionOrder(String groupId,
             String artifactId, int versionOrder) {
         throw new UnsupportedOperationException();
@@ -591,6 +610,36 @@ public class TestInMemoryRegistryStorage implements RegistryStorage {
 
     @Override
     public void deleteRoleMapping(String principalId) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void createPeer(PeerDto peer) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public PeerDto getPeer(String peerId) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public List<PeerDto> getPeers() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public PeerSearchResultsDto searchPeers(int offset, int limit) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void updatePeer(PeerDto peer) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void deletePeer(String peerId) {
         throw new UnsupportedOperationException();
     }
 
@@ -810,6 +859,11 @@ public class TestInMemoryRegistryStorage implements RegistryStorage {
 
     @Override
     public boolean isRoleMappingExists(String principalId) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean isPeerExists(String peerId) {
         throw new UnsupportedOperationException();
     }
 

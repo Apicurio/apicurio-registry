@@ -13,6 +13,8 @@ import io.apicurio.registry.rest.v3.beans.Comment;
 import io.apicurio.registry.rest.v3.beans.ConfigurationProperty;
 import io.apicurio.registry.rest.v3.beans.GroupMetaData;
 import io.apicurio.registry.rest.v3.beans.GroupSearchResults;
+import io.apicurio.registry.rest.v3.beans.Peer;
+import io.apicurio.registry.rest.v3.beans.PeerSearchResults;
 import io.apicurio.registry.rest.v3.beans.RoleMapping;
 import io.apicurio.registry.rest.v3.beans.RoleMappingSearchResults;
 import io.apicurio.registry.rest.v3.beans.SearchedArtifact;
@@ -32,6 +34,8 @@ import io.apicurio.registry.storage.dto.CommentDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
+import io.apicurio.registry.storage.dto.PeerDto;
+import io.apicurio.registry.storage.dto.PeerSearchResultsDto;
 import io.apicurio.registry.storage.dto.RoleMappingDto;
 import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
@@ -83,9 +87,8 @@ public final class V3ApiUtil {
             return null;
         }
 
-        String contractId = detectContractId(labels);
-        String p = contractId != null
-                ? ContractLabels.contractPrefix(contractId) : ContractLabels.PREFIX;
+        String contractId = ContractLabels.findContractId(labels);
+        String p = ContractLabels.prefixFor(contractId);
 
         ContractMetadata cm = new ContractMetadata();
         String status = labels.get(p + ContractLabels.SUFFIX_STATUS);
@@ -117,25 +120,6 @@ public final class V3ApiUtil {
         cm.setDeprecationReason(labels.get(p + ContractLabels.SUFFIX_DEPRECATION_REASON));
         cm.setCompatibilityGroup(labels.get(p + ContractLabels.SUFFIX_COMPATIBILITY_GROUP));
         return cm;
-    }
-
-    private static String detectContractId(Map<String, String> labels) {
-        String suffix = "." + ContractLabels.SUFFIX_ID;
-        for (Map.Entry<String, String> entry : labels.entrySet()) {
-            String key = entry.getKey();
-            if (key.startsWith(ContractLabels.PREFIX) && key.endsWith(suffix)) {
-                int start = ContractLabels.PREFIX.length();
-                int end = key.length() - suffix.length();
-                if (end <= start) {
-                    continue;
-                }
-                String middle = key.substring(start, end);
-                if (!middle.contains(".")) {
-                    return entry.getValue();
-                }
-            }
-        }
-        return null;
     }
 
     /**
@@ -238,6 +222,8 @@ public final class V3ApiUtil {
             searchedBranch.setBranchId(branch.getBranchId());
             searchedBranch.setModifiedBy(branch.getModifiedBy());
             searchedBranch.setModifiedOn(new Date(branch.getModifiedOn()));
+            searchedBranch.setGroupId(branch.getGroupId());
+            searchedBranch.setArtifactId(branch.getArtifactId());
             results.getBranches().add(searchedBranch);
         });
         return results;
@@ -321,6 +307,24 @@ public final class V3ApiUtil {
         results.setRoleMappings(dto.getRoleMappings().stream().map(rm -> {
             return dtoToRoleMapping(rm);
         }).collect(Collectors.toList()));
+        return results;
+    }
+
+    public static Peer dtoToPeer(PeerDto dto) {
+        Peer peer = new Peer();
+        peer.setPeerId(dto.getPeerId());
+        peer.setUrl(dto.getUrl());
+        peer.setName(dto.getName());
+        peer.setDescription(dto.getDescription());
+        peer.setEnabled(dto.isEnabled());
+        peer.setCredentialSecretRef(dto.getCredentialSecretRef());
+        return peer;
+    }
+
+    public static PeerSearchResults dtoToPeerSearchResults(PeerSearchResultsDto dto) {
+        PeerSearchResults results = new PeerSearchResults();
+        results.setCount((int) dto.getCount());
+        results.setPeers(dto.getPeers().stream().map(V3ApiUtil::dtoToPeer).collect(Collectors.toList()));
         return results;
     }
 

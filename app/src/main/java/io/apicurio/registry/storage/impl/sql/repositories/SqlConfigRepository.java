@@ -83,13 +83,7 @@ public class SqlConfigRepository {
             String propertyName = propertyDto.getName();
             String propertyValue = propertyDto.getValue();
 
-            // First delete the property row from the table
-            handle.createUpdate(sqlStatements.deleteConfigProperty())
-                    .bind(0, propertyName)
-                    .execute();
-
-            // Then create the row again with the new value
-            handle.createUpdate(sqlStatements.insertConfigProperty())
+            handle.createUpdate(sqlStatements.upsertConfigProperty())
                     .bind(0, propertyName)
                     .bind(1, propertyValue)
                     .bind(2, System.currentTimeMillis())

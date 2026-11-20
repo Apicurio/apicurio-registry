@@ -5,6 +5,7 @@ import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
+import io.apicurio.registry.storage.dto.VersionWithArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.VersionContentDto;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.ContentNotFoundException;
@@ -20,6 +21,7 @@ import io.apicurio.registry.storage.impl.sql.jdb.Handle;
 import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactMetaDataDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactVersionMetaDataDtoMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.VersionWithArtifactMetaDataDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.VersionContentDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.GAVMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.StoredArtifactMapper;
@@ -102,6 +104,17 @@ public class SqlVersionRepository {
                     .map(ArtifactVersionMetaDataDtoMapper.instance).findOne();
             return res.orElseThrow(() -> new VersionNotFoundException(globalId));
         });
+    }
+
+    /**
+     * Get the metadata of the version with this globalId and of its artifact, in one query.
+     */
+    public VersionWithArtifactMetaDataDto getArtifactVersionWithArtifactMetaData(Long globalId)
+            throws VersionNotFoundException, RegistryStorageException {
+        return handles.withHandle(handle -> handle
+                .createQuery(sqlStatements.selectArtifactVersionWithArtifactMetaDataByGlobalId()).bind(0, globalId)
+                .map(VersionWithArtifactMetaDataDtoMapper.instance).findOne()
+                .orElseThrow(() -> new VersionNotFoundException(globalId)));
     }
 
     /**
@@ -251,17 +264,17 @@ public class SqlVersionRepository {
                             .bind(1, limitStr(asLowerCase(k), MAX_LABEL_KEY_LENGTH))
                             .bind(2, limitStr(asLowerCase(v), MAX_LABEL_VALUE_LENGTH)).execute();
                 });
+            }
 
-                if (modified) {
-                    String modifiedBy = securityIdentity.getPrincipal().getName();
-                    Date modifiedOn = new Date();
+            if (modified) {
+                String modifiedBy = securityIdentity.getPrincipal().getName();
+                Date modifiedOn = new Date();
 
-                    rowCount = handle.createUpdate(sqlStatements.updateArtifactVersionModifiedByOn())
-                            .bind(0, modifiedBy).bind(1, modifiedOn).bind(2, normalizeGroupId(groupId))
-                            .bind(3, artifactId).bind(4, version).execute();
-                    if (rowCount == 0) {
-                        throw new VersionNotFoundException(groupId, artifactId, version);
-                    }
+                int rowCount = handle.createUpdate(sqlStatements.updateArtifactVersionModifiedByOn())
+                        .bind(0, modifiedBy).bind(1, modifiedOn).bind(2, normalizeGroupId(groupId))
+                        .bind(3, artifactId).bind(4, version).execute();
+                if (rowCount == 0) {
+                    throw new VersionNotFoundException(groupId, artifactId, version);
                 }
             }
 
@@ -490,21 +503,29 @@ public class SqlVersionRepository {
      */
     public void updateArtifactVersionContent(String groupId, String artifactId, String version,
             long contentId) {
+        handles.withHandle(handle -> {
+            updateArtifactVersionContentRaw(handle, groupId, artifactId, version, contentId);
+            return null;
+        });
+    }
+
+    /**
+     * Update artifact version content using an existing handle, so the update can share a transaction
+     * with related writes (e.g. the structured-content index).
+     */
+    public void updateArtifactVersionContentRaw(Handle handle, String groupId, String artifactId,
+            String version, long contentId) {
         log.debug("Updating content for artifact version: {} {} @ {}", groupId, artifactId, version);
 
         String modifiedBy = securityIdentity.getPrincipal().getName();
         Date modifiedOn = new Date();
 
-        handles.withHandle(handle -> {
-            int rowCount = handle.createUpdate(sqlStatements.updateArtifactVersionContent())
-                    .bind(0, contentId).bind(1, modifiedBy).bind(2, modifiedOn)
-                    .bind(3, normalizeGroupId(groupId)).bind(4, artifactId).bind(5, version).execute();
-            if (rowCount == 0) {
-                throw new VersionNotFoundException(groupId, artifactId, version);
-            }
-
-            return null;
-        });
+        int rowCount = handle.createUpdate(sqlStatements.updateArtifactVersionContent())
+                .bind(0, contentId).bind(1, modifiedBy).bind(2, modifiedOn)
+                .bind(3, normalizeGroupId(groupId)).bind(4, artifactId).bind(5, version).execute();
+        if (rowCount == 0) {
+            throw new VersionNotFoundException(groupId, artifactId, version);
+        }
     }
 
     /**
@@ -591,7 +612,10 @@ public class SqlVersionRepository {
             });
         }
 
-        // Update system generated branches
+        // Update system generated branches. AbstractSqlRegistryStorage indexes structured content
+        // BEFORE calling this method and relies on this rule: every non-draft version becomes the
+        // ENABLED head of 'latest', a draft only joins 'drafts'. If that changes, update
+        // createArtifact/indexNewVersionBeforeGlobalIdRaw too (StructuredContentSearchTest fails).
         if (isDraft) {
             branchRepository.createOrUpdateBranchRaw(handle, gav, BranchId.DRAFTS, true);
         } else {

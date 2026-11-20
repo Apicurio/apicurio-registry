@@ -31,16 +31,11 @@ public class AvroContentAccepter implements ContentAccepter {
                 return false;
             }
             // Avro without quote
-            // Seeded inline rather than via AvroParserAccessor#newParser(Map) because this call site also
-            // needs the parsed reference schemas themselves, and skips any reference name already known.
-            final Schema.Parser parser = AvroParserAccessor.newParser();
-            final List<Schema> schemaRefs = new ArrayList<>();
-            for (Map.Entry<String, TypedContent> referencedContent : resolvedReferences.entrySet()) {
-                if (!parser.getTypes().containsKey(referencedContent.getKey())) {
-                    Schema schemaRef = parser.parse(referencedContent.getValue().getContent().content());
-                    schemaRefs.add(schemaRef);
-                }
-            }
+            // The seeded parser resolves interdependent references regardless of map iteration order
+            // (#9188). Snapshot the types they define before parsing the main schema, so that only the
+            // referenced types are treated as external when the schema is serialized below.
+            final Schema.Parser parser = AvroParserAccessor.newParser(resolvedReferences);
+            final List<Schema> schemaRefs = new ArrayList<>(parser.getTypes().values());
             final Schema schema = parser.parse(removeQuotedBrackets(content.getContent().content()));
             schema.toString(schemaRefs, false);
             return true;

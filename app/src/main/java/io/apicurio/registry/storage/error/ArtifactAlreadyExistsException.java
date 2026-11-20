@@ -1,5 +1,6 @@
 package io.apicurio.registry.storage.error;
 
+import io.apicurio.registry.model.GroupId;
 import lombok.Getter;
 
 public class ArtifactAlreadyExistsException extends AlreadyExistsException {
@@ -19,6 +20,6 @@ public class ArtifactAlreadyExistsException extends AlreadyExistsException {
     }
 
     private static String message(String groupId, String artifactId) {
-        return "An artifact with ID '" + artifactId + "' in group '" + groupId + "' already exists.";
+        return "An artifact with ID '" + artifactId + "' in group '" + GroupId.displayName(groupId) + "' already exists.";
     }
 }

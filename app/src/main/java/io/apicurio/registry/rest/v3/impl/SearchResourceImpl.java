@@ -5,8 +5,14 @@ import io.apicurio.registry.rest.v3.SearchResource;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
+import io.apicurio.registry.auth.ISearchAuthorizer;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.contracts.ContractLabels;
+import io.apicurio.registry.federation.FederatedSearchCallers;
+import io.apicurio.registry.federation.FederatedSearchService;
+import io.apicurio.registry.federation.FederationConfig;
+import io.apicurio.registry.federation.PeerQuery;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.OTelMetricsProvider;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
@@ -18,6 +24,7 @@ import io.apicurio.registry.rest.v3.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v3.beans.ArtifactSortBy;
 import io.apicurio.registry.rest.v3.beans.ContractRule;
 import io.apicurio.registry.rest.v3.beans.ContractRuleSearchResult;
+import io.apicurio.registry.rest.v3.beans.FederatedAgentSearchResults;
 import io.apicurio.registry.rest.v3.beans.GroupSearchResults;
 import io.apicurio.registry.rest.v3.beans.GroupSortBy;
 import io.apicurio.registry.rest.v3.beans.Params;
@@ -35,13 +42,16 @@ import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
 import io.apicurio.registry.cdi.Current;
+import io.apicurio.registry.extensions.AgentSearchHandler;
 import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.StringUtil;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.Context;
 
 import java.io.InputStream;
@@ -59,6 +69,8 @@ public class SearchResourceImpl implements SearchResource {
 
     private static final String EMPTY_CONTENT_ERROR_MESSAGE = "Empty content is not allowed.";
     private static final String CANONICAL_QUERY_PARAM_ERROR_MESSAGE = "When setting 'canonical' to 'true', the 'artifactType' query parameter is also required.";
+    private static final String CONTRACT_LABEL_PREFIX = "contract.*";
+    private static final int DEFAULT_PER_SOURCE_LIMIT = 20;
 
     @Inject
     @Current
@@ -72,6 +84,24 @@ public class SearchResourceImpl implements SearchResource {
 
     @Inject
     RegistryStorageContentUtils contentUtils;
+
+    @Inject
+    ISearchAuthorizer searchAuthorizer;
+
+    @Inject
+    SearchResultPermissions searchResultPermissions;
+
+    @Inject
+    FederationConfig federationConfig;
+
+    @Inject
+    FederatedSearchService federatedSearch;
+
+    @Inject
+    FederatedSearchCallers federatedSearchCallers;
+
+    @Inject
+    Instance<AgentSearchHandler> agentSearch;
 
     private static SearchFilter parseLabelFilter(String prop) {
         int delimiterIndex = prop.lastIndexOf(":");
@@ -94,11 +124,78 @@ public class SearchResourceImpl implements SearchResource {
         return SearchFilter.ofLabel(labelKey, labelValue);
     }
 
+    private static void addLabelFilters(Set<SearchFilter> filters, List<String> labels) {
+        if (labels != null && !labels.isEmpty()) {
+            labels.stream().filter(prop -> prop != null && !prop.isBlank())
+                    .map(SearchResourceImpl::parseLabelFilter)
+                    .forEach(filters::add);
+        }
+    }
+
+    private static void addIdFilters(Set<SearchFilter> filters, Long globalId, Long contentId) {
+        if (globalId != null && globalId > 0) {
+            filters.add(SearchFilter.ofGlobalId(globalId));
+        }
+        if (contentId != null && contentId > 0) {
+            filters.add(SearchFilter.ofContentId(contentId));
+        }
+    }
+
+    private static void addNameFilter(Set<SearchFilter> filters, String name, Boolean nameCaseInsensitive) {
+        if (!StringUtil.isEmpty(name)) {
+            filters.add(Boolean.TRUE.equals(nameCaseInsensitive) ? SearchFilter.ofNameCaseInsensitive(name)
+                    : SearchFilter.ofName(name));
+        }
+    }
+
+    private static void addStateContentStructureFilters(Set<SearchFilter> filters, VersionState state,
+            String content, String structure) {
+        if (state != null) {
+            filters.add(SearchFilter.ofState(state));
+        }
+        if (!StringUtil.isEmpty(content)) {
+            filters.add(SearchFilter.ofContent(content));
+        }
+        if (!StringUtil.isEmpty(structure)) {
+            filters.add(SearchFilter.ofStructure(structure));
+        }
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v3.SearchResource#searchFederatedAgents(String, List, List, List, List, BigInteger)
+     */
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    public FederatedAgentSearchResults searchFederatedAgents(String name, List<String> skill,
+            List<String> capability, List<String> inputMode, List<String> outputMode,
+            BigInteger perSourceLimit) {
+        federationConfig.requireEnabled();
+        if (!agentSearch.isResolvable()) {
+            throw new NotFoundException("Agent search is not available");
+        }
+        if (request.getHeader(FederatedSearchService.HOP_HEADER) != null) {
+            throw new BadRequestException("A federated search cannot be forwarded: the request carries the "
+                    + FederatedSearchService.HOP_HEADER + " header.");
+        }
+        if (perSourceLimit != null && perSourceLimit.signum() <= 0) {
+            throw new BadRequestException("perSourceLimit must be at least 1.");
+        }
+        // Above the server's maximum, the maximum is used, as documented.
+        int maxLimit = federationConfig.getSearchPerSourceLimitMax();
+        int limit = perSourceLimit == null ? Math.min(DEFAULT_PER_SOURCE_LIMIT, maxLimit)
+            : perSourceLimit.min(BigInteger.valueOf(maxLimit)).intValue();
+        PeerQuery query = new PeerQuery(name, skill, capability, inputMode, outputMode, limit);
+        return federatedSearch.search(query, federatedSearchCallers.current(request.getRemoteAddr()),
+                (localLimit, checkpoint) -> agentSearch.get().searchAgents(name, skill, capability, inputMode,
+                        outputMode, 0, localLimit, false, checkpoint));
+    }
+
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public ArtifactSearchResults searchArtifacts(String name, BigInteger offset, BigInteger limit,
             SortOrder order, ArtifactSortBy orderby, List<String> labels, String description, String groupId,
-            Long globalId, Long contentId, String artifactId, String artifactType, Boolean skipCount) {
+            Long globalId, Long contentId, String artifactId, String artifactType, Boolean nameCaseInsensitive,
+            Boolean skipCount) {
         if (orderby == null) {
             orderby = ArtifactSortBy.name;
         }
@@ -114,9 +211,7 @@ public class SearchResourceImpl implements SearchResource {
             : OrderDirection.desc;
 
         Set<SearchFilter> filters = new HashSet<SearchFilter>();
-        if (!StringUtil.isEmpty(name)) {
-            filters.add(SearchFilter.ofName(name));
-        }
+        addNameFilter(filters, name, nameCaseInsensitive);
         if (!StringUtil.isEmpty(description)) {
             filters.add(SearchFilter.ofDescription(description));
         }
@@ -130,22 +225,13 @@ public class SearchResourceImpl implements SearchResource {
             filters.add(SearchFilter.ofArtifactType(artifactType));
         }
 
-        if (labels != null && !labels.isEmpty()) {
-            labels.stream().filter(prop -> prop != null && !prop.isBlank())
-                    .map(SearchResourceImpl::parseLabelFilter)
-                    .forEach(filters::add);
-        }
-        if (globalId != null && globalId > 0) {
-            filters.add(SearchFilter.ofGlobalId(globalId));
-        }
-        if (contentId != null && contentId > 0) {
-            filters.add(SearchFilter.ofContentId(contentId));
-        }
+        addLabelFilters(filters, labels);
+        addIdFilters(filters, globalId, contentId);
 
-        ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir, ParameterValidationUtils.normalizeOffset(offset),
+        ArtifactSearchResultsDto results = searchAuthorizer.searchArtifacts(filters, oBy, oDir, ParameterValidationUtils.normalizeOffset(offset),
                 ParameterValidationUtils.normalizeLimit(limit), skipCount != null && skipCount);
         otelMetrics.recordSearchRequest("artifacts");
-        return V3ApiUtil.dtoToSearchResults(results);
+        return searchResultPermissions.addTo(V3ApiUtil.dtoToSearchResults(results));
     }
 
     @Override
@@ -192,10 +278,10 @@ public class SearchResourceImpl implements SearchResource {
             filters.add(SearchFilter.ofGroupId(new GroupId(groupId).getRawGroupIdWithNull()));
         }
 
-        ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir, ParameterValidationUtils.normalizeOffset(offset),
+        ArtifactSearchResultsDto results = searchAuthorizer.searchArtifacts(filters, oBy, oDir, ParameterValidationUtils.normalizeOffset(offset),
                 ParameterValidationUtils.normalizeLimit(limit), skipCount != null && skipCount);
         otelMetrics.recordSearchRequest("artifactsByContent");
-        return V3ApiUtil.dtoToSearchResults(results);
+        return searchResultPermissions.addTo(V3ApiUtil.dtoToSearchResults(results));
     }
 
     @Override
@@ -230,10 +316,10 @@ public class SearchResourceImpl implements SearchResource {
                     .forEach(filters::add);
         }
 
-        GroupSearchResultsDto results = storage.searchGroups(filters, oBy, oDir, ParameterValidationUtils.normalizeOffset(offset),
+        GroupSearchResultsDto results = searchAuthorizer.searchGroups(filters, oBy, oDir, ParameterValidationUtils.normalizeOffset(offset),
                 ParameterValidationUtils.normalizeLimit(limit));
         otelMetrics.recordSearchRequest("groups");
-        return V3ApiUtil.dtoToSearchResults(results);
+        return searchResultPermissions.addTo(V3ApiUtil.dtoToSearchResults(results));
     }
 
     @Override
@@ -241,7 +327,8 @@ public class SearchResourceImpl implements SearchResource {
     public VersionSearchResults searchVersions(String version, BigInteger offset, BigInteger limit,
             SortOrder order, VersionSortBy orderby, List<String> labels, String description, String groupId,
             Long globalId, Long contentId, String artifactId, String name, VersionState state,
-            String artifactType, String content, String structure, Boolean skipCount) {
+            String artifactType, String content, String structure, Boolean nameCaseInsensitive,
+            Boolean skipCount) {
         if (orderby == null) {
             orderby = VersionSortBy.globalId;
         }
@@ -266,40 +353,21 @@ public class SearchResourceImpl implements SearchResource {
         if (!StringUtil.isEmpty(version)) {
             filters.add(SearchFilter.ofVersion(version));
         }
-        if (!StringUtil.isEmpty(name)) {
-            filters.add(SearchFilter.ofName(name));
-        }
+        addNameFilter(filters, name, nameCaseInsensitive);
         if (!StringUtil.isEmpty(description)) {
             filters.add(SearchFilter.ofDescription(description));
         }
         if (!StringUtil.isEmpty(artifactType)) {
             filters.add(SearchFilter.ofArtifactType(artifactType));
         }
-        if (labels != null && !labels.isEmpty()) {
-            labels.stream().filter(prop -> prop != null && !prop.isBlank())
-                    .map(SearchResourceImpl::parseLabelFilter)
-                    .forEach(filters::add);
-        }
-        if (globalId != null && globalId > 0) {
-            filters.add(SearchFilter.ofGlobalId(globalId));
-        }
-        if (contentId != null && contentId > 0) {
-            filters.add(SearchFilter.ofContentId(contentId));
-        }
-        if (state != null) {
-            filters.add(SearchFilter.ofState(state));
-        }
-        if (!StringUtil.isEmpty(content)) {
-            filters.add(SearchFilter.ofContent(content));
-        }
-        if (!StringUtil.isEmpty(structure)) {
-            filters.add(SearchFilter.ofStructure(structure));
-        }
+        addLabelFilters(filters, labels);
+        addIdFilters(filters, globalId, contentId);
+        addStateContentStructureFilters(filters, state, content, structure);
 
-        VersionSearchResultsDto results = storage.searchVersions(filters, oBy, oDir, ParameterValidationUtils.normalizeOffset(offset),
+        VersionSearchResultsDto results = searchAuthorizer.searchVersions(filters, oBy, oDir, ParameterValidationUtils.normalizeOffset(offset),
                 ParameterValidationUtils.normalizeLimit(limit), skipCount != null && skipCount);
         otelMetrics.recordSearchRequest("versions");
-        return V3ApiUtil.dtoToSearchResults(results);
+        return searchResultPermissions.addTo(V3ApiUtil.dtoToSearchResults(results));
     }
 
     @Override
@@ -354,10 +422,10 @@ public class SearchResourceImpl implements SearchResource {
             throw new BadRequestException(CANONICAL_QUERY_PARAM_ERROR_MESSAGE);
         }
 
-        VersionSearchResultsDto results = storage.searchVersions(filters, oBy, oDir, ParameterValidationUtils.normalizeOffset(offset),
+        VersionSearchResultsDto results = searchAuthorizer.searchVersions(filters, oBy, oDir, ParameterValidationUtils.normalizeOffset(offset),
                 ParameterValidationUtils.normalizeLimit(limit), skipCount != null && skipCount);
         otelMetrics.recordSearchRequest("versionsByContent");
-        return V3ApiUtil.dtoToSearchResults(results);
+        return searchResultPermissions.addTo(V3ApiUtil.dtoToSearchResults(results));
     }
 
     @Override
@@ -369,6 +437,7 @@ public class SearchResourceImpl implements SearchResource {
         List<ContractRuleWithCoordinatesDto> results = storage.getContractRulesByTag(tag);
         otelMetrics.recordSearchRequest("contractRules");
         return results.stream()
+                .filter(dto -> searchAuthorizer.canReadArtifact(dto.getGroupId(), dto.getArtifactId()))
                 .map(this::toContractRuleSearchResult)
                 .collect(Collectors.toList());
     }
@@ -432,24 +501,33 @@ public class SearchResourceImpl implements SearchResource {
 
         Set<SearchFilter> filters = new HashSet<>();
 
-        // All contracts have a contract.*.status label
-        filters.add(SearchFilter.ofLabel("contract."));
+        // Contract metadata is stored in labels within the reserved "contract.*" namespace.
+        // The key is "contract.{suffix}" when no contract id has been assigned yet (e.g.
+        // "contract.status"), or "contract.{contractId}.{suffix}" once a contract id exists
+        // (e.g. "contract.myid.status"). The trailing "*" is required for a prefix match
+        // covering both forms, since the SQL layer only treats "*" as a wildcard. Without it
+        // the filter becomes an exact match on "contract." and never matches anything.
+        filters.add(SearchFilter.ofLabel(CONTRACT_LABEL_PREFIX));
 
+        // Suffix filters match the label key by suffix. "contract.*" + suffix becomes
+        // "contract.%{suffix}" in SQL, where "%" covers the optional "{contractId}." segment
+        // (and the empty string), so both label forms above are matched.
         if (!StringUtil.isEmpty(status)) {
-            filters.add(SearchFilter.ofLabel("contract.", status));
+            filters.add(SearchFilter.ofLabel(CONTRACT_LABEL_PREFIX + ContractLabels.SUFFIX_STATUS, status));
         }
         if (!StringUtil.isEmpty(ownerTeam)) {
-            filters.add(SearchFilter.ofLabel("contract.", ownerTeam));
+            filters.add(SearchFilter.ofLabel(CONTRACT_LABEL_PREFIX + ContractLabels.SUFFIX_OWNER_TEAM, ownerTeam));
         }
         if (!StringUtil.isEmpty(compatibilityGroup)) {
-            filters.add(SearchFilter.ofLabel("contract.", compatibilityGroup));
+            filters.add(SearchFilter.ofLabel(
+                    CONTRACT_LABEL_PREFIX + ContractLabels.SUFFIX_COMPATIBILITY_GROUP, compatibilityGroup));
         }
 
-        ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir,
+        ArtifactSearchResultsDto results = searchAuthorizer.searchArtifacts(filters, oBy, oDir,
                 ParameterValidationUtils.normalizeOffset(offset), ParameterValidationUtils.normalizeLimit(limit),
                 false);
         otelMetrics.recordSearchRequest("contracts");
-        return V3ApiUtil.dtoToSearchResults(results);
+        return searchResultPermissions.addTo(V3ApiUtil.dtoToSearchResults(results));
     }
 
     /**

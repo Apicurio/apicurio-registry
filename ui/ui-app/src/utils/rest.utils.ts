@@ -5,8 +5,7 @@ import { Buffer } from "buffer";
 import { AuthenticationProvider, Headers, RequestInformation, type RequestOption } from "@microsoft/kiota-abstractions";
 import { ConfigService } from "@services/useConfigService";
 import { getReauthenticationService } from "@services/useReauthenticationService.ts";
-import { RegistryClientFactory } from "@sdk/lib/sdk";
-import { ApicurioRegistryClient } from "@sdk/lib/generated-client/apicurioRegistryClient.ts";
+import { ApicurioRegistryClient, RegistryClientFactory } from "@apicurio/apicurio-registry-sdk";
 import { Labels } from "@sdk/lib/generated-client/models";
 import type { Middleware } from "@microsoft/kiota-http-fetchlibrary";
 

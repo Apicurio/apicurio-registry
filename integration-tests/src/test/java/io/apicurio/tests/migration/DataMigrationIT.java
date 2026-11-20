@@ -54,7 +54,14 @@ public class DataMigrationIT extends ApicurioRegistryBaseIT {
     public void migrate() throws Exception {
         Vertx vertx = Vertx.vertx();
         var dest = RegistryClientFactory.create(
-                RegistryClientOptions.create(ApicurioRegistryBaseIT.getRegistryV3ApiUrl(), vertx).retry());
+                RegistryClientOptions.create(ApicurioRegistryBaseIT.getRegistryV3ApiUrl(), vertx)
+                        // Without an explicit read-idle timeout a single stalled connection (seen once
+                        // in CI as a Netty IllegalReferenceCountException around this client's traffic)
+                        // has nothing to make it fail and be retried -- it simply waits forever, and the
+                        // only thing that ever stops it is this test method's 10-minute global JUnit
+                        // timeout, which then aborts the whole verification loop instead of just the one
+                        // stuck request.
+                        .requestTimeout(10_000, 60_000).retry());
 
         given().when().contentType("application/zip").body(migrateDataToImport)
                 .post("/apis/registry/v2/admin/import").then().statusCode(204).body(anything());

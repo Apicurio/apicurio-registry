@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 import java.util.Set;
@@ -36,30 +37,34 @@ public class ConfigMapConfigSource implements ConfigSource {
                 try (KubernetesClient client = new KubernetesClientBuilder()
                         .withConfig(new ConfigBuilder(autoConfigure(null)).withNamespace(namespace).build())
                         .build()) {
-                    var configMaps = client.configMaps().withLabels(getMinimalOperatorSelectorLabels()).list();
-                    if (configMaps.getItems().size() == 0) {
-                        log.info("No operator ConfigMap found. You have to restart the operator pod if you create one.");
-                    } else if (configMaps.getItems().size() == 1) {
-                        var configMap = configMaps.getItems().get(0);
-                        var config = configMap.getData().get("config.properties");
-                        if (config != null) {
-                            properties.load(new ByteArrayInputStream(config.getBytes(StandardCharsets.UTF_8)));
-                        } else {
-                            log.warn("Operator ConfigMap found, but key \"config.properties\" is not present. You have to restart the operator pod if you update it.");
-                        }
-                        log.info("Operator ConfigMap found, loaded {} configuration options. You have to restart the operator pod if you update it.", properties.size());
-                    } else {
-                        log.error("Could not initialize ConfigMapConfigSource: Expected to find exactly one ConfigMap with labels {} in {}, but got: {}",
-                                getMinimalOperatorSelectorLabels(),
-                                namespace,
-                                configMaps.getItems().stream().map(ResourceID::fromResource).toList());
-                    }
+                    loadFromConfigMaps(client, namespace);
                 } catch (Exception ex) {
                     log.error("Could not initialize ConfigMapConfigSource.", ex);
                 }
             } else {
                 log.warn("Could not initialize ConfigMapConfigSource: Env. variable \"POD_NAMESPACE\" is not present or invalid.");
             }
+        }
+    }
+
+    private void loadFromConfigMaps(KubernetesClient client, String namespace) throws IOException {
+        var configMaps = client.configMaps().withLabels(getMinimalOperatorSelectorLabels()).list();
+        if (configMaps.getItems().size() == 0) {
+            log.info("No operator ConfigMap found. You have to restart the operator pod if you create one.");
+        } else if (configMaps.getItems().size() == 1) {
+            var configMap = configMaps.getItems().get(0);
+            var config = configMap.getData().get("config.properties");
+            if (config != null) {
+                properties.load(new ByteArrayInputStream(config.getBytes(StandardCharsets.UTF_8)));
+            } else {
+                log.warn("Operator ConfigMap found, but key \"config.properties\" is not present. You have to restart the operator pod if you update it.");
+            }
+            log.info("Operator ConfigMap found, loaded {} configuration options. You have to restart the operator pod if you update it.", properties.size());
+        } else {
+            log.error("Could not initialize ConfigMapConfigSource: Expected to find exactly one ConfigMap with labels {} in {}, but got: {}",
+                    getMinimalOperatorSelectorLabels(),
+                    namespace,
+                    configMaps.getItems().stream().map(ResourceID::fromResource).toList());
         }
     }
 

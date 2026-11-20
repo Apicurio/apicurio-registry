@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://schemas.xmlsoap.org/wsdl/" xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+             targetNamespace="urn:svc">
+  <import namespace="urn:base" location="base.wsdl"/>
+  <types>
+    <xsd:schema targetNamespace="urn:svc">
+      <xsd:import namespace="urn:order" schemaLocation="order.xsd"/>
+    </xsd:schema>
+  </types>
+</definitions>

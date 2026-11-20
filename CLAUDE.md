@@ -80,7 +80,7 @@ Full contribution guidelines are in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ### Before writing code
 - [ ] **One PR at a time.** Do not open a second PR until your first one is merged. Maintainers will close additional PRs with "one PR at a time" — no exceptions, even if the work is ready.
-- [ ] The linked issue has **maintainer approval** (a comment from a project maintainer). Implementing an unapproved feature request wastes everyone's time. Issues with zero maintainer comments are not approved.
+- [ ] **Larger features are agreed with the maintainers first.** Bug fixes and minor issues the maintainers already know about need no discussion. For a new feature or a significant change in behaviour, describe it in the issue and wait for a maintainer to agree before writing code, so the work doesn't go to a low-priority item or to a feature that doesn't fit the project's direction. If unsure, ask in the issue. See [Choosing what to work on](CONTRIBUTING.md#choosing-what-to-work-on).
 - [ ] Check for **overlapping PRs** — search open PRs for your issue number and keywords. Duplicate work gets the later PR closed.
 - [ ] Check the [Tried & Rejected list](https://github.com/Apicurio/apicurio-registry/discussions/8364) — some optimizations have already been evaluated and rejected with evidence. Don't re-implement them.
 
@@ -89,6 +89,7 @@ Full contribution guidelines are in [CONTRIBUTING.md](CONTRIBUTING.md).
 - [ ] API error responses never expose internal state (usernames, stack traces, class names).
 - [ ] Use Quarkus/MicroProfile facilities (`@CircuitBreaker`, `@Retry`, `@Timeout`) instead of hand-rolled equivalents.
 - [ ] Use `Locale.ROOT` with `toUpperCase()` / `toLowerCase()`.
+- [ ] Features storing their own metadata in labels follow `.claude/rules/labels.md` (reserved `apicurio.<feature>.*` key namespace; labels are user-editable, so never store security-relevant state in one).
 - [ ] Non-variant-specific changes under `storage/impl/` must work across all 4 storage variants.
 - [ ] Auth changes require both positive and negative (403) test cases.
 - [ ] New Java files follow the surrounding style. Do **not** add a per-file Apache
@@ -106,8 +107,9 @@ Full contribution guidelines are in [CONTRIBUTING.md](CONTRIBUTING.md).
 - [ ] Every new code path has tests. Missing tests = automatic rejection.
 - [ ] Test assertions check **specific values** ("counter is 3"), not just existence ("counter is not null").
 - [ ] Security tests cover: authorized access, unauthorized access (403), edge cases (null tokens, expired sessions).
-- [ ] Tests for CDI annotations (`@Retry`, `@CircuitBreaker`, `@Timeout`) use `@QuarkusTest` with injected beans — plain JUnit with `new` bypasses interceptors.
+- [ ] Tests for CDI annotations (`@Retry`, `@CircuitBreaker`, `@Timeout`) use `@QuarkusTest` with injected beans; plain JUnit with `new` bypasses interceptors.
 - [ ] If CI fails on a test unrelated to your change, report it as a separate issue with the flaky test class, error message, and CI run link.
+- [ ] When the diff touches `**/src/test/**`, run `/apicurio-test-quality` (scores test code against 30 documented failure patterns P1-P30; score below 7.0 blocks submission).
 
 ### Submission
 - [ ] `./mvnw test-compile -pl <module> -am -DskipTests` compiles cleanly (use `test-compile`, not `compile`, when touching test files).
@@ -124,6 +126,10 @@ Full contribution guidelines are in [CONTRIBUTING.md](CONTRIBUTING.md).
 - UI has its own npm/Vite build system, separate from Maven
 - Integration tests need running infrastructure (use testcontainers or profiles)
 - `APICURIO_STORAGE_SQL_KIND` selects the SQL dialect (postgresql, mysql, mssql)
+- Agent registry code (A2A, MCP tools and MCP Registry, AI Catalog, ARD, prompt rendering) lives in
+  `io.apicurio.registry.agents..` (app) and `schema-util/agents`. Core must not reference it: reach it
+  through `io.apicurio.registry.extensions` instead. `AgentsBoundaryTest` (ArchUnit) fails the build
+  otherwise.
 - New components must be wired into the Verify → Decide → Verification Gate CI pipeline, not standalone workflows. A standalone workflow that doesn't block merges is an incomplete integration.
 
 ## Claude Code Configuration

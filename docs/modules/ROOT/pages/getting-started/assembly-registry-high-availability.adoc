@@ -6,7 +6,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 :_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
-This chapter explains how to configure {registry} for high availability in a single {kubernetes} cluster.
+You can configure {registry} for high availability in a single {kubernetes} cluster by running multiple stateless application and UI replicas across failure domains and by using a highly available storage layer.
 
 == Prerequisites
 
@@ -178,21 +178,23 @@ spec:
         value: "50"
 
       # Connection acquisition timeout (5 seconds)
-      - name: QUARKUS_DATASOURCE_JDBC_ACQUISITION-TIMEOUT
+      - name: QUARKUS_DATASOURCE_POSTGRESQL_JDBC_ACQUISITION_TIMEOUT
         value: "5S"
 
       # Background validation to detect stale connections (every 2 minutes)
-      - name: QUARKUS_DATASOURCE_JDBC_BACKGROUND-VALIDATION-INTERVAL
+      - name: QUARKUS_DATASOURCE_POSTGRESQL_JDBC_BACKGROUND_VALIDATION_INTERVAL
         value: "2M"
 
       # Foreground validation before use (every 1 minute)
-      - name: QUARKUS_DATASOURCE_JDBC_FOREGROUND-VALIDATION-INTERVAL
+      - name: QUARKUS_DATASOURCE_POSTGRESQL_JDBC_FOREGROUND_VALIDATION_INTERVAL
         value: "1M"
 
       # Maximum connection lifetime (30 minutes)
-      - name: QUARKUS_DATASOURCE_JDBC_MAX-LIFETIME
+      - name: QUARKUS_DATASOURCE_POSTGRESQL_JDBC_MAX_LIFETIME
         value: "30M"
 ----
++
+NOTE: {registry} defines a named datasource for each supported database. The `QUARKUS_DATASOURCE_POSTGRESQL_*` variables target the named PostgreSQL datasource. Generic `QUARKUS_DATASOURCE_JDBC_*` variables have no effect. For MySQL storage, replace `POSTGRESQL` with `MYSQL` in each of these variable names.
 +
 These settings ensure that:
 +
@@ -607,6 +609,44 @@ use `scheme: HTTPS`. The {operator} handles this automatically.
 . If you are using the {operator}, confirm that no manual changes are required: it automatically configures the
 correct probe ports for operator-managed deployments.
 
+[id="ha-upgrade-native-id-sequences_{context}"]
+== Upgrading SQL storage to native ID sequences
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+Database schema version 115 replaces the row-locked `sequences` table, which allocated global IDs, content
+IDs, and comment IDs, with native database sequences on PostgreSQL and SQL Server, and with `AUTO_INCREMENT`
+ticket tables on MySQL. {registry} applies this schema upgrade automatically on startup. H2 and KafkaSQL
+storage are not affected.
+
+Rolling updates::
+The schema upgrade deliberately drops the `sequences` table so that older replicas cannot allocate duplicate
+IDs. As a result, replicas running a release earlier than schema version 115 fail write requests as soon as
+any upgraded replica has migrated the schema. Read requests are unaffected. Complete the rollout promptly.
+
+Database version requirements::
+SQL Server 2017 or later is required, because {registry} reads `sys.sequences.last_used_value`.
+
+Database privileges::
+{registry} does not run any DDL at runtime for ID allocation. The database user that runs the schema upgrade
+creates the new objects. If {registry} connects at runtime with a different, less privileged user, grant the
+following privileges:
++
+* PostgreSQL: `USAGE`, `SELECT`, and `UPDATE` on the three ID sequences. {registry} calls `nextval`, reads
+`last_value`, and calls `setval` when it resets the sequences.
+* SQL Server: `UPDATE` on the three ID sequences.
+* MySQL: `INSERT`, `DELETE`, and `SELECT` on the ID ticket tables. {registry} prunes consumed ticket rows
+hourly.
+
+ID ordering::
+A `globalId` value is unique, but under concurrent writes it no longer strictly follows commit order. To
+determine the newest version of an artifact, use the version order rather than comparing `globalId` values.
+
+Imports that preserve IDs::
+Run imports that preserve existing IDs while no other writes are in progress. On PostgreSQL, resetting the
+sequences while other clients allocate IDs has a small window in which an ID can be issued twice.
+
 [id="ha-backup-restore_{context}"]
 == Backup and restore procedures
 
@@ -720,9 +760,11 @@ Alternatively, export and import topics using Kafka's console consumer or CLI to
 the topics might contain binary data, which might be affected by text file encoding, make sure they are exported
 correctly when using CLI tools.
 
+ifndef::service-registry-downstream[]
 [role="_additional-resources"]
 .Additional resources
 * xref:getting-started/guide-exporting-registry-kafka-topic-data.adoc[]
+endif::[]
 
 [id="ha-backup-restore-testing_{context}"]
 == Testing backup and restore

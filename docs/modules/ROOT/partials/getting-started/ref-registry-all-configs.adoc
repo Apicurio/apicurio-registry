@@ -43,15 +43,10 @@ The following {registry} configuration options are available for each component 
 |`3.0.0`
 |URL to the registry agent icon
 |`apicurio.a2a.agent.name`
-|`string`
-|`Apicurio Registry`
+|`optional<string>`
+|
 |`3.0.0`
-|Name of the registry agent for A2A discovery
-|`apicurio.a2a.agent.protocol-version`
-|`string`
-|`1.0`
-|`3.0.0`
-|A2A protocol version supported by the registry agent
+|Deprecated since 3.4.0, use apicurio.instance.name, which takes precedence. Name of the registry agent for A2A discovery
 |`apicurio.a2a.agent.provider.organization`
 |`string`
 |`Apicurio`
@@ -79,19 +74,50 @@ The following {registry} configuration options are available for each component 
 |Default visibility for new Agent Card artifacts (public, entitled, private)
 |`apicurio.a2a.enabled`
 |`boolean`
+|
+|`3.0.0`
+|Enable A2A protocol support. Defaults to apicurio.agents.enabled _(experimental)_
+|`apicurio.a2a.openapi-integration.enabled`
+|`boolean`
 |`false`
-|`3.0.0`
-|Enable A2A protocol support _(experimental)_
-|`apicurio.a2a.entitlements.enabled`
+|`3.4.0`
+|Auto-generate a companion AGENT_CARD artifact from the 'x-agent-card' OpenAPI vendor extension _(experimental)_
+|`apicurio.a2a.openapi-integration.sync-on-update.enabled`
 |`boolean`
 |`true`
-|`3.0.0`
-|Enable entitlement-based agent filtering
-|`apicurio.a2a.public-discovery.enabled`
+|`3.4.0`
+|Update the generated Agent Card whenever its source OpenAPI artifact is updated
+|`apicurio.agents.enabled`
 |`boolean`
-|`true`
-|`3.0.0`
-|Enable public (unauthenticated) agent discovery endpoint
+|`false`
+|`3.4.0`
+|Enable the agent registry's discovery features: A2A agent discovery, MCP tool discovery, the MCP Registry API, the AI Catalog, ARD, and the web console's Agents tab. Each of them can still be turned on or off with its own property, which takes precedence. Features that connect to other servers (apicurio.mcp-import.enabled, apicurio.agent-inventory.enabled, apicurio.federation.enabled) are not included and must be enabled separately _(experimental)_
+|===
+
+== aicatalog
+.aicatalog configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.ai-catalog.enabled`
+|`boolean`
+|
+|`3.3.3`
+|Enable the AI Catalog well-known discovery endpoint. Defaults to apicurio.agents.enabled _(experimental)_
+|`apicurio.ai-catalog.host-name`
+|`optional<string>`
+|
+|`3.3.3`
+|Deprecated since 3.4.0, use apicurio.instance.name, which takes precedence. Display name for this registry instance, reported as the AI Catalog host
+|`apicurio.ai-catalog.publisher-domain`
+|`optional<string>`
+|
+|`3.3.3`
+|The publisher domain segment used when building 'urn:air:' identifiers for AI Catalog entries. When not configured, the domain is derived from the incoming request's host and port.
 |===
 
 == api
@@ -128,6 +154,22 @@ The following {registry} configuration options are available for each component 
 |
 |`2.0.0.Final`
 |Disable APIs
+|===
+
+== ard
+.ard configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.ard.enabled`
+|`boolean`
+|
+|`3.3.3`
+|Enable the ARD (Agentic Resource Discovery) well-known API endpoints. Defaults to apicurio.agents.enabled _(experimental)_
 |===
 
 == auth
@@ -194,6 +236,31 @@ The following {registry} configuration options are available for each component 
 |`false`
 |`2.1.0.Final`
 |Artifact group owner-only authorization
+|`apicurio.auth.resource-based-authorization.enabled`
+|`boolean`
+|`false`
+|`3.4.0`
+|Enable per-resource (fine-grained) authorization of groups and artifacts, evaluated from an access rules file in the Kroxylicious ACL rules format. Requires authentication.
+|`apicurio.auth.resource-based-authorization.owner-bypass.enabled`
+|`boolean`
+|`true`
+|`3.4.0`
+|Let the recorded owner of an artifact or group access it regardless of the access rules. Set to 'false' to make the access rules the only per-resource authority.
+|`apicurio.auth.resource-based-authorization.rules.path`
+|`optional<string>`
+|
+|`3.4.0`
+|Path to the access rules file, in the Kroxylicious ACL rules format. Required when per-resource authorization is enabled; startup fails if it is missing or invalid.
+|`apicurio.auth.resource-based-authorization.rules.reload-enabled`
+|`boolean`
+|`true`
+|`3.4.0`
+|Enable periodic hot-reload of the access rules file. Set to 'false' to disable polling for changes.
+|`apicurio.auth.resource-based-authorization.rules.reload-every`
+|`string`
+|`5s`
+|`3.4.0`
+|Interval for checking access rules file changes. Must be a valid duration (e.g. '5s', '1m'). Use apicurio.auth.resource-based-authorization.rules.reload-enabled to disable hot-reload.
 |`apicurio.auth.role-based-authorization`
 |`boolean`
 |`false`
@@ -449,6 +516,82 @@ The following {registry} configuration options are available for each component 
 |Download link expiry
 |===
 
+== federation
+.federation configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.federation.enabled`
+|`boolean`
+|`false`
+|`3.4.0`
+|Enable federation with peer registries, including the peer management API _(experimental)_
+|`apicurio.federation.peer.insecure-http.enabled`
+|`boolean`
+|
+|`3.4.0`
+|Allow peer registry URLs that use plain HTTP instead of HTTPS. Server-wide: applies to every peer, whether created through the admin API or loaded declaratively. Defaults to apicurio.outbound.insecure-http.enabled
+|`apicurio.federation.peer.loopback.enabled`
+|`boolean`
+|
+|`3.4.0`
+|Allow peer registry URLs that point at a loopback address or a localhost name, for development and tests. Server-wide: applies to every peer, whether created through the admin API or loaded declaratively. Defaults to apicurio.outbound.loopback.enabled
+|`apicurio.federation.search.breaker.delay-ms`
+|`long`
+|`30000`
+|`3.4.0`
+|Time in milliseconds an open circuit breaker waits before letting a call through to a peer registry again
+|`apicurio.federation.search.breaker.failure-ratio`
+|`double`
+|`0.5`
+|`3.4.0`
+|Share of recent calls to a peer registry that must have failed for its circuit breaker to open
+|`apicurio.federation.search.breaker.request-volume-threshold`
+|`int`
+|`4`
+|`3.4.0`
+|Number of recent calls to a peer registry that must have been made before its circuit breaker can open
+|`apicurio.federation.search.deadline-ms`
+|`long`
+|`5000`
+|`3.4.0`
+|Time in milliseconds a federated search may take in total. Peers that have not answered by then are reported as deadline_exceeded
+|`apicurio.federation.search.max-concurrent-calls`
+|`int`
+|`64`
+|`3.4.0`
+|Maximum number of peer registry calls in progress at once, across all federated searches, from the name lookup until the answer has been read or the call cancelled. Calls beyond it are reported as capacity_exceeded
+|`apicurio.federation.search.max-peers`
+|`int`
+|`16`
+|`3.4.0`
+|Maximum number of peer registries one federated search queries. Enabling more through the peer management API is refused. If more are enabled anyway, for example after this value was lowered or through declarative loading, a search queries the first ones in peer id order and reports the rest as capacity_exceeded
+|`apicurio.federation.search.max-response-bytes`
+|`int`
+|`1048576`
+|`3.4.0`
+|Maximum size in bytes of the response accepted from one peer registry. Larger responses are discarded
+|`apicurio.federation.search.max-searches-per-caller`
+|`int`
+|`2`
+|`3.4.0`
+|Maximum number of federated searches one caller can have in progress at once. A search beyond it still searches this registry, but calls no peer and reports every peer as capacity_exceeded. Authenticated callers are told apart by principal name and anonymous callers by network address, so all anonymous callers behind a proxy that does not forward the client address share one limit. A search calls every enabled peer, up to max-peers, so with the defaults one caller can hold at most 32 of the 64 peer calls (max-concurrent-calls)
+|`apicurio.federation.search.peer-timeout-ms`
+|`long`
+|`3000`
+|`3.4.0`
+|Time in milliseconds a single peer registry has to answer a federated search
+|`apicurio.federation.search.per-source-limit.max`
+|`int`
+|`100`
+|`3.4.0`
+|Upper bound for the perSourceLimit a federated search may ask for
+|===
+
 == gitops
 .gitops configuration options
 [.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
@@ -615,6 +758,16 @@ The following {registry} configuration options are available for each component 
 |
 |`3.3.1`
 |Comma-separated list of enabled SSL/TLS protocol versions (e.g. TLSv1.2,TLSv1.3). When not set, the JVM/Quarkus defaults apply. Invalid values will cause TLS handshake failures at runtime.
+|`apicurio.outbound.insecure-http.enabled`
+|`boolean`
+|`false`
+|`3.4.0`
+|Default for the features that connect to other servers: allow URLs that use plain HTTP instead of HTTPS. Used by apicurio.mcp-import.insecure-http.enabled and apicurio.federation.peer.insecure-http.enabled when they are not set
+|`apicurio.outbound.loopback.enabled`
+|`boolean`
+|`false`
+|`3.4.0`
+|Default for the features that connect to other servers: allow URLs that point at a loopback address or a localhost name, for development and tests. Used by apicurio.mcp-import.loopback.enabled and apicurio.federation.peer.loopback.enabled when they are not set
 |===
 
 == iceberg
@@ -743,7 +896,7 @@ The following {registry} configuration options are available for each component 
 |`long`
 |`-1`
 |`2.2.3.Final`
-|Max artifact labels
+|Max number of labels on a group, artifact or version
 |`apicurio.limits.config.max-artifact-properties`
 |`long`
 |`-1`
@@ -763,7 +916,7 @@ The following {registry} configuration options are available for each component 
 |`long`
 |`-1`
 |`2.1.0.Final`
-|Max artifact label size
+|Max size of one label, in UTF-8 bytes of its key plus its value
 |`apicurio.limits.config.max-name-length`
 |`long`
 |`-1`
@@ -831,11 +984,106 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
-|`apicurio.mcp-tools.enabled`
+|`apicurio.agent-inventory.enabled`
 |`boolean`
 |`false`
+|`3.4.0`
+|Enable keeping groups in sync with inventories of agents and MCP servers, such as MCPServer and AgentCard resources in Kubernetes and agents registered in Google Cloud Agent Registry _(experimental)_
+|`apicurio.agent-inventory.google.url`
+|`string`
+|`https://agentregistry.googleapis.com`
+|`3.4.0`
+|Base URL of the Google Cloud Agent Registry API read by the GOOGLE_AGENT_REGISTRY inventory source
+|`apicurio.agent-inventory.items.max-size`
+|`int`
+|`1000`
+|`3.4.0`
+|Maximum number of items an inventory source may list for one sync. A sync of a source listing more is refused, so an unexpectedly large inventory cannot flood the group
+|`apicurio.agent-inventory.kubernetes.agent-card.group`
+|`string`
+|`agent.rossoctl.dev`
+|`3.4.0`
+|API group of the AgentCard resources read by the KUBERNETES_AGENT_CARDS inventory source. The default is the group of the Rossoctl operator, formerly Kagenti; set agent.kagenti.dev for clusters running an older Kagenti operator
+|`apicurio.agent-inventory.kubernetes.namespaces`
+|`optional<list<string>>`
+|
+|`3.4.0`
+|Kubernetes namespaces that an inventory sync may read MCPServer and AgentCard resources from, as a comma-separated list. When empty, Kubernetes inventory sources are refused. The registry's service account needs permission to list these resources in each namespace
+|`apicurio.agent-inventory.timeout.seconds`
+|`int`
+|`10`
+|`3.4.0`
+|Timeout, in seconds, for each request to Google Cloud Agent Registry during a sync, including reading the response. Kubernetes inventory sources use the timeouts of the Kubernetes client (quarkus.kubernetes-client.request-timeout)
+|`apicurio.mcp-import.allowed-hosts`
+|`optional<list<string>>`
+|
+|`3.4.0`
+|Hosts the registry may connect to when importing from an MCP server, as a comma-separated list. Each entry is a hostname (mcp.example.com), a domain wildcard (*.example.com, which does not match example.com itself), an IP address, or a CIDR range (10.0.0.0/8) that every address the host resolves to must be in. When empty, every host is refused. Loopback, link-local, and cloud metadata addresses are refused even when listed
+|`apicurio.mcp-import.enabled`
+|`boolean`
+|`false`
+|`3.4.0`
+|Enable importing tool definitions from live MCP servers. The registry connects to the MCP server URL given in the request _(experimental)_
+|`apicurio.mcp-import.insecure-http.enabled`
+|`boolean`
+|
+|`3.4.0`
+|Allow MCP server URLs that use plain HTTP instead of HTTPS when importing. Defaults to apicurio.outbound.insecure-http.enabled
+|`apicurio.mcp-import.loopback.enabled`
+|`boolean`
+|
+|`3.4.0`
+|Allow MCP server URLs that point at a loopback address or a localhost name when importing, for development and tests. The host must still be allowed by apicurio.mcp-import.allowed-hosts. Defaults to apicurio.outbound.loopback.enabled
+|`apicurio.mcp-import.max-concurrent`
+|`int`
+|`4`
+|`3.4.0`
+|Maximum number of imports from MCP servers running at the same time. An import started while this many are running is refused with HTTP 429
+|`apicurio.mcp-import.response.max-size`
+|`int`
+|`1048576`
+|`3.4.0`
+|Maximum size, in bytes, of each message received from an MCP server during an import
+|`apicurio.mcp-import.timeout.seconds`
+|`int`
+|`10`
+|`3.4.0`
+|Timeout, in seconds, for connecting to the MCP server and for each request to it during an import
+|`apicurio.mcp-import.tls-configuration.name`
+|`optional<string>`
+|
+|`3.4.0`
+|Name of a TLS configuration in the Quarkus TLS registry (quarkus.tls.<name>.*) used for HTTPS connections to MCP servers during an import, for example to trust an internal certificate authority. When not set, the default truststore of the JVM is used
+|`apicurio.mcp-import.tools.max-size`
+|`int`
+|`500`
+|`3.4.0`
+|Maximum number of tools an MCP server may list for an import. An import from a server listing more is refused
+|`apicurio.mcp-import.tools.max-total-size`
+|`long`
+|`10485760`
+|`3.4.0`
+|Maximum total size, in bytes, of the tool definitions an MCP server may list for an import, across all pages
+|`apicurio.mcp-import.total-timeout.seconds`
+|`int`
+|`60`
+|`3.4.0`
+|Maximum time, in seconds, for listing the tools of an MCP server during an import, across all requests. It is checked between requests, so a listing can exceed it by at most one request timeout
+|`apicurio.mcp-registry.enabled`
+|`boolean`
+|
+|`3.4.0`
+|Enable the MCP Registry API (Developer Preview). Defaults to apicurio.agents.enabled _(experimental)_
+|`apicurio.mcp-registry.max-page-size`
+|`int`
+|`100`
+|`3.4.0`
+|Maximum number of MCP servers returned by a single list request
+|`apicurio.mcp-tools.enabled`
+|`boolean`
+|
 |`3.0.0`
-|Enable MCP tool definition discovery endpoints _(experimental)_
+|Enable MCP tool definition discovery endpoints. Defaults to apicurio.agents.enabled _(experimental)_
 |===
 
 == observability
@@ -945,12 +1193,12 @@ The following {registry} configuration options are available for each component 
 |BUILD-TIME property to enable distributed tracing instrumentation. When enabled, {registry} creates spans for REST API requests and storage operations. Use `quarkus.otel.sdk.disabled` to control tracing at runtime.
 |`quarkus.otel.traces.sampler`
 |`string`
-|`parentbased_always_on`
+|`parentbased_traceidratio`
 |`3.1.7`
 |The sampling strategy for traces. Use `parentbased_always_on` for development or `parentbased_traceidratio` for production to reduce overhead.
 |`quarkus.otel.traces.sampler.arg`
 |`string`
-|`1.0`
+|`0.1`
 |`3.1.7`
 |The sampling ratio when using `parentbased_traceidratio` sampler. A value of `0.1` means 10% of traces are sampled.
 |===
@@ -1423,6 +1671,21 @@ The following {registry} configuration options are available for each component 
 |`30000`
 |`3.1.4`
 |Maximum delay in milliseconds between retry attempts
+|`apicurio.storage.content-cache.enabled`
+|`boolean`
+|`true`
+|`3.3.3`
+|Enable an in-memory, byte-weighted cache of immutable artifact content (keyed by content ID and content hash) in front of the storage layer
+|`apicurio.storage.content-cache.hot-path.ttl-seconds`
+|`long`
+|`30`
+|`3.3.3`
+|Bounded staleness window, in seconds, for the content cache entry used by the ccompat 'get schema by ID' hot path (content + artifact type keyed by content ID). This entry can go stale if the content becomes orphaned (or un-orphaned) within the TTL window; set to 0 to disable caching this entry entirely
+|`apicurio.storage.content-cache.max-size`
+|`long`
+|`67108864`
+|`3.3.3`
+|Maximum total weight (approximate size in bytes) of the content cache described by apicurio.storage.content-cache.enabled
 |`apicurio.storage.enable-automatic-group-creation`
 |`boolean`
 |`true`
@@ -1442,7 +1705,7 @@ The following {registry} configuration options are available for each component 
 |`int`
 |`100`
 |`3.0.6`
-|Maximum recursion depth for resolving schema references. Prevents stack overflow from deeply nested schemas.
+|Maximum depth a reference graph may be resolved to. Most resolution fails when a graph is deeper than this. Resolution during content storage and lookup by content still truncates with a warning.
 |`apicurio.storage.snapshot.location`
 |`string`
 |`./`
@@ -1494,6 +1757,11 @@ The following {registry} configuration options are available for each component 
 |`false`
 |`3.2.0`
 |Enable experimental features. When disabled, any experimental feature that is individually enabled will prevent the application from starting.
+|`apicurio.instance.name`
+|`optional<string>`
+|
+|`3.4.0`
+|Display name of this registry instance in discovery documents, such as the A2A Agent Card and the AI Catalog. Defaults to Apicurio Registry. Replaces apicurio.a2a.agent.name and apicurio.ai-catalog.host-name, and takes precedence over them
 |===
 
 == types
@@ -1510,11 +1778,16 @@ The following {registry} configuration options are available for each component 
 |`/tmp/apicurio-registry-artifact-types.json`
 |`3.1.0`
 |Path to a configuration file containing a list of supported artifact types.
-|`apicurio.compat.json-schema.use-apitomy`
-|`boolean`
-|`false`
-|`3.3.1`
-|Use the Apitomy Data Models JSON Schema compatibility checker instead of the everit-based one. _(experimental)_
+|`apicurio.artifact-types.webhooks.connect-timeout.seconds`
+|`int`
+|`5`
+|`3.4.0`
+|Timeout, in seconds, for connecting to an artifact type webhook.
+|`apicurio.artifact-types.webhooks.read-timeout.seconds`
+|`int`
+|`10`
+|`3.4.0`
+|Timeout, in seconds, for an artifact type webhook to send data on an open connection.
 |===
 
 == ui
@@ -1542,8 +1815,8 @@ The following {registry} configuration options are available for each component 
 |`3.1.6`
 |Whether to load user info from the OIDC userinfo endpoint. Defaults to true if not specified. Set to false for OIDC providers like Azure Entra ID where the userinfo endpoint has incompatible audience requirements.
 |`apicurio.ui.auth.oidc.logout-url`
-|`string`
-|`f5`
+|`optional<string>`
+|
 |`3.0.0`
 |The OIDC logout URL
 |`apicurio.ui.auth.oidc.redirect-uri`
@@ -1580,14 +1853,14 @@ The following {registry} configuration options are available for each component 
 |`boolean [dynamic]`
 |`false`
 |`3.2.0`
-|Enabled to show the Agents tab in the UI _(experimental)_
+|Enabled to show the Agents tab in the UI. Defaults to apicurio.agents.enabled _(experimental)_
 |`apicurio.ui.features.breadcrumbs`
 |`string`
 |`true`
 |`3.0.0`
 |Enabled to show breadcrumbs in the UI
 |`apicurio.ui.features.read-only.enabled`
-|`string`
+|`boolean [dynamic]`
 |`false`
 |`3.0.0`
 |Enabled to set the UI to read-only mode
@@ -1596,6 +1869,11 @@ The following {registry} configuration options are available for each component 
 |`true`
 |`3.0.0`
 |Enabled to show the Settings tab in the UI
+|`apicurio.ui.features.url-import.max-content-length`
+|`long`
+|`5242880`
+|`3.3.3`
+|Maximum content length (in bytes) for UI 'Import from URL' responses
 |`apicurio.ui.navPrefixPath`
 |`string`
 |`/`
@@ -1615,41 +1893,6 @@ The following {registry} configuration options are available for each component 
 |`apicurio.app.id`
 |`unknown`
 |`apicurio-registry`
-|
-|
-|`apicurio.auth.anonymous-read-access.enabled.dynamic.allow`
-|`unknown`
-|`${apicurio.config.dynamic.allow-all}`
-|
-|
-|`apicurio.auth.owner-only-authorization.dynamic.allow`
-|`unknown`
-|`${apicurio.config.dynamic.allow-all}`
-|
-|
-|`apicurio.auth.owner-only-authorization.limit-group-access.dynamic.allow`
-|`unknown`
-|`${apicurio.config.dynamic.allow-all}`
-|
-|
-|`apicurio.authn.basic-client-credentials.enabled.dynamic.allow`
-|`unknown`
-|`${apicurio.config.dynamic.allow-all}`
-|
-|
-|`apicurio.ccompat.legacy-id-mode.enabled.dynamic.allow`
-|`unknown`
-|`${apicurio.config.dynamic.allow-all}`
-|
-|
-|`apicurio.ccompat.max-subjects.dynamic.allow`
-|`unknown`
-|`${apicurio.config.dynamic.allow-all}`
-|
-|
-|`apicurio.ccompat.use-canonical-hash.dynamic.allow`
-|`unknown`
-|`${apicurio.config.dynamic.allow-all}`
 |
 |
 |`apicurio.config.dynamic.allow-all`
@@ -1692,11 +1935,6 @@ The following {registry} configuration options are available for each component 
 |`sa`
 |
 |
-|`apicurio.download.href.ttl.seconds.dynamic.allow`
-|`unknown`
-|`${apicurio.config.dynamic.allow-all}`
-|
-|
 |`apicurio.downloads.reaper.every`
 |`unknown`
 |`60s`
@@ -1707,19 +1945,9 @@ The following {registry} configuration options are available for each component 
 |`${registry.id}-producer`
 |
 |
-|`apicurio.kafkasql.snapshot.scheduled.enabled.dynamic.allow`
-|`unknown`
-|`${apicurio.config.dynamic.allow-all}`
-|
-|
 |`apicurio.limits.config.cache.check-period`
 |`unknown`
 |`30000`
-|
-|
-|`apicurio.log.level.dynamic.allow`
-|`unknown`
-|`${apicurio.config.dynamic.allow-all}`
 |
 |
 |`apicurio.logconfigjob.delayed`
@@ -1742,74 +1970,9 @@ The following {registry} configuration options are available for each component 
 |`false`
 |
 |
-|`apicurio.rest.compression.enabled.dynamic.allow`
-|`unknown`
-|`${apicurio.config.dynamic.allow-all}`
-|
-|
-|`apicurio.rest.deletion.artifact-version.enabled.dynamic.allow`
-|`unknown`
-|`${apicurio.config.dynamic.allow-all}`
-|
-|
-|`apicurio.rest.deletion.artifact.enabled.dynamic.allow`
-|`unknown`
-|`${apicurio.config.dynamic.allow-all}`
-|
-|
-|`apicurio.rest.deletion.group.enabled.dynamic.allow`
-|`unknown`
-|`${apicurio.config.dynamic.allow-all}`
-|
-|
-|`apicurio.rest.draft.production-mode.enabled.dynamic.allow`
-|`unknown`
-|`${apicurio.config.dynamic.allow-all}`
-|
-|
-|`apicurio.rest.mutability.artifact-version-content.enabled.dynamic.allow`
-|`unknown`
-|`${apicurio.config.dynamic.allow-all}`
-|
-|
-|`apicurio.semver.branching.coerce.dynamic.allow`
-|`unknown`
-|`${apicurio.config.dynamic.allow-all}`
-|
-|
-|`apicurio.semver.branching.enabled.dynamic.allow`
-|`unknown`
-|`${apicurio.config.dynamic.allow-all}`
-|
-|
-|`apicurio.semver.validation.enabled.dynamic.allow`
-|`unknown`
-|`${apicurio.config.dynamic.allow-all}`
-|
-|
 |`apicurio.storage.orphan-cleanup.every`
 |`unknown`
 |`1h`
-|
-|
-|`apicurio.storage.read-only.enabled.dynamic.allow`
-|`unknown`
-|`${apicurio.config.dynamic.allow-all}`
-|
-|
-|`apicurio.ui.features.agents.enabled.dynamic.allow`
-|`unknown`
-|`${apicurio.config.dynamic.allow-all}`
-|
-|
-|`apicurio.ui.features.read-only.enabled.dynamic.allow`
-|`unknown`
-|`${apicurio.config.dynamic.allow-all}`
-|
-|
-|`apicurio.usage.flush.every`
-|`unknown`
-|`10s`
 |
 |
 |===
@@ -1837,12 +2000,17 @@ The following {registry} configuration options are available for each component 
 |`int`
 |`90`
 |`3.3.0`
-|Number of days after which a schema is classified as DEAD
+|Deprecated, has no effect, and will be removed in 4.0.0: a schema is classified as DEAD once its last fetch is older than the stale threshold
 |`apicurio.usage.drift-alert-threshold`
 |`int`
 |`2`
 |`3.3.0`
 |Number of versions behind latest before triggering a drift alert
+|`apicurio.usage.flush.every`
+|`string`
+|`10s`
+|`3.3.0`
+|How often buffered usage events are written to storage (Quarkus scheduler expression)
 |`apicurio.usage.retention-days`
 |`int`
 |`180`
@@ -1852,7 +2020,7 @@ The following {registry} configuration options are available for each component 
 |`int`
 |`30`
 |`3.3.0`
-|Number of days after which a schema is classified as STALE
+|A schema whose last fetch is older than the active threshold and no older than this many days is classified as STALE. Older than this is DEAD.
 |`apicurio.usage.telemetry.enabled`
 |`boolean`
 |`false`

@@ -19,6 +19,7 @@ import java.util.concurrent.ExecutionException;
 public class HttpClientService {
 
     @Inject
+    @WebhookClient
     WebClient webClient;
 
     /**

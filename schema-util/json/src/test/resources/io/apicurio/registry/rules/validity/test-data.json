@@ -8,6 +8,7 @@
         "draft-04": true,
         "draft-06": true,
         "draft-07": true,
+        "draft-2019": true,
         "draft-2020": true
       }
     },
@@ -22,6 +23,7 @@
         "draft-04": false,
         "draft-06": false,
         "draft-07": false,
+        "draft-2019": false,
         "draft-2020": false
       }
     },
@@ -35,6 +37,7 @@
         "draft-04": true,
         "draft-06": true,
         "draft-07": true,
+        "draft-2019": true,
         "draft-2020": true
       }
     },
@@ -56,6 +59,7 @@
         "draft-04": true,
         "draft-06": true,
         "draft-07": true,
+        "draft-2019": true,
         "draft-2020": true
       }
     },
@@ -70,11 +74,12 @@
         "draft-04": true,
         "draft-06": true,
         "draft-07": true,
+        "draft-2019": true,
         "draft-2020": false
       }
     },
     {
-      "description": "$dynamicAnchor has been introduced in v2020. Must be a string with pattern '^[A-Za-z_][-A-Za-z0-9._]*$'. Note: This should fail for v2020, but the library accepts it. Same for https://www.jsonschemavalidator.net.",
+      "description": "$dynamicAnchor has been introduced in v2020. Must be a string with pattern '^[A-Za-z_][-A-Za-z0-9._]*$'.",
       "schema": {
         "$dynamicAnchor": ""
       },
@@ -82,7 +87,8 @@
         "draft-04": true,
         "draft-06": true,
         "draft-07": true,
-        "draft-2020": true
+        "draft-2019": true,
+        "draft-2020": false
       }
     },
     {
@@ -96,6 +102,7 @@
         "draft-04": true,
         "draft-06": true,
         "draft-07": true,
+        "draft-2019": false,
         "draft-2020": false
       }
     },
@@ -110,6 +117,7 @@
         "draft-04": true,
         "draft-06": true,
         "draft-07": false,
+        "draft-2019": false,
         "draft-2020": false
       }
     },
@@ -124,18 +132,21 @@
         "draft-04": true,
         "draft-06": true,
         "draft-07": false,
+        "draft-2019": false,
         "draft-2020": false
       }
     },
     {
       "description": "1: Changed exclusiveMinimum/Maximum from boolean to number in v6.",
       "schema": {
+        "minimum": 0,
         "exclusiveMinimum": true
       },
       "expected": {
         "draft-04": true,
         "draft-06": false,
         "draft-07": false,
+        "draft-2019": false,
         "draft-2020": false
       }
     },
@@ -148,6 +159,7 @@
         "draft-04": false,
         "draft-06": true,
         "draft-07": true,
+        "draft-2019": true,
         "draft-2020": true
       }
     }

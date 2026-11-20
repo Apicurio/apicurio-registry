@@ -44,19 +44,38 @@ public final class VertxAdapterFactory {
         Vertx vertxToUse = getVertx(options);
         WebClientOptions webClientOptions = buildWebClientOptions(options);
 
+        WebClient webClient;
         switch (options.getAuthType()) {
             case ANONYMOUS:
-                return createVertxAnonymous(vertxToUse, webClientOptions);
+                webClient = createVertxAnonymous(vertxToUse, webClientOptions);
+                break;
             case BASIC:
-                return createVertxBasicAuth(options.getUsername(), options.getPassword(), vertxToUse, webClientOptions);
+                webClient = createVertxBasicAuth(options.getUsername(), options.getPassword(), vertxToUse, webClientOptions);
+                break;
             case OAUTH2:
-                return createVertxOAuth2(options.getTokenEndpoint(), options.getClientId(),
+                webClient = createVertxOAuth2(options.getTokenEndpoint(), options.getClientId(),
                         options.getClientSecret(), options.getScope(), vertxToUse, webClientOptions);
+                break;
+            case BEARER:
+                webClient = VertXAuthFactory.buildBearerAuthWebClient(vertxToUse, webClientOptions,
+                        options.getBearerToken());
+                break;
             case CUSTOM_WEBCLIENT:
-                return createVertxCustomWebClient(options);
+                webClient = createVertxCustomWebClient(options);
+                break;
             default:
                 throw new IllegalArgumentException("Unsupported authentication type: " + options.getAuthType());
         }
+
+        // Added last, so that headers contributed by the auth clients above are logged too. With
+        // CUSTOM_WEBCLIENT the client belongs to the caller and may be shared, and Vert.x has no
+        // way to remove an interceptor again, so this permanently changes that client. Enabling
+        // HTTP logging is opt-in and RegistryClientOptions.enableHttpLogging() documents it.
+        if (options.isHttpLoggingEnabled()) {
+            HttpLoggingInterceptor.install(webClient);
+        }
+
+        return new VertXRequestAdapter(webClient);
     }
 
     private static Vertx getVertxFromCDI(String CDIClassName, String InstanceClassName) {
@@ -91,28 +110,25 @@ public final class VertxAdapterFactory {
         return DefaultVertxInstance.get();
     }
 
-    private static RequestAdapter createVertxAnonymous(Vertx vertx, WebClientOptions webClientOptions) {
-        WebClient webClient = webClientOptions == null ? WebClient.create(vertx) : WebClient.create(vertx, webClientOptions);
-        return new VertXRequestAdapter(webClient);
+    private static WebClient createVertxAnonymous(Vertx vertx, WebClientOptions webClientOptions) {
+        return webClientOptions == null ? WebClient.create(vertx) : WebClient.create(vertx, webClientOptions);
     }
 
-    private static RequestAdapter createVertxBasicAuth(String username, String password, Vertx vertx, WebClientOptions webClientOptions) {
-        WebClient webClient = VertXAuthFactory.buildSimpleAuthWebClient(vertx, webClientOptions, username, password);
-        return new VertXRequestAdapter(webClient);
+    private static WebClient createVertxBasicAuth(String username, String password, Vertx vertx, WebClientOptions webClientOptions) {
+        return VertXAuthFactory.buildSimpleAuthWebClient(vertx, webClientOptions, username, password);
     }
 
-    private static RequestAdapter createVertxOAuth2(String tokenEndpoint,
+    private static WebClient createVertxOAuth2(String tokenEndpoint,
                                                      String clientId, String clientSecret, String scope, Vertx vertx, WebClientOptions webClientOptions) {
-        WebClient webClient = VertXAuthFactory.buildOIDCWebClient(vertx, webClientOptions, tokenEndpoint, clientId, clientSecret, scope);
-        return new VertXRequestAdapter(webClient);
+        return VertXAuthFactory.buildOIDCWebClient(vertx, webClientOptions, tokenEndpoint, clientId, clientSecret, scope);
     }
 
-    private static RequestAdapter createVertxCustomWebClient(RegistryClientOptions options) {
+    private static WebClient createVertxCustomWebClient(RegistryClientOptions options) {
         WebClient webClient = options.getWebClient();
         if (webClient == null) {
             throw new IllegalArgumentException("WebClient cannot be null");
         }
-        return new VertXRequestAdapter(webClient);
+        return webClient;
     }
 
     private static WebClientOptions buildWebClientOptions(RegistryClientOptions options) {
@@ -153,6 +169,18 @@ public final class VertxAdapterFactory {
 
         webClientOptions.setVerifyHost(options.isVerifyHost());
 
+        configureTrustOptions(options, webClientOptions);
+
+        configureKeyCertOptions(options, webClientOptions);
+
+        if (hasProxyConfig) {
+            webClientOptions.setProxyOptions(buildProxyOptions(options));
+        }
+
+        return webClientOptions;
+    }
+
+    private static void configureTrustOptions(RegistryClientOptions options, WebClientOptions webClientOptions) {
         switch (options.getTrustStoreType()) {
             case JKS:
                 JksOptions jksOptions = new JksOptions()
@@ -181,7 +209,9 @@ public final class VertxAdapterFactory {
             case NONE:
                 break;
         }
+    }
 
+    private static void configureKeyCertOptions(RegistryClientOptions options, WebClientOptions webClientOptions) {
         switch (options.getKeyStoreType()) {
             case JKS:
                 JksOptions jksKeyStoreOptions = new JksOptions()
@@ -211,22 +241,20 @@ public final class VertxAdapterFactory {
             case NONE:
                 break;
         }
+    }
 
-        if (hasProxyConfig) {
-            ProxyOptions proxyOptions = new ProxyOptions()
-                    .setHost(options.getProxyHost())
-                    .setPort(options.getProxyPort());
+    private static ProxyOptions buildProxyOptions(RegistryClientOptions options) {
+        ProxyOptions proxyOptions = new ProxyOptions()
+                .setHost(options.getProxyHost())
+                .setPort(options.getProxyPort());
 
-            if (options.getProxyUsername() != null && !options.getProxyUsername().isEmpty()) {
-                proxyOptions.setUsername(options.getProxyUsername());
-                if (options.getProxyPassword() != null) {
-                    proxyOptions.setPassword(options.getProxyPassword());
-                }
+        if (options.getProxyUsername() != null && !options.getProxyUsername().isEmpty()) {
+            proxyOptions.setUsername(options.getProxyUsername());
+            if (options.getProxyPassword() != null) {
+                proxyOptions.setPassword(options.getProxyPassword());
             }
-
-            webClientOptions.setProxyOptions(proxyOptions);
         }
 
-        return webClientOptions;
+        return proxyOptions;
     }
 }

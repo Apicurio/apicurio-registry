@@ -81,7 +81,8 @@ public class ArtifactsMCPServer {
     ArtifactMetaData create_artifact(
             @ToolArg(description = GROUP_ID) String groupId,
             @ToolArg(description = ARTIFACT_ID) String artifactId,
-            @ToolArg(description = ARTIFACT_TYPE, required = false) String artifactType,
+            // An empty artifact has no content to detect the type from, so the registry requires it
+            @ToolArg(description = ARTIFACT_TYPE) String artifactType,
             @ToolArg(description = NAME, required = false) String name,
             @ToolArg(description = DESCRIPTION, required = false) String description,
             @ToolArg(description = JSON_LABELS, required = false) String jsonLabels
@@ -99,7 +100,7 @@ public class ArtifactsMCPServer {
 
     @Tool(description = """
             Search for artifacts in the Apicurio Registry server. \
-            Returns metadata of the groups that fit the search criteria.""")
+            Returns metadata of the artifacts that fit the search criteria.""")
     List<SearchedArtifact> search_artifacts(
             @ToolArg(description = GROUP_ID) String groupId,
             @ToolArg(description = ARTIFACT_ID, required = false) String artifactId,

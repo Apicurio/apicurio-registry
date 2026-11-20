@@ -383,7 +383,7 @@ public class AuthConfig {
             String clientSpecificKey = "apicurio.authn.basic.scope." + clientId;
             var clientScope = config.getOptionalValue(clientSpecificKey, String.class);
             if (clientScope.isPresent()) {
-                return normalizeScope(clientScope.get());
+                return normalizeScope(clientScope.orElseThrow());
             }
         }
         return scope.map(this::normalizeScope).orElse(null);

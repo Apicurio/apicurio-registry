@@ -9,6 +9,7 @@ import {
 import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 import { RoleMappingsEmptyState } from "@app/pages";
 import { RoleMapping, RoleTypeObject } from "@sdk/lib/generated-client/models";
+import { useConfigService } from "@services/useConfigService.ts";
 
 /**
  * Properties
@@ -26,6 +27,8 @@ export type RoleListProps = {
 export const RoleList: FunctionComponent<RoleListProps> = (props: RoleListProps) => {
     const [isRevokeModalOpen, setIsRevokeModalOpen] = useState(false);
     const [currentRole, setCurrentRole] = useState<RoleMapping>(props.roles[0]);
+    const config = useConfigService();
+    const isReadOnly = config.featureReadOnly();
 
     const roleName = (role: string): string => {
         switch (role) {
@@ -56,8 +59,8 @@ export const RoleList: FunctionComponent<RoleListProps> = (props: RoleListProps)
     const removeRoleConfirmModalBodyText = () => {
         return `${currentRole.principalName || currentRole.principalId} will no longer have access to this Registry instance.`;
     };
-    
-    const roleActions = (role: RoleMapping) => [
+
+    const roleActions = (role: RoleMapping) => isReadOnly ? [] : [
         {
             title: "Edit",
             onClick: () => { props.onEdit(role);}

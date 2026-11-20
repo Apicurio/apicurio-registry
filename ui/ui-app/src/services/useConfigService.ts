@@ -56,6 +56,8 @@ export declare type Alerts = {
 export interface FeaturesConfig {
     showMasthead?: boolean;
     readOnly?: boolean;
+    readOnlyReason?: string;
+    storageName?: string;
     breadcrumbs?: boolean;
     roleManagement?: boolean;
     deleteGroup?: boolean;
@@ -65,6 +67,8 @@ export interface FeaturesConfig {
     settings?: boolean;
     agents?: boolean;
     searchIndex?: boolean;
+    mcpImport?: boolean;
+    urlImportMaxContentLength?: number;
     alerts?: Alerts;
 }
 
@@ -217,6 +221,32 @@ function overrideConfig(base: ApicurioRegistryConfig, overrides: ApicurioRegistr
 
 let registryConfig: ApicurioRegistryConfig = _getRegistryConfig();
 
+/**
+ * True when the console runs in an iframe. Reading window.top can throw across origins, which
+ * also means the console is framed.
+ */
+export function isFramed(win: Window | undefined): boolean {
+    if (!win) {
+        return false;
+    }
+    try {
+        return win.self !== win.top;
+    } catch {
+        return true;
+    }
+}
+
+/**
+ * True when the console is framed and was loaded with "?masthead=false" (set by the OpenShift
+ * console plugin). Read once at load so it survives in-app navigation.
+ */
+export function isMastheadHiddenByUrl(search: string | undefined, framed: boolean): boolean {
+    return framed && new URLSearchParams(search || "").get("masthead") === "false";
+}
+
+const mastheadHiddenByUrl: boolean = isMastheadHiddenByUrl(globalThis.location?.search,
+    isFramed(globalThis.window as Window | undefined));
+
 
 export interface ConfigService {
 
@@ -228,6 +258,7 @@ export interface ConfigService {
     uiNavPrefixPath(): string|undefined;
     features(): FeaturesConfig;
     featureReadOnly(): boolean;
+    featureReadOnlyReason(): string | undefined;
     featureBreadcrumbs(): boolean;
     featureRoleManagement(): boolean;
     featureSettings(): boolean;
@@ -237,6 +268,8 @@ export interface ConfigService {
     featureDraftMutability(): boolean;
     featureAgents(): boolean;
     featureSearchIndex(): boolean;
+    featureMcpImport(): boolean;
+    featureUrlImportMaxContentLength(): number;
     authType(): string;
     authRbacEnabled(): boolean;
     authObacEnabled(): boolean;
@@ -315,17 +348,22 @@ export class ConfigServiceImpl implements ConfigService {
             readOnly: false,
             breadcrumbs: true
         };
-        if (!registryConfig.features) {
-            return defaults;
-        }
-        return {
+        const features: FeaturesConfig = {
             ...defaults,
             ...registryConfig.features
         };
+        if (mastheadHiddenByUrl) {
+            features.showMasthead = false;
+        }
+        return features;
     }
 
     public featureReadOnly(): boolean {
         return this.features().readOnly || false;
+    }
+
+    public featureReadOnlyReason(): string | undefined {
+        return this.features().readOnlyReason;
     }
 
     public featureBreadcrumbs(): boolean {
@@ -360,8 +398,18 @@ export class ConfigServiceImpl implements ConfigService {
         return this.features().agents || false;
     }
 
+    public featureMcpImport(): boolean {
+        return this.features().mcpImport || false;
+    }
+
     public featureSearchIndex(): boolean {
         return this.features().searchIndex || false;
+    }
+
+    public featureUrlImportMaxContentLength(): number {
+        const configured: number | undefined = this.features().urlImportMaxContentLength;
+        return typeof configured === "number" && Number.isFinite(configured) && configured > 0
+            ? configured : 5242880;
     }
 
     public authType(): string {

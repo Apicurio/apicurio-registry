@@ -1,11 +1,14 @@
 package io.apicurio.registry.noprofile.rest;
 
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
+import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -27,6 +30,10 @@ import static org.hamcrest.Matchers.equalTo;
 public class ServerSideDereferenceTest extends AbstractResourceTestBase {
 
     private static final String GROUP = "ServerSideDereferenceTest";
+
+    @Inject
+    @Current
+    RegistryStorage storage;
 
     /**
      * Test that server-side dereferencing works for REST API v3 with OpenAPI artifacts.
@@ -134,6 +141,31 @@ public class ServerSideDereferenceTest extends AbstractResourceTestBase {
                 .body("paths.widgets.get.responses.200.content.json.schema.items.$ref",
                         equalTo("#/components/schemas/Widget"))
                 .body("components.schemas.Widget.title", equalTo("Root Type for Widget"));
+    }
+
+    @Test
+    public void testV3ServerSideDereference_ContentIdAndHash() throws Exception {
+        createArtifact(GROUP, "testV3ContentId/ReferencedTypes", ArtifactType.OPENAPI,
+                resourceToString("openapi-referenced-types.json"), ContentTypes.APPLICATION_JSON);
+        List<ArtifactReference> refs = Collections.singletonList(ArtifactReference.builder()
+                .name("./referenced-types.json#/components/schemas/Widget").groupId(GROUP)
+                .artifactId("testV3ContentId/ReferencedTypes").version("1").build());
+        var metadata = createArtifactWithReferences(GROUP, "testV3ContentId/WithExternalRef",
+                ArtifactType.OPENAPI, resourceToString("openapi-with-external-ref.json"),
+                ContentTypes.APPLICATION_JSON, refs);
+        long contentId = metadata.getVersion().getContentId();
+        String contentHash = storage.getContentById(contentId).getContentHash();
+
+        // The server default (DEREFERENCE) applies without a references parameter...
+        for (String path : List.of("/registry/v3/ids/contentIds/" + contentId,
+                "/registry/v3/ids/contentHashes/" + contentHash)) {
+            given().when().get(path).then().statusCode(200)
+                    .body("components.schemas.Widget.title", equalTo("Root Type for Widget"));
+            // ...and an explicit parameter overrides it.
+            given().when().queryParam("references", "PRESERVE").get(path).then().statusCode(200)
+                    .body("paths.widgets.get.responses.200.content.json.schema.items.$ref",
+                            equalTo("./referenced-types.json#/components/schemas/Widget"));
+        }
     }
 
     /**
@@ -264,7 +296,7 @@ public class ServerSideDereferenceTest extends AbstractResourceTestBase {
 
         // Get schema by ID WITHOUT specifying format parameter
         // Server default (DEREFERENCE -> RESOLVED format for Avro) should apply
-        String schema = given().when().pathParam("id", metadata.getVersion().getGlobalId())
+        String schema = given().when().pathParam("id", metadata.getVersion().getContentId())
                 .get("/ccompat/v7/schemas/ids/{id}").then().statusCode(200).extract()
                 .path("schema");
 
@@ -298,7 +330,7 @@ public class ServerSideDereferenceTest extends AbstractResourceTestBase {
 
         // Get schema by ID WITH explicit format parameter (empty string = no formatting)
         // This should override the server default and return the schema as-is with references
-        String schema = given().when().pathParam("id", metadata.getVersion().getGlobalId())
+        String schema = given().when().pathParam("id", metadata.getVersion().getContentId())
                 .queryParam("format", "").get("/ccompat/v7/schemas/ids/{id}").then().statusCode(200)
                 .extract().path("schema");
 
@@ -307,6 +339,75 @@ public class ServerSideDereferenceTest extends AbstractResourceTestBase {
         // Original schema without resolution should still reference the type by name
         Assertions.assertTrue(schema.contains("\"type\"") || schema.contains("\"name\""),
                 "Non-resolved schema should contain type definitions");
+    }
+
+    /**
+     * Test that the other ccompat endpoints apply the same server-side default as
+     * {@code GET /schemas/ids/{id}}: with DEREFERENCE configured and no format parameter,
+     * Avro schemas are returned with their references inlined (see #10976).
+     */
+    @Test
+    public void testCCompatServerSideDereference_AvroContentAndSubjectEndpoints() throws Exception {
+        String referencedAvroContent = resourceToString("avro-referenced-type.json");
+        String avroWithRefContent = resourceToString("avro-with-reference.json");
+
+        // Use the default group so that the artifact is addressable as a ccompat subject
+        String subject = "testCCompatEndpoints-Person";
+        createArtifact("default", "testCCompatEndpoints-Address", ArtifactType.AVRO, referencedAvroContent,
+                ContentTypes.APPLICATION_JSON);
+        List<ArtifactReference> refs = Collections.singletonList(ArtifactReference.builder()
+                .name("com.example.common.Address").groupId("default")
+                .artifactId("testCCompatEndpoints-Address").version("1").build());
+        var metadata = createArtifactWithReferences("default", subject, ArtifactType.AVRO,
+                avroWithRefContent, ContentTypes.APPLICATION_JSON, refs);
+
+        // GET /schemas/ids/{id}/schema returns the raw schema
+        String byId = given().when().pathParam("id", metadata.getVersion().getContentId())
+                .get("/ccompat/v7/schemas/ids/{id}/schema").then().statusCode(200).extract().asString();
+        assertResolvedAddress(byId);
+
+        // GET /subjects/{subject}/versions/{version} returns the schema wrapped in a Schema object
+        String bySubjectVersion = given().when().pathParam("subject", subject)
+                .get("/ccompat/v7/subjects/{subject}/versions/1").then().statusCode(200).extract()
+                .path("schema");
+        assertResolvedAddress(bySubjectVersion);
+    }
+
+    /**
+     * "resolved" is not a valid Protobuf format, so with DEREFERENCE configured and no format
+     * parameter, Protobuf schemas must be returned as stored instead of failing.
+     */
+    @Test
+    public void testCCompatServerSideDereference_ProtobufWithoutFormatReturnsStoredContent() throws Exception {
+        String protoContent = "syntax = \"proto3\";\npackage com.example;\n\nmessage Simple {\n  string name = 1;\n}\n";
+        String subject = "testCCompatProtobufDefault";
+        var metadata = createArtifact("default", subject, ArtifactType.PROTOBUF, protoContent,
+                ContentTypes.APPLICATION_PROTOBUF);
+
+        String byId = given().when().pathParam("id", metadata.getVersion().getContentId())
+                .get("/ccompat/v7/schemas/ids/{id}/schema").then().statusCode(200).extract().asString();
+        Assertions.assertEquals(protoContent, byId);
+
+        String byIdWrapped = given().when().pathParam("id", metadata.getVersion().getContentId())
+                .get("/ccompat/v7/schemas/ids/{id}").then().statusCode(200).extract().path("schema");
+        Assertions.assertEquals(protoContent, byIdWrapped);
+
+        String bySubjectVersion = given().when().pathParam("subject", subject)
+                .get("/ccompat/v7/subjects/{subject}/versions/1").then().statusCode(200).extract()
+                .path("schema");
+        Assertions.assertEquals(protoContent, bySubjectVersion);
+
+        // An explicit format keeps today's validation
+        given().when().pathParam("id", metadata.getVersion().getContentId()).queryParam("format", "resolved")
+                .get("/ccompat/v7/schemas/ids/{id}").then().statusCode(400);
+    }
+
+    private static void assertResolvedAddress(String schema) {
+        Assertions.assertNotNull(schema);
+        Assertions.assertFalse(schema.contains("com.example.common.Address"),
+                "Resolved schema should no longer contain the referenced type name");
+        Assertions.assertTrue(schema.contains("zipCode"),
+                "Resolved schema should now contain the referenced zipCode field");
     }
 
     /**

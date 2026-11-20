@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>io.apicurio</groupId>
+    <artifactId>apicurio-registry-examples</artifactId>
+    <version>3.4.0-SNAPSHOT</version>
+    <relativePath>../../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>apicurio-registry-examples-schema-references-serdes</artifactId>
+  <packaging>jar</packaging>
+  <name>Registry :: Examples :: Schema References :: Serdes</name>
+
+  <properties>
+    <projectRoot>${project.basedir}/../../..</projectRoot>
+    <!-- Override on the command line: -Dregistry.url=... -Dkafka.bootstrap=... -->
+    <registry.url>http://localhost:8081/apis/registry/v3</registry.url>
+    <kafka.bootstrap>localhost:9092</kafka.bootstrap>
+        <!-- The serdes' protobuf dependencies (proto-google-common-protos) need the registry's protobuf
+         runtime, not the older one examples/pom.xml pins for other examples -->
+    <protobuf.version>4.36.2</protobuf.version>
+  </properties>
+
+  <dependencies>
+    <!-- The Kafka serdes, built from this repository -->
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-avro-serde-kafka</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-protobuf-serde-kafka</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.kafka</groupId>
+      <artifactId>kafka-clients</artifactId>
+      <version>${kafka.version}</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <!-- Generates the Java classes for src/main/proto -->
+      <plugin>
+        <groupId>io.github.ascopes</groupId>
+        <artifactId>protobuf-maven-plugin</artifactId>
+        <version>${proto-plugin.version}</version>
+        <executions>
+          <execution>
+            <id>gencode</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <phase>generate-sources</phase>
+            <configuration>
+              <protoc>${protobuf.version}</protoc>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <!-- mvn exec:java runs the client (demo.sh does this) -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>3.1.0</version>
+        <configuration>
+          <mainClass>io.apicurio.registry.examples.references.SerdesClient</mainClass>
+          <arguments>
+            <argument>${registry.url}</argument>
+            <argument>${kafka.bootstrap}</argument>
+          </arguments>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

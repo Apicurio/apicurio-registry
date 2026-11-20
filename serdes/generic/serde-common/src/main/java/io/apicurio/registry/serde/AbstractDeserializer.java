@@ -1,5 +1,6 @@
 package io.apicurio.registry.serde;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.contracts.rules.MigrationExecutor;
 import io.apicurio.registry.contracts.rules.RuleDefinition;
 import io.apicurio.registry.contracts.rules.RuleExecutionEngine;
@@ -14,18 +15,21 @@ import io.apicurio.registry.resolver.DefaultSchemaResolver;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.utils.Utils;
-import io.apicurio.registry.rest.client.models.ContractRuleSet;
 import io.apicurio.registry.serde.config.SerdeConfig;
 import io.apicurio.registry.serde.config.SerdeDeserializerConfig;
+import io.apicurio.registry.serde.data.SerdeMetadata;
+import io.apicurio.registry.serde.data.SerdeRecord;
 import io.apicurio.registry.serde.fallback.DefaultFallbackArtifactProvider;
 import io.apicurio.registry.serde.fallback.FallbackArtifactProvider;
 import io.apicurio.registry.serde.tracing.SerDesAttributes;
 import io.apicurio.registry.serde.tracing.SerDesTracer;
 
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static io.apicurio.registry.serde.BaseSerde.getByteBuffer;
 
@@ -55,6 +59,10 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
     private String migrationTargetVersion;
     private RuleExecutionEngine ruleEngine;
     private ContractRulesetCache rulesetCache;
+    private ContractRuleLoader ruleLoader;
+    private ContractRuleCoordinatesResolver coordinatesResolver;
+    private DeadLetterQueue deadLetterQueue;
+    private final AtomicBoolean unsupportedMigrationWarned = new AtomicBoolean();
 
     public AbstractDeserializer() {
         this.baseSerde = new BaseSerde<>();
@@ -101,6 +109,9 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
                 ttl = Long.parseLong(ttlObj.toString());
             }
             rulesetCache = new ContractRulesetCache(ttl);
+            ruleLoader = new ContractRuleLoader(rulesetCache, baseSerde::getClientFacade);
+            coordinatesResolver = new ContractRuleCoordinatesResolver(baseSerde::getClientFacade,
+                    Duration.ofSeconds(ttl));
             Object migEnabled = config.originals().get(SerdeConfig.CONTRACT_RULES_MIGRATION_ENABLED);
             if (migEnabled != null) {
                 migrationEnabled = Boolean.parseBoolean(migEnabled.toString());
@@ -150,7 +161,7 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
             U result = readData(schema.getParsedSchema(), buffer, start, length);
 
             if (contractRulesEnabled) {
-                executeContractRulesForRead(schema, result);
+                return executeContractRulesForRead(topic, data, artifactReference, schema, result);
             }
 
             return result;
@@ -159,14 +170,33 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
 
     protected abstract U readData(ParsedSchema<T> schema, ByteBuffer buffer, int start, int length);
 
+    /**
+     * Deserializes a payload without an ID prefix, whose schema is given by {@code artifactReference}
+     * (from the record headers, for example). Traced and checked against contract rules exactly as
+     * {@link #deserializeData(String, byte[])} is.
+     */
     public U readData(String topic, byte[] data, ArtifactReference artifactReference) {
-        SchemaLookupResult<T> schema = resolve(topic, data, artifactReference);
+        return tracer.traceDeserialize(topic, span -> {
+            span.setAttribute(SerDesAttributes.DATA_SIZE, (long) data.length);
 
-        ByteBuffer buffer = ByteBuffer.wrap(data);
-        int length = buffer.limit();
-        int start = buffer.position();
+            SchemaCacheKey cacheKey = getCacheKey(artifactReference);
+            boolean cacheHit = cacheKey != null && fastPathCache.containsKey(cacheKey);
 
-        return readData(schema.getParsedSchema(), buffer, start, length);
+            SchemaLookupResult<T> schema = resolve(topic, data, artifactReference);
+            SerDesTracer.setSchemaAttributes(span, schema, cacheHit);
+
+            ByteBuffer buffer = ByteBuffer.wrap(data);
+            int length = buffer.limit();
+            int start = buffer.position();
+
+            U result = readData(schema.getParsedSchema(), buffer, start, length);
+
+            if (contractRulesEnabled) {
+                return executeContractRulesForRead(topic, data, artifactReference, schema, result);
+            }
+
+            return result;
+        });
     }
 
     protected SchemaLookupResult<T> resolve(String topic, byte[] data, ArtifactReference artifactReference) {
@@ -190,7 +220,8 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
 
         // Slow path: full resolution
         try {
-            SchemaLookupResult<T> result = baseSerde.getSchemaResolver().resolveSchemaByArtifactReference(artifactReference);
+            SchemaLookupResult<T> result = tracer.traceSchemaResolve(topic, "deserialize",
+                    span -> baseSerde.getSchemaResolver().resolveSchemaByArtifactReference(artifactReference));
             // Cache the result if we have a valid cache key
             if (cacheKey != null) {
                 fastPathCache.put(cacheKey, result);
@@ -202,7 +233,8 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
             } else {
                 try {
                     ArtifactReference fallbackReference = getFallbackArtifactProvider().get(topic, data);
-                    SchemaLookupResult<T> result = baseSerde.getSchemaResolver().resolveSchemaByArtifactReference(fallbackReference);
+                    SchemaLookupResult<T> result = tracer.traceSchemaResolve(topic, "deserialize",
+                            span -> baseSerde.getSchemaResolver().resolveSchemaByArtifactReference(fallbackReference));
                     // Cache using fallback reference key
                     SchemaCacheKey fallbackKey = getCacheKey(fallbackReference);
                     if (fallbackKey != null) {
@@ -243,67 +275,158 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
         this.fallbackArtifactProvider = fallbackArtifactProvider;
     }
 
-    @SuppressWarnings("unchecked")
-    private void executeContractRulesForRead(SchemaLookupResult<T> schema, U data) {
+    /**
+     * Applies the consumer-side contract rules to a deserialized record.
+     *
+     * @return the record to hand to the caller: the migrated record if a migration ran and its result
+     *         could be applied, otherwise {@code data} itself
+     */
+    private U executeContractRulesForRead(String topic, byte[] payload, ArtifactReference recordReference,
+            SchemaLookupResult<T> schema, U data) {
         try {
-            var ref = schema.toArtifactReference();
-            if (ref.getArtifactId() == null || ref.getArtifactId().isEmpty()) {
-                return;
-            }
-
-            // Domain rule validation
-            List<RuleDefinition> rules = loadRules(ref.getGroupId(), ref.getArtifactId());
-            if (!rules.isEmpty()) {
-                Map<String, Object> recordMap = dataToMap(data);
-                RuleExecutionResult result = ruleEngine.execute(rules, "READ", recordMap);
-                if (!result.isPassed()) {
-                    String msg = "Contract rule validation failed (READ): " + result.getViolations();
-                    if (contractRulesFailOnError) {
-                        throw new RuntimeException(msg);
-                    }
-                    LOG.warning(msg);
+            var resolved = coordinatesResolver.resolve(readReference(recordReference, schema),
+                    () -> baseSerde.getSchemaResolver().resolveArtifactReference(
+                            new SerdeRecord<>(new SerdeMetadata(topic, baseSerde.isKey()), data),
+                            schema.getParsedSchema()));
+            if (resolved.isEmpty()) {
+                if (contractRulesFailOnError) {
+                    throw new IllegalStateException("Consumer-side contract rules cannot be applied: the schema "
+                            + "version of the record could not be determined (" + describe(recordReference) + ")");
                 }
+                return data;
+            }
+            var ref = resolved.get();
+            // Domain rule validation
+            List<RuleDefinition> rules = ruleLoader.domainRules(ref.getGroupId(), ref.getArtifactId(),
+                    ref.getVersion());
+            U result = data;
+            if (!rules.isEmpty()) {
+                result = applyReadRules(topic, payload, rules, schema, data);
             }
 
             // Migration transforms
             if (migrationEnabled && migrationTargetVersion != null) {
                 String recordVersion = ref.getVersion();
                 if (recordVersion != null && !recordVersion.equals(migrationTargetVersion)) {
-                    executeMigration(ref.getGroupId(), ref.getArtifactId(),
-                            recordVersion, migrationTargetVersion, data);
+                    return executeMigration(topic, payload, ref.getGroupId(), ref.getArtifactId(),
+                            recordVersion, migrationTargetVersion, result);
                 }
             }
+            return result;
+        } catch (ContractRuleViolationException e) {
+            throw e;
         } catch (RuntimeException e) {
             if (contractRulesFailOnError) {
                 throw e;
             }
             LOG.warning("Contract rule execution failed: " + e.getMessage());
         }
+        return data;
     }
 
-    private void executeMigration(String groupId, String artifactId,
+    /**
+     * The coordinates of the schema if the resolver knows them; otherwise the coordinates the record
+     * carries (headers can give group, artifact and version with a content hash); otherwise the IDs the
+     * record was read with.
+     */
+    private static ArtifactReference readReference(ArtifactReference recordReference,
+            SchemaLookupResult<?> schema) {
+        if (schema.getArtifactId() != null && !schema.getArtifactId().isEmpty()) {
+            return schema.toArtifactReference();
+        }
+        if (recordReference != null && recordReference.getArtifactId() != null
+                && !recordReference.getArtifactId().isEmpty() && recordReference.getVersion() != null) {
+            return recordReference;
+        }
+        Long globalId = recordReference != null ? recordReference.getGlobalId() : null;
+        Long contentId = recordReference != null ? recordReference.getContentId() : null;
+        return ArtifactReference.builder()
+                .globalId(globalId != null ? globalId : schema.getGlobalId())
+                .contentId(contentId != null ? contentId : schema.getContentId())
+                .build();
+    }
+
+    private static String describe(ArtifactReference reference) {
+        if (reference == null) {
+            return "no schema reference";
+        }
+        if (reference.getGlobalId() != null) {
+            return "global ID " + reference.getGlobalId();
+        }
+        if (reference.getContentId() != null) {
+            return "content ID " + reference.getContentId();
+        }
+        return "no global ID or content ID";
+    }
+
+    /**
+     * Runs the READ rules. A failed rule with {@code onFailure: DLQ} sends the record to the dead letter
+     * queue; the output of TRANSFORM rules is returned when the format can build a record from it.
+     */
+    private U applyReadRules(String topic, byte[] payload, List<RuleDefinition> rules, SchemaLookupResult<T> schema,
+            U data) {
+        RuleExecutionResult result = ruleEngine.execute(rules, "READ", toRuleRecord(data));
+        checkOutcome(topic, payload, "READ", result);
+        if (result.getTransformedRecord() == null || !supportsTransformResult(data)) {
+            return data;
+        }
+        return fromRuleRecord(result.getTransformedRecord(), schema.getParsedSchema(), data);
+    }
+
+    /**
+     * Routes the record to the dead letter queue when a failed rule asks for it, otherwise fails or logs
+     * according to fail-on-error.
+     */
+    private void checkOutcome(String topic, byte[] payload, String mode, RuleExecutionResult outcome) {
+        if (outcome.isPassed()) {
+            return;
+        }
+        if (ContractRuleOutcomes.hasDeadLetterViolation(outcome)) {
+            ContractRuleOutcomes.requireDeadLetterQueue(deadLetterQueue, outcome);
+            deadLetterQueue.send(topic, payload, outcome.getViolations());
+            throw new ContractRuleViolationException(mode, outcome.getViolations(), deadLetterQueue.topic());
+        }
+        ContractRuleViolationException violation = new ContractRuleViolationException(mode,
+                outcome.getViolations(), null);
+        if (contractRulesFailOnError) {
+            throw violation;
+        }
+        LOG.warning(violation.getMessage());
+    }
+
+    /**
+     * Sets the dead letter queue that receives the records failing a contract rule with
+     * {@code onFailure: DLQ}.
+     */
+    public void setDeadLetterQueue(DeadLetterQueue deadLetterQueue) {
+        this.deadLetterQueue = deadLetterQueue;
+    }
+
+    private U executeMigration(String topic, byte[] payload, String groupId, String artifactId,
             String fromVersion, String toVersion, U data) {
         List<String> allVersions = rulesetCache.getVersionList(groupId, artifactId);
         if (allVersions == null) {
             var facade = baseSerde.getClientFacade();
             if (facade == null) {
-                return;
+                return data;
             }
             allVersions = facade.getArtifactVersions(groupId, artifactId);
             if (allVersions.isEmpty()) {
-                return;
+                return data;
             }
             rulesetCache.putVersionList(groupId, artifactId, allVersions);
         }
 
-        Map<String, Object> recordMap = dataToMap(data);
+        Map<String, Object> recordMap = toRuleRecord(data);
         MigrationExecutor migrationExecutor = new MigrationExecutor(ruleEngine);
 
         RuleExecutionResult result = migrationExecutor.execute(
                 allVersions, fromVersion, toVersion, recordMap,
-                (version, mode) -> loadMigrationRulesForVersion(
-                        groupId, artifactId, version));
+                (version, mode) -> ruleLoader.migrationRules(groupId, artifactId, version));
 
+        if (!result.isPassed() && ContractRuleOutcomes.hasDeadLetterViolation(result)) {
+            checkOutcome(topic, payload, "MIGRATION " + fromVersion + " -> " + toVersion, result);
+        }
         if (!result.isPassed()) {
             String msg = "Migration transform failed (" + fromVersion + " -> " + toVersion + "): "
                     + result.getViolations();
@@ -311,52 +434,42 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
                 throw new RuntimeException(msg);
             }
             LOG.warning(msg);
+            return data;
+        }
+        if (result.getExecutedRules() == 0 || result.getTransformedRecord() == null) {
+            return data;
+        }
+        if (!supportsMigrationResult(data)) {
+            if (unsupportedMigrationWarned.compareAndSet(false, true)) {
+                LOG.warning("Migration rules ran (" + fromVersion + " -> " + toVersion + ") but "
+                        + getClass().getSimpleName() + " cannot return a migrated "
+                        + data.getClass().getName() + " yet; records are returned unmigrated");
+            }
+            return data;
+        }
+
+        ParsedSchema<T> targetSchema = baseSerde.getSchemaResolver().resolveSchemaByArtifactReference(
+                ArtifactReference.builder().groupId(groupId).artifactId(artifactId).version(toVersion).build())
+                .getParsedSchema();
+        try {
+            return fromRuleRecord(result.getTransformedRecord(), targetSchema, data);
+        } catch (RuntimeException e) {
+            String msg = "Migration transform failed (" + fromVersion + " -> " + toVersion
+                    + "): the migrated record does not match the target schema: " + e.getMessage();
+            if (contractRulesFailOnError) {
+                throw new RuntimeException(msg, e);
+            }
+            LOG.warning(msg);
+            return data;
         }
     }
 
-    private List<RuleDefinition> loadMigrationRulesForVersion(String groupId,
-            String artifactId, String version) {
-        ContractRuleSet versionRules = rulesetCache.get(groupId, artifactId, version);
-        if (versionRules == null) {
-            var facade = baseSerde.getClientFacade();
-            if (facade == null) {
-                return List.of();
-            }
-            versionRules = facade.getVersionContractRuleset(groupId, artifactId, version);
-            if (versionRules == null) {
-                return List.of();
-            }
-            rulesetCache.put(groupId, artifactId, version, versionRules);
-        }
-
-        List<RuleDefinition> migrationRules = new java.util.ArrayList<>();
-        if (versionRules.getMigrationRules() != null) {
-            for (var r : versionRules.getMigrationRules()) {
-                migrationRules.add(AbstractSerializer.toRuleDefinition(r));
-            }
-        }
-        return migrationRules;
-    }
-
-    private List<RuleDefinition> loadRules(String groupId, String artifactId) {
-        ContractRuleSet cached = rulesetCache.get(groupId, artifactId, null);
-        if (cached != null) {
-            return AbstractSerializer.toRuleDefinitions(cached);
-        }
-        var facade = baseSerde.getClientFacade();
-        if (facade == null) {
-            return List.of();
-        }
-        ContractRuleSet ruleset = facade.getContractRuleset(groupId, artifactId);
-        if (ruleset == null) {
-            return List.of();
-        }
-        rulesetCache.put(groupId, artifactId, null, ruleset);
-        return AbstractSerializer.toRuleDefinitions(ruleset);
-    }
-
+    /**
+     * Converts a deserialized record to the map the contract rule engine works on. The default handles
+     * maps and records whose {@code toString()} is JSON; formats override it to convert faithfully.
+     */
     @SuppressWarnings("unchecked")
-    private Map<String, Object> dataToMap(U data) {
+    protected Map<String, Object> toRuleRecord(U data) {
         if (data == null) {
             return Map.of();
         }
@@ -364,11 +477,41 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
             return (Map<String, Object>) data;
         }
         try {
-            var mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-            return mapper.readValue(data.toString(), Map.class);
+            return new ObjectMapper().readValue(data.toString(), Map.class);
         } catch (Exception e) {
             return Map.of();
         }
+    }
+
+    /**
+     * Whether {@link #fromRuleRecord} can turn a migrated rule record back into a record like
+     * {@code data}. When it cannot, migration rules still run (and can fail the read) but the
+     * original record is returned.
+     */
+    protected boolean supportsMigrationResult(U data) {
+        return false;
+    }
+
+    /**
+     * Whether {@link #fromRuleRecord} can turn the output of READ TRANSFORM rules, which keeps the
+     * record's own schema version, back into a record like {@code data}. Defaults to
+     * {@link #supportsMigrationResult}.
+     */
+    protected boolean supportsTransformResult(U data) {
+        return supportsMigrationResult(data);
+    }
+
+    /**
+     * Builds the record to return to the caller from a migrated rule record.
+     *
+     * @param record the migrated record
+     * @param targetSchema the schema of the migration target version
+     * @param original the record as it was deserialized
+     * @throws RuntimeException if the migrated record does not conform to the target schema
+     */
+    protected U fromRuleRecord(Map<String, Object> record, ParsedSchema<T> targetSchema, U original) {
+        throw new UnsupportedOperationException("Migration results are not supported by "
+                + getClass().getSimpleName());
     }
 
     @Override

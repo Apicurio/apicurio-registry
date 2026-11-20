@@ -1,8 +1,10 @@
 package io.apicurio.registry.rest.v3.impl;
 
+import io.apicurio.registry.auth.AuthorizationLookups;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
+import io.apicurio.registry.auth.ISearchAuthorizer;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
@@ -21,6 +23,7 @@ import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.ContentNotFoundException;
 
+import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.ReferenceType;
 import io.apicurio.registry.types.VersionState;
@@ -37,7 +40,7 @@ import static io.apicurio.registry.rest.MethodParameterKeys.MPK_ENTITY_ID;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_REF_TYPE;
 import static io.apicurio.registry.rest.cache.HttpCaching.caching;
 import static io.apicurio.registry.rest.headers.Headers.checkIfDeprecated;
-import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.recursivelyResolveReferenceContentIds;
+import static io.apicurio.registry.references.ReferenceResolution.recursivelyResolveReferenceContentIds;
 import static io.apicurio.registry.utils.Cell.cellWithLoader;
 
 @ApplicationScoped
@@ -49,28 +52,29 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
     CommonResourceOperations common;
 
     @Inject
+    AuthorizationLookups lookups;
+
+    @Inject
     RestConfig restConfig;
 
+    @Inject
+    ISearchAuthorizer searchAuthorizer;
+
     /**
-     * @see io.apicurio.registry.rest.v3.IdsResource#getContentById(long)
+     * @see io.apicurio.registry.rest.v3.IdsResource#getContentById(long, HandleReferencesType)
      */
     @Override
-    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
-    @MethodMetadata(extractParameters = {"0", MPK_ENTITY_ID})
-    @EntityIdContentCache
-    public Response getContentById(long contentId) {
-        ContentWrapperDto dto = storage.getContentById(contentId);
+    @Authorized(style = AuthorizedStyle.ContentId, level = AuthorizedLevel.Read)
+    public Response getContentById(long contentId, HandleReferencesType references) {
+        HandleReferencesType effective = effectiveReferences(references);
+        ContentWrapperDto dto = effective == HandleReferencesType.PRESERVE ? storage.getContentById(contentId)
+                : storage.getContentAndArtifactTypeById(contentId);
         boolean isEmptyContent = ContentTypes.isEmptyContentType(dto.getContentType());
         boolean isDraft = dto.getContentHash() != null && dto.getContentHash().startsWith("draft:");
         if (isEmptyContent || (isDraft && !restConfig.isDraftProductionModeEnabled())) {
             throw new ContentNotFoundException(contentId);
         }
-        String ext = ContentTypes.getFileExtension(dto.getContentType());
-        String filename = contentId + ext;
-        return Response.ok().entity(dto.getContent())
-                .type(dto.getContentType())
-                .header(HttpHeaders.CONTENT_DISPOSITION, buildContentDisposition(filename))
-                .build();
+        return contentResponse(contentId, dto, effective, String.valueOf(contentId));
     }
 
     /**
@@ -84,8 +88,8 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
         if (references == null) {
             // Check if admin has configured a default reference handling behavior
             java.util.Optional<String> configuredDefault = restConfig.getDefaultReferenceHandling();
-            if (configuredDefault.isPresent() && !configuredDefault.get().trim().isEmpty()) {
-                references = HandleReferencesType.fromValue(configuredDefault.get());
+            if (configuredDefault.isPresent() && !configuredDefault.orElseThrow().trim().isEmpty()) {
+                references = HandleReferencesType.fromValue(configuredDefault.orElseThrow());
             } else {
                 // No configuration - use existing default (no behavior change)
                 references = HandleReferencesType.PRESERVE;
@@ -94,18 +98,8 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
 
         final var artifactCell = cellWithLoader(() -> storage.getArtifactVersionContent(globalId));
 
-        caching(
-                EntityIdContentCacheStrategy.builder()
-                        .entityId(globalId)
-                        .references(references)
-                        .referenceTreeContentIds(() -> recursivelyResolveReferenceContentIds(artifactCell.get(),
-                                ref -> storage.getArtifactVersionContent(ref.getGroupId(), ref.getArtifactId(), ref.getVersion())
-                        ))
-                        .returnArtifactType(returnArtifactType)
-                        .build()
-        ).prepare();
-
-        ArtifactVersionMetaDataDto metaData = storage.getArtifactVersionMetaData(globalId);
+        // Read while authorizing the global ID, in this request
+        ArtifactVersionMetaDataDto metaData = versionMetaData(globalId);
         if (VersionState.DISABLED.equals(metaData.getState())
                 || (VersionState.DRAFT.equals(metaData.getState())) && !restConfig.isDraftProductionModeEnabled()) {
             throw new ArtifactNotFoundException(null, String.valueOf(globalId));
@@ -120,6 +114,19 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
         contentToReturn = handleContentReferences(references, metaData.getArtifactType(), contentToReturn,
                 artifactCell.get().getReferences());
 
+        // After the references are checked, so that a matching ETag cannot answer 304 to a caller who may not
+        // read them
+        caching(
+                EntityIdContentCacheStrategy.builder()
+                        .entityId(globalId)
+                        .references(references)
+                        .referenceTreeContentIds(() -> recursivelyResolveReferenceContentIds(artifactCell.get(),
+                                ref -> storage.getArtifactVersionContent(ref.getGroupId(), ref.getArtifactId(), ref.getVersion())
+                        ))
+                        .returnArtifactType(returnArtifactType)
+                        .build()
+        ).prepare();
+
         String ext = ContentTypes.getFileExtension(contentToReturn.getContentType());
         String filename = globalId + ext;
         var builder = Response.ok().entity(contentToReturn.getContent())
@@ -133,20 +140,68 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
     }
 
     /**
-     * @see io.apicurio.registry.rest.v3.IdsResource#getContentByHash(java.lang.String)
+     * @see io.apicurio.registry.rest.v3.IdsResource#getContentByHash(String, HandleReferencesType)
      */
     @Override
-    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
-    @MethodMetadata(extractParameters = {"0", MPK_ENTITY_ID})
-    @EntityIdContentCache
-    public Response getContentByHash(String contentHash) {
-        ContentWrapperDto dto = storage.getContentByHash(contentHash);
-        if (dto == null) {
-            throw new ContentNotFoundException(contentHash);
+    @Authorized(style = AuthorizedStyle.ContentHash, level = AuthorizedLevel.Read)
+    public Response getContentByHash(String contentHash, HandleReferencesType references) {
+        HandleReferencesType effective = effectiveReferences(references);
+        ContentWrapperDto dto;
+        if (effective == HandleReferencesType.PRESERVE) {
+            dto = storage.getContentByHash(contentHash);
+            if (dto == null) {
+                throw new ContentNotFoundException(contentHash);
+            }
+        } else {
+            long contentId = storage.contentIdFromHash(contentHash)
+                    .orElseThrow(() -> new ContentNotFoundException(contentHash));
+            dto = storage.getContentAndArtifactTypeById(contentId);
         }
-        String ext = ContentTypes.getFileExtension(dto.getContentType());
-        String filename = contentHash + ext;
-        return Response.ok(dto.getContent(), dto.getContentType())
+        return contentResponse(contentHash, dto, effective, contentHash);
+    }
+
+    private ArtifactVersionMetaDataDto versionMetaData(long globalId) {
+        return lookups.version(storage, globalId).orElseThrow(() -> new VersionNotFoundException(globalId));
+    }
+
+    /**
+     * The reference handling to apply: the requested one, otherwise the admin-configured default, otherwise
+     * {@code PRESERVE} (the same rules as {@link #getContentByGlobalId}).
+     */
+    private HandleReferencesType effectiveReferences(HandleReferencesType requested) {
+        if (requested != null) {
+            return requested;
+        }
+        return restConfig.getDefaultReferenceHandling().filter(value -> !value.isBlank())
+                .map(HandleReferencesType::fromValue).orElse(HandleReferencesType.PRESERVE);
+    }
+
+    /**
+     * Builds the response for a content-ID or content-hash lookup. {@code PRESERVE} returns the content as
+     * stored; {@code DEREFERENCE} and {@code REWRITE} use the artifact type of a version with this content,
+     * so {@code dto} must come from {@code getContentAndArtifactTypeById} for them. The HTTP cache entry
+     * varies by the reference handling, and for converted content by the content IDs of the reference tree.
+     */
+    private Response contentResponse(Object entityId, ContentWrapperDto dto, HandleReferencesType references,
+            String fileBaseName) {
+        boolean preserve = references == HandleReferencesType.PRESERVE;
+        TypedContent content = TypedContent.create(dto.getContent(), dto.getContentType());
+        if (!preserve) {
+            content = handleContentReferences(references, dto.getArtifactType(), content, dto.getReferences());
+        }
+        // After the references are checked, so that a matching ETag cannot answer 304 to a caller who may not
+        // read them
+        caching(EntityIdContentCacheStrategy.builder()
+                .entityId(entityId)
+                // PRESERVE (explicit or by default) returns the same bytes, so it keeps the ETag it always had.
+                .references(preserve ? null : references)
+                .referenceTreeContentIds(() -> recursivelyResolveReferenceContentIds(dto.getReferences(),
+                        ref -> storage.getArtifactVersionContent(ref.getGroupId(), ref.getArtifactId(),
+                                ref.getVersion())))
+                .build()).prepare();
+
+        String filename = fileBaseName + ContentTypes.getFileExtension(content.getContentType());
+        return Response.ok(content.getContent(), content.getContentType())
                 .header(HttpHeaders.CONTENT_DISPOSITION, buildContentDisposition(filename))
                 .build();
     }
@@ -155,7 +210,7 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
      * @see io.apicurio.registry.rest.v3.IdsResource#referencesByContentHash(java.lang.String)
      */
     @Override
-    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    @Authorized(style = AuthorizedStyle.ContentHash, level = AuthorizedLevel.Read)
     @MethodMetadata(extractParameters = {"0", MPK_ENTITY_ID})
     @EntityIdContentCache
     public List<ArtifactReference> referencesByContentHash(String contentHash) {
@@ -166,7 +221,7 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
      * @see io.apicurio.registry.rest.v3.IdsResource#referencesByContentId(long)
      */
     @Override
-    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    @Authorized(style = AuthorizedStyle.ContentId, level = AuthorizedLevel.Read)
     @MethodMetadata(extractParameters = {"0", MPK_ENTITY_ID})
     @EntityIdContentCache
     public List<ArtifactReference> referencesByContentId(long contentId) {
@@ -189,10 +244,12 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
             return artifact.getReferences().stream().map(V3ApiUtil::referenceDtoToReference)
                     .collect(Collectors.toList());
         } else {
-            ArtifactVersionMetaDataDto vmd = storage.getArtifactVersionMetaData(globalId);
+            ArtifactVersionMetaDataDto vmd = versionMetaData(globalId);
+            // Inbound references point from other artifacts: only list those the caller may read
             return storage
                     .getInboundArtifactReferences(vmd.getGroupId(), vmd.getArtifactId(), vmd.getVersion())
-                    .stream().map(V3ApiUtil::referenceDtoToReference).collect(Collectors.toList());
+                    .stream().filter(ref -> searchAuthorizer.canReadArtifact(ref.getGroupId(), ref.getArtifactId()))
+                    .map(V3ApiUtil::referenceDtoToReference).collect(Collectors.toList());
         }
     }
 }

@@ -7,6 +7,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
+import static io.apicurio.registry.cli.common.CliException.VALIDATION_ERROR_RETURN_CODE;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @QuarkusTest
@@ -44,12 +45,16 @@ public class AuthCommandTest extends AbstractCLITest {
 
     @Test
     public void testLoginNoArgs() {
-        executeAndAssertFailure("login");
+        assertThat(cmd.execute("login"))
+                .as(withCliOutput("Command should fail with the expected exit code"))
+                .isEqualTo(VALIDATION_ERROR_RETURN_CODE);
     }
 
     @Test
     public void testLoginPasswordWithoutUsername() {
-        executeAndAssertFailure("login", "--password", TEST_PASSWORD);
+        assertThat(cmd.execute("login", "--password", TEST_PASSWORD))
+                .as(withCliOutput("Command should fail with the expected exit code"))
+                .isEqualTo(VALIDATION_ERROR_RETURN_CODE);
     }
 
     @Test
@@ -75,13 +80,17 @@ public class AuthCommandTest extends AbstractCLITest {
     @Test
     public void testLoginNoContext() {
         executeAndAssertSuccess("context", "delete", "--all");
-        executeAndAssertFailure("login", "--username", TEST_USERNAME, "--password", TEST_PASSWORD);
+        assertThat(cmd.execute("login", "--username", TEST_USERNAME, "--password", TEST_PASSWORD))
+                .as(withCliOutput("Command should fail with the expected exit code"))
+                .isEqualTo(VALIDATION_ERROR_RETURN_CODE);
     }
 
     @Test
     public void testLogoutNoContext() {
         executeAndAssertSuccess("context", "delete", "--all");
-        executeAndAssertFailure("logout");
+        assertThat(cmd.execute("logout"))
+                .as(withCliOutput("Command should fail with the expected exit code"))
+                .isEqualTo(VALIDATION_ERROR_RETURN_CODE);
     }
 
     @Test

@@ -31,6 +31,8 @@ public class A2AAuthTestProfile implements QuarkusTestProfile {
         map.put("quarkus.security.users.embedded.users.alice", "alice");
         map.put("quarkus.security.users.embedded.users.bob1", "bob1");
         map.put("quarkus.security.users.embedded.users.duncan", "duncan");
+        // Authenticated but holds no registry role: RBAC denies every read-level operation.
+        map.put("quarkus.security.users.embedded.users.eve", "eve");
         map.put("quarkus.security.users.embedded.roles.alice", "sr-admin");
         map.put("quarkus.security.users.embedded.roles.bob1", "sr-developer");
         map.put("quarkus.security.users.embedded.roles.duncan", "sr-readonly");

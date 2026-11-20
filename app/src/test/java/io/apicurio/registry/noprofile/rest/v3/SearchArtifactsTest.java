@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -68,6 +69,29 @@ public class SearchArtifactsTest extends AbstractResourceTestBase {
 
         given().when().queryParam("name", name).get("/registry/v3/search/artifacts").then().statusCode(200)
                 .body("count", equalTo(2));
+    }
+
+    @Test
+    public void testSearchArtifactsByNameCaseInsensitive() throws Exception {
+        String group = UUID.randomUUID().toString();
+        String name = "MixedCase-" + UUID.randomUUID();
+        String artifactContent = resourceToString("openapi-empty.json");
+
+        this.createArtifact(group, "case-insensitive-name", ArtifactType.OPENAPI, artifactContent,
+                ContentTypes.APPLICATION_JSON, ca -> ca.setName(name));
+
+        String lowerCaseName = "*" + name.toLowerCase(Locale.ROOT) + "*";
+
+        // Without the opt-in parameter, preserve the existing SQL-backed behavior.
+        given().when().queryParam("name", lowerCaseName).get("/registry/v3/search/artifacts").then()
+                .statusCode(200).body("count", equalTo(0));
+
+        given().when().queryParam("name", lowerCaseName)
+                .queryParam("nameCaseInsensitive", true).get("/registry/v3/search/artifacts").then()
+                .statusCode(200).body("count", equalTo(1))
+                .body("artifacts[0].groupId", equalTo(group))
+                .body("artifacts[0].artifactId", equalTo("case-insensitive-name"))
+                .body("artifacts[0].name", equalTo(name));
     }
 
     @Test
@@ -386,4 +410,24 @@ public class SearchArtifactsTest extends AbstractResourceTestBase {
                 .body("count", equalTo(3)).body("artifacts.size()", equalTo(3));
     }
 
+
+    /** Without per-resource authorization, search results carry no permissions field at all. */
+    @Test
+    public void testSearchResultsOmitPermissionsWithoutResourceBasedAuthorization() throws Exception {
+        String group = UUID.randomUUID().toString();
+        this.createArtifact(group, "no-permissions", ArtifactType.JSON, "{}", ContentTypes.APPLICATION_JSON);
+
+        Map<String, Object> artifact = given().when().queryParam("groupId", group)
+                .get("/registry/v3/search/artifacts").then().statusCode(200).body("count", equalTo(1))
+                .extract().jsonPath().getMap("artifacts[0]");
+        Assertions.assertEquals("no-permissions", artifact.get("artifactId"));
+        Assertions.assertFalse(artifact.containsKey("permissions"));
+
+        Map<String, Object> version = given().when().queryParam("groupId", group)
+                .get("/registry/v3/search/versions").then().statusCode(200).body("count", equalTo(1))
+                .extract().jsonPath()
+                .getMap("versions[0]");
+        Assertions.assertEquals("no-permissions", version.get("artifactId"));
+        Assertions.assertFalse(version.containsKey("permissions"));
+    }
 }

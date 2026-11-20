@@ -60,7 +60,7 @@ public class CompatibilityTestExecutor {
                     .map(testCaseData::getString)
                     .findFirst();
             if (skipReason.isPresent()) {
-                log.warn("Skipping test case {}: {}", caseId, skipReason.get());
+                log.warn("Skipping test case {}: {}", caseId, skipReason.orElseThrow());
                 continue;
             }
 
@@ -83,6 +83,14 @@ public class CompatibilityTestExecutor {
                 switch (testCaseData.getString("compatibility")) {
                     case "backward":
                         if (resultBackward.isCompatible() && !resultForward.isCompatible()) {
+                            log.debug("OK caseId: {}", caseId);
+                        } else {
+                            failed.add(caseId);
+                            logFail(caseId, resultBackward, resultForward);
+                        }
+                        break;
+                    case "forward":
+                        if (!resultBackward.isCompatible() && resultForward.isCompatible()) {
                             log.debug("OK caseId: {}", caseId);
                         } else {
                             failed.add(caseId);

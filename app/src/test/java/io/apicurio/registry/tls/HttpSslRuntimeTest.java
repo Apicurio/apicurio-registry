@@ -29,8 +29,12 @@ public class HttpSslRuntimeTest {
         TrustManager[] trustAllCerts = new TrustManager[]{
             new X509TrustManager() {
                 public X509Certificate[] getAcceptedIssuers() { return null; }
-                public void checkClientTrusted(X509Certificate[] certs, String authType) {}
-                public void checkServerTrusted(X509Certificate[] certs, String authType) {}
+                public void checkClientTrusted(X509Certificate[] certs, String authType) {
+                    // Intentionally trusts all certificates: test-only self-signed setup.
+                }
+                public void checkServerTrusted(X509Certificate[] certs, String authType) {
+                    // Intentionally trusts all certificates: test-only self-signed setup.
+                }
             }
         };
 
@@ -54,11 +58,9 @@ public class HttpSslRuntimeTest {
 
         // 2. Connection with TLSv1.2 should fail because TLSv1.2 is restricted
         SSLSocketFactory factory12 = sslContext12.getSocketFactory();
-        Assertions.assertThrows(IOException.class, () -> {
-            try (SSLSocket socket = (SSLSocket) factory12.createSocket(host, port)) {
-                socket.setEnabledProtocols(new String[]{"TLSv1.2"});
-                socket.startHandshake();
-            }
-        });
+        try (SSLSocket socket = (SSLSocket) factory12.createSocket(host, port)) {
+            socket.setEnabledProtocols(new String[]{"TLSv1.2"});
+            Assertions.assertThrows(IOException.class, socket::startHandshake);
+        }
     }
 }

@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>3.3.2-SNAPSHOT</version>
+    <version>3.4.0-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -36,6 +36,16 @@
     <dependency>
       <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-schema-util-provider</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-schema-util-agents</artifactId>
+    </dependency>
+
+    <!-- MCP client used to import tools from live MCP servers -->
+    <dependency>
+      <groupId>io.modelcontextprotocol.sdk</groupId>
+      <artifactId>mcp-core</artifactId>
     </dependency>
 
     <dependency>
@@ -109,6 +119,10 @@
       <artifactId>quarkus-micrometer-registry-prometheus</artifactId>
     </dependency>
     <dependency>
+      <groupId>com.github.ben-manes.caffeine</groupId>
+      <artifactId>caffeine</artifactId>
+    </dependency>
+    <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-opentelemetry</artifactId>
     </dependency>
@@ -177,6 +191,24 @@
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-jdbc-mssql</artifactId>
+    </dependency>
+
+    <!-- Per-resource authorization: access rules in the Kroxylicious ACL rules format -->
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-authz-core</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.kroxylicious</groupId>
+      <artifactId>kroxylicious-authorizer-api</artifactId>
+      <exclusions>
+        <!-- Declared at compile scope upstream but only used by its tests -->
+        <exclusion>
+          <groupId>org.assertj</groupId>
+          <artifactId>assertj-core</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
 
     <!-- Third Party Libraries -->
@@ -269,6 +301,11 @@
     </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-junit-internal</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
       <artifactId>quarkus-test-common</artifactId>
       <scope>test</scope>
     </dependency>
@@ -295,6 +332,15 @@
     <dependency>
       <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-java-sdk</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-schema-util-references</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-java-sdk-references</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -406,6 +452,11 @@
     <dependency>
       <groupId>org.awaitility</groupId>
       <artifactId>awaitility</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.tngtech.archunit</groupId>
+      <artifactId>archunit-junit5</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -564,16 +615,63 @@
               <goal>build</goal>
             </goals>
           </execution>
+          <!-- Second build producing a Quarkus "mutable-jar" (re-augmentable) distribution in
+               target/mutable/quarkus-app. It is the basis of the "-mutable" container image, which
+               lets deployers add Java providers for custom artifact types (jars dropped into
+               quarkus-app/providers) without rebuilding the registry. Enabled by -Dfull.
+               NOTE: do not set quarkus.package.output-directory here - plugin properties are recorded
+               in quarkus/build-system.properties and replayed at re-augmentation time. -->
+          <execution>
+            <id>build-mutable</id>
+            <goals>
+              <goal>build</goal>
+            </goals>
+            <configuration>
+              <skip>${apicurio.mutable-jar.skip}</skip>
+              <bootstrapId>mutable</bootstrapId>
+              <buildDir>${project.build.directory}/mutable</buildDir>
+              <properties>
+                <quarkus.package.jar.type>mutable-jar</quarkus.package.jar.type>
+                <quarkus.package.jar.user-providers-directory>providers</quarkus.package.jar.user-providers-directory>
+              </properties>
+            </configuration>
+          </execution>
         </executions>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>default-test</id>
+            <configuration>
+              <excludedGroups>experimental-startup</excludedGroups>
+            </configuration>
+          </execution>
+          <execution>
+            <id>default-cli</id>
+            <configuration>
+              <!-- Direct surefire:test must also exclude the separate QuarkusUnitTest JVM. -->
+              <excludedGroups>experimental-startup</excludedGroups>
+            </configuration>
+          </execution>
+          <execution>
+            <id>experimental-startup-test</id>
+            <goals><goal>test</goal></goals>
+            <configuration>
+              <!-- QuarkusUnitTest and QuarkusTest must not share a JVM. -->
+              <groups>experimental-startup</groups>
+              <test>McpRegistryExperimentalStartupTest</test>
+              <forkCount>1</forkCount>
+              <reuseForks>false</reuseForks>
+              <reportsDirectory>${project.build.directory}/surefire-reports-startup</reportsDirectory>
+            </configuration>
+          </execution>
+        </executions>
         <configuration>
           <groups>${groups}</groups>
-          <!-- Fork count is overridable per CI shard with -Dsurefire.forkCount=N (e.g. the
-               app-rest-v3 shard uses 2). Quarkus tests boot on random ports, so concurrent
-               forks do not collide. Default stays 1 for local runs. -->
+          <!-- Keep Quarkus tests in one fork: random HTTP ports do not isolate the
+               test-class Jandex index that concurrent forks write in target/. -->
           <forkCount>${surefire.forkCount}</forkCount>
           <!-- This, not MAVEN_OPTS, is the heap the tests actually run in: surefire forks a JVM and
                MAVEN_OPTS only sizes the Maven process that spawns it. Override per CI shard with
@@ -596,6 +694,7 @@
         <artifactId>maven-jar-plugin</artifactId>
         <executions>
           <execution>
+            <phase>process-test-classes</phase>
             <goals>
               <goal>test-jar</goal>
             </goals>
@@ -618,6 +717,26 @@
               <attach>true</attach>
               <descriptors>
                 <descriptor>src/main/assembly/assembly.xml</descriptor>
+              </descriptors>
+              <archiverConfig>
+                <defaultDirectoryMode>0755</defaultDirectoryMode>
+              </archiverConfig>
+              <tarLongFileMode>${tar.long.file.mode}</tarLongFileMode>
+            </configuration>
+          </execution>
+          <!-- Tarball of the mutable-jar distribution (see build-mutable above); not attached/deployed -->
+          <execution>
+            <id>assembly-mutable</id>
+            <goals>
+              <goal>single</goal>
+            </goals>
+            <phase>package</phase>
+            <configuration>
+              <skipAssembly>${apicurio.mutable-jar.skip}</skipAssembly>
+              <finalName>${project.artifactId}-${project.version}</finalName>
+              <attach>false</attach>
+              <descriptors>
+                <descriptor>src/main/assembly/assembly-mutable.xml</descriptor>
               </descriptors>
               <archiverConfig>
                 <defaultDirectoryMode>0755</defaultDirectoryMode>
@@ -674,6 +793,21 @@
                 <capitalizeEnumValues>false</capitalizeEnumValues>
               </projectSettings>
               <inputSpec>${project.basedir}/src/main/resources-unfiltered/META-INF/resources/api-specifications/iceberg/v1/openapi.json</inputSpec>
+            </configuration>
+          </execution>
+          <execution>
+            <id>generate-api-mcp-registry-v0</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <phase>generate-sources</phase>
+            <configuration>
+              <projectSettings>
+                <javaPackage>io.apicurio.registry.agents.mcpregistry.rest.v0</javaPackage>
+                <generatesOpenApi>false</generatesOpenApi>
+                <capitalizeEnumValues>false</capitalizeEnumValues>
+              </projectSettings>
+              <inputSpec>${project.basedir}/src/main/resources-unfiltered/META-INF/resources/api-specifications/mcp-registry/v0/openapi.json</inputSpec>
             </configuration>
           </execution>
         </executions>
@@ -746,6 +880,11 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-resources-plugin</artifactId>
+        <configuration>
+          <!-- Lets filtered resources keep an expression for runtime: \${java.io.tmpdir} is copied
+               as ${java.io.tmpdir} instead of the build machine's value. -->
+          <escapeString>\</escapeString>
+        </configuration>
         <executions>
             <!-- Copy the v3 OpenAPI spec from common module to output directory.
                  This replaces the maven-dependency-plugin unpack execution which fails during the build
@@ -810,5 +949,66 @@
     </plugins>
   </build>
 
+  <profiles>
+    <!-- Byteman-based concurrency tests; usage is in DEVELOPING.md. Byteman is LGPL, so neither
+         the dependency nor the test sources may appear in the default build: the license scan
+         reads the POM dependency graph of the profile-less model, and a compiled BMUnit
+         annotation left in target/test-classes would ride into the test-jar produced at
+         process-test-classes. Hence the separate source root, src/test-concurrency/java, which only
+         this profile adds. -->
+    <profile>
+      <!-- Opt-in because it pulls the LGPL Byteman dependency. -->
+      <id>concurrency-tests</id>
+      <dependencies>
+        <dependency>
+          <groupId>org.jboss.byteman</groupId>
+          <artifactId>byteman-bmunit5</artifactId>
+          <version>${byteman.version}</version>
+          <scope>test</scope>
+        </dependency>
+      </dependencies>
+      <properties>
+        <!-- Feeds @{argLine} on the surefire argLine above. -->
+        <argLine>-Djdk.attach.allowAttachSelf=true</argLine>
+      </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-checkstyle-plugin</artifactId>
+            <!-- checkstyle:check is bound to validate in the root POM, which runs before
+                 build-helper adds the source root at generate-test-sources, so both test roots
+                 have to be listed here by hand or the Byteman tests are never scanned.
+                 testSourceDirectories replaces the default rather than appending to it, which
+                 is why src/test/java has to be restated. -->
+            <configuration>
+              <testSourceDirectories>
+                <testSourceDirectory>${project.build.testSourceDirectory}</testSourceDirectory>
+                <testSourceDirectory>${project.basedir}/src/test-concurrency/java</testSourceDirectory>
+              </testSourceDirectories>
+            </configuration>
+          </plugin>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>build-helper-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>add-concurrency-test-source</id>
+                <goals>
+                  <goal>add-test-source</goal>
+                </goals>
+                <phase>generate-test-sources</phase>
+                <configuration>
+                  <sources>
+                    <source>${project.basedir}/src/test-concurrency/java</source>
+                  </sources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 
 </project>

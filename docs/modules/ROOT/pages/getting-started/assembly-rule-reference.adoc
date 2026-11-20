@@ -26,7 +26,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-You can specify `VALIDITY`, `COMPATIBILITY`, and `INTEGRITY` rule types to govern content evolution in {registry}. These rule types apply to both global rules and artifact-specific rules.
+You can specify `VALIDITY`, `COMPATIBILITY`, and `INTEGRITY` rule types to govern content evolution in {registry}. These rule types apply to global rules, group-specific rules, and artifact-specific rules.
 
 .{registry} content rule types
 [%header,cols=2*]
@@ -56,8 +56,8 @@ a| Enforces artifact reference integrity when creating or updating artifacts. Th
 
 * `FULL`: All artifact reference integrity checks are enabled.
 * `NO_DUPLICATES`: Detect if there are any duplicate artifact references.
-* `NO_CIRCULAR_REFERENCES`: Detect circular reference chains among artifacts.
-* `REFS_EXIST`: Detect if there are any references to non-existent artifacts.
+* `NO_CIRCULAR_REFERENCES`: Detect circular reference chains among artifacts. When you create a version without an explicit version ID, the version ID is not known in advance, so a reachable reference to any version of the same artifact that does not exist yet is rejected as a cycle; to create such a version, specify its version ID explicitly.
+* `REFS_EXIST`: Detect if there are any references to non-existent artifacts. For `AGENT_CARD`, `MCP_SERVER`, and `MCP_TOOL` artifacts, also detect references to artifact types that they cannot reference.
 * `ALL_REFS_MAPPED`: Ensure that all artifact references are mapped.
 * `NONE`: All artifact reference integrity checks are disabled.
 |===
@@ -94,7 +94,7 @@ a| Full
 |*JSON Schema*
 a| Full
 a| Full
-a| Mapping detection not supported
+a| Full
 |*OpenAPI*
 a| Full
 a| Full
@@ -118,11 +118,11 @@ a| Mapping detection not supported
 |*Thrift*
 a| Syntax Only
 a| None
-a| Mapping detection not supported
+a| Full
 |*WSDL*
 a| Full
 a| None
-a| Mapping detection not supported
+a| Full
 |*XML*
 a| Full
 a| None
@@ -130,10 +130,39 @@ a| Mapping detection not supported
 |*XSD*
 a| Full
 a| Full
-a| Mapping detection not supported
+a| Full
 |===
 
+NOTE: For XSD and WSDL artifacts, the `ALL_REFS_MAPPED` and `FULL` integrity levels check that every
+`schemaLocation` value (`xs:import`, `xs:include`, `xs:redefine`, `xs:override`) and every WSDL import or
+include `location` value is mapped to an artifact reference. An `xs:import` without a `schemaLocation` does
+not require a mapping. At the `FULL` validity level, {registry} resolves XSD imports and includes only from
+the mapped artifact references and never fetches them from the network or file system. An unmapped location
+fails with `Unresolved reference: <location>`. For WSDL 1.1, `FULL` validity also compiles the schemas
+embedded in `wsdl:types` by using the same resolution. For WSDL 2.0, `FULL` validity checks syntax only.
 
+NOTE: For Thrift artifacts, the `ALL_REFS_MAPPED` and `FULL` integrity levels require a mapped artifact
+reference for every `include` directive. An unmapped include fails with `Unmapped Thrift include detected.`
+
+
+
+// ref-registry-rule-json-schema-validity
+[id="registry-rule-json-schema-validity_{context}"]
+== JSON Schema validity
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+With the `FULL` level, the `VALIDITY` rule checks that a JSON Schema artifact is a valid schema in JSON Schema draft 4, 6, 7, 2019-09, or 2020-12.
+
+* *Draft*: the draft is the one that `$schema` declares. A schema without `$schema` is validated as draft 7, as the compatibility rule reads it. A schema whose `$schema` names no draft, such as a custom meta-schema, is also validated as draft 7, but the compatibility rule cannot compare it yet and fails with HTTP status 422.
+* *Meta-schema*: the schema must be valid against the meta-schema of its draft.
+* *References*: a reference within the schema must point at something that exists, such as a definition. A reference to another document is resolved against the artifact references recorded for the version. If {registry} has no content for it, the reference is accepted, because the validity of a schema does not depend on what an external reference points to. No document is fetched over the network. To require that every external reference is recorded, use the `INTEGRITY` rule.
+* *Unused references*: an artifact reference that the content does not use is rejected, because it usually indicates a typo in the reference name.
+
+Each rule violation has a JSON Pointer to the problem as its `context`, for example `/items/properties/price/exclusiveMinimum`. More than one problem can be reported at once.
+
+The `SYNTAX_ONLY` level checks only that the content is well-formed JSON.
 
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_registry-reference.adoc
@@ -145,7 +174,7 @@ a| Mapping detection not supported
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-When you add or update an artifact, {registry} applies rules to check the validity, compatibility, or integrity of the artifact content. Configured artifact-specific rules override the equivalent configured global rules, as shown in the following table.
+When you add or update an artifact, {registry} applies rules to check the validity, compatibility, or integrity of the artifact content. For each rule type, configured artifact-specific rules override the equivalent configured group-specific rules, which override the equivalent configured global rules. The following table shows this for artifact-specific and global rules; a group-specific rule takes the place of the global rule for the artifacts in its group.
 
 .{registry} content rule precedence
 [%header,cols=4*]

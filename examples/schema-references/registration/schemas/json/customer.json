@@ -1,0 +1,12 @@
+{
+  "$id": "customer.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "customerId": {"type": "string"},
+    "name": {"type": "string"},
+    "billing": {"$ref": "address.json"},
+    "shipping": {"$ref": "address.json"}
+  },
+  "required": ["customerId", "billing"]
+}

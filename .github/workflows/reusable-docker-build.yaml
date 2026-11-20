@@ -104,14 +104,14 @@ jobs:
 
       - name: Download Build Artifact
         if: inputs.download-artifact != ''
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           name: ${{ inputs.download-artifact }}
           path: ${{ inputs.artifact-path }}
 
       - name: Set up JDK ${{ inputs.java-version }}
         if: inputs.maven-build
-        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6
+        uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6
         with:
           java-version: ${{ inputs.java-version }}
           distribution: 'temurin'
@@ -123,7 +123,7 @@ jobs:
 
       - name: Set up Node.js ${{ inputs.node-version }}
         if: inputs.npm-build
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: ${{ inputs.node-version }}
           cache: 'npm'
@@ -145,10 +145,10 @@ jobs:
         run: npm run package
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       - name: Login to DockerHub Registry
         if: inputs.push-to-dockerhub
@@ -192,13 +192,13 @@ jobs:
           echo "tags=$TAGS" >> $GITHUB_OUTPUT
 
       - name: Build and Push Multi-arch Image
-        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
+        uses: Apitomy/apitomy-github-actions/retry@e10e64b8a9ca86982f45a1ea512847219ae2605e # v1.0.1
         env:
           DOCKER_TAGS: ${{ steps.tags.outputs.tags }}
         with:
-          timeout_minutes: 45
-          max_attempts: 3
-          retry_wait_seconds: 30
+          timeout-minutes: 45
+          max-attempts: 3
+          initial-delay: 30
           command: |
             # Convert comma-separated tags to --tag arguments
             TAG_ARGS=""
@@ -207,14 +207,20 @@ jobs:
               TAG_ARGS="$TAG_ARGS --tag $tag"
             done
 
-            BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+            # The revision label is the commit the image was built from; it
+            # replaces the base image's. Verify's publish guard reads it (#10380).
+            # The version label is the project version from the root pom
+            # (falling back to the image tag), not a moving tag like latest-snapshot.
+            OCI_VERSION=$(sed -n '0,/<version>/s:.*<version>\(.*\)</version>.*:\1:p' pom.xml 2>/dev/null)
+            OCI_VERSION=${OCI_VERSION:-${{ inputs.tag }}}
+            OCI_CREATED=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
             docker buildx build \
               --push \
               --file ${{ inputs.dockerfile }} \
               --platform ${{ inputs.platforms }} \
-              --label org.opencontainers.image.source="https://github.com/Apicurio/apicurio-registry" \
-              --label org.opencontainers.image.revision="${{ github.sha }}" \
-              --label org.opencontainers.image.version="${{ inputs.tag }}" \
-              --label org.opencontainers.image.created="$BUILD_DATE" \
+              --label org.opencontainers.image.revision=${{ github.sha }} \
+              --label org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }} \
+              --label "org.opencontainers.image.version=$OCI_VERSION" \
+              --label "org.opencontainers.image.created=$OCI_CREATED" \
               $TAG_ARGS \
               ${{ inputs.context }}

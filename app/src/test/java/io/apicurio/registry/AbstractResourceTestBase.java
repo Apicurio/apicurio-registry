@@ -1,8 +1,8 @@
 package io.apicurio.registry;
 
 import com.microsoft.kiota.ApiException;
-import com.microsoft.kiota.RequestAdapter;
 import io.apicurio.registry.client.RegistryClientFactory;
+import io.apicurio.registry.client.RegistryV2ClientFactory;
 import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.RegistryClient;
@@ -25,7 +25,6 @@ import io.apicurio.registry.utils.tests.ProblemDetailsWatcher;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.confluent.kafka.schemaregistry.client.rest.RestService;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
-import io.kiota.http.vertx.VertXRequestAdapter;
 import io.restassured.RestAssured;
 import io.restassured.parsing.Parser;
 import io.restassured.response.ValidatableResponse;
@@ -59,6 +58,13 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     protected static final String CT_PROTO = "application/x-protobuf";
     protected static final String CT_YAML = "application/x-yaml";
     protected static final String CT_XML = "application/xml";
+
+    // A response that never reaches the client leaves the test thread waiting on the response future with
+    // no bound, which cost a CI shard the full 1800 second class limit (issue 10424). The slowest test class
+    // in the app-other shard of run 38295474390 took 11 seconds in total, so a single request that stays
+    // silent for 60 seconds is a stalled response.
+    protected static final long CLIENT_CONNECT_TIMEOUT_MS = 30_000;
+    protected static final long CLIENT_READ_IDLE_TIMEOUT_MS = 60_000;
 
     public String registryApiBaseUrl;
     protected String registryV2ApiUrl;
@@ -106,16 +112,19 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     }
 
     protected io.apicurio.registry.rest.client.v2.RegistryClient createRestClientV2(Vertx vertx) {
-        RequestAdapter anonymousAdapter = new VertXRequestAdapter(vertx);
-        anonymousAdapter.setBaseUrl(registryV2ApiUrl);
-        var client = new io.apicurio.registry.rest.client.v2.RegistryClient(anonymousAdapter);
-        return client;
+        // The v2 factory is deprecated with the whole v2 API, and it is what the v2 tests target, so using
+        // it here keeps one translation of the timeout options for both test clients.
+        return RegistryV2ClientFactory.create(RegistryClientOptions.create()
+                .registryUrl(registryV2ApiUrl)
+                .vertx(vertx)
+                .requestTimeout(CLIENT_CONNECT_TIMEOUT_MS, CLIENT_READ_IDLE_TIMEOUT_MS));
     }
 
     protected RegistryClient createRestClientV3(Vertx vertx) {
         return RegistryClientFactory.create(RegistryClientOptions.create()
                 .registryUrl(registryV3ApiUrl)
-                .vertx(vertx));
+                .vertx(vertx)
+                .requestTimeout(CLIENT_CONNECT_TIMEOUT_MS, CLIENT_READ_IDLE_TIMEOUT_MS));
     }
 
     @BeforeEach

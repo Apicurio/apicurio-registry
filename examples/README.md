@@ -1,124 +1,80 @@
-# Apicurio Registry Example Applications
-This repository contains a set of example applications (mostly Kafka applications) that use the
-Apicurio Registry as part of their workflow.  The registry is typically used to store schemas
-used by Kafka serializer and deserializer classes.  These serdes classes will fetch the schema
-from the registry for use during producing or consuming operations (to serializer, deserializer,
-or validate the Kafka message payload).
+# Apicurio Registry examples
 
-Each example in this repository attempts to demonstrate some specific use-case or configuration.
-There are numerous options available when integrating with the registry, and therefore the set
-of examples found here may not cover every configuration permutation.
+Runnable examples, grouped by feature. Each one starts what it needs with Docker Compose (or a kind
+cluster), and has:
 
-These examples rely on an Apicurio Registry server being available, you can start one with the latest build by running:
+- a `README.md` with a quick start;
+- a `GUIDE.md` that walks through the feature step by step;
+- a `demo.sh` that checks every step and ends with `All checks passed.`.
 
-```bash
-docker run -p 8080:8080 -it apicurio/apicurio-registry:latest-snapshot
-```
+CI runs every `demo.sh` on each pull request against the images built from that pull request, so
+the examples follow the code. Examples marked *not checked yet* predate this and are being brought
+up to the same standard.
 
-This command will start an Apicurio Registry server and make it available at the port 8080 of localhost.
+Each row links the decision record (ADR) that explains the design, and the user documentation.
 
-Some examples also require a Kafka Cluster available, you can very easily run one using the [docker-compose resources available in the tools folder](tools/kafka-compose/kafka-compose.yaml)
+Most examples start with `docker compose up -d` and then `./demo.sh`. Some start what they need
+themselves (`operator` creates a kind cluster, `storage-variants` picks Compose profiles), so
+follow each example's README quick start.
 
-Simply run `docker compose -f examples/tools/kafka-compose/kafka-compose.yaml up` from the repository root and you'll have a Kafka broker available at the port 9092.
+## Clients
 
-# List of Examples
-A list of examples is included below, with descriptions and explanations of each covered use-case.
+| Example | What it shows | ADR | Docs |
+|---|---|---|---|
+| [registry-clients](registry-clients/) | One scenario with the Java, Go, Python and TypeScript SDKs and the CLI | [0022](../adr/0022-client-sdks-and-cli.md) | [SDKs](../docs/modules/ROOT/pages/getting-started/assembly-using-the-registry-client.adoc), [CLI](../docs/modules/ROOT/pages/getting-started/assembly-managing-registry-artifacts-cli.adoc) |
 
-## Simple Avro Example
-This example application demonstrates the basics of using the registry in a very simple Kafka
-publish/subscribe application using Apache Avro as the schema technology used to serialize
-and deserialize message payloads.
+## Schemas and governance
 
-## Simple JSON Schema Example
-This example application demonstrates the basics of using the registry in a very simple Kafka
-publish/subscribe application using JSON Schema to validate message payloads when both producing
-and consuming them.  JSON Schema is not a serialization technology, but rather is only used for
-validation. Therefore, it can be enabled or disabled in the serializer and deserializer.
+| Example | What it shows | ADR | Docs |
+|---|---|---|---|
+| [rules-and-compatibility](rules-and-compatibility/) | Validity, compatibility and integrity rules, globally, per group and per artifact; the client-side validation library | [0006](../adr/0006-rules-engine.md), [0024](../adr/0024-data-model.md) | [Rules](../docs/modules/ROOT/pages/getting-started/assembly-intro-to-registry-rules.adoc) |
+| [schema-references](schema-references/) | References from the Maven plugin, the REST API and the serializers; the reference graph and integrity rules | [0008](../adr/0008-artifact-references.md) | [References](../docs/modules/ROOT/pages/getting-started/assembly-artifact-reference.adoc) |
+| [custom-artifact-types](custom-artifact-types/) | Adding artifact types with Java classes or a webhook | [0013](../adr/0013-custom-artifact-types.md) | [Custom types](../docs/modules/ROOT/pages/getting-started/assembly-custom-artifact-types.adoc) |
+| [odcs-data-contracts](odcs-data-contracts/) | ODCS contracts projected onto schemas, enforced by serdes, migration rules | [0002](../adr/0002-odcs-native-data-contracts.md) | [Data contracts](../docs/modules/ROOT/pages/getting-started/assembly-data-contracts.adoc) |
 
-## Confluent Serdes Integration
-This example shows how Apicurio Registry serdes classes can be used along with Confluent serdes
-classes in a mixed application environment.  In other words, some applications can be using
-Confluent classes while other applications can be using Apicurio Registry classes - and they
-can all work together seamlessly with just a little bit of extra configuration.  This example
-is essentially the same as the Simple Avro Example, but using a Confluent serializer with an
-Apicurio Registry deserializer.
+## Kafka
 
-## Avro Bean Example
-This example demonstrates how to use Avro as the schema and serialization technology while
-using a Java Bean as the Kafka message payload.  This is essentially the same as the Simple
-Avro Example, but using a java bean instead of a `GenericRecord` as the message payload.
+| Example | What it shows | ADR | Docs |
+|---|---|---|---|
+| [kafka-serdes](kafka-serdes/) | Avro, Protobuf and JSON Schema serdes, strategies, Kafka Connect | [0007](../adr/0007-kafka-serdes.md) | [Serdes](../docs/modules/ROOT/pages/getting-started/assembly-configuring-kafka-client-serdes.adoc) |
+| [confluent-compatibility](confluent-compatibility/) | Confluent clients and tools against the Confluent-compatible API, and migrating from Confluent | [0001](../adr/0001-confluent-schema-registry-compatibility.md) | [Confluent compatibility](../docs/modules/ROOT/pages/getting-started/assembly-confluent-schema-registry-compatibility.adoc) |
+| [camel-quarkus-kafka](camel-quarkus-kafka/) | Camel Quarkus Kafka routes with the Avro serdes: schema auto-registration, the content ID on the wire, compatible and refused schema changes | [0007](../adr/0007-kafka-serdes.md) | [Serdes](../docs/modules/ROOT/pages/getting-started/assembly-configuring-kafka-client-serdes.adoc) |
 
-## Custom ID Strategy Example
-This example demonstrates how to use a custom Global ID strategy.  The Global ID strategy is
-used by a producer (serializer) application to lookup (or create) the Schema it is using for
-serialization.  Apicurio Registry comes with some useful implementations of the Global ID
-strategy out of the box, but it is possible to create your own.  This example is essentially
-the same as the Simple Avro Example, except instead of using one of the default Apicurio
-Registry Global ID strategies, it uses a custom one.
+## Security
 
-## Simple Avro Maven Example
-This example application demonstrates how to use the Apicurio Registry maven plugin to
-pre-register an Avro schema so that it does not need to be embedded within the producer
-application.  Note that this example will fail unless the maven plugin is executed before
-the Java application. See the javadoc in the example for details.
+| Example | What it shows | ADR | Docs |
+|---|---|---|---|
+| [authentication](authentication/) | OIDC, HTTP basic, an authenticating proxy and Kubernetes tokens, from the Java SDK, serdes, Maven plugin and CLI | [0009](../adr/0009-authentication.md) | [Security](../docs/modules/ROOT/pages/getting-started/assembly-configuring-registry-security.adoc) |
+| [per-resource-authorization](per-resource-authorization/) | Access rules per group and artifact, filtered search | [0005](../adr/0005-per-resource-authorization.md) | [Per-resource authorization](../docs/modules/ROOT/pages/getting-started/assembly-configuring-resource-authorization.adoc) |
+| [tls](tls/) | HTTPS, mutual TLS through a proxy, and the Java SDK, Kafka serdes and Maven plugin with PKCS12, JKS and PEM stores, including the refusals | [0009](../adr/0009-authentication.md), [0022](../adr/0022-client-sdks-and-cli.md) | [Maven plugin](../docs/modules/ROOT/pages/getting-started/assembly-managing-registry-artifacts-maven.adoc), [SDK](../docs/modules/ROOT/pages/getting-started/assembly-using-the-registry-client.adoc), [serdes](../docs/modules/ROOT/pages/getting-started/assembly-configuring-kafka-client-serdes.adoc) |
 
-## Rest Client example
-This example application demonstrates how to use the Apicurio Registry rest client to create,
-delete, or fetch schemas. This example contains two basic java application, one showing how to
-improve the logs by logging all the request and response headers and a basic example on how to
-use the client.
+## Deploying and operating
 
-## Mix Avro Schemas Example
-This example application showcases an scenario where Apache Avro messages are published to the same
-Kafka topic using different Avro schemas. This example uses the Apicurio Registry serdes classes to serialize
-and deserialize Apache Avro messages using different schemas, even if received in the same Kafka topic.
+| Example | What it shows | ADR | Docs |
+|---|---|---|---|
+| [storage-variants](storage-variants/) | The same checks on in-memory, PostgreSQL, MySQL, SQL Server, KafkaSQL, GitOps and KubernetesOps storage, and Elasticsearch search | [0010](../adr/0010-storage-architecture.md), [0015](../adr/0015-search-and-elasticsearch.md) | [Installing](../docs/modules/ROOT/pages/getting-started/assembly-installing-registry-docker.adoc) |
+| [operator](operator/) | The Kubernetes operator on kind: a custom resource per storage | [0019](../adr/0019-operator.md), [0020](../adr/0020-multitenancy.md) | [Operator](../operator/docs/modules/ROOT/pages/) |
+| [operational-guardrails](operational-guardrails/) | Limits, disabled APIs, deletion switches, read-only mode | [0017](../adr/0017-operational-guardrails.md), [0025](../adr/0025-configuration.md) | [Configuration](../docs/modules/ROOT/pages/getting-started/assembly-configuring-the-registry.adoc) |
+| [http-caching](http-caching/) | Cache headers and ETags per endpoint: what is safe to cache, and what is not | [0016](../adr/0016-http-caching.md) | |
+| [registry-events](registry-events/) | Change events from SQL storage (an outbox table) and from KafkaSQL, and CloudEvents | [0011](../adr/0011-registry-events.md) | [Events](../docs/modules/ROOT/pages/getting-started/assembly-registry-events.adoc) |
+| [usage-telemetry-demo](usage-telemetry-demo/) | Which schemas clients use, and which are safe to retire | [0003](../adr/0003-usage-telemetry.md) | [Usage telemetry](../docs/modules/ROOT/pages/getting-started/assembly-usage-telemetry.adoc) |
+| [v2-to-v3-migration](v2-to-v3-migration/) | Exporting from 2.6 and importing into 3.x with IDs kept; backup and restore within 3.x | [0012](../adr/0012-import-export-and-migration.md) | [Migrating](../docs/modules/ROOT/pages/getting-started/assembly-migrating-registry-v2-v3.adoc) |
+| [otel-tracing](otel-tracing/) | One OpenTelemetry trace from Kafka producers and Debezium change data capture, through the registry, to consumers, checked in Jaeger | [0021](../adr/0021-observability.md), [0007](../adr/0007-kafka-serdes.md) | [Configuration](../docs/modules/ROOT/pages/getting-started/assembly-configuring-the-registry.adoc) |
 
-## LLM/AI Model Schema Artifact Types
-This example demonstrates the built-in AI/ML artifact types for managing LLM schemas and prompt templates:
+## AI agents
 
-- **MODEL_SCHEMA**: AI/ML model input/output schema definitions with capability metadata
-- **PROMPT_TEMPLATE**: Version-controlled prompt templates with variable schemas
+| Example | What it shows | ADR | Docs |
+|---|---|---|---|
+| [agent-registry](agent-registry/) | Agent cards, MCP tools, model schemas and prompt templates; discovery and rendering | [0014](../adr/0014-agent-registry.md), [0004](../adr/0004-ai-catalog-ard-convergence.md) | [Agent registry](../docs/modules/ROOT/pages/getting-started/assembly-agent-registry-quickstart.adoc) |
+| [mcp-keycloak](mcp-keycloak/) | The registry's MCP server against a Keycloak-secured registry, over stdio (service-account login) and HTTP (caller's token forwarded); checks tools, writes and role enforcement in both modes | [0023](../adr/0023-mcp-server.md), [0014](../adr/0014-agent-registry.md), [0009](../adr/0009-authentication.md) | [MCP server](../docs/modules/ROOT/pages/getting-started/assembly-mcp-server-integration.adoc) |
 
-Features include content auto-detection, backward compatibility checking, server-side prompt rendering,
-and model capability search. Includes integration examples for Quarkus + LangChain4j.
+## Other
 
-See the [llm-artifact-types](llm-artifact-types/) directory for details.
+- [`tools/`](tools/): utilities, not examples. `kafkasql-topic-import` loads an exported KafkaSQL
+  topic back into Kafka (see
+  [exporting KafkaSQL topic data](../docs/modules/ROOT/pages/getting-started/guide-exporting-registry-kafka-topic-data.adoc)).
 
-## MCP Server + Keycloak Example
-Docker Compose stack for testing the Apicurio Registry MCP server against a Keycloak-secured Registry.
-Includes stdio mode (client credentials) and HTTP mode (OAuth token forwarding).
+## Writing an example
 
-See the [mcp-keycloak](mcp-keycloak/) directory for details.
-
-## Kafka Order Processing Example
-This example provides a complete, realistic Kafka architecture demonstrating both message production and
-consumption with Apicurio Registry as the schema registry. The example simulates an order processing
-system with separate producer and consumer applications built using Quarkus. The producer automatically
-generates random orders every 5 seconds, while the consumer processes them in real-time. Both applications
-use Avro serialization with schemas managed by Apicurio Registry, demonstrating automatic schema
-registration, schema evolution support, and seamless integration between Kafka and the registry. Includes
-a Docker Compose setup for running Kafka, Zookeeper, and Apicurio Registry locally.
-
-See the [kafka-order-processing](kafka-order-processing/) directory for details.
-## A2A Agent Card Example
-This example demonstrates how to use Apicurio Registry to manage A2A (Agent-to-Agent) Agent Cards -
-JSON metadata documents that describe AI agents according to the A2A Protocol. The example shows how
-to register, version, and search for AI agent definitions, as well as apply compatibility rules to
-ensure safe evolution of agent capabilities. This is useful for organizations building agentic AI
-applications that need to discover and communicate with each other.
-
-## A2A Real-World Integration Example
-This example demonstrates **actual working A2A protocol integration** with Apicurio Registry. Unlike
-simulated examples, this runs real HTTP servers that implement the A2A protocol and communicate over
-the network. Features include:
-
-- **Mock Agents**: Real HTTP servers on ports 9001-9003 implementing A2A endpoints
-- **A2A Discovery**: Agents expose `/.well-known/agent.json` for capability discovery
-- **A2A Tasks**: Agents accept `POST /a2a` with JSON-RPC for task execution
-- **Orchestrator**: Makes real HTTP requests to discover and invoke agents
-- **Registry Integration**: Agents registered and discovered via `/.well-known/agents`
-
-The demo includes a multi-agent workflow that processes customer complaints through sentiment analysis,
-summarization, and translation agents - all using real HTTP communication.
-
-See the [a2a-real-world-integration](a2a-real-world-integration/) directory for details.
+Start from [`_template`](_template/) and follow [TEMPLATE.md](TEMPLATE.md): the files an example
+needs, how `demo.sh` checks, and the `ci.env` settings that CI reads.

@@ -107,6 +107,54 @@ class RegistryClientFacadeFactoryTest {
     }
 
     @Test
+    void testBuildClientOptionsRetryDefaultsMatchLegacyHardcodedBehavior() {
+        Map<String, Object> originals = new HashMap<>();
+        originals.put(SchemaResolverConfig.REGISTRY_URL, "http://localhost:8080/apis/registry/v3");
+
+        SchemaResolverConfig config = new SchemaResolverConfig(originals);
+        RegistryClientOptions options = RegistryClientFacadeFactory.buildClientOptions(config, null);
+
+        Assertions.assertTrue(options.isRetryEnabled());
+        Assertions.assertEquals(3, options.getMaxRetryAttempts());
+        Assertions.assertEquals(250L, options.getRetryDelayMs());
+        Assertions.assertEquals(2.0, options.getBackoffMultiplier());
+        Assertions.assertEquals(10000L, options.getMaxRetryDelayMs());
+    }
+
+    @Test
+    void testBuildClientOptionsRetryCustomValues() {
+        Map<String, Object> originals = new HashMap<>();
+        originals.put(SchemaResolverConfig.REGISTRY_URL, "http://localhost:8080/apis/registry/v3");
+        originals.put(SchemaResolverConfig.CLIENT_RETRY_MAX_ATTEMPTS, 7L);
+        originals.put(SchemaResolverConfig.CLIENT_RETRY_DELAY_MS, 100L);
+        originals.put(SchemaResolverConfig.CLIENT_RETRY_BACKOFF_MULTIPLIER, "1.75");
+        originals.put(SchemaResolverConfig.CLIENT_RETRY_MAX_DELAY_MS, 5000L);
+
+        SchemaResolverConfig config = new SchemaResolverConfig(originals);
+        RegistryClientOptions options = RegistryClientFacadeFactory.buildClientOptions(config, null);
+
+        Assertions.assertTrue(options.isRetryEnabled());
+        Assertions.assertEquals(7, options.getMaxRetryAttempts());
+        Assertions.assertEquals(100L, options.getRetryDelayMs());
+        Assertions.assertEquals(1.75, options.getBackoffMultiplier());
+        Assertions.assertEquals(5000L, options.getMaxRetryDelayMs());
+    }
+
+    @Test
+    void testBuildClientOptionsRetryDisabled() {
+        Map<String, Object> originals = new HashMap<>();
+        originals.put(SchemaResolverConfig.REGISTRY_URL, "http://localhost:8080/apis/registry/v3");
+        originals.put(SchemaResolverConfig.CLIENT_RETRY_ENABLED, false);
+        // These should be ignored because retry is disabled.
+        originals.put(SchemaResolverConfig.CLIENT_RETRY_MAX_ATTEMPTS, 99L);
+
+        SchemaResolverConfig config = new SchemaResolverConfig(originals);
+        RegistryClientOptions options = RegistryClientFacadeFactory.buildClientOptions(config, null);
+
+        Assertions.assertFalse(options.isRetryEnabled());
+    }
+
+    @Test
     void testBuildClientOptionsJks() {
         Map<String, Object> originals = new HashMap<>();
         originals.put(SchemaResolverConfig.REGISTRY_URL, "http://localhost:8080/apis/registry/v3");
@@ -350,7 +398,7 @@ class RegistryClientFacadeFactoryTest {
     }
 
     @Test
-    void testBuildClientOptionsPemPathTraversalError() throws IOException {
+    void testBuildClientOptionsPemPathWithDotDotIsNormalized() throws IOException {
         Path tempDir = Files.createTempDirectory("traversal-test");
         Path tempFile = Files.createTempFile(tempDir, "client-cert", ".pem");
         Files.writeString(tempFile, "-----BEGIN CERTIFICATE-----\ninline-cert\n-----END CERTIFICATE-----");
@@ -366,14 +414,57 @@ class RegistryClientFacadeFactoryTest {
             originals.put(SchemaResolverConfig.TLS_CLIENT_KEY, keyContent);
 
             SchemaResolverConfig config = new SchemaResolverConfig(originals);
-            IllegalArgumentException ex = Assertions.assertThrows(IllegalArgumentException.class, () -> {
-                RegistryClientFacadeFactory.buildClientOptions(config, null);
-            });
-            Assertions.assertTrue(ex.getMessage().contains("Path traversal detected"), "Expected path traversal exception, but got: " + ex.getMessage());
+            // A file path from the application's configuration may contain '..', as in the SDK
+            RegistryClientOptions options = RegistryClientFacadeFactory.buildClientOptions(config, null);
+            Assertions.assertEquals(KeyStoreType.PEM, options.getKeyStoreType());
+            Assertions.assertEquals("-----BEGIN CERTIFICATE-----\ninline-cert\n-----END CERTIFICATE-----",
+                    options.getPemClientCertContent());
+            Assertions.assertEquals(keyContent, options.getPemClientKeyContent());
         } finally {
             Files.deleteIfExists(tempFile);
             Files.deleteIfExists(tempDir);
         }
+    }
+
+    @Test
+    void testBuildClientOptionsPemFilesWithDotDotAreNormalized() throws IOException {
+        Path tempDir = Files.createTempDirectory("traversal-files-test");
+        Path certFile = Files.createTempFile(tempDir, "client-cert", ".pem");
+        Path keyFile = Files.createTempFile(tempDir, "client-key", ".pem");
+        Files.writeString(certFile, "-----BEGIN CERTIFICATE-----\nfile-cert\n-----END CERTIFICATE-----");
+        Files.writeString(keyFile, "-----BEGIN PRIVATE KEY-----\nfile-key\n-----END PRIVATE KEY-----");
+        // Through a directory that does not exist: the operating system could not open this as given
+        String certPath = tempDir.resolve("nonexistent-subdir").resolve("..").resolve(certFile.getFileName()).toString();
+        String keyPath = tempDir.resolve("nonexistent-subdir").resolve("..").resolve(keyFile.getFileName()).toString();
+        try {
+            Map<String, Object> originals = new HashMap<>();
+            originals.put(SchemaResolverConfig.REGISTRY_URL, "http://localhost:8080/apis/registry/v3");
+            originals.put(SchemaResolverConfig.TLS_CLIENT_CERTIFICATE, certPath);
+            originals.put(SchemaResolverConfig.TLS_CLIENT_KEY, keyPath);
+
+            RegistryClientOptions options = RegistryClientFacadeFactory.buildClientOptions(
+                    new SchemaResolverConfig(originals), null);
+            Assertions.assertEquals(KeyStoreType.PEM, options.getKeyStoreType());
+            Assertions.assertEquals(certFile.toString(), options.getPemClientCertPath());
+            Assertions.assertEquals(keyFile.toString(), options.getPemClientKeyPath());
+        } finally {
+            Files.deleteIfExists(certFile);
+            Files.deleteIfExists(keyFile);
+            Files.deleteIfExists(tempDir);
+        }
+    }
+
+    @Test
+    void testBuildClientOptionsClasspathTraversalError() {
+        Map<String, Object> originals = new HashMap<>();
+        originals.put(SchemaResolverConfig.REGISTRY_URL, "http://localhost:8080/apis/registry/v3");
+        originals.put(SchemaResolverConfig.TLS_CLIENT_CERTIFICATE, "classpath:certs/../../secret.pem");
+        originals.put(SchemaResolverConfig.TLS_CLIENT_KEY, "-----BEGIN PRIVATE KEY-----\ninline-key\n-----END PRIVATE KEY-----");
+
+        SchemaResolverConfig config = new SchemaResolverConfig(originals);
+        IllegalArgumentException ex = Assertions.assertThrows(IllegalArgumentException.class,
+                () -> RegistryClientFacadeFactory.buildClientOptions(config, null));
+        Assertions.assertEquals("Path traversal detected: classpath:certs/../../secret.pem", ex.getMessage());
     }
 
     @Test

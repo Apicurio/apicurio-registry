@@ -50,32 +50,6 @@ public class H2SqlStatements extends CommonSqlStatements {
         return "SELECT COUNT(*) AS count FROM information_schema.tables WHERE table_schema = ? AND table_name = 'APICURIO'";
     }
 
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#getNextSequenceValue()
-     */
-    @Override
-    public String getNextSequenceValue() {
-        throw new RuntimeException("Not applicable when using H2 as the database kind.");
-    }
-
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#resetSequenceValue()
-     */
-    @Override
-    public String resetSequenceValue() {
-        throw new RuntimeException("Not applicable when using H2 as the database kind.");
-    }
-
-    @Override
-    public String insertSequenceValue() {
-        throw new RuntimeException("Not applicable when using H2 as the database kind.");
-    }
-
-    @Override
-    public String selectCurrentSequenceValue() {
-        throw new RuntimeException("Not applicable when using H2 as the database kind.");
-    }
-
     @Override
     public String createDataSnapshot() {
         return "SCRIPT TO ?";
@@ -102,17 +76,6 @@ public class H2SqlStatements extends CommonSqlStatements {
         return restoreFromSnapshot();
     }
 
-    @Override
-    public String selectArtifactUsageMetrics() {
-        return "SELECT v.version, su.globalId, COUNT(*) AS totalFetches, "
-                + "COUNT(DISTINCT su.clientId) AS uniqueClients, "
-                + "MIN(su.eventTimestamp) AS firstFetchedOn, MAX(su.eventTimestamp) AS lastFetchedOn, "
-                + "LISTAGG(DISTINCT su.clientId, ',') AS clientList "
-                + "FROM schema_usage su JOIN versions v ON (su.globalId = v.globalId OR (su.contentId > 0 AND su.contentId = v.contentId)) "
-                + "WHERE v.groupId = ? AND v.artifactId = ? "
-                + "GROUP BY v.globalId, v.version, v.versionOrder ORDER BY v.versionOrder";
-    }
-
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#acquireInitLock()
      */
@@ -132,4 +95,35 @@ public class H2SqlStatements extends CommonSqlStatements {
         // Return a no-op query that always succeeds
         return "SELECT 1";
     }
+
+    /**
+     * Not supported: H2 uses in-memory counters.
+     *
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#nextSequenceValue(String)
+     */
+    @Override
+    public String nextSequenceValue(String sequenceName) {
+        throw new UnsupportedOperationException("H2 uses in-memory sequence counters.");
+    }
+
+    /**
+     * Not supported: H2 uses in-memory counters.
+     *
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectSequenceLastValue(String)
+     */
+    @Override
+    public String selectSequenceLastValue(String sequenceName) {
+        throw new UnsupportedOperationException("H2 uses in-memory sequence counters.");
+    }
+
+    /**
+     * Not supported: H2 uses in-memory counters.
+     *
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#advanceSequenceValue(String)
+     */
+    @Override
+    public String advanceSequenceValue(String sequenceName) {
+        throw new UnsupportedOperationException("H2 uses in-memory sequence counters.");
+    }
+
 }

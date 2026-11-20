@@ -1,0 +1,3 @@
+# Installed by build.sh
+typescript-sdk/node_modules/
+python-sdk/.venv/

@@ -1,0 +1,11 @@
+{
+  "name": "unsupported_dialect_tool",
+  "description": "inputSchema declares a dialect the validator does not support, alongside a property type that no dialect allows",
+  "inputSchema": {
+    "$schema": "https://example.invalid/custom-dialect",
+    "type": "object",
+    "properties": {
+      "city": { "type": "strng" }
+    }
+  }
+}

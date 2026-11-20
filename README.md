@@ -11,7 +11,7 @@ An API/Schema registry - stores and retrieves APIs and Schemas.
 
 Build the project and run the registry with the in-memory storage variant:
 
-**Build requirement:** JDK 21 or newer is required to build the project (the build tooling, e.g. Checkstyle, needs a Java 21+ runtime). The produced artifacts still target Java 17.
+**Build requirement:** JDK 21 or newer is required to build the project (the build tooling, e.g. Checkstyle, needs a Java 21+ runtime). Client-side artifacts (SDKs, SerDes, Maven plugin and other libraries) still target Java 17; the server (`app`, `authz`) and the operator target Java 21.
 
  ```
  ./mvnw clean install -Dlocal -DskipTests
@@ -59,6 +59,16 @@ For the full set of runtime configuration options (storage, deployment, and more
 [documentation](https://www.apicur.io/registry/docs/). For the available image tags and the
 support policy, see [Versioning & Support Policy](#versioning--support-policy) below; for
 authentication, see [Security](#security).
+
+### AI Agent Registry quick start
+
+To try the experimental AI agent features (A2A agent cards, MCP servers and tools, discovery, and
+compatibility rules on agent content), start a stack that comes with a demo catalog:
+
+    docker compose -f distro/docker-compose/ai-agent-registry/docker-compose.yml up -d
+
+See [its README](distro/docker-compose/ai-agent-registry/README.md) for what it contains and what to try.
+The stack is for local evaluation only: it has no authentication.
 
 ## Versioning & Support Policy
 
@@ -118,7 +128,11 @@ this as a starting point and see the
 
 Apicurio Registry is a [Cloud Native Computing Foundation](https://cncf.io) Sandbox project.
 
-Join us on the [#apicurio channel](https://cloud-native.slack.com/archives/C0BDWTC1DTM) on CNCF Slack.
+Join us on the [#apicurio-registry channel](https://cloud-native.slack.com/archives/C0BDWTC1DTM) on CNCF Slack.
+
+Mailing lists:
+- Development: [cncf-apicurio-registry-dev@lists.cncf.io](mailto:cncf-apicurio-registry-dev@lists.cncf.io)
+- Security reports: [cncf-apicurio-registry-security@lists.cncf.io](mailto:cncf-apicurio-registry-security@lists.cncf.io) (see [SECURITY.md](SECURITY.md))
 
 We abide by the [CNCF Code of Conduct](CODE_OF_CONDUCT.md).
 

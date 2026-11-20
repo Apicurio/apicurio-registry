@@ -1,5 +1,6 @@
 package io.apicurio.registry.ccompat.rest.v7.impl;
 
+import io.apicurio.registry.references.ReferenceResolution;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
@@ -11,6 +12,7 @@ import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
+import io.apicurio.registry.rest.ParameterValidationUtils;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
@@ -45,7 +47,7 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
     SchemaFormatService formatService;
 
     @Override
-    @Authorized(style = AuthorizedStyle.GlobalId, level = AuthorizedLevel.Read)
+    @Authorized(style = AuthorizedStyle.CCompatSchemaId, level = AuthorizedLevel.Read)
     public Schema getSchemaById(BigInteger id, String format, String subject) {
         ContentHandle contentHandle;
         List<ArtifactReferenceDto> references;
@@ -57,31 +59,18 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
             ArtifactVersionMetaDataDto vmd = storage.getArtifactVersionMetaData(id.longValue());
             artifactType = vmd.getArtifactType();
         } else {
-            ContentWrapperDto contentWrapper = storage.getContentById(id.longValue());
+            ContentWrapperDto contentWrapper = storage.getContentAndArtifactTypeById(id.longValue());
             contentHandle = contentWrapper.getContent();
             references = contentWrapper.getReferences();
-            List<ArtifactVersionMetaDataDto> versions = storage.getArtifactVersionsByContentId(id.longValue());
-            if (versions == null || versions.isEmpty()) {
-                //the contentId points to an orphaned content
-                throw new ArtifactNotFoundException("ContentId: " + id);
-            }
-            artifactType = versions.get(0).getArtifactType();
+            artifactType = contentWrapper.getArtifactType();
         }
 
-        // Apply default format if configured and no format was explicitly provided
-        if (format == null || format.isBlank()) {
-            java.util.Optional<String> configuredDefault = restConfig.getDefaultReferenceHandling();
-            if (configuredDefault.isPresent() && !configuredDefault.get().trim().isEmpty()
-                    && "DEREFERENCE".equalsIgnoreCase(configuredDefault.get())) {
-                // Apply RESOLVED format for Avro and Protobuf when DEREFERENCE is configured
-                if (ArtifactType.AVRO.equals(artifactType) || ArtifactType.PROTOBUF.equals(artifactType)) {
-                    format = "resolved";
-                }
-            }
-        }
+        // Apply the configured default format if the client did not provide one
+        format = resolveEffectiveFormat(format, artifactType);
 
         // Apply format transformation if requested
         if (format != null && !format.isBlank()) {
+            ReferenceResolution.requireDereferenceable(references, accessGuard.referenceLoader());
             Map<String, TypedContent> resolvedReferences = resolveReferenceDtos(references);
             contentHandle = formatService.applyFormat(contentHandle, artifactType, format,
                     resolvedReferences);
@@ -91,7 +80,7 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
     }
 
     @Override
-    @Authorized(style = AuthorizedStyle.GlobalId, level = AuthorizedLevel.Read)
+    @Authorized(style = AuthorizedStyle.CCompatSchemaId, level = AuthorizedLevel.Read)
     public String getSchemaContentById(BigInteger id, String format, String subject) {
         ContentHandle contentHandle;
         List<ArtifactReferenceDto> references;
@@ -103,31 +92,18 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
             ArtifactVersionMetaDataDto vmd = storage.getArtifactVersionMetaData(id.longValue());
             artifactType = vmd.getArtifactType();
         } else {
-            ContentWrapperDto contentWrapper = storage.getContentById(id.longValue());
+            ContentWrapperDto contentWrapper = storage.getContentAndArtifactTypeById(id.longValue());
             contentHandle = contentWrapper.getContent();
             references = contentWrapper.getReferences();
-            List<ArtifactVersionMetaDataDto> versions = storage.getArtifactVersionsByContentId(id.longValue());
-            if (versions == null || versions.isEmpty()) {
-                //the contentId points to an orphaned content
-                throw new ArtifactNotFoundException("ContentId: " + id);
-            }
-            artifactType = versions.get(0).getArtifactType();
+            artifactType = contentWrapper.getArtifactType();
         }
 
-        // Apply default format if configured and no format was explicitly provided
-        if (format == null || format.isBlank()) {
-            java.util.Optional<String> configuredDefault = restConfig.getDefaultReferenceHandling();
-            if (configuredDefault.isPresent() && !configuredDefault.get().trim().isEmpty()
-                    && "DEREFERENCE".equals(configuredDefault.get())) {
-                // Apply RESOLVED format for Avro and Protobuf when DEREFERENCE is configured
-                if (ArtifactType.AVRO.equals(artifactType) || ArtifactType.PROTOBUF.equals(artifactType)) {
-                    format = "RESOLVED";
-                }
-            }
-        }
+        // Apply the configured default format if the client did not provide one
+        format = resolveEffectiveFormat(format, artifactType);
 
         // Apply format transformation if requested
         if (format != null && !format.trim().isEmpty()) {
+            ReferenceResolution.requireDereferenceable(references, accessGuard.referenceLoader());
             Map<String, TypedContent> resolvedReferences = resolveReferenceDtos(references);
             contentHandle = formatService.applyFormat(contentHandle, artifactType, format,
                     resolvedReferences);
@@ -155,12 +131,12 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
         }
 
         // Handle pagination
-        int effectiveOffset = offset != null ? offset.intValue() : 0;
+        int effectiveOffset = offset != null ? ParameterValidationUtils.normalizeOffset(offset) : 0;
         int effectiveLimit = (limit != null && limit.intValue() > 0) ? limit.intValue()
                 : cconfig.maxSubjects.get();
 
         // Search for versions to get schemas
-        VersionSearchResultsDto searchResults = storage.searchVersions(filters, OrderBy.createdOn,
+        VersionSearchResultsDto searchResults = searchAuthorizer.searchVersions(filters, OrderBy.createdOn,
                 OrderDirection.asc, effectiveOffset, effectiveLimit, false);
 
         List<Schema> schemas = new ArrayList<>();
@@ -195,9 +171,18 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
     }
 
     @Override
-    @Authorized(style = AuthorizedStyle.GlobalId, level = AuthorizedLevel.Read)
+    @Authorized(style = AuthorizedStyle.CCompatSchemaId, level = AuthorizedLevel.Read)
     public List<String> getSubjectsBySchemaId(BigInteger id, Boolean deleted) {
         final boolean fdeleted = deleted == null ? Boolean.FALSE : deleted;
+
+        if (cconfig.legacyIdModeEnabled.get()) {
+            // In legacy ID mode the ID is a global ID: it names exactly one version
+            ArtifactVersionMetaDataDto metaData = storage.getArtifactVersionMetaData(id.longValue());
+            if (!fdeleted && metaData.getState() == VersionState.DISABLED) {
+                throw new ArtifactNotFoundException("GlobalId: " + id);
+            }
+            return Collections.singletonList(metaData.getArtifactId());
+        }
 
         List<ArtifactVersionMetaDataDto> versions = storage.getArtifactVersionsByContentId(id.longValue());
         if (versions == null || versions.isEmpty()) {
@@ -206,12 +191,14 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
 
         return versions.stream()
                 .filter(v -> fdeleted || v.getState() != VersionState.DISABLED)
+                // Content is shared: only list subjects the caller may read
+                .filter(v -> searchAuthorizer.canReadArtifact(v.getGroupId(), v.getArtifactId()))
                 .map(ArtifactVersionMetaDataDto::getArtifactId).distinct().sorted()
                 .collect(Collectors.toList());
     }
 
     @Override
-    @Authorized(style = AuthorizedStyle.GlobalId, level = AuthorizedLevel.Read)
+    @Authorized(style = AuthorizedStyle.CCompatSchemaId, level = AuthorizedLevel.Read)
     public List<SubjectVersion> getSchemaVersionsById(BigInteger id, Boolean fdeleted) {
         boolean deleted = fdeleted != null && fdeleted;
         if (cconfig.legacyIdModeEnabled.get()) {
@@ -221,6 +208,8 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
         }
         return storage.getArtifactVersionsByContentId(id.longValue()).stream()
                 .filter(versionMetaData -> deleted || versionMetaData.getState() != VersionState.DISABLED)
+                // Content is shared: only list versions of artifacts the caller may read
+                .filter(v -> searchAuthorizer.canReadArtifact(v.getGroupId(), v.getArtifactId()))
                 .sorted((a, b) -> {
                     int cmp = a.getArtifactId().compareTo(b.getArtifactId());
                     return cmp != 0 ? cmp : Integer.compare(a.getVersionOrder(), b.getVersionOrder());

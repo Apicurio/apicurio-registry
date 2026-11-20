@@ -59,6 +59,9 @@ public class SqlCleanupRepository {
             // Delete all role mappings
             handle.createUpdate(sqlStatements.deleteAllRoleMappings()).execute();
 
+            // Delete all peers
+            handle.createUpdate(sqlStatements.deleteAllPeers()).execute();
+
             // Delete all content
             handle.createUpdate(sqlStatements.deleteAllContent()).execute();
 

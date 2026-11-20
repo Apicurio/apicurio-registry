@@ -7,7 +7,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 :_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
-You can write a {registry} client application in Java, Typescript, Python, or Golang to manage artifacts stored in {registry}.
+You can write a client application in Java, Typescript, Python, or Golang to manage artifacts stored in {registry}.
 
 //INCLUDES
 
@@ -21,7 +21,9 @@ You can write a {registry} client application in Java, Typescript, Python, or Go
 :_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
-You can manage artifacts stored in {registry} by using one of the provided SDKs. You can perform any operation supported by the REST API, including create, read, update, or delete of artifacts. You can even use the {registry} SDKs to perform administrator functions, such as managing global rules or importing and exporting {registry} data.
+You can manage artifacts stored in {registry} by using one of the provided SDKs. You can perform any operation supported by the REST API, including create, read, update, or delete of artifacts.
+
+You can even use the {registry} SDKs to perform administrator functions, such as managing global rules or importing and exporting {registry} data.
 
 You can use any of the following SDKs provided as part of {registry}:
 
@@ -57,6 +59,7 @@ You can access the {registry} Golang SDK by adding the correct dependency to you
 * link:https://www.npmjs.com/package/@apicurio/apicurio-registry-sdk[Apicurio Registry Typescript SDK npm package]
 * link:https://pypi.org/project/apicurioregistrysdk/[Apicurio Registry Python SDK PyPI package]
 * link:https://github.com/Apicurio/apicurio-registry/tree/main/go-sdk[Apicurio Registry Golang SDK]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/registry-clients[Registry clients example]: the same scenario with every SDK and the CLI
 
 
 
@@ -115,7 +118,7 @@ public class ClientExample {
 +
 The registry URL:: If you specify an example {registry} URL of `\https://my-registry.my-domain.com`, the client automatically appends `/apis/registry/v3`.
 The Vertx object:: Create a new Vertx object that the client uses for HTTP requests, so that you control its lifecycle.
-The registry client:: For more options when creating a {registry} client, see xref:registry-sdk-config_registry[].
+The registry client:: For more options when creating a client for {registry}, see xref:registry-sdk-config_{context}[].
 Closing the client:: When you are done with the client, close the Vertx object to free its resources.
 
 .Results
@@ -123,8 +126,11 @@ When the client is created, you can use all of the operations available in the {
 
 [role="_additional-resources"]
 .Additional resources
-* https://github.com/Apicurio/apicurio-registry/tree/main/examples[Apicurio Registry REST client demonstration]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/registry-clients[Registry clients example]: the same scenario with the Java, Go, Python and TypeScript SDKs and the CLI
 * {kafka-client-serdes}
+ifndef::service-registry-downstream[]
+* xref:getting-started/assembly-using-schema-validation-library.adoc[Validating data with the {registry} schema validation library]
+endif::[]
 
 
 
@@ -192,7 +198,7 @@ NOTE: The Kafka client SerDes expose the same proxy settings as configuration pr
 
 **TLS configuration**
 
-For a registry served over HTTPS with certificates that the default Java trust store does not trust, configure a trust store with the `trustStoreJks`, `trustStorePkcs12`, or `trustStorePem` method. Methods for client certificates (mutual TLS), including `keystoreJks` and `keystorePkcs12`, are also available.
+For a registry served over HTTPS with certificates that the default Java trust store does not trust, configure a trust store with the `trustStoreJks`, `trustStorePkcs12`, or `trustStorePem` method. Methods for client certificates (mutual TLS), including `keystoreJks` and `keystorePkcs12`, are also available. For a running example, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/tls[TLS example].
 
 **OpenTelemetry distributed tracing**
 

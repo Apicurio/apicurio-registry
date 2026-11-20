@@ -1,0 +1,144 @@
+package io.apicurio.registry.agents.a2a;
+
+import io.apicurio.common.apps.config.Info;
+import io.apicurio.registry.config.InstanceConfig;
+import jakarta.annotation.PostConstruct;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+
+import java.util.Locale;
+import java.util.Optional;
+import java.util.Set;
+
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_A2A;
+
+/**
+ * Configuration properties for A2A (Agent2Agent) protocol support.
+ */
+@Singleton
+public class A2AConfig {
+
+    /** The A2A protocol version the registry's own Agent Card implements. */
+    public static final String PROTOCOL_VERSION = "1.0";
+
+    private static final Set<String> VALID_VISIBILITIES = Set.of("public", "entitled", "private");
+
+    @PostConstruct
+    void validate() {
+        if (!VALID_VISIBILITIES.contains(defaultVisibility.toLowerCase(Locale.ROOT))) {
+            throw new IllegalArgumentException(
+                    "Invalid value for apicurio.a2a.default-visibility: '" + defaultVisibility
+                            + "'. Must be one of: " + VALID_VISIBILITIES);
+        }
+    }
+
+    @ConfigProperty(name = "apicurio.a2a.enabled")
+    @Info(category = CATEGORY_A2A, description = "Enable A2A protocol support. Defaults to apicurio.agents.enabled", dependsOn = "apicurio.agents.enabled", availableSince = "3.0.0", experimental = true)
+    boolean enabled;
+
+    @ConfigProperty(name = "apicurio.a2a.agent.name")
+    @Info(category = CATEGORY_A2A, description = "Deprecated since 3.4.0, use apicurio.instance.name, which takes precedence. Name of the registry agent for A2A discovery", availableSince = "3.0.0")
+    Optional<String> agentName;
+
+    @Inject
+    InstanceConfig instance;
+
+    @ConfigProperty(name = "apicurio.a2a.agent.description", defaultValue = "API and Schema Registry with A2A Agent support")
+    @Info(category = CATEGORY_A2A, description = "Description of the registry agent", availableSince = "3.0.0")
+    String agentDescription;
+
+    @ConfigProperty(name = "apicurio.a2a.agent.version")
+    @Info(category = CATEGORY_A2A, description = "Version of the registry agent (defaults to app version)", availableSince = "3.0.0")
+    Optional<String> agentVersion;
+
+    @ConfigProperty(name = "apicurio.a2a.agent.url")
+    @Info(category = CATEGORY_A2A, description = "Base URL for the registry agent's A2A endpoint", availableSince = "3.0.0")
+    Optional<String> agentUrl;
+
+    @ConfigProperty(name = "apicurio.a2a.agent.provider.organization", defaultValue = "Apicurio")
+    @Info(category = CATEGORY_A2A, description = "Organization name for the agent provider", availableSince = "3.0.0")
+    String providerOrganization;
+
+    @ConfigProperty(name = "apicurio.a2a.agent.provider.url", defaultValue = "https://www.apicur.io")
+    @Info(category = CATEGORY_A2A, description = "URL for the agent provider", availableSince = "3.0.0")
+    String providerUrl;
+
+    @ConfigProperty(name = "apicurio.a2a.agent.capabilities.streaming", defaultValue = "false")
+    @Info(category = CATEGORY_A2A, description = "Whether the agent supports streaming", availableSince = "3.0.0")
+    boolean capabilitiesStreaming;
+
+    @ConfigProperty(name = "apicurio.a2a.agent.capabilities.push-notifications", defaultValue = "false")
+    @Info(category = CATEGORY_A2A, description = "Whether the agent supports push notifications", availableSince = "3.0.0")
+    boolean capabilitiesPushNotifications;
+
+    @ConfigProperty(name = "apicurio.a2a.default-visibility", defaultValue = "entitled")
+    @Info(category = CATEGORY_A2A, description = "Default visibility for new Agent Card artifacts (public, entitled, private)", availableSince = "3.0.0")
+    String defaultVisibility;
+
+    @ConfigProperty(name = "apicurio.a2a.agent.auth.api-key.enabled", defaultValue = "false")
+    @Info(category = CATEGORY_A2A, description = "Advertise API key authentication in the agent card security schemes", availableSince = "3.3.1")
+    boolean apiKeyAuthEnabled;
+
+
+    @ConfigProperty(name = "apicurio.a2a.agent.documentation-url")
+    @Info(category = CATEGORY_A2A, description = "URL to the registry agent documentation", availableSince = "3.0.0")
+    Optional<String> documentationUrl;
+
+    @ConfigProperty(name = "apicurio.a2a.agent.icon-url")
+    @Info(category = CATEGORY_A2A, description = "URL to the registry agent icon", availableSince = "3.0.0")
+    Optional<String> iconUrl;
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public String getAgentName() {
+        return instance.nameOr(agentName);
+    }
+
+    public String getAgentDescription() {
+        return agentDescription;
+    }
+
+    public Optional<String> getAgentVersion() {
+        return agentVersion;
+    }
+
+    public Optional<String> getAgentUrl() {
+        return agentUrl;
+    }
+
+    public String getProviderOrganization() {
+        return providerOrganization;
+    }
+
+    public String getProviderUrl() {
+        return providerUrl;
+    }
+
+    public boolean isCapabilitiesStreaming() {
+        return capabilitiesStreaming;
+    }
+
+    public boolean isCapabilitiesPushNotifications() {
+        return capabilitiesPushNotifications;
+    }
+
+
+    public Optional<String> getDocumentationUrl() {
+        return documentationUrl;
+    }
+
+    public Optional<String> getIconUrl() {
+        return iconUrl;
+    }
+
+    public String getDefaultVisibility() {
+        return defaultVisibility;
+    }
+
+    public boolean isApiKeyAuthEnabled() {
+        return apiKeyAuthEnabled;
+    }
+}

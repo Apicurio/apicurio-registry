@@ -4,6 +4,7 @@ import io.apicurio.registry.avro.util.AvroParserAccessor;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
+import io.apicurio.registry.content.dereference.DereferencingNotSupportedException;
 import io.apicurio.registry.types.ContentTypes;
 import org.apache.avro.Schema;
 
@@ -28,7 +29,6 @@ public class AvroDereferencer implements ContentDereferencer {
         // defined in another .avsc file. The location of that other file is not included in the Avro
         // specification (in other words there is no "import" statement). So rewriting is meaningless
         // in Avro.
-        // TODO: Should we throw an exception instead of failing silently?
-        return content;
+        throw new DereferencingNotSupportedException("Artifact type AVRO does not support references=REWRITE.");
     }
 }

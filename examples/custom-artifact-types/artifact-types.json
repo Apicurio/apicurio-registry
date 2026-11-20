@@ -1,0 +1,72 @@
+{
+  "includeStandardArtifactTypes": true,
+  "artifactTypes": [
+    {
+      "artifactType": "MARKDOWN",
+      "name": "Markdown",
+      "description": "Markdown documents with a level-1 title and level-2 sections.",
+      "contentTypes": [
+        "text/markdown",
+        "text/plain"
+      ],
+      "fileExtensions": [
+        ".md"
+      ],
+      "contentAccepter": {
+        "type": "java",
+        "classname": "io.apicurio.registry.examples.customtypes.MarkdownContentAccepter"
+      },
+      "contentValidator": {
+        "type": "java",
+        "classname": "io.apicurio.registry.examples.customtypes.MarkdownContentValidator"
+      },
+      "compatibilityChecker": {
+        "type": "java",
+        "classname": "io.apicurio.registry.examples.customtypes.MarkdownCompatibilityChecker"
+      },
+      "contentCanonicalizer": {
+        "type": "java",
+        "classname": "io.apicurio.registry.examples.customtypes.MarkdownContentCanonicalizer"
+      }
+    },
+    {
+      "artifactType": "CSV",
+      "name": "CSV header",
+      "description": "The header line of a CSV file: comma-separated column names. Implemented by a webhook service.",
+      "contentTypes": [
+        "text/csv"
+      ],
+      "fileExtensions": [
+        ".csv"
+      ],
+      "contentAccepter": {
+        "type": "webhook",
+        "url": "http://csv-webhook:8080/accept",
+        "headers": {
+          "Authorization": "Bearer csv-webhook-token"
+        }
+      },
+      "contentValidator": {
+        "type": "webhook",
+        "url": "http://csv-webhook:8080/validate",
+        "headers": {
+          "Authorization": "Bearer csv-webhook-token"
+        }
+      },
+      "compatibilityChecker": {
+        "type": "webhook",
+        "url": "http://csv-webhook:8080/compatibility",
+        "headers": {
+          "Authorization": "Bearer csv-webhook-token"
+        }
+      },
+      "contentCanonicalizer": {
+        "type": "webhook",
+        "url": "http://csv-webhook:8080/canonicalize",
+        "headers": {
+          "Authorization": "Bearer csv-webhook-token"
+        }
+      }
+    }
+  ]
+}

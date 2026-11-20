@@ -25,6 +25,8 @@ import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.OutboxEvent;
+import io.apicurio.registry.storage.dto.PeerDto;
+import io.apicurio.registry.storage.dto.PeerSearchResultsDto;
 import io.apicurio.registry.storage.dto.RoleMappingDto;
 import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
 import io.apicurio.registry.storage.dto.ContractRuleSetDto;
@@ -40,6 +42,7 @@ import io.apicurio.registry.storage.dto.UsageSummaryCountsDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.dto.VersionContentDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.registry.storage.dto.VersionWithArtifactMetaDataDto;
 import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.CommitFailedException;
@@ -68,6 +71,7 @@ import io.apicurio.registry.utils.impexp.v3.GroupRuleEntity;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -157,6 +161,22 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws RegistryStorageException
      */
     ContentWrapperDto getContentById(long contentId)
+            throws ContentNotFoundException, RegistryStorageException;
+
+    /**
+     * Gets some artifact content by the unique contentId, together with the artifact type of one of the
+     * artifact versions that references it. This is a single-query variant of calling
+     * {@link #getContentById(long)} followed by {@link #getArtifactVersionsByContentId(long)} just to
+     * discover the artifact type - useful for read paths (e.g. ccompat's "get schema by id") that only need
+     * the type and not the full version meta-data. Throws {@link ContentNotFoundException} both when the
+     * content does not exist and when the content exists but is orphaned (not referenced by any artifact
+     * version), matching the semantics callers previously implemented by combining the two calls above.
+     *
+     * @param contentId
+     * @throws ContentNotFoundException
+     * @throws RegistryStorageException
+     */
+    ContentWrapperDto getContentAndArtifactTypeById(long contentId)
             throws ContentNotFoundException, RegistryStorageException;
 
     /**
@@ -263,6 +283,16 @@ public interface RegistryStorage extends DynamicConfigStorage {
      */
     ArtifactMetaDataDto getArtifactMetaData(String groupId, String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException;
+
+    /**
+     * Gets the metadata of many artifacts in as few reads as possible. Each artifact is matched as
+     * {@link #getArtifactMetaData(String, String)} matches it.
+     *
+     * @param artifacts the group (null for the default group) and artifact IDs
+     * @return the metadata of the artifacts that exist, in no particular order
+     * @throws RegistryStorageException
+     */
+    List<ArtifactMetaDataDto> getArtifactsMetaData(Collection<GA> artifacts) throws RegistryStorageException;
 
     /**
      * Gets the metadata of the version that matches content.
@@ -554,6 +584,22 @@ public interface RegistryStorage extends DynamicConfigStorage {
     }
 
     /**
+     * Atomically sets labels on an artifact if its current labels still have the expected values:
+     * a compare-and-set used to apply a change that was validated against the current state. Labels
+     * not in {@code labels} are untouched.
+     *
+     * @param expected the expected value of each label key; a {@code null} value means the label
+     *                 must be absent
+     * @throws io.apicurio.registry.storage.error.ContractStateConflictException if a label does not
+     *         have its expected value
+     */
+    default void compareAndSetArtifactLabels(String groupId, String artifactId, Map<String, String> expected,
+            Map<String, String> labels) throws RegistryStorageException {
+        throw new RegistryStorageException(
+                "compareAndSetArtifactLabels not supported by this storage implementation");
+    }
+
+    /**
      * Atomically merges labels into an artifact version: deletes all labels matching the
      * prefix, then inserts the provided labels.
      */
@@ -561,6 +607,49 @@ public interface RegistryStorage extends DynamicConfigStorage {
             String prefix, Map<String, String> labels) throws RegistryStorageException {
         throw new RegistryStorageException(
                 "mergeVersionLabels not supported by this storage implementation");
+    }
+
+    /**
+     * Updates the contract metadata of an artifact by merging the given reserved contract.*
+     * labels, then fires a contract metadata updated event.
+     *
+     * <p>The prefix and the label map are resolved by the caller rather than derived here, so
+     * that a journal message carries exactly the values that were stored. Replaying such a
+     * message applies the same labels on every node, independent of the code version doing
+     * the replay.
+     */
+    default void updateContractMetadata(String groupId, String artifactId, String prefix,
+            Map<String, String> labels) throws RegistryStorageException {
+        throw new RegistryStorageException(
+                "updateContractMetadata not supported by this storage implementation");
+    }
+
+    /**
+     * Same as {@link #updateContractMetadata(String, String, String, Map)}, but only if the
+     * artifact's current labels still have the expected values (see
+     * {@link #compareAndSetArtifactLabels(String, String, Map, Map)}).
+     */
+    default void updateContractMetadata(String groupId, String artifactId, String prefix,
+            Map<String, String> labels, Map<String, String> expected) throws RegistryStorageException {
+        throw new RegistryStorageException(
+                "updateContractMetadata not supported by this storage implementation");
+    }
+
+    /**
+     * Transitions the contract status of an artifact, updating the status label and any
+     * lifecycle date label implied by the target status. Fires a contract status changed
+     * event. The caller is responsible for validating that the transition is legal; the status
+     * is only changed if it is still {@code fromStatus}, otherwise a
+     * {@link io.apicurio.registry.storage.error.ContractStateConflictException} is thrown.
+     *
+     * @param effectiveDate the ISO date recorded on the lifecycle label for the target status.
+     *                      It is resolved by the caller rather than read from the clock here so
+     *                      that replaying a journal message applies the same value on every node.
+     */
+    default void transitionContractStatus(String groupId, String artifactId, String fromStatus,
+            String toStatus, String prefix, String effectiveDate) throws RegistryStorageException {
+        throw new RegistryStorageException(
+                "transitionContractStatus not supported by this storage implementation");
     }
 
     /**
@@ -675,6 +764,18 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws RegistryStorageException
      */
     ArtifactVersionMetaDataDto getArtifactVersionMetaData(Long globalId)
+            throws VersionNotFoundException, RegistryStorageException;
+
+    /**
+     * Gets the metadata of the version with this global ID and of its artifact, in a single read.
+     * Authorization needs both: the version tells which artifact a global ID names, and the artifact
+     * holds its stored IDs and owner.
+     *
+     * @param globalId
+     * @throws VersionNotFoundException
+     * @throws RegistryStorageException
+     */
+    VersionWithArtifactMetaDataDto getArtifactVersionWithArtifactMetaData(Long globalId)
             throws VersionNotFoundException, RegistryStorageException;
 
     /**
@@ -923,6 +1024,47 @@ public interface RegistryStorage extends DynamicConfigStorage {
     void deleteRoleMapping(String principalId) throws RegistryStorageException;
 
     /**
+     * Creates a peer registry.
+     *
+     * @param peer
+     */
+    void createPeer(PeerDto peer) throws RegistryStorageException;
+
+    /**
+     * Gets the details of a single peer registry.
+     *
+     * @param peerId
+     */
+    PeerDto getPeer(String peerId) throws RegistryStorageException;
+
+    /**
+     * Gets the list of all the peer registries.
+     */
+    List<PeerDto> getPeers() throws RegistryStorageException;
+
+    /**
+     * Search for peer registries.
+     *
+     * @param offset the number of peers to skip
+     * @param limit the result size limit
+     */
+    PeerSearchResultsDto searchPeers(int offset, int limit) throws RegistryStorageException;
+
+    /**
+     * Updates a single peer registry.
+     *
+     * @param peer
+     */
+    void updatePeer(PeerDto peer) throws RegistryStorageException;
+
+    /**
+     * Deletes a single peer registry.
+     *
+     * @param peerId
+     */
+    void deletePeer(String peerId) throws RegistryStorageException;
+
+    /**
      * Deletes ALL user data. Does not delete global data, such as log configuration.
      */
     void deleteAllUserData();
@@ -1107,6 +1249,12 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @param newState
      * @param dryRun
      */
+    /** Atomically updates the selected versions and descriptive metadata under a reserved label prefix. */
+    default void updateArtifactVersionStates(String groupId, String artifactId, List<String> versions,
+            VersionState newState, String labelPrefix, Map<String, String> labels) {
+        throw new UnsupportedOperationException("Atomic version state updates are not supported");
+    }
+
     void updateArtifactVersionState(String groupId, String artifactId, String version, VersionState newState,
             boolean dryRun);
 
@@ -1162,6 +1310,8 @@ public interface RegistryStorage extends DynamicConfigStorage {
     boolean isGlobalRuleExists(RuleType rule) throws RegistryStorageException;
 
     boolean isRoleMappingExists(String principalId);
+
+    boolean isPeerExists(String peerId);
 
     void updateContentCanonicalHash(String newCanonicalHash, long contentId, String contentHash);
 

@@ -27,9 +27,11 @@ import { PleaseWaitModal } from "@apitomy/common-ui-components";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
+import { SearchService, useSearchService } from "@services/useSearchService.ts";
 import {
     CreateArtifact,
     GroupMetaData,
+    ResourcePermissions,
     Rule,
     RuleType,
     RuleViolationProblemDetails,
@@ -44,6 +46,7 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
     const [pageError, setPageError] = useState<PageError>();
     const [loaders, setLoaders] = useState<Promise<any> | Promise<any>[] | undefined>();
     const [group, setGroup] = useState<GroupMetaData>();
+    const [permissions, setPermissions] = useState<ResourcePermissions>();
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isDeleteArtifactModalOpen, setIsDeleteArtifactModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -63,6 +66,7 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
     const appNavigation: AppNavigation = useAppNavigation();
     const logger: LoggerService = useLoggerService();
     const groups: GroupsService = useGroupsService();
+    const search: SearchService = useSearchService();
     const { groupId }= useParams();
     const location = useLocation();
     const rulesMatch = useMatch("/explore/:groupId/rules");
@@ -83,6 +87,8 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
                 .catch(guard.wrap((error: any) => {
                     setPageError(toPageError(error, "Error loading page data."));
                 })),
+            // Never fails: without permissions, the UI shows the actions and lets the server decide
+            search.groupPermissions(groupId as string).then(guard.wrap(setPermissions)),
             groups.getGroupRules(groupId as string)
                 .then(guard.wrap(setRules))
                 .catch(guard.wrap((error: any) => {
@@ -283,6 +289,7 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
         <Tab data-testid="group-overview-tab" eventKey="overview" title="Overview" key="overview" tabContentId="tab-overview">
             <GroupOverviewTabContent
                 group={group as GroupMetaData}
+                permissions={permissions}
                 onEditMetaData={() => setIsEditModalOpen(true)}
                 onChangeOwner={openChangeOwnerModal}
                 onCreateArtifact={onCreateArtifact}
@@ -323,6 +330,7 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
                 <PageSection hasBodyWrapper={false} className="ps_artifact-version-header" >
                     <GroupPageHeader title={groupId as string}
                         onDeleteGroup={onDeleteGroup}
+                        permissions={permissions}
                         groupId={groupId as string} />
                 </PageSection>
                 <PageSection hasBodyWrapper={false} variant={PageSectionVariants.default} isFilled={true} padding={{ default: "noPadding" }} className="artifact-details-main">

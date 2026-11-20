@@ -53,7 +53,11 @@ public class VersionUtil {
             return null;
         }
         String originalVersion = version;
-        String withoutBuild = version.split("\\+")[0];
+        String withoutBuild = version.split("\\+", 2)[0];
+        // A build separator without a preceding version is not a semantic version.
+        if (withoutBuild.isEmpty()) {
+            return "NON_SEMVER_" + originalVersion;
+        }
         String[] parts = withoutBuild.split("-", 2);
         String core = parts[0];
         String prerelease = parts.length > 1 ? parts[1] : "";

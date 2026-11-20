@@ -171,3 +171,48 @@ describe("useSearchService name filter wildcard wrapping (#10128)", () => {
         expect(get.mock.calls[0][0].queryParameters.nameCaseInsensitive).toBe(true);
     });
 });
+
+describe("useSearchService resource permissions", () => {
+    it("returns the permissions of the group searched for", async () => {
+        const get = vi.fn().mockResolvedValue({
+            count: 1,
+            groups: [{ groupId: "team-b", permissions: { read: true, write: false, admin: false } }]
+        });
+        getRegistryClientMock.mockReturnValue({ search: { groups: { get } } });
+
+        const permissions = await useSearchService().groupPermissions("team-b");
+
+        expect(permissions).toEqual({ read: true, write: false, admin: false });
+        expect(get.mock.calls[0][0].queryParameters).toEqual({ groupId: "team-b", limit: 1 });
+    });
+
+    it("returns the permissions of the artifact searched for", async () => {
+        const get = vi.fn().mockResolvedValue({
+            count: 1,
+            artifacts: [{ groupId: "team-a", artifactId: "orders", permissions: { read: true, write: true, admin: false } }]
+        });
+        getRegistryClientMock.mockReturnValue({ search: { artifacts: { get } } });
+
+        const permissions = await useSearchService().artifactPermissions("team-a", "orders");
+
+        expect(permissions).toEqual({ read: true, write: true, admin: false });
+        expect(get.mock.calls[0][0].queryParameters).toEqual({ groupId: "team-a", artifactId: "orders", limit: 1 });
+    });
+
+    it("returns undefined when the server reports no permissions", async () => {
+        const get = vi.fn().mockResolvedValue({ count: 1, groups: [{ groupId: "team-b" }] });
+        getRegistryClientMock.mockReturnValue({ search: { groups: { get } } });
+
+        expect(await useSearchService().groupPermissions("team-b")).toBeUndefined();
+    });
+
+    it("returns undefined when the resource is not found or the search fails", async () => {
+        const notFound = vi.fn().mockResolvedValue({ count: 0, artifacts: [] });
+        getRegistryClientMock.mockReturnValue({ search: { artifacts: { get: notFound } } });
+        expect(await useSearchService().artifactPermissions("team-a", "missing")).toBeUndefined();
+
+        const failing = vi.fn().mockRejectedValue(new Error("403"));
+        getRegistryClientMock.mockReturnValue({ search: { groups: { get: failing } } });
+        expect(await useSearchService().groupPermissions("team-b")).toBeUndefined();
+    });
+});

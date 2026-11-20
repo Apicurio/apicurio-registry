@@ -875,10 +875,29 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/McpToolImportResult"
-                }
+                },
+                "x-codegen-returnType": "jakarta.ws.rs.core.Response"
               }
             },
             "description": "The result of the import, for the server and for each tool."
+          },
+          "202": {
+            "headers": {
+              "Location": {
+                "description": "The URL of the import status: `/groups/{groupId}/artifacts/{artifactId}/mcp-import/status`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/McpToolImportJobStatus"
+                }
+              }
+            },
+            "description": "With `async`, the import was started and runs in the background. The body is its status, `RUNNING`."
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
@@ -911,7 +930,66 @@
         },
         "operationId": "importMcpTools",
         "summary": "Import tools from an MCP server",
-        "description": "**Experimental.** Connects to a live MCP server over the Streamable HTTP transport, lists its tools with `tools/list`, and publishes each tool as an `MCP_TOOL` artifact. The artifact named in the path must be an `MCP_SERVER`; a new version of it references every imported tool whose definition is stored.\n\nEach tool is published like any other version: configured rules, such as `COMPATIBILITY`, apply, and a tool rejected by a rule is reported as `REJECTED` with the violations, without changing what is stored. A tool whose definition is unchanged is reported as `UNCHANGED`. A tool referenced by the previous `MCP_SERVER` version but no longer listed by the server is reported as `REMOVED`; its artifact is left as it is. With `dryRun`, nothing is written and the same report is returned.\n\nThe registry connects only to hosts in `apicurio.mcp-import.allowed-hosts`, never to loopback, link-local or cloud metadata addresses, and does not follow redirects. Headers in the request are sent to the MCP server only; they are not stored, returned or logged.\n\nThis operation can fail for the following reasons:\n\n* The import feature is disabled, or the storage is read-only (HTTP error `409`)\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* The artifact is not an `MCP_SERVER`, or the URL or its host is not allowed (HTTP error `400`)\n* The MCP server could not be reached, timed out, sent a response that is too large or invalid, or listed too many tools (HTTP error `502`)\n* A server error occurred (HTTP error `500`)\n"
+        "description": "**Experimental.** Connects to a live MCP server over the Streamable HTTP transport, lists its tools with `tools/list`, and publishes each tool as an `MCP_TOOL` artifact. The artifact named in the path must be an `MCP_SERVER`; a new version of it references every imported tool whose definition is stored.\n\nEach tool is published like any other version: configured rules, such as `COMPATIBILITY`, apply, and a tool rejected by a rule is reported as `REJECTED` with the violations, without changing what is stored. A tool whose definition is unchanged is reported as `UNCHANGED`. A tool referenced by the previous `MCP_SERVER` version but no longer listed by the server is reported as `REMOVED`; its artifact is left as it is. With `dryRun`, nothing is written and the same report is returned.\n\nWith `async`, the request is checked as usual, then the import runs in the background: the response is `202 Accepted`, with a `Location` header naming `/groups/{groupId}/artifacts/{artifactId}/mcp-import/status`, where the outcome can be read. Use it for servers with many tools, whose import can take longer than an HTTP client waits. `async` cannot be combined with `dryRun`. The status of the last import, synchronous or not, is kept in labels of the `MCP_SERVER` artifact under `apicurio.mcp-import.`.\n\nThe registry connects only to hosts in `apicurio.mcp-import.allowed-hosts`, never to loopback, link-local or cloud metadata addresses, and does not follow redirects. Headers in the request are sent to the MCP server only; they are not stored, returned or logged.\n\nThis operation can fail for the following reasons:\n\n* The import feature is disabled, or the storage is read-only (HTTP error `409`)\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* The artifact is not an `MCP_SERVER`, the URL or its host is not allowed, or `async` is combined with `dryRun` (HTTP error `400`)\n* As many imports as allowed are already running (HTTP error `429`)\n* The MCP server could not be reached, timed out, sent a response that is too large or invalid, or listed too many tools (HTTP error `502`)\n* A server error occurred (HTTP error `500`)\n"
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \".{1,512}\" pattern.",
+          "schema": {
+            "$ref": "#/components/schemas/GroupId"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "artifactId",
+          "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier. Must follow the \".{1,512}\" pattern.",
+          "schema": {
+            "$ref": "#/components/schemas/ArtifactId"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
+    "/groups/{groupId}/artifacts/{artifactId}/mcp-import/status": {
+      "summary": "The status of the last import of tools from an MCP server.",
+      "get": {
+        "tags": [
+          "Artifacts",
+          "AI"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/McpToolImportJobStatus"
+                }
+              }
+            },
+            "description": "The status of the last import into this artifact."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "getMcpToolImportStatus",
+        "summary": "Get the status of an MCP import",
+        "description": "**Experimental.** Returns the status of the last import of tools into this `MCP_SERVER` artifact, synchronous or started with `async`: `RUNNING`, `COMPLETED` with the server version and the number of tools by outcome, or `FAILED` with a reason. Dry runs are not recorded. An import still `RUNNING` that has not reported progress for longer than `apicurio.mcp-import.total-timeout.seconds` plus `apicurio.mcp-import.timeout.seconds`, for example because the registry instance running it stopped, is reported as `FAILED`.\n\nThe status is kept in labels of the artifact under `apicurio.mcp-import.`, so it can be read from any registry instance. Like any label, it can be edited by callers with write access to the artifact.\n\nThis operation can fail for the following reasons:\n\n* The import feature is disabled (HTTP error `409`)\n* No artifact with this `artifactId` exists, or no import was recorded for it (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
       },
       "parameters": [
         {
@@ -9537,6 +9615,10 @@
           "dryRun": {
             "description": "When `true`, the server is contacted and the report is returned, but nothing is written.",
             "type": "boolean"
+          },
+          "async": {
+            "description": "When `true`, the import runs in the background and the response is `202 Accepted`: read its outcome from `/groups/{groupId}/artifacts/{artifactId}/mcp-import/status`. Cannot be combined with `dryRun`. Defaults to `false`.",
+            "type": "boolean"
           }
         },
         "example": {
@@ -9611,6 +9693,67 @@
             "items": {
               "$ref": "#/components/schemas/McpToolImportToolResult"
             }
+          }
+        }
+      },
+      "McpToolImportJobState": {
+        "description": "The state of an MCP import.\n\n* `RUNNING` - the import has started and has not finished\n* `COMPLETED` - the import finished; tools a rule rejected are counted as `REJECTED`\n* `FAILED` - the import stopped before it finished; tools written before the failure stay stored\n",
+        "enum": [
+          "RUNNING",
+          "COMPLETED",
+          "FAILED"
+        ],
+        "type": "string"
+      },
+      "McpToolImportCounts": {
+        "description": "The number of tools by outcome, keyed by `McpToolImportStatus`. Outcomes no tool had are left out.",
+        "type": "object",
+        "additionalProperties": {
+          "type": "integer",
+          "format": "int32"
+        }
+      },
+      "McpToolImportJobStatus": {
+        "title": "Root Type for McpToolImportJobStatus",
+        "description": "The status of the last import of tools into an `MCP_SERVER` artifact.",
+        "required": [
+          "state"
+        ],
+        "type": "object",
+        "properties": {
+          "state": {
+            "$ref": "#/components/schemas/McpToolImportJobState"
+          },
+          "startedOn": {
+            "format": "date-time",
+            "description": "When the import started.",
+            "type": "string"
+          },
+          "finishedOn": {
+            "format": "date-time",
+            "description": "When the import finished. Absent while it is running.",
+            "type": "string"
+          },
+          "version": {
+            "description": "The `MCP_SERVER` version that references the imported tools, when the import completed.",
+            "type": "string"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/McpToolImportCounts"
+          },
+          "reason": {
+            "description": "Why the import failed, when it did.",
+            "type": "string"
+          }
+        },
+        "example": {
+          "state": "COMPLETED",
+          "startedOn": "2026-11-20T10:15:30Z",
+          "finishedOn": "2026-11-20T10:16:12Z",
+          "version": "3",
+          "counts": {
+            "CREATED": 498,
+            "UNCHANGED": 2
           }
         }
       },

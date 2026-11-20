@@ -1,6 +1,6 @@
 package io.apicurio.registry.rest.v3.impl;
 
-import io.apicurio.registry.rest.v3.beans.McpToolImportResult;
+import io.apicurio.registry.rest.v3.beans.McpToolImportJobStatus;
 import io.apicurio.registry.rest.v3.beans.McpToolImportRequest;
 import io.apicurio.registry.extensions.AgentInventorySyncHandler;
 import io.apicurio.registry.extensions.McpToolImportHandler;
@@ -95,6 +95,7 @@ import jakarta.ws.rs.NotAllowedException;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.UriBuilder;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.math.BigInteger;
@@ -2230,13 +2231,35 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @MethodMetadata(extractParameters = {"0", MPK_GROUP_ID, "1", MPK_ARTIFACT_ID})
     @Audited
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
-    public McpToolImportResult importMcpTools(String groupId, String artifactId, McpToolImportRequest data) {
+    public Response importMcpTools(String groupId, String artifactId, McpToolImportRequest data) {
         ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
         ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
         if (!mcpToolImportHandler.isResolvable()) {
             throw new ConflictException("Importing tools from MCP servers is not available.");
         }
-        return mcpToolImportHandler.get().importTools(groupId, artifactId, data);
+        if (data != null && Boolean.TRUE.equals(data.getAsync())) {
+            McpToolImportJobStatus status = mcpToolImportHandler.get().startImport(groupId, artifactId, data);
+            return Response.accepted(status)
+                    .location(UriBuilder.fromPath("/apis/registry/v3/groups/{groupId}/artifacts/{artifactId}"
+                            + "/mcp-import/status").build(groupId, artifactId))
+                    .build();
+        }
+        return Response.ok(mcpToolImportHandler.get().importTools(groupId, artifactId, data)).build();
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v3.GroupsResource#getMcpToolImportStatus(java.lang.String, java.lang.String)
+     */
+    @Override
+    @MethodMetadata(extractParameters = {"0", MPK_GROUP_ID, "1", MPK_ARTIFACT_ID})
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
+    public McpToolImportJobStatus getMcpToolImportStatus(String groupId, String artifactId) {
+        ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
+        ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
+        if (!mcpToolImportHandler.isResolvable()) {
+            throw new ConflictException("Importing tools from MCP servers is not available.");
+        }
+        return mcpToolImportHandler.get().getImportStatus(groupId, artifactId);
     }
 
     /**

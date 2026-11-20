@@ -25,8 +25,13 @@ import jakarta.inject.Inject;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -83,10 +88,21 @@ public class GrantsAuthorizationTest extends AbstractResourceTestBase {
         }
 
         private static String grantsFilePath() {
+            String resource = "grants/access-rules-auth-test.acl";
             try {
-                return Path.of(GrantsAuthorizationTest.class.getClassLoader()
-                        .getResource("grants/access-rules-auth-test.acl").toURI()).toString();
-            } catch (URISyntaxException e) {
+                URI uri = GrantsAuthorizationTest.class.getClassLoader().getResource(resource).toURI();
+                if ("file".equals(uri.getScheme())) {
+                    return Path.of(uri).toString();
+                }
+                // Read from the app test-jar by tests in other modules
+                Path copy = Files.createTempFile("access-rules-auth-test", ".acl");
+                copy.toFile().deleteOnExit();
+                try (InputStream in = GrantsAuthorizationTest.class.getClassLoader()
+                        .getResourceAsStream(resource)) {
+                    Files.copy(in, copy, StandardCopyOption.REPLACE_EXISTING);
+                }
+                return copy.toString();
+            } catch (URISyntaxException | IOException e) {
                 throw new IllegalStateException(e);
             }
         }
@@ -426,71 +442,5 @@ public class GrantsAuthorizationTest extends AbstractResourceTestBase {
         as("bob1").get("/iceberg/v1/default/namespaces").then().statusCode(200)
                 .body("namespaces.flatten()", hasItem(allowed))
                 .body("namespaces.flatten()", not(hasItem(TEAM_B)));
-    }
-
-    // ==================== MCP Registry API ====================
-
-    @Test
-    public void mcpPublishRequiresWriteGrantOnTheServerName() {
-        String suffix = UUID.randomUUID().toString().replace("-", "").substring(0, 8);
-        String allowed = "io.github.grantsa" + suffix + "/weather";
-        String denied = "io.github.grantsb" + suffix + "/weather";
-
-        as("bob1").contentType(CT_JSON).body(serverJson(allowed)).post("/mcp-registry/v0.1/publish")
-                .then().statusCode(200);
-        as("bob1").contentType(CT_JSON).body(serverJson(denied)).post("/mcp-registry/v0.1/publish")
-                .then().statusCode(403);
-        as("bob2").get("/mcp-registry/v0.1/servers").then().statusCode(200)
-                .body("servers.server.name", not(hasItem(allowed)));
-    }
-
-    @Test
-    public void ownerOnlyAuthorizationAppliesToBodyAddressedTargets() {
-        // bob1 and bob2 both hold write grants on io.github.shared*, but only the owner may publish
-        String name = "io.github.shared" + UUID.randomUUID().toString().replace("-", "").substring(0, 8) + "/w";
-
-        as("bob1").contentType(CT_JSON).body(serverJson(name, "1.0.0")).post("/mcp-registry/v0.1/publish")
-                .then().statusCode(200);
-        as("bob2").contentType(CT_JSON).body(serverJson(name, "2.0.0")).post("/mcp-registry/v0.1/publish")
-                .then().statusCode(403);
-        as("bob1").contentType(CT_JSON).body(serverJson(name, "2.0.0")).post("/mcp-registry/v0.1/publish")
-                .then().statusCode(200);
-    }
-
-    private static String serverJson(String name) {
-        return serverJson(name, "1.0.0");
-    }
-
-    private static String serverJson(String name, String version) {
-        return "{\"name\":\"" + name + "\",\"version\":\"" + version + "\",\"description\":\"Grants test\"}";
-    }
-
-    // ==================== Artifacts written by write hooks ====================
-
-    @Test
-    public void extractedSchemasAreSubjectToOwnerOnlyAuthorization() {
-        String model = "owner-model-" + UUID.randomUUID().toString().substring(0, 8);
-        String schema = model + "-input-schema";
-        String path = "/registry/v3/groups/" + TEAM_A + "/artifacts";
-        // alice owns the schema artifact the model's embedded input schema would be written to
-        as("alice").contentType(CT_JSON).body(Map.of("artifactId", schema, "artifactType", "JSON", "firstVersion",
-                Map.of("content", Map.of("content", "{\"type\":\"string\",\"description\":\"ADMIN\"}",
-                        "contentType", CT_JSON))))
-                .post(path).then().statusCode(200);
-        as("bob1").contentType(CT_JSON).body(Map.of("artifactId", model, "artifactType", "MODEL_SCHEMA",
-                "firstVersion", Map.of("content", Map.of("content", "{\"name\":\"M\"}", "contentType", CT_JSON))))
-                .post(path).then().statusCode(200);
-
-        String withInput = "{\"name\":\"M\",\"input\":{\"type\":\"object\","
-                + "\"properties\":{\"p\":{\"type\":\"integer\",\"description\":\"OWNER-BYPASS\"}}}}";
-        as("bob1").contentType(CT_JSON).body(Map.of("content", Map.of("content", withInput, "contentType", CT_JSON)))
-                .post(path + "/" + schema + "/versions").then().statusCode(403);
-        as("bob1").contentType(CT_JSON).body(Map.of("content", Map.of("content", withInput, "contentType", CT_JSON)))
-                .post(path + "/" + model + "/versions").then().statusCode(403);
-
-        as("alice").get(path + "/" + schema + "/versions").then().statusCode(200).body("count", equalTo(1));
-        as("alice").get(path + "/" + schema + "/versions/branch=latest/content").then().statusCode(200)
-                .body("description", equalTo("ADMIN"));
-        as("alice").get(path + "/" + model + "/versions").then().statusCode(200).body("count", equalTo(1));
     }
 }

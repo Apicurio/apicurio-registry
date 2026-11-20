@@ -24,6 +24,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * {@code io.apicurio.registry.agents..} and may use core freely; core may reach it only through the
  * extension points in {@code io.apicurio.registry.extensions} and the ServiceLoader-based artifact type
  * registry, never by referencing an agent class.
+ * <p>
+ * Agent code lives in the agents module, which depends on the app module, so Maven already rejects a
+ * compile-time reference from app to agent classes. This test runs in the agents module so that it sees
+ * core and agent classes together on one classpath, and keeps catching references Maven cannot see.
  */
 class AgentsBoundaryTest {
 
@@ -36,6 +40,8 @@ class AgentsBoundaryTest {
     static void importClasses() {
         registryClasses = new ClassFileImporter()
                 .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
+                // The app test-jar, when resolved from the local repository rather than target/test-classes
+                .withImportOption(location -> !location.contains("-tests.jar"))
                 .importPackages("io.apicurio.registry");
     }
 
@@ -56,9 +62,9 @@ class AgentsBoundaryTest {
      */
     @Test
     void coreSourceDoesNotReferenceAgents() throws IOException {
-        Path sources = Path.of("src", "main", "java");
+        Path sources = Path.of("..", "app", "src", "main", "java");
         Path agents = sources.resolve(Path.of("io", "apicurio", "registry", "agents"));
-        assertTrue(Files.isDirectory(sources), "run from the app module: " + sources.toAbsolutePath());
+        assertTrue(Files.isDirectory(sources), "run from the agents module: " + sources.toAbsolutePath());
 
         List<String> violations = new ArrayList<>();
         try (Stream<Path> files = Files.walk(sources)) {

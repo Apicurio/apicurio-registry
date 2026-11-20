@@ -201,7 +201,7 @@ jobs:
       - name: Maven Install
         run: |
           cd registry
-          mvn $MVN_SETTINGS install -pl app,cli,mcp,operator/controller -am -Pprod -Dfull -DskipTests \
+          mvn $MVN_SETTINGS install -pl quarkus-app,cli,mcp,operator/controller -am -Pprod -Dfull -DskipTests \
             -DcliSkipNative -Dmaven.javadoc.skip=true --no-transfer-progress
 
       # One tree per shipped component, each generated from its own module POM so it
@@ -231,7 +231,7 @@ jobs:
             echo "Generated $(basename "$OUT") ($(wc -c < "$OUT") bytes)"
           }
 
-          generate_sbom app/pom.xml                   app
+          generate_sbom quarkus-app/pom.xml           app
           generate_sbom cli/pom.xml                   cli
           generate_sbom mcp/pom.xml                   mcp-server
           generate_sbom operator/controller/pom.xml   operator

@@ -18,6 +18,10 @@ class McpRegistryExperimentalStartupTest {
     static final QuarkusUnitTest APP = new QuarkusUnitTest()
             .withApplicationRoot(jar -> jar.addClasses(ExperimentalFeaturesConfig.class,
                     LoggerProducer.class, McpRegistryConfig.class))
+            // The app module is a dependency of this one: keep it off the classpath, as its classes were
+            // when this test ran in the app module, so only the classes added above are deployed.
+            .overrideConfigKey("quarkus.class-loading.removed-artifacts",
+                    "io.apicurio:apicurio-registry-app,io.apicurio:apicurio-registry-app:tests")
             .overrideConfigKey("quarkus.devservices.enabled", "false")
             .overrideConfigKey("quarkus.oidc.enabled", "false")
             .overrideConfigKey("apicurio.features.experimental.enabled", "false")

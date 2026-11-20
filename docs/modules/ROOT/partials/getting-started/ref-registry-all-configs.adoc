@@ -571,6 +571,16 @@ The following {registry} configuration options are available for each component 
 |`120`
 |`3.3.0`
 |Timeout for the sidecar to fetch a git ref during dry-run validation, in seconds. _(experimental)_
+|`apicurio.gitops.validate.grace-period.seconds`
+|`int`
+|`5`
+|`3.4.0`
+|Grace period in seconds before a replica starts validation for a task ID it did not create, giving the replica that created it a chance to finish first. If you cannot configure session affinity, or see too much repeated validation work across replicas, increase it. The cost: if the replica that created the task is lost, the result arrives up to this many seconds later. Keep it well below how long your clients wait for a result, such as the CLI's --timeout (300 seconds by default). _(experimental)_
+|`apicurio.gitops.validate.hmac-key`
+|`optional<string>`
+|
+|`3.4.0`
+|Shared HMAC key for signing self-describing validation task IDs. Required for multi-replica deployments so all replicas can verify each other's task IDs. If unset, a random key is generated at startup (single-replica only). _(experimental)_
 |`apicurio.gitops.validate.max-tasks`
 |`int`
 |`5`

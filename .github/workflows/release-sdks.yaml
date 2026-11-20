@@ -107,7 +107,9 @@ jobs:
 
       - name: Build Package
         working-directory: registry/python-sdk
-        run: poetry build
+        run: |
+          make build
+          make verify-wheel
 
       - name: Publish to PyPI
         working-directory: registry/python-sdk

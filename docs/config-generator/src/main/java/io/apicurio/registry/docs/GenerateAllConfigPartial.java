@@ -345,6 +345,7 @@ public class GenerateAllConfigPartial {
         // TODO: include all the relevant jars, to be determined
         // Extract configuration from Jandex
         extractConfigurations(baseDir + "/../app/target/apicurio-registry-app-" + currentVersion + ".jar", allConfiguration);
+        extractConfigurations(baseDir + "/../agents/target/apicurio-registry-agents-" + currentVersion + ".jar", allConfiguration);
 
         // TODO
         // How to handle dynamic RegistryProperties -> we can scan but the configuration is dynamic after it ...

@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>io.apicurio</groupId>
+    <artifactId>apicurio-registry</artifactId>
+    <version>3.4.0-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>apicurio-registry-quarkus-app</artifactId>
+  <packaging>jar</packaging>
+  <name>Registry :: Quarkus App</name>
+  <description>Assembles the runnable registry (target/quarkus-app) and its distribution archives from the
+    app and agents modules. Holds no code of its own.</description>
+
+  <properties>
+    <projectRoot>${project.basedir}/..</projectRoot>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-app</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-agents</artifactId>
+    </dependency>
+    <!-- Same override as in app: the Quarkus BOM manages an older snakeyaml, which would win
+         here because the app module only brings it in transitively. Any direct version pin added to
+         app or agents (rather than to the root dependencyManagement) must be repeated here, or the
+         packaged quarkus-app-dependencies.txt silently changes. -->
+    <dependency>
+      <groupId>org.yaml</groupId>
+      <artifactId>snakeyaml</artifactId>
+      <version>${snakeyaml.version}</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>io.quarkus</groupId>
+        <artifactId>quarkus-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <goals>
+              <goal>build</goal>
+            </goals>
+          </execution>
+          <!-- Second build producing a Quarkus "mutable-jar" (re-augmentable) distribution in
+               target/mutable/quarkus-app. It is the basis of the "-mutable" container image, which
+               lets deployers add Java providers for custom artifact types (jars dropped into
+               quarkus-app/providers) without rebuilding the registry. Enabled by -Dfull.
+               NOTE: do not set quarkus.package.output-directory here - plugin properties are recorded
+               in quarkus/build-system.properties and replayed at re-augmentation time. -->
+          <execution>
+            <id>build-mutable</id>
+            <goals>
+              <goal>build</goal>
+            </goals>
+            <configuration>
+              <skip>${apicurio.mutable-jar.skip}</skip>
+              <bootstrapId>mutable</bootstrapId>
+              <buildDir>${project.build.directory}/mutable</buildDir>
+              <properties>
+                <quarkus.package.jar.type>mutable-jar</quarkus.package.jar.type>
+                <quarkus.package.jar.user-providers-directory>providers</quarkus.package.jar.user-providers-directory>
+              </properties>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <executions>
+          <!-- The archive names keep the historical apicurio-registry-app prefix, which the docker
+               build and the release workflow consume. -->
+          <execution>
+            <id>assembly</id>
+            <goals>
+              <goal>single</goal>
+            </goals>
+            <phase>package</phase>
+            <configuration>
+              <finalName>apicurio-registry-app-${project.version}</finalName>
+              <attach>true</attach>
+              <descriptors>
+                <descriptor>src/main/assembly/assembly.xml</descriptor>
+              </descriptors>
+              <archiverConfig>
+                <defaultDirectoryMode>0755</defaultDirectoryMode>
+              </archiverConfig>
+              <tarLongFileMode>${tar.long.file.mode}</tarLongFileMode>
+            </configuration>
+          </execution>
+          <!-- Tarball of the mutable-jar distribution (see build-mutable above); not attached/deployed -->
+          <execution>
+            <id>assembly-mutable</id>
+            <goals>
+              <goal>single</goal>
+            </goals>
+            <phase>package</phase>
+            <configuration>
+              <skipAssembly>${apicurio.mutable-jar.skip}</skipAssembly>
+              <finalName>apicurio-registry-app-${project.version}</finalName>
+              <attach>false</attach>
+              <descriptors>
+                <descriptor>src/main/assembly/assembly-mutable.xml</descriptor>
+              </descriptors>
+              <archiverConfig>
+                <defaultDirectoryMode>0755</defaultDirectoryMode>
+              </archiverConfig>
+              <tarLongFileMode>${tar.long.file.mode}</tarLongFileMode>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

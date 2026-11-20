@@ -23,9 +23,9 @@ REPO = Path(__file__).resolve().parents[2]
 APP_TESTS = REPO / "app/src/test/java"
 WORKFLOW = REPO / ".github/workflows/verify-unit-tests.yaml"
 
-# The 'non-app' shard selects by Maven -pl, not by -Dtest, so it is not part of
-# the app-module partition.
-NON_APP_SHARD = "non-app"
+# The 'non-app' and 'agents*' shards select by Maven -pl, not by -Dtest, so they
+# are not part of the app-module partition.
+NON_APP_SHARDS = {"non-app", "agents", "agents-other"}
 
 
 def is_surefire_name(stem):
@@ -94,7 +94,7 @@ def parse_shards():
                 value = value[len("-Dtest="):]
             shards.append((name, value))
             name = None
-    return [s for s in shards if s[0] != NON_APP_SHARD]
+    return [s for s in shards if s[0] not in NON_APP_SHARDS]
 
 
 def main():

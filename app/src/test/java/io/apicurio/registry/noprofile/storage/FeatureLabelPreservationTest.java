@@ -22,7 +22,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class FeatureLabelPreservationTest extends AbstractResourceTestBase {
 
     protected static final String CONTRACT_STATUS = "contract.status";
-    private static final String MCP_STATUS_MESSAGE = "apicurio.mcp-registry.status.message";
     private static final String VISIBILITY = "apicurio.agent.visibility";
     private static final String SCHEMA = "{\"type\":\"object\"}";
 
@@ -123,26 +122,6 @@ public class FeatureLabelPreservationTest extends AbstractResourceTestBase {
         putArtifactLabels(artifactId, Map.of());
 
         assertEquals(Map.of(), artifactLabels(artifactId));
-    }
-
-    @Test
-    void versionUpdateKeepsAnOmittedFeatureLabel() throws Exception {
-        String artifactId = newArtifact();
-        String path = "/registry/v3/groups/{g}/artifacts/{a}/versions/1";
-        given().contentType(ContentType.JSON).body(Map.of("labels", Map.of(MCP_STATUS_MESSAGE, "moved", "x", "1")))
-                .put(path, group, artifactId).then().statusCode(204);
-
-        given().contentType(ContentType.JSON).body(Map.of("labels", Map.of("x", "2")))
-                .put(path, group, artifactId).then().statusCode(204);
-
-        assertEquals(Map.of(MCP_STATUS_MESSAGE, "moved", "x", "2"),
-                labelsAt("/registry/v3/groups/" + group + "/artifacts/" + artifactId + "/versions/1"));
-
-        given().contentType(ContentType.JSON).body(Map.of("labels", Map.of(MCP_STATUS_MESSAGE, "back")))
-                .put(path, group, artifactId).then().statusCode(204);
-
-        assertEquals(Map.of(MCP_STATUS_MESSAGE, "back"),
-                labelsAt("/registry/v3/groups/" + group + "/artifacts/" + artifactId + "/versions/1"));
     }
 
     @Test

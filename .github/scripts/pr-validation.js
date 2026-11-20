@@ -430,6 +430,46 @@ const UPGRADE_SCRIPTS_NOTE = 'If the change is intentional, for example a fix to
   + `been released yet, a maintainer can accept it by adding the \`${UPGRADE_CHANGE_APPROVED_LABEL}\` label `
   + 'and commenting `/retry`.';
 
+// Paths whose change is worth a compatibility reminder (#9235, #11388): see
+// docs/dev/compatibility.md for what each area's policy is. This is advisory
+// only, never blocking: a path match is not proof of a breaking change, and a
+// false positive here costs nothing more than an ignored comment, while a
+// false "this blocks merge" would.
+const COMPATIBILITY_RISK_PATHS = [
+  { prefix: 'common/src/main/resources/META-INF/openapi.json', reason: 'the REST API contract (openapi.json)' },
+  { prefix: 'operator/model/src/main/java/io/apicurio/registry/operator/api/v1/', reason: 'the operator CRD model' },
+  { prefix: SQL_RESOURCES_DIR, reason: 'the SQL schema' },
+];
+
+// A rough signal for a new or changed configuration property: an added line
+// (in the diff, so a line moved unchanged doesn't match) declaring
+// @ConfigProperty. This is deliberately a grep on the patch text, not a Java
+// parse, so it stays simple; it can false-positive on an unrelated change
+// elsewhere in the same hunk's context lines, which `patch` already excludes.
+const CONFIG_PROPERTY_PATTERN = /^\+.*@ConfigProperty\(/m;
+
+/**
+ * Advisory-only reminder that a change may need a compatibility label
+ * (type/breaking-change, type/deprecation) or an entry on the next upgrade
+ * page. Returns null when nothing matched, so it is only shown when relevant.
+ *
+ * Deliberately never blocking (#9235's sub-issue #4): a wrong guess here only
+ * costs an ignored comment, not a failed check on an unrelated change.
+ */
+function checkCompatibilityRisk(files) {
+  const reasons = new Set();
+  for (const file of files) {
+    const names = [file.filename, file.previous_filename].filter(Boolean);
+    for (const { prefix, reason } of COMPATIBILITY_RISK_PATHS) {
+      if (names.some(n => n.startsWith(prefix))) reasons.add(reason);
+    }
+    if (file.patch && CONFIG_PROPERTY_PATTERN.test(file.patch)) {
+      reasons.add('a new or changed `@ConfigProperty`');
+    }
+  }
+  return reasons.size > 0 ? [...reasons] : null;
+}
+
 async function findDuplicates(github, owner, repo, pr, linkedIssues, config, core, prFiles) {
   const openPrs = await github.paginate(github.rest.pulls.list, {
     owner, repo, state: 'open', base: pr.base.ref, per_page: 100,
@@ -469,7 +509,7 @@ async function findDuplicates(github, owner, repo, pr, linkedIssues, config, cor
   return { byIssue, byFile };
 }
 
-function buildComment(pr, items, duplicates) {
+function buildComment(pr, items, duplicates, compatibilityRisk) {
   const lines = [COMMENT_MARKER, '## PR validation', ''];
   const blocking = items.filter(isBlocking);
 
@@ -501,6 +541,15 @@ function buildComment(pr, items, duplicates) {
     lines.push('The check re-runs on its own when you push or edit the description, '
       + 'and when a maintainer sets a milestone on this PR or on an issue it closes. '
       + 'To re-run it by hand, comment `/retry`. This does not close your PR.', '');
+  }
+
+  if (compatibilityRisk && compatibilityRisk.length > 0) {
+    lines.push('### Compatibility risk', '',
+      'This PR touches: ' + compatibilityRisk.join(', ') + '. '
+      + 'This is advisory only and does not affect the check result.', '',
+      'If this changes behavior users or operators can notice, consider: labeling the linked issue '
+      + '`type/breaking-change` or `type/deprecation`, and adding an entry to the next version\'s upgrade page. '
+      + 'See `docs/dev/compatibility.md` and `.claude/rules/upgrade-impact.md`.', '');
   }
 
   const { byIssue, byFile } = duplicates;
@@ -638,8 +687,10 @@ async function validate({ github, context, core }) {
     core.warning(`Duplicate detection failed, continuing without it: ${e.message}`);
   }
 
+  const compatibilityRisk = checkCompatibilityRisk(files);
+
   await upsertComment(github, owner, repo, pr.number,
-    buildComment(pr, items, duplicates), COMMENT_MARKER, core);
+    buildComment(pr, items, duplicates, compatibilityRisk), COMMENT_MARKER, core);
   await setFailedLabel(github, owner, repo, pr, violations.length > 0, core);
 
   try {
@@ -724,4 +775,5 @@ module.exports = {
   checkDcoSignOff,
   checkMilestone,
   checkUpgradeScripts,
+  checkCompatibilityRisk,
 };

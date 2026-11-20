@@ -98,6 +98,27 @@ public abstract class AbstractResource {
         return toSubjectWithGroupConcat(dto.getGroupId(), dto.getArtifactId());
     }
 
+    /**
+     * Returns the format to apply to a schema. If the client did not provide a format and
+     * {@code apicurio.rest.artifact.references.default-handling} is set to DEREFERENCE, Avro and
+     * JSON Schema default to the "resolved" format so that references are inlined. Protobuf has no
+     * "resolved" format, so it is returned as stored rather than failing on a format the client
+     * never asked for.
+     */
+    protected String resolveEffectiveFormat(String format, String artifactType) {
+        if (format != null && !format.isBlank()) {
+            return format;
+        }
+        boolean dereference = restConfig.getDefaultReferenceHandling()
+                .map(String::trim)
+                .filter("DEREFERENCE"::equalsIgnoreCase)
+                .isPresent();
+        if (dereference && (ArtifactType.AVRO.equals(artifactType) || ArtifactType.JSON.equals(artifactType))) {
+            return SchemaFormatService.FORMAT_RESOLVED;
+        }
+        return format;
+    }
+
     private Pair<String, String> toGAFromGroupConcatSubject(String subject) {
         int sepIdx = subject.indexOf(cconfig.groupConcatSeparator);
         if (sepIdx < 1) {

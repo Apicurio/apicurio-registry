@@ -75,7 +75,7 @@ These environment variables configure the feature and file path only; they do no
 .Verification
 * Use an authenticated caller whose role permits the operation, who is not an administrator, and who does not own the target. Confirm an allowed read succeeds and a denied read returns `403` with an `authz.denied` entry in `io.apicurio.registry.audit.authz`. If an earlier RBAC or OBAC check rejects the request, there might be no ACL audit entry.
 * Search as the same caller and check both the visible artifact IDs and the filtered count. Use exact or prefix rules for this check.
-* If testing anonymous access, enable anonymous reads and add an explicit `$anonymous` role rule. An anonymous point read denied by the interceptor returns `401`, not `403`.
+* If testing anonymous access, enable anonymous reads and add an explicit `anonymous User` rule. An anonymous point read denied by the interceptor returns `401`, not `403`.
 
 // ref-resource-authorization-configuration
 [id="resource-authorization-configuration_{context}"]
@@ -146,7 +146,7 @@ The format is the Kroxylicious ACL rules format, described in https://github.com
 * `User with name ...` matches the authenticated user name. `Role with name ...` matches a role of the user, for example a role from the identity provider.
 * `deny` rules must come before `allow` rules, and the file must end with `otherwise deny;`. Lines starting with `//` are comments.
 
-User and role principals are different types: a user named `ops` does not match a role named `ops`. ACL role principals come from the authenticated security identity's roles. RBAC can use a different role source (token, application, header, or Kubernetes), so verify both mappings when using a non-default RBAC role source. With the pinned Kroxylicious 0.25.1 parser, use the `$anonymous` role instead of the proposal's `anonymous User` syntax, and use `//` rather than block comments.
+User and role principals are different types: a user named `ops` does not match a role named `ops`. ACL role principals come from the authenticated security identity's roles. RBAC can use a different role source (token, application, header, or Kubernetes), so verify both mappings when using a non-default RBAC role source. For unauthenticated callers, write `anonymous User` in place of `User with name ...`; only those rules apply to them, and they apply to no authenticated caller. Both `//` line comments and `/* */` block comments are supported.
 
 You select names with the following selectors:
 
@@ -168,7 +168,7 @@ You select names with the following selectors:
 |every name
 
 |`with name matching /regex/`
-|names that fully match the regular expression (RE2 syntax). Resources only. A backslash inside the expression is removed, so `/a\.b/` is the expression `a.b`.
+|names that fully match the regular expression (RE2 syntax). Resources only. Write `\/` for a slash and `\\` for a backslash; any other backslash is part of the expression, so `/a\.b/` matches only `a.b`.
 |===
 
 {registry} validates the file as a whole. A syntax error, an unknown type, principal, or operation, an invalid regular expression, or a rule for a resource type that {registry} does not enforce (such as a Kroxylicious `Topic`) rejects the file: {registry} does not start, or keeps the previous rules on reload.
@@ -426,11 +426,11 @@ The creator of an artifact becomes its owner, but creating it requires `write` o
 These settings skip the RBAC check for reads; per-resource authorization still applies:
 
 * With `apicurio.auth.authenticated-read-access.enabled`, authenticated callers skip the read-role check, even without a Registry role. Resource rules and their applicable bypasses still decide access; write/admin role checks are unchanged.
-* With `apicurio.auth.anonymous-read-access.enabled`, unauthenticated callers get the role `$anonymous`. They can read only what the rules allow to that role, for example:
+* With `apicurio.auth.anonymous-read-access.enabled`, unauthenticated callers can read only what `anonymous User` rules allow, for example:
 +
 [source]
 ----
-allow Role with name = "$anonymous" to READ Artifact with name like "public/*";
+allow anonymous User to READ Artifact with name like "public/*";
 ----
 +
 An anonymous point read denied by the interceptor returns `401`. Indirect checks after that gate, such as a denied referenced artifact while dereferencing, can return `403`. This artifact rule alone does not allow reading or listing the `public` group itself; add a `READ Group` rule if that is required.
@@ -513,7 +513,7 @@ Check the following conditions:
 * Whether the user is an RBAC administrator, or has a role to which the rules allow every operation.
 * Whether authentication is enabled, admin override applies, or a trusted proxy-header request bypasses local authorization.
 * Whether the user owns the resources. See `apicurio.auth.resource-based-authorization.owner-bypass.enabled`.
-* For unauthenticated callers, what the rules allow the `$anonymous` role.
+* For unauthenticated callers, what the `anonymous User` rules allow.
 * Whether a `READ` deny is expected to hide the resource. A `READ` deny does not block writes; use `*` to hide a resource.
 
 **{registry} does not start**

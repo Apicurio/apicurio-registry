@@ -46,7 +46,7 @@ services:
       QUARKUS_OIDC_TOKEN_ISSUER: "any"
       # Coarse-grained RBAC from Keycloak roles (access rules restrict within what RBAC allows)
       apicurio.auth.role-based-authorization: "true"
-      # Unauthenticated reads are allowed, but only for what the rules allow to the "$anonymous" role
+      # Unauthenticated reads are allowed, but only for what the "anonymous User" rules allow
       apicurio.auth.anonymous-read-access.enabled: "true"
       apicurio.auth.resource-based-authorization.enabled: "true"
       apicurio.auth.resource-based-authorization.rules.path: "/opt/apicurio/authz/access.rules"

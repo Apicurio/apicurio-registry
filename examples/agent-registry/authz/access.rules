@@ -15,7 +15,7 @@ allow User with name = "developer" to READ Group with name = "team-b";
 allow User with name = "developer" to READ Artifact with name like "team-b/*";
 
 // unauthenticated callers can read the public agent only
-allow Role with name = "$anonymous" to READ Group with name = "agents";
-allow Role with name = "$anonymous" to READ Artifact with name = "agents/public-agent";
+allow anonymous User to READ Group with name = "agents";
+allow anonymous User to READ Artifact with name = "agents/public-agent";
 
 otherwise deny;

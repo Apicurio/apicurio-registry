@@ -164,10 +164,10 @@ export const ArtifactUsageTabContent: FunctionComponent<ArtifactUsageTabContentP
                                                 );
                                             })}
                                             <Td style={{ textAlign: "center" }}>
-                                                {consumer.driftAlert ? (
-                                                    <Label color="red">{consumer.versionsBehind} behind</Label>
-                                                ) : (
+                                                {consumer.versionsBehind === 0 ? (
                                                     <Label color="green">Current</Label>
+                                                ) : (
+                                                    <Label color={consumer.driftAlert ? "red" : "orange"}>{consumer.versionsBehind} behind</Label>
                                                 )}
                                             </Td>
                                         </Tr>

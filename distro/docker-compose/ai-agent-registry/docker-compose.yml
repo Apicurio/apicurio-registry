@@ -30,12 +30,9 @@ services:
       APICURIO_DATASOURCE_PASSWORD: registry-demo-only
       # The agent features are experimental and need this gate.
       APICURIO_FEATURES_EXPERIMENTAL_ENABLED: "true"
-      APICURIO_A2A_ENABLED: "true"
-      APICURIO_AI_CATALOG_ENABLED: "true"
-      APICURIO_ARD_ENABLED: "true"
-      APICURIO_MCP_TOOLS_ENABLED: "true"
-      APICURIO_MCP_REGISTRY_ENABLED: "true"
-      APICURIO_UI_FEATURES_AGENTS_ENABLED: "true"
+      # All the agent discovery features: A2A, MCP tools, the MCP Registry API, the AI Catalog,
+      # ARD and the web console's Agents tab. Importing tools is separate (below).
+      APICURIO_AGENTS_ENABLED: "true"
       # Importing tools from a running MCP server: only from the demo server in this stack, over
       # plain HTTP because it runs on this private network.
       APICURIO_MCP_IMPORT_ENABLED: "true"

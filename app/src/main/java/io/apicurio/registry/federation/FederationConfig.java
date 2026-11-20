@@ -27,12 +27,12 @@ public class FederationConfig {
     @Info(category = CATEGORY_FEDERATION, description = "Enable federation with peer registries, including the peer management API", availableSince = "3.4.0", experimental = true)
     boolean enabled;
 
-    @ConfigProperty(name = "apicurio.federation.peer.insecure-http.enabled", defaultValue = "false")
-    @Info(category = CATEGORY_FEDERATION, description = "Allow peer registry URLs that use plain HTTP instead of HTTPS. Server-wide: applies to every peer, whether created through the admin API or loaded declaratively", availableSince = "3.4.0")
+    @ConfigProperty(name = "apicurio.federation.peer.insecure-http.enabled")
+    @Info(category = CATEGORY_FEDERATION, description = "Allow peer registry URLs that use plain HTTP instead of HTTPS. Server-wide: applies to every peer, whether created through the admin API or loaded declaratively. Defaults to apicurio.outbound.insecure-http.enabled", availableSince = "3.4.0")
     boolean insecureHttpEnabled;
 
-    @ConfigProperty(name = "apicurio.federation.peer.loopback.enabled", defaultValue = "false")
-    @Info(category = CATEGORY_FEDERATION, description = "Allow peer registry URLs that point at a loopback address or a localhost name, for development and tests. Server-wide: applies to every peer, whether created through the admin API or loaded declaratively", availableSince = "3.4.0")
+    @ConfigProperty(name = "apicurio.federation.peer.loopback.enabled")
+    @Info(category = CATEGORY_FEDERATION, description = "Allow peer registry URLs that point at a loopback address or a localhost name, for development and tests. Server-wide: applies to every peer, whether created through the admin API or loaded declaratively. Defaults to apicurio.outbound.loopback.enabled", availableSince = "3.4.0")
     boolean loopbackEnabled;
 
     @ConfigProperty(name = "apicurio.federation.search.deadline-ms", defaultValue = "5000")

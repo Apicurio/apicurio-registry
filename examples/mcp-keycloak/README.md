@@ -132,6 +132,7 @@ server accept tokens fetched from the host or from inside the network alike.
 - *MCP server integration* in the Registry documentation
   ([source](../../docs/modules/ROOT/pages/getting-started/assembly-mcp-server-integration.adoc)):
   every property, HTTP/OAuth setup and client examples
-- [ADR-0014: agent registry](../../adr/0014-agent-registry.md) and
+- [ADR-0023: MCP server](../../adr/0023-mcp-server.md),
+  [ADR-0014: agent registry](../../adr/0014-agent-registry.md) and
   [ADR-0009: authentication](../../adr/0009-authentication.md)
 - [`authentication`](../authentication/): every way to authenticate to Registry

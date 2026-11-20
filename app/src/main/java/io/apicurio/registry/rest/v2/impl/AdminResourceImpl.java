@@ -12,6 +12,7 @@ import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.logging.audit.Audited;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
+import io.apicurio.registry.rest.DynamicConfigPropertyValidator;
 import io.apicurio.registry.rest.MethodMetadata;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.ParameterValidationUtils;
@@ -28,7 +29,6 @@ import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.RoleMappingDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.error.ConfigPropertyNotFoundException;
-import io.apicurio.registry.storage.error.InvalidPropertyValueException;
 import io.apicurio.registry.storage.error.RuleNotFoundException;
 import io.apicurio.registry.storage.importing.ImportExportConfigProperties;
 import io.apicurio.registry.types.RoleType;
@@ -52,6 +52,7 @@ import java.util.stream.Stream;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_FOR_BROWSER;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_NAME;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_PRINCIPAL_ID;
+import static io.apicurio.registry.rest.MethodParameterKeys.MPK_PROPERTY_CONFIGURATION;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_ROLE_MAPPING;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_RULE;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_RULE_TYPE;
@@ -76,6 +77,9 @@ public class AdminResourceImpl implements AdminResource {
 
     @Inject
     DynamicConfigPropertyIndex dynamicPropertyIndex;
+
+    @Inject
+    DynamicConfigPropertyValidator configPropertyValidator;
 
     @Inject
     ArtifactTypeUtilProviderFactory factory;
@@ -351,9 +355,11 @@ public class AdminResourceImpl implements AdminResource {
      */
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
+    @MethodMetadata(extractParameters = {"0", MPK_NAME, "1", MPK_PROPERTY_CONFIGURATION})
+    @Audited
     public void updateConfigProperty(String propertyName, UpdateConfigurationProperty data) {
         DynamicConfigPropertyDef propertyDef = resolveConfigProperty(propertyName);
-        validateConfigPropertyValue(propertyDef, data.getValue());
+        configPropertyValidator.validate(propertyDef, data.getValue());
 
         DynamicConfigPropertyDto dto = new DynamicConfigPropertyDto();
         dto.setName(propertyName);
@@ -439,20 +445,6 @@ public class AdminResourceImpl implements AdminResource {
             throw new ConfigPropertyNotFoundException(propertyName);
         }
         return property;
-    }
-
-    /**
-     * Ensure that the value being set on the given property is value for the property type. For example, this
-     * should fail
-     *
-     * @param propertyDef the dynamic config property definition
-     * @param value the config property value
-     */
-    private void validateConfigPropertyValue(DynamicConfigPropertyDef propertyDef, String value) {
-        if (!propertyDef.isValidValue(value)) {
-            throw new InvalidPropertyValueException(
-                    "Invalid dynamic configuration property value for: " + propertyDef.getName());
-        }
     }
 
 }

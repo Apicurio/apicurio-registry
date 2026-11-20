@@ -259,6 +259,29 @@ public class AuthorizationFilterStorageTest extends AbstractResourceTestBase {
         assertEquals(Set.of(), searchArtifacts(filter));
     }
 
+    /**
+     * No stored ID can contain a non-ASCII character on MySQL, whose ID columns are ASCII: a rule naming
+     * one matches nothing, instead of failing the query.
+     */
+    @Test
+    void nonAsciiRuleNamesMatchNothing() {
+        AuthorizationFilter allowExact = allow(Set.of(P + "a/\u00e9"), Set.of());
+        AuthorizationFilter allowPrefix = allow(Set.of(), Set.of(P + "\u00e9/"));
+        AuthorizationFilter denyExact = new AuthorizationFilter(false, Set.of(), Set.of(P + "a/"),
+                Set.of(P + "a/\u00e9"), Set.of(), null);
+        AuthorizationFilter denyPrefix = new AuthorizationFilter(false, Set.of(), Set.of(P + "a/"), Set.of(),
+                Set.of(P + "\u00e9"), null);
+
+        for (AuthorizationFilter filter : List.of(allowExact, allowPrefix, denyExact, denyPrefix)) {
+            assertArtifactsMatchReference(filter);
+        }
+        assertEquals(Set.of(), searchArtifacts(allowExact));
+        assertEquals(Set.of(), searchArtifacts(allowPrefix));
+        Set<String> groupA = Set.of(key(P + "a", "x"), key(P + "a", "secret-1"), key(P + "a", "b/c"));
+        assertEquals(groupA, searchArtifacts(denyExact));
+        assertEquals(groupA, searchArtifacts(denyPrefix));
+    }
+
     @Test
     void nothingAllowedMatchesNothing() {
         assertEquals(Set.of(), searchArtifacts(allow(Set.of(), Set.of())));

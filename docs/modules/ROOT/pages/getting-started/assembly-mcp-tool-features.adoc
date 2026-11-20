@@ -68,7 +68,7 @@ You can configure MCP tool features by using the following configuration propert
 |Property |Default |Description
 
 |`apicurio.mcp-tools.enabled`
-|`false`
+|Value of `apicurio.agents.enabled`, `false` by default
 |Enables or disables MCP tool definition support (experimental)
 
 |`apicurio.features.experimental.enabled`
@@ -83,6 +83,9 @@ To enable MCP tool support, set both properties:
 apicurio.features.experimental.enabled=true
 apicurio.mcp-tools.enabled=true
 ----
+
+TIP: To enable all the agent registry discovery features at once (A2A, MCP tools, the MCP Registry API, the AI Catalog, ARD, and the web console's *Agents* tab), set `apicurio.features.experimental.enabled=true` and `apicurio.agents.enabled=true`. A feature's own property, such as `apicurio.a2a.enabled`, still takes precedence, so you can turn a single feature off. Features that connect to other servers, such as importing tools from MCP servers, are not included and must be enabled separately.
+
 
 // ref-mcp-tool-definition-schema
 [id="mcp-tool-definition-schema_{context}"]
@@ -562,9 +565,9 @@ The new server version references exactly the imported tools. References that yo
 
 The registry applies the following restrictions before and while it connects to the MCP server:
 
-* The URL must use HTTPS, unless `apicurio.mcp-import.insecure-http.enabled=true`, and must not contain user information.
+* The URL must use HTTPS, unless `apicurio.mcp-import.insecure-http.enabled=true` (which defaults to `apicurio.outbound.insecure-http.enabled`, shared with federation), and must not contain user information.
 * The host must be allowed by `apicurio.mcp-import.allowed-hosts`. Each entry is a hostname (`mcp.example.com`), a domain wildcard (`*.example.com`, which does not match `example.com`), `*` for any host, an IP address, or a CIDR range (`10.0.0.0/8`). A CIDR entry allows a host when every address the host resolves to is in a listed range.
-* Every address that the host resolves to must not be a loopback, link-local, unspecified, multicast, reserved, or cloud metadata address, even when the allow-list permits the host. Loopback is allowed only with `apicurio.mcp-import.loopback.enabled=true`, for development and tests.
+* Every address that the host resolves to must not be a loopback, link-local, unspecified, multicast, reserved, or cloud metadata address, even when the allow-list permits the host. Loopback is allowed only with `apicurio.mcp-import.loopback.enabled=true` (which defaults to `apicurio.outbound.loopback.enabled`, shared with federation), for development and tests.
 * Redirects are never followed.
 * Each request times out after `apicurio.mcp-import.timeout.seconds`, and listing all the tools must finish within `apicurio.mcp-import.total-timeout.seconds`. Each message is limited to `apicurio.mcp-import.response.max-size` bytes, the listed tool definitions together to `apicurio.mcp-import.tools.max-total-size` bytes, and the number of tools to `apicurio.mcp-import.tools.max-size`.
 

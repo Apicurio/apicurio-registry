@@ -10,7 +10,6 @@ import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.auth.ResourceAccessGuard;
 import io.apicurio.registry.auth.RoleBasedAccessApiOperation;
-import io.apicurio.registry.config.ExperimentalFeaturesConfig;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.federation.FederationConfig;
 import io.apicurio.registry.federation.PeerAddressPolicy;
@@ -19,6 +18,7 @@ import io.apicurio.registry.logging.audit.Audited;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.ConflictException;
+import io.apicurio.registry.rest.DynamicConfigPropertyValidator;
 import io.apicurio.registry.rest.MethodMetadata;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.ParameterValidationUtils;
@@ -67,7 +67,6 @@ import io.apicurio.registry.storage.dto.DeprecationReadinessDto;
 import io.apicurio.registry.storage.dto.SchemaUsageSummaryDto;
 import io.apicurio.registry.storage.dto.UsageSummaryCountsDto;
 import io.apicurio.registry.storage.error.ConfigPropertyNotFoundException;
-import io.apicurio.registry.storage.error.InvalidPropertyValueException;
 import io.apicurio.registry.storage.error.RuleNotFoundException;
 import io.apicurio.registry.storage.impl.gitops.GitOpsConfig;
 import io.apicurio.registry.storage.impl.gitops.GitOpsRegistryStorage;
@@ -156,9 +155,6 @@ public class AdminResourceImpl implements AdminResource {
     DynamicConfigPropertyIndex dynamicPropertyIndex;
 
     @Inject
-    ExperimentalFeaturesConfig experimentalFeatures;
-
-    @Inject
     ArtifactTypeUtilProviderFactory factory;
 
     @Inject
@@ -171,7 +167,7 @@ public class AdminResourceImpl implements AdminResource {
     ImportExportConfigProperties importExportProps;
 
     @Inject
-    io.apicurio.registry.services.LogLevelValidator logLevelValidator;
+    DynamicConfigPropertyValidator configPropertyValidator;
 
     @Inject
     Instance<GitOpsRegistryStorage> gitOpsStorage;
@@ -700,11 +696,7 @@ public class AdminResourceImpl implements AdminResource {
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public void updateConfigProperty(String propertyName, UpdateConfigurationProperty data) {
         DynamicConfigPropertyDef propertyDef = resolveConfigProperty(propertyName);
-        validateConfigPropertyValue(propertyDef, data.getValue());
-        if (Boolean.parseBoolean(data.getValue()) && !experimentalFeatures.canEnable(propertyDef.getName())) {
-            throw new ConflictException("'" + propertyDef.getName() + "' is an experimental feature. Enable "
-                    + "'apicurio.features.experimental.enabled' to use it.");
-        }
+        configPropertyValidator.validate(propertyDef, data.getValue());
 
         DynamicConfigPropertyDto dto = new DynamicConfigPropertyDto();
         dto.setName(propertyName);
@@ -767,30 +759,6 @@ public class AdminResourceImpl implements AdminResource {
             throw new ConfigPropertyNotFoundException(propertyName);
         }
         return property;
-    }
-
-    /**
-     * Ensure that the value being set on the given property is value for the property type. For example, this
-     * should fail
-     *
-     * @param propertyDef the dynamic config property definition
-     * @param value the config property value
-     */
-    private void validateConfigPropertyValue(DynamicConfigPropertyDef propertyDef, String value) {
-        // Custom validation for log level property
-        if ("apicurio.log.level".equals(propertyDef.getName())) {
-            if (!logLevelValidator.isValidLogLevel(value)) {
-                throw new InvalidPropertyValueException(
-                        "Invalid log level value: " + value + ". Must be one of: TRACE, DEBUG, INFO, WARN, ERROR, OFF, ALL");
-            }
-            return;
-        }
-
-        // Default validation for other properties
-        if (!propertyDef.isValidValue(value)) {
-            throw new InvalidPropertyValueException(
-                    "Invalid dynamic configuration property value for: " + propertyDef.getName());
-        }
     }
 
     /**

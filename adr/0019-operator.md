@@ -8,8 +8,9 @@
 - **Scope:** How the operator turns an `ApicurioRegistry3` custom resource into a running registry:
   the CR, the dependent resources it creates and owns, the feature modules that wire storage,
   security and observability into them, status, CR migrations, and installation. Not covered: the
-  registry's own configuration (the other ADRs), and federation peers in the CR
-  ([ADR-0018](0018-federation.md), [#8578](https://github.com/Apicurio/apicurio-registry/issues/8578)).
+  registry's own configuration (the other ADRs), federation peers in the CR
+  ([ADR-0018](0018-federation.md), [#8578](https://github.com/Apicurio/apicurio-registry/issues/8578)),
+  and the web console and console plugin themselves ([ADR-0027](0027-web-console.md)).
 
 ## Context
 

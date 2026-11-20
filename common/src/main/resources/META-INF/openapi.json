@@ -7528,6 +7528,77 @@
         "operationId": "ardExplore",
         "summary": "ARD explore"
       }
+    },
+    "/groups/{groupId}/agent-inventory-sync": {
+      "summary": "Keep this group in sync with an inventory of agents or MCP servers.",
+      "post": {
+        "tags": [
+          "Groups",
+          "AI"
+        ],
+        "requestBody": {
+          "description": "The inventory source to read, and how.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentInventorySyncRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentInventorySyncResult"
+                }
+              }
+            },
+            "description": "The result of the sync, for each item."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The inventory source could not be reached, or its response could not be used."
+          }
+        },
+        "operationId": "syncAgentInventory",
+        "summary": "Sync agents and MCP servers from an inventory source",
+        "description": "**Experimental.** Reads the agents or MCP servers that an inventory source knows about, and keeps one artifact per item in this group: `MCP_SERVER` artifacts for `MCPServer` resources in Kubernetes (`mcp.x-k8s.io`), `AGENT_CARD` artifacts for `AgentCard` resources in Kubernetes and for agents registered in Google Cloud Agent Registry.\n\nEach item is published like any other version: configured rules apply, and a rejected item is reported as `REJECTED` with the violations. An item whose content is unchanged is reported as `UNCHANGED`. An artifact that an earlier sync of the same source and scope created, but that the source no longer lists, is reported as `MISSING` and its latest version is marked `DEPRECATED`; nothing is deleted. An existing artifact that the sync did not create is never changed and is reported as `NOT_MANAGED`. For MCP servers, `importTools` also imports each server's tools, as `mcp-import` does. With `dryRun`, nothing is written and the same report is returned.\n\nKubernetes sources read only the namespaces in `apicurio.agent-inventory.kubernetes.namespaces`. Headers in the request are sent to the inventory source only; they are not stored, returned or logged.\n\nThis operation can fail for the following reasons:\n\n* The inventory feature or the source is disabled, or the storage is read-only (HTTP error `409`)\n* The request is invalid, for example a namespace that is not allowed (HTTP error `400`)\n* The inventory source could not be reached or sent an invalid response (HTTP error `502`)\n* A server error occurred (HTTP error `500`)\n"
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \".{1,512}\" pattern.",
+          "schema": {
+            "$ref": "#/components/schemas/GroupId"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
     }
   },
   "components": {
@@ -11773,6 +11844,123 @@
           },
           "facets": {
             "$ref": "#/components/schemas/ArdFacets"
+          }
+        }
+      },
+      "AgentInventorySource": {
+        "description": "Where a sync reads its items.\n\n* `KUBERNETES_MCP_SERVERS` - `MCPServer` resources (`mcp.x-k8s.io`), as `MCP_SERVER` artifacts\n* `KUBERNETES_AGENT_CARDS` - `AgentCard` resources, as `AGENT_CARD` artifacts\n* `GOOGLE_AGENT_REGISTRY` - agents registered in Google Cloud Agent Registry, as `AGENT_CARD` artifacts\n",
+        "enum": [
+          "KUBERNETES_MCP_SERVERS",
+          "KUBERNETES_AGENT_CARDS",
+          "GOOGLE_AGENT_REGISTRY"
+        ],
+        "type": "string"
+      },
+      "AgentInventorySyncStatus": {
+        "description": "The outcome of a sync for one item.\n\n* `CREATED` - a new artifact was created\n* `UPDATED` - a new version was added to the artifact\n* `UNCHANGED` - the latest version already matches, or it is `DISABLED` and is left as it is\n* `REJECTED` - a rule rejected the item; nothing was stored\n* `MISSING` - the source no longer lists the item; the latest version was marked `DEPRECATED`\n* `NOT_MANAGED` - an artifact with this ID exists and was not created by this sync; it was not changed\n",
+        "enum": [
+          "CREATED",
+          "UPDATED",
+          "UNCHANGED",
+          "REJECTED",
+          "MISSING",
+          "NOT_MANAGED"
+        ],
+        "type": "string"
+      },
+      "AgentInventorySyncRequest": {
+        "title": "Root Type for AgentInventorySyncRequest",
+        "description": "The inventory source to read, and how.",
+        "required": [
+          "source"
+        ],
+        "type": "object",
+        "properties": {
+          "source": {
+            "$ref": "#/components/schemas/AgentInventorySource"
+          },
+          "namespace": {
+            "description": "For Kubernetes sources: the namespace to read. Must be listed in `apicurio.agent-inventory.kubernetes.namespaces`.",
+            "type": "string"
+          },
+          "location": {
+            "description": "For `GOOGLE_AGENT_REGISTRY`: the location to read, as `projects/{project}/locations/{location}`.",
+            "type": "string"
+          },
+          "headers": {
+            "description": "HTTP headers to send to the inventory source, for example `Authorization`. Sent to the source only: never stored, returned or logged.",
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "importTools": {
+            "description": "For `KUBERNETES_MCP_SERVERS`: also import the tools of each server, as `mcp-import` does. Requires the MCP import to be enabled and the server hosts to be allowed.",
+            "type": "boolean"
+          },
+          "dryRun": {
+            "description": "When `true`, the source is read and the report is returned, but nothing is written.",
+            "type": "boolean"
+          }
+        }
+      },
+      "AgentInventorySyncItemResult": {
+        "title": "Root Type for AgentInventorySyncItemResult",
+        "description": "The outcome of the sync for one item.",
+        "type": "object",
+        "properties": {
+          "externalId": {
+            "description": "The item's ID in the inventory source: `<namespace>/<name>` for Kubernetes resources, the resource name for Google Cloud Agent Registry.",
+            "type": "string"
+          },
+          "artifactId": {
+            "$ref": "#/components/schemas/ArtifactId"
+          },
+          "artifactType": {
+            "description": "The type of the artifact: `MCP_SERVER` or `AGENT_CARD`.",
+            "type": "string"
+          },
+          "version": {
+            "description": "The version that matches the item. Absent when nothing was stored.",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AgentInventorySyncStatus"
+          },
+          "causes": {
+            "description": "The rule violations, when the item was rejected.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RuleViolationCause"
+            }
+          },
+          "toolImport": {
+            "$ref": "#/components/schemas/McpToolImportResult",
+            "description": "For MCP servers with `importTools`: the result of importing its tools."
+          },
+          "toolImportError": {
+            "description": "For MCP servers with `importTools`: why the tools could not be imported.",
+            "type": "string"
+          }
+        }
+      },
+      "AgentInventorySyncResult": {
+        "title": "Root Type for AgentInventorySyncResult",
+        "description": "The result of a sync.",
+        "type": "object",
+        "properties": {
+          "groupId": {
+            "$ref": "#/components/schemas/GroupId"
+          },
+          "source": {
+            "$ref": "#/components/schemas/AgentInventorySource"
+          },
+          "items": {
+            "description": "The result for each item, including the ones the source no longer lists.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentInventorySyncItemResult"
+            }
           }
         }
       }

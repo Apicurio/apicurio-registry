@@ -21,6 +21,7 @@ import { PleaseWaitModal } from "@apitomy/common-ui-components";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
+import { SearchService, useSearchService } from "@services/useSearchService.ts";
 import {
     ArtifactOverviewTabContent,
     ArtifactPageHeader,
@@ -31,6 +32,7 @@ import { ArtifactUsageTabContent } from "@app/pages/artifact/components/tabs/Art
 import {
     AddVersionToBranch,
     ArtifactMetaData,
+    ResourcePermissions,
     CreateBranch,
     CreateVersion,
     Rule,
@@ -50,6 +52,7 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
     const [pageError, setPageError] = useState<PageError>();
     const [loaders, setLoaders] = useState<Promise<any> | Promise<any>[] | undefined>();
     const [artifact, setArtifact] = useState<ArtifactMetaData>();
+    const [permissions, setPermissions] = useState<ResourcePermissions>();
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isDeleteVersionModalOpen, setIsDeleteVersionModalOpen] = useState(false);
     const [isDeleteBranchModalOpen, setIsDeleteBranchModalOpen] = useState(false);
@@ -76,6 +79,7 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
     const appNavigation: AppNavigation = useAppNavigation();
     const logger: LoggerService = useLoggerService();
     const groups: GroupsService = useGroupsService();
+    const search: SearchService = useSearchService();
     const { groupId, artifactId }= useParams();
     const rulesMatch = useMatch("/explore/:groupId/:artifactId/rules");
     const branchesMatch = useMatch("/explore/:groupId/:artifactId/branches");
@@ -105,6 +109,8 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
                 .catch(guard.wrap((error: any) => {
                     setPageError(toPageError(error, "Error loading page data."));
                 })),
+            // Never fails: without permissions, the UI shows the actions and lets the server decide
+            search.artifactPermissions(groupId as string, artifactId as string).then(guard.wrap(setPermissions)),
             groups.getArtifactRules(gid, artifactId as string)
                 .then(guard.wrap(setRules))
                 .catch(guard.wrap((error: any) => {
@@ -404,6 +410,7 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
         <Tab data-testid="artifact-overview-tab" eventKey="overview" title="Overview" key="overview" tabContentId="tab-overview">
             <ArtifactOverviewTabContent
                 artifact={artifact as ArtifactMetaData}
+                permissions={permissions}
                 rules={rules}
                 onCreateVersion={() => setIsCreateVersionModalOpen(true)}
                 onAddVersionToBranch={onAddVersionToBranch}
@@ -468,6 +475,7 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
                 <PageSection hasBodyWrapper={false} className="ps_artifact-version-header" >
                     <ArtifactPageHeader
                         artifact={artifact as ArtifactMetaData}
+                        permissions={permissions}
                         onDeleteArtifact={onDeleteArtifact}
                         onImportMcpTools={() => setIsImportMcpToolsModalOpen(true)} />
                 </PageSection>

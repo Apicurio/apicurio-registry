@@ -25,13 +25,7 @@ spec:
       # Enabling them does not change the Registry REST API traffic of RegistryApiSimulation.
       - name: APICURIO_FEATURES_EXPERIMENTAL_ENABLED
         value: "true"
-      - name: APICURIO_A2A_ENABLED
-        value: "true"
-      - name: APICURIO_MCP_TOOLS_ENABLED
-        value: "true"
-      - name: APICURIO_AI_CATALOG_ENABLED
-        value: "true"
-      - name: APICURIO_ARD_ENABLED
+      - name: APICURIO_AGENTS_ENABLED
         value: "true"
       - name: APICURIO_MCP_IMPORT_ENABLED
         value: "true"

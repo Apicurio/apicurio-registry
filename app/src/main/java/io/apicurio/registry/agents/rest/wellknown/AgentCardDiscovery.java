@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.agents.a2a.A2AConfig;
 import io.apicurio.registry.agents.a2a.RegistryAgentCardBuilder;
-import io.apicurio.registry.agents.aicatalog.AiCatalogConstants;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.extensions.AgentSearchHandler;
 import io.apicurio.registry.model.GA;
@@ -149,15 +148,13 @@ public class AgentCardDiscovery implements AgentSearchHandler {
         // Structured skill/capability/input-mode/output-mode filters have no equivalent in
         // AiCatalogEntry, so they are evaluated afterwards against each surviving candidate's
         // Agent Card content.
-        List<SearchedArtifactDto> matched = new ArrayList<>();
-        for (AiCatalogDiscovery.AiCatalogCandidate candidate : aiCatalogDiscovery.collectAiCatalogCandidates(baseUrl,
+        // Each candidate's content is read once, when it is collected, and reused below.
+        List<AiCatalogDiscovery.AiCatalogCandidate> matched = new ArrayList<>();
+        for (AiCatalogDiscovery.AiCatalogCandidate candidate : aiCatalogDiscovery.collectAgentCandidates(baseUrl,
                 publisherDomain, name, structureFilters, publicOnlyMode, checkpoint)) {
-            if (!AiCatalogConstants.MEDIA_TYPE_AGENT_CARD.equals(candidate.entry.getType())) {
-                continue;
-            }
             checkpoint.run();
-            if (matchesAgentStructuredFilters(candidate.artifact, skills, capabilities, inputModes, outputModes)) {
-                matched.add(candidate.artifact);
+            if (matchesAgentStructuredFilters(candidate.content, skills, capabilities, inputModes, outputModes)) {
+                matched.add(candidate);
             }
         }
 
@@ -165,12 +162,10 @@ public class AgentCardDiscovery implements AgentSearchHandler {
         int safeOffset = Math.max(0, Math.min(offset, total));
         int safeLimit = Math.max(1, Math.min(limit, 500));
         int toIndex = Math.min(safeOffset + safeLimit, total);
-        List<SearchedArtifactDto> page = matched.subList(safeOffset, toIndex);
-
         List<AgentSearchResult> agents = new ArrayList<>();
-        for (SearchedArtifactDto artifact : page) {
+        for (AiCatalogDiscovery.AiCatalogCandidate candidate : matched.subList(safeOffset, toIndex)) {
             checkpoint.run();
-            agents.add(convertToAgentSearchResult(artifact));
+            agents.add(convertToAgentSearchResult(candidate.artifact, candidate.content));
         }
 
         return AgentSearchResults.builder()
@@ -202,7 +197,7 @@ public class AgentCardDiscovery implements AgentSearchHandler {
      * per-filter storage-index semantics. A {@code capability} value may be suffixed with
      * {@code :false} to require the capability be absent/disabled (default {@code true}).
      */
-    private boolean matchesAgentStructuredFilters(SearchedArtifactDto artifact, List<String> skills,
+    private boolean matchesAgentStructuredFilters(JsonNode root, List<String> skills,
             List<String> capabilities, List<String> inputModes, List<String> outputModes) {
         boolean hasSkills = skills != null && !skills.isEmpty();
         boolean hasCapabilities = capabilities != null && !capabilities.isEmpty();
@@ -211,8 +206,6 @@ public class AgentCardDiscovery implements AgentSearchHandler {
         if (!hasSkills && !hasCapabilities && !hasInputModes && !hasOutputModes) {
             return true;
         }
-
-        JsonNode root = aiCatalogDiscovery.readLatestContent(artifact);
 
         if (hasSkills && !extractAgentCardSkillIds(root).containsAll(skills)) {
             return false;
@@ -266,49 +259,23 @@ public class AgentCardDiscovery implements AgentSearchHandler {
      * Converts a searched artifact DTO into an agent search result by fetching and parsing the latest
      * version content to extract skills and capabilities.
      */
-    private AgentSearchResult convertToAgentSearchResult(SearchedArtifactDto artifact) {
-        List<String> skills = new ArrayList<>();
+    private AgentSearchResult convertToAgentSearchResult(SearchedArtifactDto artifact, JsonNode root) {
+        List<String> skills = new ArrayList<>(extractAgentCardSkillIds(root));
         List<AgentInterface> supportedInterfaces = new ArrayList<>();
-        boolean streaming = false;
-        boolean pushNotifications = false;
-
-        // Fetch and parse the latest version content to extract skills and capabilities
-        try {
-            GA ga = new GA(artifact.getGroupId(), artifact.getArtifactId());
-            GAV gav = VersionExpressionParser.parse(ga, "branch=latest",
-                    (g, branchId) -> storage.getBranchTip(g, branchId,
-                            RetrievalBehavior.SKIP_DISABLED_LATEST));
-            StoredArtifactVersionDto stored = storage.getArtifactVersionContent(
-                    gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
-
-            JsonNode root = mapper.readTree(stored.getContent().content());
-
-            // Extract skills
-            skills.addAll(extractAgentCardSkillIds(root));
-
-            // Extract supportedInterfaces
-            JsonNode interfacesNode = root.path("supportedInterfaces");
-            if (interfacesNode.isArray()) {
-                for (JsonNode iface : interfacesNode) {
-                    AgentInterface agentInterface = AgentInterface.builder()
-                            .url(iface.has("url") ? iface.get("url").asText() : null)
-                            .protocolBinding(iface.has("protocolBinding") ? iface.get("protocolBinding").asText() : null)
-                            .protocolVersion(iface.has("protocolVersion") ? iface.get("protocolVersion").asText() : null)
-                            .build();
-                    supportedInterfaces.add(agentInterface);
-                }
+        JsonNode interfacesNode = root.path("supportedInterfaces");
+        if (interfacesNode.isArray()) {
+            for (JsonNode iface : interfacesNode) {
+                AgentInterface agentInterface = AgentInterface.builder()
+                        .url(iface.has("url") ? iface.get("url").asText() : null)
+                        .protocolBinding(iface.has("protocolBinding") ? iface.get("protocolBinding").asText() : null)
+                        .protocolVersion(iface.has("protocolVersion") ? iface.get("protocolVersion").asText() : null)
+                        .build();
+                supportedInterfaces.add(agentInterface);
             }
-
-            // Extract capabilities
-            JsonNode capabilitiesNode = root.path("capabilities");
-            if (capabilitiesNode.isObject()) {
-                streaming = capabilitiesNode.path("streaming").asBoolean(false);
-                pushNotifications = capabilitiesNode.path("pushNotifications").asBoolean(false);
-            }
-        } catch (Exception e) {
-            log.warn("Failed to parse Agent Card content for {}/{}: {}",
-                    artifact.getGroupId(), artifact.getArtifactId(), e.getMessage());
         }
+        JsonNode capabilitiesNode = root.path("capabilities");
+        boolean streaming = capabilitiesNode.path("streaming").asBoolean(false);
+        boolean pushNotifications = capabilitiesNode.path("pushNotifications").asBoolean(false);
 
         return AgentSearchResult.builder()
                 .groupId(new GroupId(artifact.getGroupId()).getRawGroupIdWithDefaultString())
@@ -328,7 +295,7 @@ public class AgentCardDiscovery implements AgentSearchHandler {
 
     /**
      * Extracts the {@code id} of every entry in an Agent Card's {@code skills[]} array.
-     * Shared by {@link #convertToAgentSearchResult(SearchedArtifactDto)} and the AI Catalog /
+     * Shared by {@link #convertToAgentSearchResult(SearchedArtifactDto, JsonNode)} and the AI Catalog /
      * ARD entry-building helpers below.
      */
     List<String> extractAgentCardSkillIds(JsonNode root) {

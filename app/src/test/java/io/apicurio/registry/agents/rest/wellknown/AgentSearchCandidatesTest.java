@@ -21,8 +21,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 /**
- * Searching agents must not collect MCP tools: each candidate's content is read from storage, so
- * collecting every tool only to discard it made skill searches time out with many tools.
+ * Searching agents must not collect MCP tools, and must read each matching card's content once:
+ * every read is a storage round trip, and repeating them made skill searches slow on PostgreSQL.
  */
 @QuarkusTest
 @TestProfile(AiCatalogEnabledProfile.class)
@@ -56,5 +56,7 @@ public class AgentSearchCandidatesTest extends AbstractResourceTestBase {
 
         verify(aiCatalogDiscovery, times(1)).collectAgentCandidates(anyString(), any(), any(), any());
         verify(aiCatalogDiscovery, never()).collectAiCatalogCandidates(any(), any(), any(), any());
+        // The matching card's content is read once, then reused to filter and build the response
+        verify(aiCatalogDiscovery, times(1)).readLatestContent(any());
     }
 }

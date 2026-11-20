@@ -441,6 +441,23 @@ public class BranchesTest extends AbstractResourceTestBase {
         Assertions.assertEquals("v3", results.getVersions().get(1).getName());
         Assertions.assertEquals("v1", results.getVersions().get(2).getName());
 
+        // Replace versions with a list that repeats a version
+        var repeatedVersionError = Assertions.assertThrows(ProblemDetails.class, () -> {
+            clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).branches()
+                    .byBranchId("test-branch").versions().put(replaceVersions("2", "4", "2"));
+        });
+        Assertions.assertEquals(409, repeatedVersionError.getStatus());
+        Assertions.assertEquals("Version '2' is listed more than once in the request.",
+                repeatedVersionError.getTitle());
+
+        // The branch must be left unchanged (still 1,3,5)
+        results = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).branches()
+                .byBranchId("test-branch").versions().get();
+        Assertions.assertEquals(3, results.getCount());
+        Assertions.assertEquals("v5", results.getVersions().get(0).getName());
+        Assertions.assertEquals("v3", results.getVersions().get(1).getName());
+        Assertions.assertEquals("v1", results.getVersions().get(2).getName());
+
         // Replace versions in a branch that does not exist
         Assertions.assertThrows(Exception.class, () -> {
             clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).branches()

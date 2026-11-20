@@ -4,6 +4,7 @@ import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.model.VersionId;
+import io.apicurio.registry.rest.ConflictException;
 import io.apicurio.registry.rest.RestConfig;
 import io.apicurio.registry.storage.dto.BranchMetaDataDto;
 import io.apicurio.registry.storage.dto.BranchSearchResultsDto;
@@ -38,6 +39,7 @@ import org.slf4j.Logger;
 
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -279,6 +281,8 @@ public class SqlBranchRepository {
             throw new NotAllowedException("System generated branches cannot be modified.");
         }
 
+        requireNoDuplicateVersions(versions);
+
         handles.withHandle(handle -> {
             handle.createUpdate(sqlStatements.deleteBranchVersions()).bind(0, ga.getRawGroupId())
                     .bind(1, ga.getRawArtifactId()).bind(2, branchId.getRawBranchId()).execute();
@@ -306,6 +310,16 @@ public class SqlBranchRepository {
 
             return null;
         });
+    }
+
+    private static void requireNoDuplicateVersions(List<VersionId> versions) {
+        Set<String> requestedVersions = new HashSet<>();
+        for (VersionId version : versions) {
+            if (!requestedVersions.add(version.getRawVersionId())) {
+                throw new ConflictException("Version '" + version.getRawVersionId()
+                        + "' is listed more than once in the request.");
+            }
+        }
     }
 
     /**

@@ -22,6 +22,7 @@ import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.impexp.EntityType;
+import io.apicurio.registry.utils.impexp.v3.GroupEntity;
 import io.apicurio.registry.utils.tests.TestUtils;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Assertions;
@@ -1187,6 +1188,16 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
             }
             Assertions.assertEquals(expected, paged, "artifacts, " + direction);
 
+            // Sorting on a key column must not list that column twice in ORDER BY: SQL Server rejects it
+            for (OrderBy keySort : List.of(OrderBy.groupId, OrderBy.artifactId)) {
+                List<String> pagedByKey = new ArrayList<>();
+                for (int offset = 0; offset < 30; offset += 7) {
+                    storage().searchArtifacts(filters, keySort, direction, offset, 7, false).getArtifacts()
+                            .forEach(artifact -> pagedByKey.add(artifact.getArtifactId()));
+                }
+                Assertions.assertEquals(expected, pagedByKey, "artifacts by " + keySort + ", " + direction);
+            }
+
             List<String> pagedVersions = new ArrayList<>();
             for (int offset = 0; offset < 30; offset += 7) {
                 storage().searchVersions(filters, OrderBy.version, direction, offset, 7, false).getVersions()
@@ -1194,6 +1205,43 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
             }
             // Every version is "1", so creation order decides
             Assertions.assertEquals(expected, pagedVersions, "versions, " + direction);
+        }
+    }
+
+    /**
+     * Groups only tie on createdOn/modifiedOn, which the REST API cannot set, so import them with one
+     * timestamp.
+     */
+    @Test
+    public void testSearchGroupsPagesThroughTiedTimestamps() throws Exception {
+        String prefix = "testSearchGroupTies-" + UUID.randomUUID() + "-";
+        long timestamp = System.currentTimeMillis();
+        List<String> groupIds = new ArrayList<>();
+        for (int idx = 0; idx < 12; idx++) {
+            String groupId = prefix + (idx < 10 ? "0" : "") + idx;
+            groupIds.add(groupId);
+            storage().importGroup(GroupEntity.builder().groupId(groupId).owner("test").createdOn(timestamp)
+                    .modifiedBy("test").modifiedOn(timestamp).labels(Map.of(prefix, "true")).build());
+        }
+        try {
+            Set<SearchFilter> filters = Set.of(SearchFilter.ofLabel(prefix, "true"));
+            for (OrderBy orderBy : List.of(OrderBy.createdOn, OrderBy.modifiedOn)) {
+                for (OrderDirection direction : OrderDirection.values()) {
+                    List<String> paged = new ArrayList<>();
+                    for (int offset = 0; offset < 12; offset += 5) {
+                        storage().searchGroups(filters, orderBy, direction, offset, 5).getGroups()
+                                .forEach(group -> paged.add(group.getId()));
+                    }
+                    List<String> expected = new ArrayList<>(groupIds);
+                    if (direction == OrderDirection.desc) {
+                        Collections.reverse(expected);
+                    }
+                    Assertions.assertEquals(expected, paged, orderBy + ", " + direction);
+                }
+            }
+        } finally {
+            // testSearchGroups counts every group in the database, so leave none behind
+            groupIds.forEach(groupId -> storage().deleteGroup(groupId));
         }
     }
 

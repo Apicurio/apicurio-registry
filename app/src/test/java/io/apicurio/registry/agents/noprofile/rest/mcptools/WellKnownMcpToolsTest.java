@@ -138,6 +138,68 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testGetRegisteredMcpToolWithVersion() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = TestUtils.generateArtifactId();
+
+        createMcpTool(groupId, artifactId, SEARCH_DATABASE_TOOL);
+
+        // Add version 2 with a different tool definition
+        CreateVersion createVersion2 = new CreateVersion();
+        createVersion2.setVersion("2");
+        VersionContent versionContent2 = new VersionContent();
+        versionContent2.setContent(GET_WEATHER_TOOL);
+        versionContent2.setContentType(ContentTypes.APPLICATION_JSON);
+        createVersion2.setContent(versionContent2);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(createVersion2);
+
+        // Query without version returns latest (version 2)
+        givenAtRoot()
+                .when()
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", artifactId)
+                .get("/.well-known/mcp-tools/{groupId}/{artifactId}")
+                .then()
+                .statusCode(200)
+                .body("name", equalTo("get_weather"))
+                .body("title", equalTo("Weather Checker"));
+
+        // Query with version 1 returns older version
+        givenAtRoot()
+                .when()
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", artifactId)
+                .queryParam("version", "1")
+                .get("/.well-known/mcp-tools/{groupId}/{artifactId}")
+                .then()
+                .statusCode(200)
+                .body("name", equalTo("search_database"))
+                .body("title", equalTo("Database Search Tool"));
+
+        // Query with version 2 returns version 2
+        givenAtRoot()
+                .when()
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", artifactId)
+                .queryParam("version", "2")
+                .get("/.well-known/mcp-tools/{groupId}/{artifactId}")
+                .then()
+                .statusCode(200)
+                .body("name", equalTo("get_weather"))
+                .body("title", equalTo("Weather Checker"));
+
+        // Query with nonexistent version returns 404
+        givenAtRoot()
+                .when()
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", artifactId)
+                .queryParam("version", "999.0.0")
+                .get("/.well-known/mcp-tools/{groupId}/{artifactId}")
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
     public void testGetRegisteredMcpToolNotFound() {
         givenAtRoot()
                 .when()
@@ -341,6 +403,9 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
                 .get("/.well-known/schemas/mcp-tool/v1")
                 .then()
                 .statusCode(200)
+                .header("Content-Type", equalTo("application/schema+json"))
+                .header("Content-Disposition", equalTo("inline; filename=\"mcp-tool-v1.json\""))
+                .header("Cache-Control", equalTo("public, max-age=86400"))
                 .body("title", equalTo("MCP Tool Definition"))
                 .body("required", hasItems("name", "inputSchema"))
                 .body("properties.name.type", equalTo("string"))

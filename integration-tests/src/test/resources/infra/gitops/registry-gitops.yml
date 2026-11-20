@@ -1,0 +1,121 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: "apicurio-registry-e2e"
+  labels:
+    app: apicurio-registry-gitops
+  name: apicurio-registry-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: apicurio-registry-gitops
+  template:
+    metadata:
+      labels:
+        app: apicurio-registry-gitops
+    spec:
+      initContainers:
+        - name: git-repo-init
+          image: alpine/git:latest
+          command: ["/bin/sh", "/init-data/init-repo.sh"]
+          volumeMounts:
+            - name: git-repo
+              mountPath: /repos
+            - name: init-data
+              mountPath: /init-data
+      containers:
+        - env:
+            - name: APICURIO_STORAGE_KIND
+              value: "gitops"
+            - name: APICURIO_STORAGE_SQL_KIND
+              value: "h2"
+            - name: APICURIO_FEATURES_EXPERIMENTAL_ENABLED
+              value: "true"
+            - name: APICURIO_GITOPS_WORKSPACE
+              value: "/repos"
+            - name: APICURIO_GITOPS_REPO_DIR
+              value: "/repos/default"
+            - name: APICURIO_GITOPS_REPO_BRANCH
+              value: "main"
+            - name: APICURIO_POLLING_STORAGE_ID
+              value: "e2e-test"
+            - name: APICURIO_POLLING_STORAGE_POLL_PERIOD
+              value: "PT5S"
+          image: registry-image
+          imagePullPolicy: IfNotPresent
+          startupProbe:
+            httpGet:
+              path: /health/ready
+              port: 9000
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 60
+            timeoutSeconds: 10
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /health/live
+              port: 9000
+              scheme: HTTP
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 10
+          name: apicurio-registry-gitops
+          ports:
+            - containerPort: 8080
+              name: http
+              protocol: TCP
+            - containerPort: 9000
+              name: management
+              protocol: TCP
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /health/ready
+              port: 9000
+              scheme: HTTP
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 10
+          volumeMounts:
+            - name: git-repo
+              mountPath: /repos
+              readOnly: true
+      volumes:
+        - name: git-repo
+          emptyDir: {}
+        - name: init-data
+          configMap:
+            name: gitops-init-data
+            defaultMode: 0755
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: "apicurio-registry-e2e"
+  labels:
+    app: apicurio-registry-gitops
+  name: apicurio-registry-service
+spec:
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8080
+      targetPort: 8080
+      nodePort: 32586
+    - name: management
+      protocol: TCP
+      port: 9000
+      targetPort: 9000
+  selector:
+    app: apicurio-registry-gitops
+  type: LoadBalancer
+  sessionAffinity: None
+  externalTrafficPolicy: Cluster
+  ipFamilies:
+    - IPv4
+  ipFamilyPolicy: SingleStack
+  allocateLoadBalancerNodePorts: true
+  internalTrafficPolicy: Cluster

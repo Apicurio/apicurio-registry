@@ -7,9 +7,13 @@ import io.apicurio.registry.ccompat.rest.v7.beans.ConfigUpdateRequest;
 import io.apicurio.registry.ccompat.rest.v7.beans.ModeUpdateRequest;
 import io.apicurio.registry.ccompat.rest.v7.beans.RegisterSchemaRequest;
 import io.apicurio.registry.ccompat.rest.v7.beans.SchemaId;
+import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
+import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.error.RegistryStorageException;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.mockito.InjectSpy;
 import io.restassured.config.DecoderConfig;
 import io.restassured.config.RestAssuredConfig;
 import org.junit.jupiter.api.Test;
@@ -21,6 +25,10 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasSize;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doCallRealMethod;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.reset;
 
 /**
  * Tests for the ccompat v7 API enhancements:
@@ -37,6 +45,10 @@ public class CCompatV7EnhancementsTest extends AbstractResourceTestBase {
             .decoderConfig(DecoderConfig.decoderConfig().noContentDecoders());
 
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    @InjectSpy
+    @Current
+    RegistryStorage storage;
 
     // ========== Mode API Tests ==========
 
@@ -93,6 +105,120 @@ public class CCompatV7EnhancementsTest extends AbstractResourceTestBase {
 
         // Global mode should still be READWRITE
         given().when().get("/ccompat/v7/mode").then().statusCode(200).body("mode", equalTo("READWRITE"));
+    }
+
+    @Test
+    public void testSubjectReadOnlyModeEnforcement() throws Exception {
+        var subject = TestUtils.generateSubject();
+        var schema = "{\"type\" : \"string\"}";
+        var schemaContent = new RegisterSchemaRequest();
+        schemaContent.setSchema(schema);
+
+        // Register initial version successfully while in default READWRITE mode
+        given().when().contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(objectMapper.writeValueAsString(schemaContent))
+                .post("/ccompat/v7/subjects/{subject}/versions", subject).then().statusCode(200);
+
+        // Set subject mode to READONLY
+        ModeUpdateRequest request = new ModeUpdateRequest();
+        request.setMode("READONLY");
+        given().when().contentType(ContentTypes.JSON).body(request)
+                .put("/ccompat/v7/mode/{subject}", subject).then().statusCode(200)
+                .body("mode", equalTo("READONLY"));
+
+        // Attempting to register another schema version on the read-only subject must fail with 422 and code 42205
+        var newSchemaContent = new RegisterSchemaRequest();
+        newSchemaContent.setSchema("{\"type\" : \"bytes\"}");
+        given().when().contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(objectMapper.writeValueAsString(newSchemaContent))
+                .post("/ccompat/v7/subjects/{subject}/versions", subject).then().statusCode(422)
+                .body("error_code", equalTo(42205))
+                .body("message", equalTo("Subject " + subject + " is in read-only mode"));
+
+        // Attempting to delete subject in READONLY mode must fail
+        given().when().delete("/ccompat/v7/subjects/{subject}", subject).then().statusCode(422)
+                .body("error_code", equalTo(42205))
+                .body("message", equalTo("Subject " + subject + " is in read-only mode"));
+
+        // Another subject should still be writable
+        var otherSubject = TestUtils.generateSubject();
+        given().when().contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(objectMapper.writeValueAsString(schemaContent))
+                .post("/ccompat/v7/subjects/{subject}/versions", otherSubject).then().statusCode(200);
+
+        // Reset subject mode back to READWRITE
+        request.setMode("READWRITE");
+        given().when().contentType(ContentTypes.JSON).body(request)
+                .put("/ccompat/v7/mode/{subject}", subject).then().statusCode(200)
+                .body("mode", equalTo("READWRITE"));
+
+        // Registration should now succeed
+        given().when().contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(objectMapper.writeValueAsString(newSchemaContent))
+                .post("/ccompat/v7/subjects/{subject}/versions", subject).then().statusCode(200);
+    }
+
+    @Test
+    public void testGlobalReadOnlyModeEnforcement() throws Exception {
+        var subject = TestUtils.generateSubject();
+        var schema = "{\"type\" : \"string\"}";
+        var schemaContent = new RegisterSchemaRequest();
+        schemaContent.setSchema(schema);
+
+        // Set global mode to READONLY
+        ModeUpdateRequest request = new ModeUpdateRequest();
+        request.setMode("READONLY");
+        given().when().contentType(ContentTypes.JSON).body(request).put("/ccompat/v7/mode").then()
+                .statusCode(200).body("mode", equalTo("READONLY"));
+
+        try {
+            // Attempting to register a new subject while global mode is READONLY must fail with 422 and code 42205
+            given().when().contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                    .body(objectMapper.writeValueAsString(schemaContent))
+                    .post("/ccompat/v7/subjects/{subject}/versions", subject).then().statusCode(422)
+                    .body("error_code", equalTo(42205))
+                    .body("message", equalTo("Subject " + subject + " is in read-only mode"));
+
+            // If a subject explicitly overrides to READWRITE, it should be writable
+            ModeUpdateRequest overrideRequest = new ModeUpdateRequest();
+            overrideRequest.setMode("READWRITE");
+            given().when().contentType(ContentTypes.JSON).body(overrideRequest)
+                    .put("/ccompat/v7/mode/{subject}", subject).then().statusCode(200)
+                    .body("mode", equalTo("READWRITE"));
+
+            given().when().contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                    .body(objectMapper.writeValueAsString(schemaContent))
+                    .post("/ccompat/v7/subjects/{subject}/versions", subject).then().statusCode(200);
+        } finally {
+            // Reset global mode back to READWRITE
+            request.setMode("READWRITE");
+            given().when().contentType(ContentTypes.JSON).body(request).put("/ccompat/v7/mode").then()
+                    .statusCode(200).body("mode", equalTo("READWRITE"));
+        }
+    }
+
+    @Test
+    public void testModeResolutionStorageFailureRejectsWrite() throws Exception {
+        var subject = TestUtils.generateSubject();
+        var schemaContent = new RegisterSchemaRequest();
+        schemaContent.setSchema("{\"type\" : \"string\"}");
+
+        // Simulate storage failure when mode resolution queries storage for config properties
+        doThrow(new RegistryStorageException("Simulated storage failure"))
+                .when(storage).getRawConfigProperty(anyString());
+
+        try {
+            // Attempting to register schema while storage throws during mode lookup must reject the write with 500
+            given().when().contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                    .body(objectMapper.writeValueAsString(schemaContent))
+                    .post("/ccompat/v7/subjects/{subject}/versions", subject).then().statusCode(500);
+
+            // Restore normal storage behavior and verify that storage is unchanged (subject was never registered)
+            doCallRealMethod().when(storage).getRawConfigProperty(anyString());
+            given().when().get("/ccompat/v7/subjects/{subject}/versions", subject).then().statusCode(404);
+        } finally {
+            reset(storage);
+        }
     }
 
     // ========== Exporter API Tests ==========

@@ -118,6 +118,7 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
     @Audited
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
     public ConfigUpdateResponse updateSubjectConfig(String subject, String groupId, ConfigUpdateRequest request) {
+        checkMode(subject, groupId);
         final GA ga = getGA(groupId, subject);
 
         updateCompatibilityLevel(request.getCompatibility(), dto -> {
@@ -170,6 +171,7 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
     @Audited
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
     public GlobalConfigResponse deleteSubjectConfig(String subject, String groupId) {
+        checkMode(subject, groupId);
         final GA ga = getGA(groupId, subject);
         final GlobalConfigResponse compatibilityLevel = getCompatibilityLevel(() -> storage
                 .getArtifactRule(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), RuleType.COMPATIBILITY)

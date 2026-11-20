@@ -6,7 +6,7 @@
 - **Tracking:** [#7971](https://github.com/Apicurio/apicurio-registry/pull/7971),
   [#7974](https://github.com/Apicurio/apicurio-registry/pull/7974),
   [#7985](https://github.com/Apicurio/apicurio-registry/pull/7985),
-  [#11124](https://github.com/Apicurio/apicurio-registry/issues/11124),
+  [#11124](https://github.com/Apicurio/apicurio-registry/issues/11124) (fixed),
   [#11125](https://github.com/Apicurio/apicurio-registry/issues/11125) (fixed).
 - **Scope:** The Confluent Schema Registry-compatible REST API (`/apis/ccompat/v7/`, `/apis/ccompat/v8/`):
   subject and group mapping, ID mapping, deletes, error codes, registration, compatibility checks,
@@ -181,9 +181,8 @@ Avro schemas are compacted to canonical single-line JSON in ccompat responses vi
 
 Read/write mode is stored as a `DynamicConfigProperty` string (`apicurio.ccompat.mode` for global,
 `apicurio.ccompat.mode.subject.<groupId>/<artifactId>` for per-subject). Valid modes: `READWRITE`,
-`READONLY`, `READONLY_OVERRIDE`, `IMPORT`. The mode is stored and returned, but **not enforced**:
-writes succeed in `READONLY` ([#11124](https://github.com/Apicurio/apicurio-registry/issues/11124)).
-To block writes, use the storage read-only mode (`apicurio.storage.read-only.enabled`).
+`READONLY`, `READONLY_OVERRIDE`, `IMPORT`. `READONLY` mode is enforced on ccompat write operations,
+rejecting them with HTTP 422 and error code 42205.
 
 ### Behaviour across storage variants
 
@@ -252,8 +251,7 @@ The per-subject lock is per JVM only; see [Limitations](#limitations-and-open-wo
    system. Invalid mode values can be written directly to storage without validation (the
    validation in `validateMode()` only runs on API requests, not direct storage writes). Consider
    promoting mode to a first-class storage entity.
-7. **Modes are not enforced** ([#11124](https://github.com/Apicurio/apicurio-registry/issues/11124)).
-8. **Single remaining harness test failure.** `lookupVersion_unregisteredSchema` fails: Confluent
+7. **Single remaining harness test failure.** `lookupVersion_unregisteredSchema` fails: Confluent
    returns 405 (Method Not Allowed) when a non-matching schema is POSTed to
    `POST /subjects/{subject}/versions/{version}`. Apicurio returns 404 (Schema Not Found). This
    appears to be a Confluent-specific edge case where 405 may indicate the endpoint doesn't validate
@@ -320,3 +318,4 @@ results, before 26/53 (49%), after 52/53 (98%):
 | This ADR reformatted to [the ADR template](TEMPLATE.md) | Structure only; no change to the decisions |
 | Subject mapping, deletes and v7/v8 documented | Decisions 7 to 9 recorded; a verified example; mode and error-status gaps filed (#11124, #11125) |
 | [#11174](https://github.com/Apicurio/apicurio-registry/pull/11174) | Fixed: soft-delete errors 40405 to 40407 return 404, the incompatibility message matches Confluent's, and entity-less errors have a body (#11125) |
+| [#11141](https://github.com/Apicurio/apicurio-registry/pull/11141) | Fixed: ccompat writes honour READONLY mode (#11124) |

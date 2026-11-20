@@ -123,7 +123,7 @@ race finds them already created and starts normally.
 
 ```yaml
 # order-placed.registry.yaml
-$type: artifact-v0
+$type: artifact-v1
 registryIds: [demo]           # loaded by registries whose APICURIO_POLLING_STORAGE_ID is "demo"
 groupId: orders
 artifactId: order-placed
@@ -137,8 +137,8 @@ versions:
     content: ./order-placed-v1.avsc
 ```
 
-with `registry.registry.yaml` (`$type: registry-v0`: the registry's id and global rules) and
-`orders.registry.yaml` (`$type: group-v0`).
+with `registry.registry.yaml` (`$type: registry-v1`: the registry's id and global rules) and
+`orders.registry.yaml` (`$type: group-v1`).
 
 What `demo.sh` checks:
 

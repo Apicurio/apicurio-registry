@@ -16,19 +16,68 @@ vi.mock("@services/useArtifactTypesService.ts", () => ({
     ArtifactTypes: {}
 }));
 
-// The real editors mount Monaco; plain stand-ins keep the assertions about content.
-vi.mock("@app/components/codeEditor/RegistryEditors.tsx", () => ({
-    RegistryCodeEditor: (props: { value: string, options?: { readOnly?: boolean } }) => (
-        <pre data-testid="submitted-content" data-readonly={String(props.options?.readOnly)}>{props.value}</pre>
-    )
+// The real editors mount Monaco. The stand-in hands the report a fake editor and Monaco instance on
+// mount, so the tests can check the markers it sets and where a click scrolls.
+const monaco = vi.hoisted(() => ({
+    setModelMarkers: vi.fn(),
+    revealRangeInCenter: vi.fn(),
+    setSelection: vi.fn()
 }));
+vi.mock("@app/components/codeEditor/RegistryEditors.tsx", async () => {
+    const { useEffect } = await import("react");
+    return {
+        RegistryCodeEditor: (props: {
+            value: string,
+            options?: { readOnly?: boolean },
+            onMount?: (editor: unknown, instance: unknown) => void
+        }) => {
+            useEffect(() => {
+                props.onMount?.(
+                    { getModel: () => ({}), revealRangeInCenter: monaco.revealRangeInCenter, setSelection: monaco.setSelection },
+                    { editor: { setModelMarkers: monaco.setModelMarkers }, MarkerSeverity: { Error: 8 } }
+                );
+            }, []);
+            return <pre data-testid="submitted-content" data-readonly={String(props.options?.readOnly)}>{props.value}</pre>;
+        }
+    };
+});
 vi.mock("@app/components/common/DiffView.tsx", () => ({
-    DiffView: (props: { original: string; modified: string }) => (
-        <pre data-testid="compared-content">{`${props.original}|${props.modified}`}</pre>
+    DiffView: (props: { original: string; modified: string, originalMarkers?: unknown[], modifiedMarkers?: unknown[] }) => (
+        <pre data-testid="compared-content"
+            data-original-markers={JSON.stringify(props.originalMarkers ?? [])}
+            data-modified-markers={JSON.stringify(props.modifiedMarkers ?? [])}>{`${props.original}|${props.modified}`}</pre>
     )
 }));
 
 const SUBMITTED = "{\"type\":\"record\",\"name\":\"User\",\"fields\":[]}";
+
+// Pretty-printed, so each location has its own line.
+const SUBMITTED_LINES = [
+    "{",
+    "  \"type\": \"record\",",
+    "  \"name\": \"User\",",
+    "  \"fields\": [",
+    "    { \"name\": \"a\", \"type\": \"string\" },",
+    "    { \"name\": \"b\", \"type\": \"string\" }",
+    "  ]",
+    "}"
+].join("\n");
+const EXISTING_LINES = [
+    "{",
+    "  \"type\": \"record\",",
+    "  \"name\": \"User\",",
+    "  \"fields\": [",
+    "    { \"name\": \"a\", \"type\": \"string\" }",
+    "  ]",
+    "}"
+].join("\n");
+
+type Marker = { startLineNumber: number, endLineNumber: number, message: string, severity?: number };
+const lastMarkers = (): Marker[] => {
+    const calls = monaco.setModelMarkers.mock.calls;
+    return calls.length === 0 ? [] : calls[calls.length - 1][2];
+};
+const lines = (markers: Marker[]): [number, number, string][] => markers.map(m => [m.startLineNumber, m.endLineNumber, m.message]);
 
 const modal = (error: Partial<RuleViolationProblemDetails>, content?: string) => (
     <InvalidContentModal
@@ -232,5 +281,88 @@ describe("InvalidContentModal", () => {
 
         expect(groupTexts()).toEqual(["/fields/1b"]);
         expect(screen.queryByTestId("compatibility-report-content")).not.toBeInTheDocument();
+    });
+
+    it("fills the viewport height, with the content next to the causes, only for a report with content", () => {
+        const violation: Partial<RuleViolationProblemDetails> = {
+            nameEscaped: "RuleViolationException",
+            causes: [{ description: "b", context: "/fields/1" }]
+        };
+
+        const { unmount } = render(modal(violation, SUBMITTED));
+        expect(screen.getByRole("dialog")).toHaveClass("invalid-content-modal-report");
+        expect(screen.getByTestId("compatibility-report")).toHaveClass("compatibility-report-split");
+        unmount();
+
+        render(modal(violation));
+        expect(screen.getByRole("dialog")).not.toHaveClass("invalid-content-modal-report");
+        expect(screen.getByTestId("compatibility-report")).not.toHaveClass("compatibility-report-split");
+        cleanup();
+
+        // A validity violation keeps the plain list, so it keeps the usual modal size.
+        render(modal({ ...violation, ruleViolation: { ruleType: "VALIDITY" } }, SUBMITTED));
+        expect(screen.getByRole("dialog")).not.toHaveClass("invalid-content-modal-report");
+    });
+    describe("highlighting", () => {
+        it("marks each cause in the submitted content, using context when there is no proposed location", () => {
+            render(modal({
+                ruleViolation: { ruleType: "COMPATIBILITY" },
+                causes: [
+                    { description: "b has no default", context: "/fields/1/type", proposed: { pointer: "/fields/1" } },
+                    { description: "name changed", context: "/name" }
+                ]
+            }, SUBMITTED_LINES));
+
+            expect(lines(lastMarkers())).toEqual([[6, 6, "b has no default"], [3, 3, "name changed"]]);
+            expect(lastMarkers()[0].severity).toBe(8);
+        });
+
+        it("gives no highlight to a location in a referenced artifact or a context that is not a pointer", () => {
+            render(modal({
+                ruleViolation: { ruleType: "COMPATIBILITY" },
+                causes: [
+                    { description: "in the reference", proposed: { pointer: "/fields/1", reference: "common.json" } },
+                    { description: "an OpenAPI path", context: "/pets/{petId}" },
+                    { description: "a message name", context: "Person" }
+                ]
+            }, SUBMITTED_LINES));
+
+            expect(lastMarkers()).toEqual([]);
+            expect(screen.queryAllByTestId("compatibility-report-location")).toHaveLength(0);
+            expect(groupTexts()).toHaveLength(3);
+        });
+
+        it("scrolls the submitted content to a location when its title is clicked", () => {
+            render(modal({
+                ruleViolation: { ruleType: "COMPATIBILITY" },
+                causes: [{ description: "b has no default", proposed: { pointer: "/fields/1" } }]
+            }, SUBMITTED_LINES));
+
+            fireEvent.click(screen.getByTestId("compatibility-report-location"));
+
+            expect(monaco.revealRangeInCenter).toHaveBeenCalledTimes(1);
+            expect(monaco.revealRangeInCenter.mock.calls[0][0]).toMatchObject({ startLineNumber: 6, endLineNumber: 6 });
+            expect(monaco.setSelection.mock.calls[0][0]).toMatchObject({ startLineNumber: 6, endLineNumber: 6 });
+        });
+
+        it("marks both documents when comparing, the compared version at its existing location", async () => {
+            getArtifactVersionContent.mockResolvedValueOnce(EXISTING_LINES);
+            render(modal({
+                ruleViolation: { ruleType: "COMPATIBILITY" },
+                causes: [{
+                    description: "b has no default",
+                    proposed: { pointer: "/fields/1" },
+                    existing: { pointer: "/fields", version: "3" }
+                }]
+            }, SUBMITTED_LINES));
+
+            await act(async () => {
+                fireEvent.click(screen.getByTestId("compatibility-report-compare"));
+            });
+
+            const compared = screen.getByTestId("compared-content");
+            expect(lines(JSON.parse(compared.getAttribute("data-original-markers") ?? "[]"))).toEqual([[4, 6, "b has no default"]]);
+            expect(lines(JSON.parse(compared.getAttribute("data-modified-markers") ?? "[]"))).toEqual([[6, 6, "b has no default"]]);
+        });
     });
 });

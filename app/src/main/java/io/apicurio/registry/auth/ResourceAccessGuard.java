@@ -115,6 +115,8 @@ public class ResourceAccessGuard {
         if (resources.isEmpty() || !isEnforced(level)) {
             return;
         }
+        // The owner checks and the grants both look up each artifact: read them all at once
+        lookups.prefetchArtifacts(storage, resources);
         List<AuthorizedResource> notOwned = resources.stream().distinct().filter(r -> !grantsAc.isStrictOwner(r))
                 .toList();
         if (!grantsAc.isAllowedForAll(level, notOwned)) {

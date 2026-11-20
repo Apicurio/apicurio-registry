@@ -484,6 +484,15 @@ artifact/group/version metadata and content users within the request, including 
 Without an active request context, those lookups go directly to storage. Keys preserve requested
 spelling except for default-group normalization; different case spellings can cause extra reads.
 
+Two lookups read more than they are asked for, so that a request needs fewer reads. A global ID's
+version is read together with its artifact (`getArtifactVersionWithArtifactMetaData`), so resolving
+it, the owner bypass and the stored IDs all come from one read, and the global-ID endpoints reuse the
+version instead of reading it again. `prefetchArtifacts` reads many artifacts in one query
+(`getArtifactsMetaData`) before a batched check, such as one reference level. An artifact the
+database matched under another spelling is left to its own lookup. With these, authorizing a global
+ID adds no read, an artifact one, and a reference level one, however many references it has
+(`GrantsStorageReadsTest`).
+
 The first result is reused for that request, not refreshed after each check. A missing resource
 stays missing even if the same request subsequently creates it. Authorize before writing; do not
 reuse these lookups to establish the ownership of something just created. This memoization is not
@@ -501,9 +510,12 @@ cannot be invalidated on other replicas. Release 3.4.0 development briefly had s
 properties. `GrantsAuthorizationTest.aGlobalIdRebindByImportIsAuthorizedAgainstTheNewArtifact` and
 `AuthorizationLookupsTest` cover this.
 
-Any future cross-request metadata cache (#10600) must be safe across replicas and imports: it must
-never make an authorization decision from data a later request could see differently.
-Decision caching is not implemented.
+There is **no cross-request cache** of authorization metadata or decisions (#10600). A decision must
+use the data the endpoint then serves, on every replica and across imports, and each way of keeping
+a shared cache to that costs what it saves: a staleness window delays revocations by design, a
+version check against storage is a read per request, and cluster-wide invalidation exists only for
+KafkaSQL and still leaves a window. Decisions derived from a subject are not cached either, as
+Kroxylicious proposal 009 advises. The reads are reduced within a request instead (above).
 
 ## Observability and failure diagnosis
 

@@ -3,6 +3,7 @@ package io.apicurio.registry.storage.impl.sql;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -178,6 +179,19 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactVersionWithArtifactMetaDataByGlobalId()
+     */
+    @Override
+    public String selectArtifactVersionWithArtifactMetaDataByGlobalId() {
+        return "SELECT v.*, a.type, a.owner AS artifactOwner, a.createdOn AS artifactCreatedOn, "
+                + "a.name AS artifactName, a.description AS artifactDescription, a.labels AS artifactLabels, "
+                + "a.modifiedBy AS artifactModifiedBy, a.modifiedOn AS artifactModifiedOn "
+                + "FROM versions v "
+                + "JOIN artifacts a ON v.groupId = a.groupId AND v.artifactId = a.artifactId "
+                + "WHERE v.globalId = ?";
+    }
+
+    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactVersions()
      */
     @Override
@@ -284,6 +298,15 @@ public abstract class CommonSqlStatements implements SqlStatements {
     @Override
     public String selectArtifactMetaData() {
         return "SELECT a.* FROM artifacts a WHERE a.groupId = ? AND a.artifactId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactsMetaData(int)
+     */
+    @Override
+    public String selectArtifactsMetaData(int count) {
+        return "SELECT a.* FROM artifacts a WHERE "
+                + String.join(" OR ", Collections.nCopies(count, "(a.groupId = ? AND a.artifactId = ?)"));
     }
 
     /**

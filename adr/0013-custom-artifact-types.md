@@ -5,7 +5,7 @@
 - **Author:** Apicurio Registry maintainers.
 - **Tracking:** [#6086](https://github.com/Apicurio/apicurio-registry/pull/6086),
   [#7910](https://github.com/Apicurio/apicurio-registry/pull/7910),
-  [#11151](https://github.com/Apicurio/apicurio-registry/issues/11151),
+  [#11151](https://github.com/Apicurio/apicurio-registry/issues/11151) (fixed),
   [#11152](https://github.com/Apicurio/apicurio-registry/issues/11152) (fixed).
 - **Scope:** How the set of artifact types is configured, and how a type's behaviour (detection,
   validation, compatibility, canonicalization, references, dereferencing) is provided: Java classes
@@ -123,12 +123,10 @@ about 10 seconds.
 
 ## Limitations and open work
 
-1. Webhook `headers` are not sent, and the ContentAccepter webhook reads a bare boolean instead of
-   the contract's `{"accepted": ...}` ([#11151](https://github.com/Apicurio/apicurio-registry/issues/11151)).
-2. A malformed configuration file is only logged, and the custom types are silently missing.
-3. A provider jar must be compiled against the same registry minor version, and the derived image
+1. A malformed configuration file is only logged, and the custom types are silently missing.
+2. A provider jar must be compiled against the same registry minor version, and the derived image
    rebuilt for each registry upgrade.
-4. Custom types have no UI-specific support (icon, editor).
+3. Custom types have no UI-specific support (icon, editor).
 
 ## Alternatives
 
@@ -170,3 +168,4 @@ about 10 seconds.
 | [#7910](https://github.com/Apicurio/apicurio-registry/pull/7910) | Script providers removed |
 | This ADR | First written record, with a verified example |
 | [#11176](https://github.com/Apicurio/apicurio-registry/pull/11176) | Fixed: an unreachable webhook fails closed with a generic message after about 10 seconds, instead of letting content through `VALIDITY` or exposing exception text; webhook connect and read timeouts are configurable (#11152) |
+| [#11158](https://github.com/Apicurio/apicurio-registry/pull/11158) | Fixed: webhooks receive their configured `headers`, and the ContentAccepter webhook's `{"accepted": ...}` response is read; a bare boolean from an existing webhook is still accepted and logged at DEBUG (#11151) |

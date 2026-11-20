@@ -130,6 +130,8 @@ import static io.apicurio.registry.rest.MethodParameterKeys.MPK_REF_TYPE;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_RULE;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_RULE_TYPE;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_VERSION;
+import static io.apicurio.registry.rest.ParameterValidationUtils.normalizeLimitUnbounded;
+import static io.apicurio.registry.rest.ParameterValidationUtils.normalizeOffset;
 import static io.apicurio.registry.rest.cache.HttpCaching.caching;
 import static io.apicurio.registry.rest.headers.Headers.checkIfDeprecated;
 import static io.apicurio.registry.references.ReferenceResolution.recursivelyResolveReferenceContentIds;
@@ -798,7 +800,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         Set<SearchFilter> filters = Collections.emptySet();
 
         GroupSearchResultsDto resultsDto = searchAuthorizer.searchGroups(filters, oBy, oDir,
-                offset.intValue(), limit.intValue());
+                normalizeOffset(offset), normalizeLimitUnbounded(limit));
         return searchResultPermissions.addTo(V3ApiUtil.dtoToSearchResults(resultsDto));
     }
 
@@ -1430,8 +1432,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         Set<SearchFilter> filters = new HashSet<>();
         filters.add(SearchFilter.ofGroupId(new GroupId(groupId).getRawGroupIdWithNull()));
 
-        ArtifactSearchResultsDto resultsDto = searchAuthorizer.searchArtifacts(filters, oBy, oDir, offset.intValue(),
-                limit.intValue(), skipCount != null && skipCount);
+        ArtifactSearchResultsDto resultsDto = searchAuthorizer.searchArtifacts(filters, oBy, oDir,
+                normalizeOffset(offset), normalizeLimitUnbounded(limit), skipCount != null && skipCount);
         return searchResultPermissions.addTo(V3ApiUtil.dtoToSearchResults(resultsDto));
     }
 
@@ -1711,8 +1713,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         Set<SearchFilter> filters = Set.of(
                 SearchFilter.ofGroupId(new GroupId(groupId).getRawGroupIdWithNull()),
                 SearchFilter.ofArtifactId(artifactId));
-        VersionSearchResultsDto resultsDto = searchAuthorizer.searchVersions(filters, oBy, oDir, offset.intValue(),
-                limit.intValue(), skipCount != null && skipCount);
+        VersionSearchResultsDto resultsDto = searchAuthorizer.searchVersions(filters, oBy, oDir,
+                normalizeOffset(offset), normalizeLimitUnbounded(limit), skipCount != null && skipCount);
         return searchResultPermissions.addTo(V3ApiUtil.dtoToSearchResults(resultsDto));
     }
 
@@ -1836,8 +1838,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             limit = BigInteger.valueOf(20);
         }
 
-        BranchSearchResultsDto dto = storage.getBranches(new GA(groupId, artifactId), offset.intValue(),
-                limit.intValue());
+        BranchSearchResultsDto dto = storage.getBranches(new GA(groupId, artifactId), normalizeOffset(offset),
+                normalizeLimitUnbounded(limit));
         return V3ApiUtil.dtoToSearchResults(dto);
     }
 
@@ -1900,8 +1902,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         // Throw 404 if the artifact or branch does not exist.
         storage.getBranchMetaData(ga, bid);
 
-        VersionSearchResultsDto results = storage.getBranchVersions(ga, bid, offset.intValue(),
-                limit.intValue());
+        VersionSearchResultsDto results = storage.getBranchVersions(ga, bid, normalizeOffset(offset),
+                normalizeLimitUnbounded(limit));
         return searchResultPermissions.addTo(V3ApiUtil.dtoToSearchResults(results));
     }
 
@@ -2833,8 +2835,11 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
 
-        int effectiveLimit = limit != null ? Math.min(limit, 500) : 20;
-        int effectiveOffset = offset != null ? offset : 0;
+        int effectiveLimit = 20;
+        if (limit != null) {
+            effectiveLimit = limit < 0 ? 1 : Math.min(limit, 500);
+        }
+        int effectiveOffset = offset != null ? Math.max(0, offset) : 0;
 
         String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
         Set<SearchFilter> filters = Set.of(
@@ -3253,8 +3258,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         ParameterValidationUtils.requireParameter(GROUP_ID_PARAM, groupId);
         ParameterValidationUtils.requireParameter(ARTIFACT_ID_PARAM, artifactId);
 
-        int off = offset != null ? offset.intValue() : 0;
-        int lim = limit != null ? Math.min(limit.intValue(), 500) : 20;
+        int off = offset != null ? normalizeOffset(offset) : 0;
+        int lim = limit != null ? Math.min(normalizeLimitUnbounded(limit), 500) : 20;
 
         String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
         var entries = contractAuditService.getAuditLog(rawGroupId, artifactId, off, lim);

@@ -3,6 +3,7 @@ package io.apicurio.registry.storage.impl.kafkasql;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.KafkasqlTestProfile;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
@@ -11,6 +12,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -23,6 +25,7 @@ import static io.restassured.RestAssured.given;
 
 @QuarkusTest
 @TestProfile(KafkasqlTestProfile.class)
+@Tag(ApicurioTestTags.SLOW)
 public class KafkaSqlContractEventsTest extends AbstractResourceTestBase {
 
     private static final String EVENTS_TOPIC = "registry-events";

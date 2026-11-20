@@ -5,7 +5,9 @@ import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.resolver.client.RegistryVersionCoordinates;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -19,10 +21,18 @@ public class MockRegistryClientFacade implements RegistryClientFacade {
 
     private final String schemaContent;
     private final AtomicInteger createSchemaCallCount = new AtomicInteger(0);
+    /** One entry per createSchema call: "group/artifactId" -> the references passed. */
+    private final Map<String, Set<RegistryArtifactReference>> created = new LinkedHashMap<>();
+    private final List<String> createdVersions = new ArrayList<>();
     private final AtomicInteger searchVersionsCallCount = new AtomicInteger(0);
     private final AtomicInteger getSchemaByGlobalIdCallCount = new AtomicInteger(0);
     private final AtomicInteger getSchemaByGAVCallCount = new AtomicInteger(0);
     private final AtomicInteger getReferencesByGAVCallCount = new AtomicInteger(0);
+
+    /** Every dereference flag requested, in order, e.g. "globalId:true", "contentId:false". */
+    private final List<String> dereferenceRequests = new ArrayList<>();
+    private boolean supportsDereferencedContentLookups = true;
+    private final AtomicInteger getReferencesCallCount = new AtomicInteger(0);
 
     /** Optional per-GAV reference responses for testing nested references. */
     private Map<String, List<RegistryArtifactReference>> referencesByGAV = new HashMap<>();
@@ -52,6 +62,18 @@ public class MockRegistryClientFacade implements RegistryClientFacade {
         return createSchemaCallCount.get();
     }
 
+    /**
+     * @return the recorded createSchema calls, in call order
+     */
+    public Map<String, Set<RegistryArtifactReference>> getCreated() {
+        return created;
+    }
+
+    /** The requested version of every createSchema call, in order. */
+    public List<String> getCreatedVersions() {
+        return createdVersions;
+    }
+
     public int getSearchVersionsCallCount() {
         return searchVersionsCallCount.get();
     }
@@ -68,14 +90,45 @@ public class MockRegistryClientFacade implements RegistryClientFacade {
         return getReferencesByGAVCallCount.get();
     }
 
+    public List<String> getDereferenceRequests() {
+        return dereferenceRequests;
+    }
+
+    public void setSupportsDereferencedContentLookups(boolean supports) {
+        this.supportsDereferencedContentLookups = supports;
+    }
+
+    public int getGetReferencesCallCount() {
+        return getReferencesCallCount.get();
+    }
+
+    @Override
+    public boolean supportsDereferencedContentLookups() {
+        return supportsDereferencedContentLookups;
+    }
+
+    @Override
+    public String getSchemaByContentId(Long contentId, boolean dereferenced) {
+        dereferenceRequests.add("contentId:" + dereferenced);
+        return schemaContent;
+    }
+
+    @Override
+    public String getSchemaByContentHash(String contentHash, boolean dereferenced) {
+        dereferenceRequests.add("contentHash:" + dereferenced);
+        return schemaContent;
+    }
+
     @Override
     public String getSchemaByContentId(Long contentId) {
+        dereferenceRequests.add("contentId:false");
         return schemaContent;
     }
 
     @Override
     public String getSchemaByGlobalId(long globalId, boolean dereferenced) {
         getSchemaByGlobalIdCallCount.incrementAndGet();
+        dereferenceRequests.add("globalId:" + dereferenced);
         return schemaContent;
     }
 
@@ -87,16 +140,19 @@ public class MockRegistryClientFacade implements RegistryClientFacade {
 
     @Override
     public String getSchemaByContentHash(String contentHash) {
+        dereferenceRequests.add("contentHash:false");
         return schemaContent;
     }
 
     @Override
     public List<RegistryArtifactReference> getReferencesByContentId(long contentId) {
+        getReferencesCallCount.incrementAndGet();
         return List.of();
     }
 
     @Override
     public List<RegistryArtifactReference> getReferencesByGlobalId(long globalId) {
+        getReferencesCallCount.incrementAndGet();
         return List.of();
     }
 
@@ -109,6 +165,7 @@ public class MockRegistryClientFacade implements RegistryClientFacade {
 
     @Override
     public List<RegistryArtifactReference> getReferencesByContentHash(String contentHash) {
+        getReferencesCallCount.incrementAndGet();
         return List.of();
     }
 
@@ -124,6 +181,8 @@ public class MockRegistryClientFacade implements RegistryClientFacade {
             String version, String autoCreateBehavior, boolean canonical, String schemaString,
             Set<RegistryArtifactReference> references) {
         createSchemaCallCount.incrementAndGet();
+        created.put(groupId + "/" + artifactId, references);
+        createdVersions.add(version);
         return RegistryVersionCoordinates.create(1L, 1L, groupId, artifactId, "1");
     }
 

@@ -1,6 +1,12 @@
 package io.apicurio.registry.storage.impl.sql.upgrader;
 
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.model.GAV;
+import io.apicurio.registry.references.ReferenceGraphWalker;
+import io.apicurio.registry.references.ReferenceLoader;
+import io.apicurio.registry.references.ReferenceNode;
+import io.apicurio.registry.references.ReferenceResolutionConfig;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.impl.sql.IDbUpgrader;
@@ -19,7 +25,11 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.normalizeGroupId;
 
@@ -51,23 +61,43 @@ public class AvroCanonicalHashUpgrader implements IDbUpgrader {
                     + "JOIN artifacts a ON a.groupId = v.groupId AND a.artifactId = v.artifactId "
                 + "WHERE a.type = ?";
 
-        int successCount = handle.createQuery(sql).bind(0, ArtifactType.AVRO).setFetchSize(50)
-                .map(new ContentWithTypeRowMapper()).stream().mapToInt(entity -> {
-                    try {
-                        return updateEntity(handle, entity);
-                    } catch (Exception ex) {
-                        log.warn("Failed to update canonical hash for contentId {}.",
-                                entity.contentEntity.contentId, ex);
-                        return 0;
-                    }
-                }).sum();
+        AtomicInteger processedCount = new AtomicInteger();
+        AtomicInteger updatedCount = new AtomicInteger();
+        AtomicInteger skippedCount = new AtomicInteger();
+        AtomicInteger failedCount = new AtomicInteger();
 
-        log.info("Successfully updated {} Avro canonical content hashes.", successCount);
+        // Same pattern as SqlExportRepository / SqlVersionRepository: MappedQuery.stream() only
+        // closes the ResultSet/Statement via onClose, so the Stream must be closed explicitly.
+        Stream<ContentWithType> stream = handle.createQuery(sql).bind(0, ArtifactType.AVRO).setFetchSize(50)
+                .map(new ContentWithTypeRowMapper()).stream();
+        try (stream) {
+            stream.forEach(entity -> {
+                processedCount.incrementAndGet();
+                try {
+                    int result = updateEntity(handle, entity);
+                    if (result > 0) {
+                        updatedCount.incrementAndGet();
+                    } else {
+                        skippedCount.incrementAndGet();
+                    }
+                } catch (Exception ex) {
+                    failedCount.incrementAndGet();
+                    log.warn("Failed to update canonical hash for contentId {}.",
+                            entity.contentEntity.contentId, ex);
+                }
+            });
+        }
+
+        log.info(
+                "Avro canonical hash upgrade complete: processed={}, updated={}, skipped={}, failed={}.",
+                processedCount.get(), updatedCount.get(), skippedCount.get(), failedCount.get());
     }
 
     private int updateEntity(Handle handle, ContentWithType entity) {
         List<ArtifactReferenceDto> references = RegistryContentUtils
                 .deserializeReferences(entity.contentEntity.serializedReferences);
+
+        validateReferencesResolvable(handle, references);
 
         ContentWrapperDto data = ContentWrapperDto.builder()
                 .content(ContentHandle.create(entity.contentEntity.contentBytes))
@@ -82,12 +112,47 @@ public class AvroCanonicalHashUpgrader implements IDbUpgrader {
                     .createUpdate("UPDATE content SET canonicalHash = ? WHERE contentId = ?")
                     .bind(0, newCanonicalHash).bind(1, entity.contentEntity.contentId).execute();
             if (rowCount == 0) {
+                // Row disappeared between SELECT and UPDATE; treat as failure (not a silent skip).
                 log.warn("Database row not found for contentId {}.", entity.contentEntity.contentId);
-                return 0;
+                throw new IllegalStateException(
+                        "Database row not found for contentId " + entity.contentEntity.contentId);
             }
             return 1;
         }
         return 0;
+    }
+
+    /**
+     * Checks every reference in the tree resolves to existing content, failing loudly (propagating
+     * whatever {@link #resolveReference} throws) rather than silently treating a missing version as
+     * resolved. Walked with {@link ReferenceGraphWalker} rather than recursed by hand, specifically to fix
+     * the bug this upgrader used to have: a reference cycle recursing without a visited set until the
+     * stack overflowed, past the {@code catch (Exception)} in {@link #upgrade}, which does not catch
+     * {@link StackOverflowError}. The walker marks a coordinate visited the moment it is queued, so a cycle
+     * simply stops re-querying the same coordinate instead of recursing forever.
+     */
+    private void validateReferencesResolvable(Handle handle, List<ArtifactReferenceDto> references) {
+        if (references == null || references.isEmpty()) {
+            return;
+        }
+        ReferenceLoader loader = coordinates -> {
+            Map<GAV, ReferenceNode> loaded = new LinkedHashMap<>();
+            for (GAV coordinate : coordinates) {
+                ArtifactReferenceDto reference = ArtifactReferenceDto.builder()
+                        .groupId(coordinate.getRawGroupIdWithNull()).artifactId(coordinate.getRawArtifactId())
+                        .version(coordinate.getRawVersionId()).build();
+                // Fails on a missing version, by design: an upgrade must not silently treat a dangling
+                // reference as resolvable. resolveReference's .one() throws if there is no such row.
+                ContentWrapperDto resolved = resolveReference(handle, reference);
+                loaded.put(coordinate,
+                        ReferenceNode.builder().coordinates(coordinate)
+                                .content(TypedContent.create(resolved.getContent(), resolved.getContentType()))
+                                .artifactType(resolved.getArtifactType()).references(resolved.getReferences())
+                                .build());
+            }
+            return loaded;
+        };
+        ReferenceGraphWalker.walk(references, loader, ReferenceResolutionConfig.maxDepth());
     }
 
     private ContentWrapperDto resolveReference(Handle handle, ArtifactReferenceDto reference) {

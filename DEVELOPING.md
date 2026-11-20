@@ -10,31 +10,41 @@ the [README](README.md) and the
 
 ## Build Configuration
 
-**Build requirement:** JDK 21 or newer is required to build the project (the build tooling, e.g. Checkstyle, needs a Java 21+ runtime). The produced artifacts still target Java 17.
+**Build requirement:** JDK 21 or newer is required to build the project (the build tooling, e.g. Checkstyle, needs a Java 21+ runtime). Client-side artifacts (SDKs, SerDes, Maven plugin and other libraries) still target Java 17; the server (`app`, `authz`) and the operator target Java 21.
 
 This project supports several build configuration options that affect the produced executables.
 
-By default, `mvn clean install` produces an executable JAR with the *dev* Quarkus configuration profile enabled, and *in-memory* persistence implementation.
+By default, `mvn clean install` produces an executable JAR with the *dev* Quarkus configuration profile enabled. Its default storage is SQL on an in-memory H2 database, so data is lost on restart.
 
-Apicurio Registry supports 4 persistence implementations:
- - In-Memory
- - KafkaSQL
- - PostgreSQL
- - SQL Server (community contributed and maintained)
+A single artifact runs every storage variant. Two properties select it:
 
-Starting with Apicurio Registry 3.0, we now produce a single artifact suitable for running any storage variant.
+| Property | Env. variable | Values | Default |
+|---|---|---|---|
+| `apicurio.storage.kind` | `APICURIO_STORAGE_KIND` | `sql`, `kafkasql`, `gitops`, `kubernetesops` | `sql` |
+| `apicurio.storage.sql.kind` | `APICURIO_STORAGE_SQL_KIND` | `h2`, `postgresql`, `mysql`, `mssql` | `h2` |
 
-Which storage variant will be used is determined by the following configuration:
+There is no separate in-memory storage kind: "in-memory" is `sql` with `h2` and the default `jdbc:h2:mem` URL.
 
-| Option                   | Command argument          | Env. variable           |
-|--------------------------|---------------------------|-------------------------|
-| Registry Storage Variant | `-Dapicurio.storage.kind` | `APICURIO_STORAGE_KIND` |
+### Storage support matrix
 
-For this property, there are four possible values:
-- *sql* - for the SQL storage variant.
-- *kafkasql* - for the KafkaSQL storage variant.
-- *gitops* - for the GitOps storage variant (experimental; requires `APICURIO_FEATURES_EXPERIMENTAL_ENABLED=true`).
-- *kubernetesops* - for the Kubernetes ConfigMap storage variant (experimental; requires `APICURIO_FEATURES_EXPERIMENTAL_ENABLED=true`).
+| Storage kind | Database | Writes | Status | Unit tests (`verify-unit-tests.yaml`) | Integration tests | Operator `app.storage.type` |
+|---|---|---|---|---|---|---|
+| `sql` | `h2` (in-memory) | Read/write | Development and testing; not persistent | All shards (default profile) | `h2` groups | Empty (default) |
+| `sql` | `postgresql` | Read/write | Supported | `*PostgresqlTest` classes | `postgresql` groups | `postgresql` |
+| `sql` | `mysql` | Read/write | Supported | `*MysqlTest` classes | None | `mysql` |
+| `sql` | `mssql` | Read/write | Community contributed | `*MssqlTest` classes, skipped on macOS | None | Not supported |
+| `kafkasql` | Kafka journal, replayed into the local SQL store (H2 in-memory by default) | Read/write | Supported | `app-kafkasql` shard and `*KafkaSqlTest` classes | `kafkasql` groups | `kafkasql` |
+| `gitops` | Git repository, loaded into blue/green H2 stores | Read-only | Experimental | `app-gitops` shard | None | `gitops` |
+| `kubernetesops` | ConfigMaps, loaded into blue/green H2 stores | Read-only | Experimental | `app-kubernetesops` shard | `kubernetesops` group | `kubernetesops` |
+
+Notes:
+- **KafkaSQL local store:** it uses whatever `apicurio.storage.sql.kind` selects. Only the default H2 is tested.
+- **GitOps and KubernetesOps:**
+  - Starting either one requires `apicurio.features.experimental.enabled=true`. The operator sets it automatically.
+  - Their blue/green stores use the SQL statements of `apicurio.storage.sql.kind`, so keep it at `h2`.
+  - The GitOps *push mode* is a mode of the `distro/gitops` sidecar that accepts `git push` from CI/CD. The registry never writes back to Git.
+- **Read-only mode for any storage:** `apicurio.storage.read-only.enabled` makes any storage reject writes. It defaults to `false` and can be changed at runtime.
+- **Registry events:** the SQL outbox events are written only on PostgreSQL and SQL Server. KafkaSQL publishes events to the `apicurio.events.kafka.topic` topic.
 
 Additionally, there are 2 main configuration profiles:
  - *dev* - suitable for development, and
@@ -49,12 +59,12 @@ The project uses a three-tier build system to allow developers to build only wha
 
 | Tier        | Flag      | What's included                                         | Use case                           |
 |-------------|-----------|--------------------------------------------------------|------------------------------------|
-| **Local**   | `-Dlocal` | Core server, Java SDK, schema utilities — skips javadoc, source JARs, checkstyle, assembly | Quick local development iteration |
-| **Default** | *(none)*  | Local + serializers, CLI, docs, distribution            | Normal development                 |
+| **Local**   | `-Dlocal` | Core server, Java SDK, schema utilities, serializers — skips javadoc, source JARs, checkstyle, assembly | Quick local development iteration |
+| **Default** | *(none)*  | Local + CLI, docs, distribution                         | Normal development                 |
 | **Full**    | `-Dfull`  | Default + MCP server, Go SDK, operator, extra utilities | CI builds, releases                |
 
 ```bash
-# Local: core server only, skip non-essential plugins (~3 min)
+# Local: core server + serializers, skip non-essential plugins
 ./mvnw clean install -Dlocal -DskipTests
 
 # Default: normal development
@@ -62,6 +72,12 @@ The project uses a three-tier build system to allow developers to build only wha
 
 # Full: everything
 ./mvnw clean install -Dfull -DskipTests
+```
+
+Dev mode:
+
+```bash
+cd app && ../mvnw quarkus:dev -Dlocal
 ```
 
 Integration tests and examples are always opt-in via their own profiles:
@@ -72,9 +88,101 @@ Integration tests and examples are always opt-in via their own profiles:
 | Property              | Purpose                                                                                  |
 |-----------------------|------------------------------------------------------------------------------------------|
 | `-Pprod`              | Enables Quarkus *prod* configuration profile (higher logging level, production defaults) |
-| `-DskipTests`         | Skip all tests                                                                           |
+| `-DskipTests`         | Skip running tests (test sources are still compiled)                                     |
+| `-Dmaven.test.skip=true` | Skip compiling and running tests                                                      |
 | `-DcliSkipNative`     | Skip CLI native image compilation (no executable is produced, but tests can still run)   |
 | `-DskipOperatorTests` | Skip operator tests (default: `true`, requires a running cluster)                        |
+| `-Dkiota.binary.folder` | Where the Kiota generator binary is cached (default: inside the local Maven repository) |
+| `-Dkiota.system`      | Use a Kiota already on the system instead of downloading one (default: `false`)          |
+| `-Dkiota.skip`        | Skip Kiota generation entirely (default: `false`)                                        |
+
+### Kiota generator binary
+
+The Java SDK is generated by [Kiota](https://github.com/microsoft/kiota), and the build
+downloads the generator binary from github.com the first time it needs it. That binary is
+cached outside the build tree, in your local Maven repository at
+`.cache/kiota-binary/<os.detected.classifier>/<kiota.version>/kiota`, so on 64-bit Linux
+that is `~/.m2/repository/.cache/kiota-binary/linux-x86_64/<kiota.version>/kiota` for the
+version pinned as `kiota.version` in the root pom. On Windows the file is named `kiota.exe`.
+Keeping it there means `mvn clean` no longer forces a fresh download on the next build. The
+download is a 35 MB compressed archive and the binary it extracts is about 82 MB.
+
+The directory name is the os-maven-plugin classifier, `linux-x86_64`, while the release asset
+the plugin downloads for the same machine is named `linux-x64`. The two spell the same
+platform differently and neither is a typo. The `kiota.binary.folder` comment in the root pom
+says why the path is built that way.
+
+Nothing prunes older versions, so delete `~/.m2/repository/.cache/kiota-binary` to reclaim
+the space. A build killed outright partway through the download can also leave a
+`kiota-<uuid>.zip` or `kiota-<uuid>.tmp` beside the binary, in the version directory, which
+is safe to delete.
+
+Pointing `-Dkiota.binary.folder` at another absolute path works for a local build. Do not
+commit one. Only `~/.m2/repository` is cached, so moving the folder back under `target/`
+makes every build slower without failing anything, and `scripts/validate-files.sh` runs on
+every pull request to catch it.
+
+It checks the root pom's property, the profiles and the `settings.localRepository` anchor
+that can move the resolved path while leaving the property reading as expected, the
+`os-maven-plugin` extension that substitutes the classifier, `<targetBinaryFolder>` on every
+plugin execution in `java-sdk/client` and `java-sdk/client-v2`, and a `-D` on a command line
+under `.github/workflows`. Which other routes to the folder are deliberately not checked,
+pipeline-wide and local ones separately, is enumerated in one place: the
+`kiota.binary.folder` comment in the root pom.
+
+This covers the Java SDK only. `go-sdk/generate.sh` and `python-sdk/kiota-gen.py` each
+download their own pinned Kiota version, read from `go-sdk/go-sdk.csproj` and
+`python-sdk/python-sdk.csproj` rather than from `kiota.version` in the root pom, into
+`go-sdk/target/kiota_tmp` and `python-sdk/kiota_tmp/<version>`. Neither reads
+`kiota.binary.folder`. The three pins are independent and currently differ. The Go SDK
+Freshness job restores no cache at all, so it fetches the release on every run.
+
+## Dependency Analysis
+
+`dependency:analyze` cannot be run directly over the full reactor: the `app` module
+declares a test dependency of type `maven-plugin` on `apicurio-registry-maven-plugin`,
+and Maven cannot satisfy `maven-plugin`-typed dependencies from the reactor when
+`dependency:analyze` forks `test-compile`. Both commands below carry `-Dfull` to
+ensure full reactor coverage (all modules including CLI, operator, Go SDK, etc.). The
+`dependency-check` Maven profile works around this by using
+[`dependency:analyze-only`](https://maven.apache.org/plugins/maven-dependency-plugin/analyze-only-mojo.html)
+instead, which does not fork the build, binding it to the `package` phase instead of
+running it as a standalone goal. `analyze-only` requires the classes it inspects to
+already be compiled. Binding it to `package` guarantees that, because Maven runs the
+normal (non-forked) `compile`, `test-compile`, and `package` phases for every module,
+in reactor order, before `analyze-only` runs for that module. This is what actually
+gives full reactor coverage. Binding it to an earlier phase such as `validate` was
+tried first and failed partway through the reactor (`BUILD FAILURE` at module 46/67),
+because sibling modules outside `app`'s own dependency closure hadn't been
+compiled/packaged yet and Maven couldn't resolve them as dependencies. The check is
+still a two-step procedure:
+
+```bash
+# Step 1: build app and its dependency closure so apicurio-registry-maven-plugin
+# (and everything else app needs) is installed to the local repository.
+./mvnw -T1 install -pl app -am -DskipTests -Dfull -DcliSkipNative -q
+
+# Step 2: run the report-only dependency analysis over the full reactor.
+./mvnw -T1 -Pdependency-check package -DskipTests -Dfull -DcliSkipNative
+```
+
+The profile configures `analyze-only` with `ignoreNonCompile=true` (ignore
+runtime/provided/test/system scopes when flagging unused dependencies) and
+`failOnWarning=false` (report only, never breaks the build).
+
+**`-T1` is required**, not optional: `.mvn/maven.config` sets `-T 1C` globally, and a
+parallel build interleaves per-module log output, which silently misattributes
+warnings to the wrong module. Always pass `-T1` explicitly for both steps when reading
+the analyze output.
+
+**Results on the `app` module are false-positive-heavy.** `app` is a Quarkus
+application, and Quarkus extensions inject capabilities (e.g. CDI beans, config) at
+build time in ways a bytecode-based analyzer cannot see, so `analyze-only` routinely
+flags used Quarkus extensions (e.g. `io.quarkus:quarkus-core`, `io.quarkus:quarkus-arc`)
+as "used undeclared" or unused. Treat `app` warnings with skepticism and cross-check
+before acting on them. See [issue #9136](https://github.com/Apicurio/apicurio-registry/issues/9136)
+for background, and [quarkus-extension-analyzer](https://github.com/paoloantinori/quarkus-extension-analyzer)
+for a Quarkus-aware alternative that is being explored separately.
 
 ## Testing
 
@@ -83,17 +191,48 @@ are in a separate module and need to be explicitly enabled:
 
 ```bash
 # Run default integration tests (smoke + serdes + acceptance)
-./mvnw verify -Pintegration-tests -Plocal-tests -pl integration-tests -am
+./mvnw verify -Pintegration-tests -pl integration-tests -am
 ```
 
 See the [integration tests module](integration-tests/) for test groups, deployment
 modes, and detailed usage instructions.
 
+### Byteman concurrency tests
+
+Tests that use Byteman to force a specific thread interleaving live in
+`app/src/test-concurrency/java` and are opt-in via `-Pconcurrency-tests`:
+
+```bash
+./mvnw test -pl :apicurio-registry-app -Pconcurrency-tests
+```
+
+That command also runs the regular `app` suite. To run only the Byteman tests, name them
+with `-Dtest=ConcurrentVersionCreationTest,...`.
+
+They sit in their own source root because Byteman is LGPL and may not appear in the
+default build. Only the profile adds that root, so a new test put anywhere else will
+either fail the license scan or not compile. Put new Byteman tests in
+`app/src/test-concurrency/java`. Concurrency tests that do not use Byteman stay in
+`app/src/test/java`, because only that root runs in CI.
+
+Every `@WithByteman` class also carries `@BMUnitConfig`, even when it sets nothing. BMUnit
+pushes a configuration for each Byteman class but pops it only when that annotation is
+present, so without it the next Byteman class in the same JVM fails with "BMUnit test class
+configuration pushed without prior pop!".
+
+Two things to expect. An IDE that has not enabled the profile shows these files as
+non-source with every symbol unresolved. And no CI workflow activates `-Pconcurrency-tests`, so
+these tests run locally only.
+
+Run `clean` when you go back to a build without the profile. The Byteman classes stay in
+`app/target/test-classes` from the earlier build, and a later default build does not remove
+them.
+
 ## Running with Postgres (docker-compose)
 
 Run Apicurio Registry with Postgres:
 
- - Compile using `mvn clean install -DskipTests -Pprod -Ddocker`
+ - Compile using `mvn clean install -DskipTests -Pprod` (see `distro/docker/README.md` for building the image)
 
  - Then create a docker-compose file `test.yml`:
 ```yaml

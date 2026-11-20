@@ -24,6 +24,7 @@ const AUTH_LOGOUT_URL=process.env["REGISTRY_AUTH_LOGOUT_URL"];
 const AUTH_LOAD_USER_INFO=process.env["REGISTRY_AUTH_LOAD_USER_INFO"];
 const AUTH_TOKEN_TYPE=process.env["REGISTRY_AUTH_TOKEN_TYPE"];
 const AUTH_LOG_TOKENS=process.env["REGISTRY_AUTH_LOG_TOKENS"];
+const AUTH_USE_NONCE=process.env["REGISTRY_AUTH_USE_NONCE"];
 
 const FEATURE_READ_ONLY=process.env["REGISTRY_FEATURE_READ_ONLY"];
 const FEATURE_BREADCRUMBS=process.env["REGISTRY_FEATURE_BREADCRUMBS"];
@@ -98,6 +99,9 @@ if (AUTH_TYPE === "oidc") {
     if (AUTH_LOG_TOKENS) {
         CONFIG.auth.options.logTokens = AUTH_LOG_TOKENS;
     }
+    if (AUTH_USE_NONCE) {
+        CONFIG.auth.options.useNonce = AUTH_USE_NONCE === "true";
+    }
 }
 
 // Configure features
@@ -117,13 +121,13 @@ if (FEATURE_AGENTS) {
     CONFIG.features.agents = FEATURE_AGENTS === "true";
 }
 if (FEATURE_DELETE_GROUP_ENABLED) {
-    CONFIG.features.deleteGroupEnabled = FEATURE_DELETE_GROUP_ENABLED === "true";
+    CONFIG.features.deleteGroup = FEATURE_DELETE_GROUP_ENABLED === "true";
 }
 if (FEATURE_DELETE_ARTIFACT_ENABLED) {
-    CONFIG.features.deleteArtifactEnabled = FEATURE_DELETE_ARTIFACT_ENABLED === "true";
+    CONFIG.features.deleteArtifact = FEATURE_DELETE_ARTIFACT_ENABLED === "true";
 }
 if (FEATURE_DELETE_VERSION_ENABLED) {
-    CONFIG.features.deleteVersionEnabled = FEATURE_DELETE_VERSION_ENABLED === "true";
+    CONFIG.features.deleteVersion = FEATURE_DELETE_VERSION_ENABLED === "true";
 }
 
 

@@ -4,10 +4,11 @@
 
 CREATE TABLE apicurio (propName NVARCHAR(255) NOT NULL, propValue NVARCHAR(255));
 ALTER TABLE apicurio ADD PRIMARY KEY (propName);
-INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 108);
+INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 115);
 
-CREATE TABLE sequences (seqName NVARCHAR(32) NOT NULL, seqValue BIGINT NOT NULL);
-ALTER TABLE sequences ADD PRIMARY KEY (seqName);
+CREATE SEQUENCE globalid_seq AS BIGINT START WITH 1 INCREMENT BY 1 NO CACHE;
+CREATE SEQUENCE contentid_seq AS BIGINT START WITH 1 INCREMENT BY 1 NO CACHE;
+CREATE SEQUENCE commentid_seq AS BIGINT START WITH 1 INCREMENT BY 1 NO CACHE;
 
 CREATE TABLE config (propName NVARCHAR(255) NOT NULL, propValue NVARCHAR(1024) NOT NULL, modifiedOn BIGINT NOT NULL);
 ALTER TABLE config ADD PRIMARY KEY (propName);
@@ -15,6 +16,10 @@ CREATE INDEX IDX_config_1 ON config(modifiedOn);
 
 CREATE TABLE acls (principalId NVARCHAR(256) NOT NULL, role NVARCHAR(32) NOT NULL, principalName NVARCHAR(256));
 ALTER TABLE acls ADD PRIMARY KEY (principalId);
+
+CREATE TABLE peers (peerId NVARCHAR(256) NOT NULL, url NVARCHAR(1024) NOT NULL, name NVARCHAR(512), description NVARCHAR(1024), enabled BIT NOT NULL DEFAULT 1, credentialSecretRef NVARCHAR(256));
+ALTER TABLE peers ADD PRIMARY KEY (peerId);
+CREATE INDEX IDX_peers_1 ON peers(enabled);
 
 CREATE TABLE downloads (downloadId NVARCHAR(128) NOT NULL, expires BIGINT NOT NULL, context NVARCHAR(1024));
 ALTER TABLE downloads ADD PRIMARY KEY (downloadId);
@@ -60,6 +65,11 @@ ALTER TABLE artifact_labels ADD CONSTRAINT FK_alabels_1 FOREIGN KEY (groupId, ar
 CREATE INDEX IDX_alabels_1 ON artifact_labels(labelKey);
 CREATE INDEX IDX_alabels_2 ON artifact_labels(labelValue);
 
+CREATE TABLE artifact_structured_content (groupId NVARCHAR(512) NOT NULL, artifactId NVARCHAR(512) NOT NULL, elementType NVARCHAR(64) NOT NULL, elementValue NVARCHAR(256) NOT NULL);
+ALTER TABLE artifact_structured_content ADD PRIMARY KEY (groupId, artifactId, elementType, elementValue);
+ALTER TABLE artifact_structured_content ADD CONSTRAINT FK_asc_1 FOREIGN KEY (groupId, artifactId) REFERENCES artifacts(groupId, artifactId) ON DELETE CASCADE;
+CREATE INDEX IDX_asc_1 ON artifact_structured_content(elementType, elementValue);
+
 CREATE TABLE artifact_rules (groupId NVARCHAR(512) NOT NULL, artifactId NVARCHAR(512) NOT NULL, type NVARCHAR(32) NOT NULL, configuration NVARCHAR(1024) NOT NULL);
 ALTER TABLE artifact_rules ADD PRIMARY KEY (groupId, artifactId, type);
 -- Note: no FK constraint between artifact_rules and artifacts because the Confluent API allows
@@ -68,10 +78,11 @@ ALTER TABLE artifact_rules ADD PRIMARY KEY (groupId, artifactId, type);
 -- The "versionOrder" field is needed to generate "version" when it is not provided.
 -- It contains the same information as the "branchOrder" in the "latest" branch, but we cannot use it because of a chicken-and-egg problem.
 -- At least it is no longer confusingly called "versionId". The "versionOrder" field should not be used for any other purpose.
-CREATE TABLE versions (globalId BIGINT NOT NULL, groupId NVARCHAR(512) NOT NULL, artifactId NVARCHAR(512) NOT NULL, version NVARCHAR(256), versionOrder INT NOT NULL, state NVARCHAR(64) NOT NULL, name NVARCHAR(512), description NVARCHAR(1024), owner NVARCHAR(256), createdOn DATETIME2(6) NOT NULL, modifiedBy NVARCHAR(256), modifiedOn DATETIME2(6) NOT NULL, labels TEXT, contentId BIGINT NOT NULL);
+CREATE TABLE versions (globalId BIGINT NOT NULL, groupId NVARCHAR(512) NOT NULL, artifactId NVARCHAR(512) NOT NULL, version NVARCHAR(256), versionSortKey NVARCHAR(512), versionOrder INT NOT NULL, state NVARCHAR(64) NOT NULL, name NVARCHAR(512), description NVARCHAR(1024), owner NVARCHAR(256), createdOn DATETIME2(6) NOT NULL, modifiedBy NVARCHAR(256), modifiedOn DATETIME2(6) NOT NULL, labels TEXT, contentId BIGINT NOT NULL);
 ALTER TABLE versions ADD PRIMARY KEY (globalId);
 ALTER TABLE versions ADD CONSTRAINT UQ_versions_1 UNIQUE (groupId, artifactId, version);
 ALTER TABLE versions ADD CONSTRAINT UQ_versions_2 UNIQUE (globalId, versionOrder);
+ALTER TABLE versions ADD CONSTRAINT UQ_versions_3 UNIQUE (groupId, artifactId, versionOrder);
 ALTER TABLE versions ADD CONSTRAINT FK_versions_1 FOREIGN KEY (groupId, artifactId) REFERENCES artifacts(groupId, artifactId) ON DELETE CASCADE;
 ALTER TABLE versions ADD CONSTRAINT FK_versions_2 FOREIGN KEY (contentId) REFERENCES content(contentId);
 CREATE INDEX IDX_versions_1 ON versions(version);

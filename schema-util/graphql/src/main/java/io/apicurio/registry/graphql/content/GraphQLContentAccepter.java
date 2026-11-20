@@ -5,6 +5,7 @@ import graphql.schema.idl.TypeDefinitionRegistry;
 import io.apicurio.registry.content.ContentAccepter;
 import io.apicurio.registry.content.TypedContent;
 
+import java.util.Locale;
 import java.util.Map;
 
 public class GraphQLContentAccepter implements ContentAccepter {
@@ -13,7 +14,7 @@ public class GraphQLContentAccepter implements ContentAccepter {
     public boolean acceptsContent(TypedContent content, Map<String, TypedContent> resolvedReferences) {
         try {
             String contentType = content.getContentType();
-            if (contentType.toLowerCase().contains("graph")) {
+            if (contentType != null && contentType.toLowerCase(Locale.ROOT).contains("graph")) {
                 TypeDefinitionRegistry typeRegistry = new SchemaParser()
                         .parse(content.getContent().content());
                 if (typeRegistry != null) {

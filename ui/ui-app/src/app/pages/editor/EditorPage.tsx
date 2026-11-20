@@ -22,8 +22,11 @@ import {
     toPageError
 } from "@app/pages";
 import { RootPageHeader } from "@app/components";
+import { Link } from "react-router";
+import { Button } from "@patternfly/react-core";
+import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { ContentTypes } from "@models/ContentTypes.ts";
-import { PleaseWaitModal } from "@apicurio/common-ui-components";
+import { PleaseWaitModal } from "@apitomy/common-ui-components";
 import { Draft, DraftContent } from "@models/drafts";
 import { useDraftsService } from "@services/useDraftsService.ts";
 import { useDownloadService } from "@services/useDownloadService.ts";
@@ -40,6 +43,7 @@ import { TextEditor } from "@editors/TextEditor.tsx";
 import { ProtoEditor } from "@editors/ProtoEditor.tsx";
 import { OpenApiEditor } from "@editors/OpenApiEditor.tsx";
 import { AsyncApiEditor } from "@editors/AsyncApiEditor.tsx";
+import { PromptTemplateEditor } from "@editors/PromptTemplateEditor.tsx";
 import { ArtifactTypes } from "@services/useArtifactTypesService.ts";
 import { useLoggerService } from "@services/useLoggerService.ts";
 import { serializeEditorDraftContent } from "./editorDraftSnapshot.ts";
@@ -47,6 +51,7 @@ import { useEditorDraftRecovery } from "./useEditorDraftRecovery.ts";
 import { useEditorReauthentication } from "./useEditorReauthentication.ts";
 import { ArtifactReference, ReferenceTypeObject } from "@sdk/lib/generated-client/models";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
+import { buildNonDraftVersionLink } from "./EditorPage.utils.ts";
 
 const sectionContextStyle: CSSProperties = {
     borderBottom: "1px solid #ccc",
@@ -106,6 +111,7 @@ export const EditorPage: FunctionComponent<PageProperties> = () => {
     const [referencesLoadFailed, setReferencesLoadFailed] = useState(false);
 
     const params = useParams();
+    const appNavigation: AppNavigation = useAppNavigation();
     const groupId = params.groupId as string;
     const draftId: string = params.artifactId || "";
     const version = params.version as string;
@@ -408,6 +414,17 @@ export const EditorPage: FunctionComponent<PageProperties> = () => {
             <EmptyStateBody>
                 This artifact is not in <em>DRAFT</em> status and so its content cannot be edited.
             </EmptyStateBody>
+            <Button
+                variant="primary"
+                component={(props: any) => (
+                    <Link
+                        {...props}
+                        to={appNavigation.createLink(buildNonDraftVersionLink(groupId, draftId, version))}
+                    />
+                )}
+            >
+                Go to version page
+            </Button>
         </EmptyState>
     );
 
@@ -427,6 +444,11 @@ export const EditorPage: FunctionComponent<PageProperties> = () => {
         <AsyncApiEditor key={`asyncapi-${snapshotKey}-${iframeEditorKey}`} content={draftContent} onChange={onEditorChange}/>
     );
 
+    // Keyed by draft only (not iframeEditorKey) so restoring a recovered draft stays undoable.
+    const promptTemplateEditor: React.ReactElement = (
+        <PromptTemplateEditor key={`prompt-template-${snapshotKey}`} content={draftContent} onChange={onEditorChange}/>
+    );
+
     const editor = (): React.ReactElement => {
         if (isDraftLoaded && draft.isDraft === false) {
             logger.warn("Artifact version is not a draft.");
@@ -442,6 +464,9 @@ export const EditorPage: FunctionComponent<PageProperties> = () => {
         } else if (draft?.type === ArtifactTypes.PROTOBUF) {
             logger.info("Draft is of type PROTOBUF");
             return protoEditor;
+        } else if (draft?.type === ArtifactTypes.PROMPT_TEMPLATE) {
+            logger.info("Draft is of type PROMPT_TEMPLATE");
+            return promptTemplateEditor;
         }
 
         // TODO create different text editors depending on the content type?  Or assume

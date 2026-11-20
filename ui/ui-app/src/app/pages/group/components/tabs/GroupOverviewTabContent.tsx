@@ -11,11 +11,7 @@ import {
     DescriptionListDescription,
     DescriptionListGroup,
     DescriptionListTerm,
-    Drawer,
-    DrawerContent,
-    DrawerContentBody,
     DrawerHead,
-    DrawerPanelContent,
     EmptyState,
     EmptyStateActions,
     EmptyStateBody,
@@ -28,13 +24,14 @@ import {
     Truncate
 } from "@patternfly/react-core";
 import { OutlinedFolderIcon, PencilAltIcon, PlusCircleIcon } from "@patternfly/react-icons";
-import { FromNow, If, ListWithToolbar } from "@apicurio/common-ui-components";
+import { FromNow, If, ListWithToolbar } from "@apitomy/common-ui-components";
 import { isStringEmptyOrUndefined } from "@utils/string.utils.ts";
 import {
     ArtifactSearchResults,
     ArtifactSortBy,
     ArtifactSortByObject,
     GroupMetaData,
+    ResourcePermissions,
     SearchedVersion,
     SortOrder,
     SortOrderObject
@@ -45,12 +42,14 @@ import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 import { FilterBy, SearchFilter, SearchService, useSearchService } from "@services/useSearchService.ts";
 import { GroupArtifactsToolbar } from "@app/pages/group/components/tabs/GroupArtifactsToolbar.tsx";
 import { GroupArtifactsTable } from "@app/pages/group/components/tabs/GroupArtifactsTable.tsx";
+import { ResizableOverviewDrawer } from "@app/components/common/ResizableOverviewDrawer";
 
 /**
  * Properties
  */
 export type GroupOverviewTabContentProps = {
     group: GroupMetaData;
+    permissions?: ResourcePermissions;
     onEditMetaData: () => void;
     onChangeOwner: () => void;
     onCreateArtifact: () => void;
@@ -147,7 +146,7 @@ export const GroupOverviewTabContent: FunctionComponent<GroupOverviewTabContentP
             </EmptyStateBody>
             <EmptyStateFooter>
                 <EmptyStateActions>
-                    <IfAuth isDeveloper={true}>
+                    <IfAuth isDeveloper={true} permissions={props.permissions}>
                         <IfFeature feature="readOnly" isNot={true}>
                             <Button className="empty-btn-create" variant="primary"
                                 data-testid="empty-btn-create" onClick={props.onCreateArtifact}>Create artifact</Button>
@@ -159,98 +158,96 @@ export const GroupOverviewTabContent: FunctionComponent<GroupOverviewTabContentP
     );
 
     const panelContent = (
-        <DrawerPanelContent isResizable={true} defaultSize={"500px"} minSize={"300px"}>
-            <DrawerHead className="__drawer-head">
-                <span tabIndex={isExpanded ? 0 : -1} ref={drawerRef}>
-                    <div className="group-basics">
-                        <div className="title-and-type">
-                            <Flex>
-                                <FlexItem className="type"><Icon><OutlinedFolderIcon /></Icon></FlexItem>
-                                <FlexItem className="title">Group metadata</FlexItem>
-                                <FlexItem className="actions" align={{ default: "alignRight" }}>
-                                    <If condition={props.group.groupId !== "default"}>
-                                        <IfAuth isDeveloper={true}>
-                                            <IfFeature feature="readOnly" isNot={true}>
-                                                <Button icon={<PencilAltIcon />} id="edit-action"
-                                                    data-testid="group-btn-edit"
-                                                    onClick={props.onEditMetaData}
-                                                    style={{ padding: "0" }}
-                                                    variant="link">{" "}Edit</Button>
-                                            </IfFeature>
-                                        </IfAuth>
-                                    </If>
-                                </FlexItem>
-                            </Flex>
-                        </div>
-                        <DescriptionList className="metaData" isCompact={true}>
+        <DrawerHead className="__drawer-head">
+            <span tabIndex={isExpanded ? 0 : -1} ref={drawerRef}>
+                <div className="group-basics">
+                    <div className="title-and-type">
+                        <Flex>
+                            <FlexItem className="type"><Icon><OutlinedFolderIcon /></Icon></FlexItem>
+                            <FlexItem className="title">Group metadata</FlexItem>
+                            <FlexItem className="actions" align={{ default: "alignRight" }}>
+                                <If condition={props.group.groupId !== "default"}>
+                                    <IfAuth isDeveloper={true} permissions={props.permissions}>
+                                        <IfFeature feature="readOnly" isNot={true}>
+                                            <Button icon={<PencilAltIcon />} id="edit-action"
+                                                data-testid="group-btn-edit"
+                                                onClick={props.onEditMetaData}
+                                                style={{ padding: "0" }}
+                                                variant="link">{" "}Edit</Button>
+                                        </IfFeature>
+                                    </IfAuth>
+                                </If>
+                            </FlexItem>
+                        </Flex>
+                    </div>
+                    <DescriptionList className="metaData" isCompact={true}>
+                        <DescriptionListGroup>
+                            <DescriptionListTerm>Description</DescriptionListTerm>
+                            <DescriptionListDescription
+                                data-testid="group-details-description"
+                                className={!props.group.description ? "empty-state-text" : ""}
+                            >
+                                { description() }
+                            </DescriptionListDescription>
+                        </DescriptionListGroup>
+                        <If condition={props.group.groupId !== "default"}>
                             <DescriptionListGroup>
-                                <DescriptionListTerm>Description</DescriptionListTerm>
-                                <DescriptionListDescription
-                                    data-testid="group-details-description"
-                                    className={!props.group.description ? "empty-state-text" : ""}
-                                >
-                                    { description() }
+                                <DescriptionListTerm>Created</DescriptionListTerm>
+                                <DescriptionListDescription data-testid="group-details-created-on">
+                                    <FromNow date={props.group.createdOn} />
                                 </DescriptionListDescription>
                             </DescriptionListGroup>
-                            <If condition={props.group.groupId !== "default"}>
-                                <DescriptionListGroup>
-                                    <DescriptionListTerm>Created</DescriptionListTerm>
-                                    <DescriptionListDescription data-testid="group-details-created-on">
-                                        <FromNow date={props.group.createdOn} />
-                                    </DescriptionListDescription>
-                                </DescriptionListGroup>
-                            </If>
-                            <If condition={!isStringEmptyOrUndefined(props.group.owner)}>
-                                <If condition={props.group.groupId !== "default"}>
-                                    <DescriptionListGroup>
-                                        <DescriptionListTerm>Owner</DescriptionListTerm>
-                                        <DescriptionListDescription data-testid="group-details-created-by">
-                                            <span>{props.group.owner}</span>
-                                            <span>
-                                                <IfAuth isAdminOrOwner={true} owner={props.group.owner}>
-                                                    <IfFeature feature="readOnly" isNot={true}>
-                                                        <Button icon={<PencilAltIcon />} id="edit-action"
-                                                            data-testid="group-btn-change-owner"
-                                                            onClick={props.onChangeOwner}
-                                                            variant="link"></Button>
-                                                    </IfFeature>
-                                                </IfAuth>
-                                            </span>
-                                        </DescriptionListDescription>
-                                    </DescriptionListGroup>
-                                </If>
-                            </If>
-                            <If condition={props.group.groupId !== "default"}>
-                                <DescriptionListGroup>
-                                    <DescriptionListTerm>Modified</DescriptionListTerm>
-                                    <DescriptionListDescription data-testid="group-details-modified-on">
-                                        <FromNow date={props.group.modifiedOn} />
-                                    </DescriptionListDescription>
-                                </DescriptionListGroup>
-                            </If>
-                            <If condition={props.group.groupId !== "default"}>
-                                <DescriptionListGroup>
-                                    <DescriptionListTerm>Labels</DescriptionListTerm>
-                                    {!labels || !Object.keys(labels).length ?
-                                        <DescriptionListDescription data-testid="group-details-labels" className="empty-state-text">No labels</DescriptionListDescription> :
-                                        <DescriptionListDescription data-testid="group-details-labels">{Object.entries(labels).map(([key, value]) =>
-                                            <Label key={`label-${key}`} color="purple" style={{ marginBottom: "2px", marginRight: "5px" }}>
-                                                <Truncate className="label-truncate" content={`${key}=${value}`} />
-                                            </Label>
-                                        )}</DescriptionListDescription>
-                                    }
-                                </DescriptionListGroup>
-                            </If>
-                        </DescriptionList>
-                        <If condition={props.group.groupId === "default"}>
-                            <div style={{ padding: "10px" }}>
-                                <Alert variant="info" title="Note: This default group was system generated" ouiaId="InfoAlert" />
-                            </div>
                         </If>
-                    </div>
-                </span>
-            </DrawerHead>
-        </DrawerPanelContent>
+                        <If condition={!isStringEmptyOrUndefined(props.group.owner)}>
+                            <If condition={props.group.groupId !== "default"}>
+                                <DescriptionListGroup>
+                                    <DescriptionListTerm>Owner</DescriptionListTerm>
+                                    <DescriptionListDescription data-testid="group-details-created-by">
+                                        <span>{props.group.owner}</span>
+                                        <span>
+                                            <IfAuth isAdminOrOwner={true} owner={props.group.owner}>
+                                                <IfFeature feature="readOnly" isNot={true}>
+                                                    <Button icon={<PencilAltIcon />} id="edit-action"
+                                                        data-testid="group-btn-change-owner"
+                                                        onClick={props.onChangeOwner}
+                                                        variant="link"></Button>
+                                                </IfFeature>
+                                            </IfAuth>
+                                        </span>
+                                    </DescriptionListDescription>
+                                </DescriptionListGroup>
+                            </If>
+                        </If>
+                        <If condition={props.group.groupId !== "default"}>
+                            <DescriptionListGroup>
+                                <DescriptionListTerm>Modified</DescriptionListTerm>
+                                <DescriptionListDescription data-testid="group-details-modified-on">
+                                    <FromNow date={props.group.modifiedOn} />
+                                </DescriptionListDescription>
+                            </DescriptionListGroup>
+                        </If>
+                        <If condition={props.group.groupId !== "default"}>
+                            <DescriptionListGroup>
+                                <DescriptionListTerm>Labels</DescriptionListTerm>
+                                {!labels || !Object.keys(labels).length ?
+                                    <DescriptionListDescription data-testid="group-details-labels" className="empty-state-text">No labels</DescriptionListDescription> :
+                                    <DescriptionListDescription data-testid="group-details-labels">{Object.entries(labels).map(([key, value]) =>
+                                        <Label key={`label-${key}`} color="purple" style={{ marginBottom: "2px", marginRight: "5px" }}>
+                                            <Truncate className="label-truncate" content={`${key}=${value}`} />
+                                        </Label>
+                                    )}</DescriptionListDescription>
+                                }
+                            </DescriptionListGroup>
+                        </If>
+                    </DescriptionList>
+                    <If condition={props.group.groupId === "default"}>
+                        <div style={{ padding: "10px" }}>
+                            <Alert variant="info" title="Note: This default group was system generated" ouiaId="InfoAlert" />
+                        </div>
+                    </If>
+                </div>
+            </span>
+        </DrawerHead>
     );
 
     const drawerContent = (
@@ -259,7 +256,7 @@ export const GroupOverviewTabContent: FunctionComponent<GroupOverviewTabContentP
                 <Flex>
                     <FlexItem className="title">Artifacts in group</FlexItem>
                     <FlexItem className="actions" align={{ default: "alignRight" }}>
-                        <IfAuth isDeveloper={true}>
+                        <IfAuth isDeveloper={true} permissions={props.permissions}>
                             <IfFeature feature="readOnly" isNot={true}>
                                 <Button className="btn-header-create-artifact" size="sm" data-testid="btn-create-artifact"
                                     variant="primary" onClick={props.onCreateArtifact}>Create artifact</Button>
@@ -294,11 +291,7 @@ export const GroupOverviewTabContent: FunctionComponent<GroupOverviewTabContentP
         <div className="group-overview-tab-content">
             <Card variant="secondary">
                 <CardBody style={{ padding: "0" }}>
-                    <Drawer isExpanded={true} onExpand={() => {}} isInline={true} position="start">
-                        <DrawerContent panelContent={panelContent} style={{ backgroundColor: "white" }}>
-                            <DrawerContentBody hasPadding={false}>{drawerContent}</DrawerContentBody>
-                        </DrawerContent>
-                    </Drawer>
+                    <ResizableOverviewDrawer head={panelContent} body={drawerContent} />
                 </CardBody>
             </Card>
         </div>

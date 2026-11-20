@@ -1,0 +1,11 @@
+{
+  "name": "annotated_tool",
+  "inputSchema": {
+    "type": "object"
+  },
+  "annotations": {
+    "title": 123,
+    "readOnlyHint": "not-a-boolean",
+    "destructiveHint": 123
+  }
+}

@@ -1,6 +1,7 @@
 package io.apicurio.registry.operator.it;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
+import io.apicurio.registry.operator.utils.K8sCell;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -10,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Map;
 
 import static io.apicurio.registry.operator.Tags.FEATURE;
+import static io.apicurio.registry.operator.Tags.FEATURE_A;
 import static io.apicurio.registry.operator.resource.ResourceFactory.deserialize;
 import static io.apicurio.registry.operator.utils.K8sCell.k8sCell;
 import static io.apicurio.registry.operator.utils.K8sCell.k8sCellCreate;
@@ -18,6 +20,7 @@ import static org.awaitility.Awaitility.await;
 
 @QuarkusTest
 @Tag(FEATURE)
+@Tag(FEATURE_A)
 public class IngressITTest extends ITBase {
 
     private static final Logger log = LoggerFactory.getLogger(IngressITTest.class);
@@ -45,12 +48,17 @@ public class IngressITTest extends ITBase {
         final var appIngress = k8sCell(client, () -> client.network().v1().ingresses().withName(primary.getCached().getMetadata().getName() + "-app-ingress").get());
         final var uiIngress = k8sCell(client, () -> client.network().v1().ingresses().withName(primary.getCached().getMetadata().getName() + "-ui-ingress").get());
 
-        await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
-            assertThat(appIngress.get()).isNotNull();
+        // Creating the Ingress requires a full reconciliation of the freshly created CR, which can
+        // take considerably longer than a subsequent update to an already existing resource. Use
+        // MEDIUM_DURATION here, consistent with the other resource-creation waits such as
+        // ITBase.checkDeploymentExists(). getOptional() is used instead of get() so that a timeout
+        // reports the resource as missing rather than surfacing an IllegalStateException.
+        await().atMost(MEDIUM_DURATION).ignoreExceptions().untilAsserted(() -> {
+            assertThat(appIngress.getOptional()).isPresent();
         });
 
-        await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
-            assertThat(uiIngress.get()).isNotNull();
+        await().atMost(MEDIUM_DURATION).ignoreExceptions().untilAsserted(() -> {
+            assertThat(uiIngress.getOptional()).isPresent();
         });
 
         await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
@@ -79,6 +87,8 @@ public class IngressITTest extends ITBase {
 
         primary.update(p -> p.getSpec().getApp().getIngress().getAnnotations().put("color", "blue"));
 
+        awaitReconciled(primary);
+
         await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
             assertThat(appIngress.get().getMetadata().getAnnotations()).containsAllEntriesOf(Map.of(
                     "test---kubernetes.io/ingress.class", "haproxy",
@@ -99,6 +109,8 @@ public class IngressITTest extends ITBase {
 
         primary.update(p -> p.getSpec().getApp().getIngress().getAnnotations().remove("color"));
 
+        awaitReconciled(primary);
+
         await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
             assertThat(appIngress.get().getMetadata().getAnnotations()).containsAllEntriesOf(Map.of(
                     "test---kubernetes.io/ingress.class", "haproxy",
@@ -107,6 +119,8 @@ public class IngressITTest extends ITBase {
         });
 
         primary.update(p -> p.getSpec().getApp().getIngress().getAnnotations().put("animal", "dog"));
+
+        awaitReconciled(primary);
 
         await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
             assertThat(appIngress.get().getMetadata().getAnnotations()).containsAllEntriesOf(Map.of(
@@ -144,6 +158,8 @@ public class IngressITTest extends ITBase {
 
         primary.update(p -> p.getSpec().getApp().getIngress().setIngressClassName("test---nginx"));
 
+        awaitReconciled(primary);
+
         await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
             assertThat(appIngress.get().getSpec().getIngressClassName()).isEqualTo("test---nginx");
         });
@@ -154,8 +170,22 @@ public class IngressITTest extends ITBase {
 
         primary.update(p -> p.getSpec().getApp().getIngress().setIngressClassName(""));
 
+        awaitReconciled(primary);
+
         await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
             assertThat(appIngress.get().getSpec().getIngressClassName()).isNotEqualTo("test---nginx");
+        });
+    }
+
+    /**
+     * Waits until the operator has observed the latest generation of the CR. On remote clusters the
+     * update can be delayed by optimistic-locking retries and reconciliation can take longer than
+     * SHORT_DURATION, so asserting on the generated Ingress before this point is racy.
+     */
+    private static void awaitReconciled(K8sCell<ApicurioRegistry3> primary) {
+        await().atMost(MEDIUM_DURATION).ignoreExceptions().untilAsserted(() -> {
+            var cr = primary.get();
+            assertThat(cr.getStatus().getObservedGeneration()).isEqualTo(cr.getMetadata().getGeneration());
         });
     }
 }

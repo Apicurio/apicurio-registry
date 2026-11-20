@@ -14,6 +14,7 @@ spec:
   displayName: Apicurio Registry Catalog
   publisher: Apicurio
   image: ${PLACEHOLDER_CATALOG_IMAGE}
-  updateStrategy:
-    registryPoll:
-      interval: 30s # Intentional for development and testing.
+  # No updateStrategy / registryPoll: the test catalog image is unique per run
+  # (ttl.sh per-SHA tag), so polling never picks up anything new — it only makes
+  # OLM recreate the catalog pod every interval, and package-server can serve
+  # stale or partial PackageManifest data while the pod flaps.

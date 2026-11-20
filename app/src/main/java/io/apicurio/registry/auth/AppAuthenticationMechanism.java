@@ -18,6 +18,7 @@ package io.apicurio.registry.auth;
 
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.quarkus.vertx.http.runtime.security.BasicAuthenticationMechanism;
+import io.quarkus.vertx.http.runtime.security.FormAuthenticationMechanism;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
 import io.quarkus.arc.Unremovable;
@@ -52,7 +53,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -66,7 +66,10 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
     AuthConfig authConfig;
 
     @Inject
-    BasicAuthenticationMechanism basicAuthenticationMechanism;
+    Instance<BasicAuthenticationMechanism> basicAuthenticationMechanism;
+
+    @Inject
+    Instance<FormAuthenticationMechanism> formAuthenticationMechanism;
 
     @Inject
     OidcAuthenticationMechanism oidcAuthenticationMechanism;
@@ -76,6 +79,12 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
 
     @Inject
     AuditLogService auditLog;
+
+    public static final String MECH_BASIC = "basic";
+    public static final String MECH_FORM = "form";
+    public static final String MECH_PROXY_HEADER = "proxy-header";
+    public static final String MECH_OIDC = "oidc";
+    public static final String MECH_KUBERNETES = "kubernetes";
 
     @Inject
     Logger log;
@@ -88,6 +97,9 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
 
     @Inject
     Instance<KubernetesClient> kubernetesClient;
+
+    @Inject
+    TokenReviewClient tokenReviewClient;
 
     private List<AuthenticationStrategy> authChain;
 
@@ -119,40 +131,20 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
                             + "Both use Bearer tokens and would conflict.");
         }
 
-        Map<String, Supplier<AuthenticationStrategy>> strategyFactories = new LinkedHashMap<>();
-        strategyFactories.put("basic", () -> authConfig.basicAuthEnabled
-                ? new DelegatingAuthenticationStrategy("basic", basicAuthenticationMechanism)
-                : null);
-        strategyFactories.put("proxy-header", () -> authConfig.proxyHeaderAuthEnabled
-                ? new DelegatingAuthenticationStrategy("proxy-header",
-                        proxyHeaderAuthenticationMechanism)
-                : null);
-        strategyFactories.put("oidc", () -> {
-            if (!authConfig.oidcAuthEnabled) {
-                return null;
-            }
-            return new OidcAuthenticationStrategy(oidcAuthenticationMechanism, authConfig,
-                    auditLog, webClient, log, this);
-        });
-        strategyFactories.put("kubernetes", () -> {
-            if (!authConfig.kubernetesAuthEnabled) {
-                return null;
-            }
-            if (!kubernetesClient.isResolvable()) {
-                log.warn("Kubernetes auth enabled but no KubernetesClient available. "
-                        + "The quarkus-kubernetes-client extension must be on the classpath "
-                        + "and the application must be running in a Kubernetes cluster.");
-                return null;
-            }
-            return new KubernetesAuthenticationStrategy(kubernetesClient.get(), authConfig, log);
-        });
+        Map<String, Supplier<AuthenticationStrategy>> strategyFactories = strategyFactories();
 
         List<AuthenticationStrategy> chain = new ArrayList<>();
-        for (String name : authConfig.getMechanismPriorityList()) {
+        List<String> priorityList = authConfig.getMechanismPriorityList();
+        Set<String> prioritySet = new HashSet<>(priorityList);
+
+        warnEnabledMechanismsMissingFromPriority(prioritySet);
+
+        log.debug("Mechanism priority list: {}", priorityList);
+        for (String name : priorityList) {
             Supplier<AuthenticationStrategy> factory = strategyFactories.get(name);
             if (factory == null) {
                 log.warn("Unknown authentication mechanism name in priority list: '{}'. "
-                        + "Valid values are: basic, proxy-header, oidc, kubernetes", name);
+                        + "Valid values are: basic, form, proxy-header, oidc, kubernetes", name);
                 continue;
             }
             AuthenticationStrategy strategy = factory.get();
@@ -164,6 +156,67 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
             }
         }
         return Collections.unmodifiableList(chain);
+    }
+
+    private Map<String, Supplier<AuthenticationStrategy>> strategyFactories() {
+        Map<String, Supplier<AuthenticationStrategy>> strategyFactories = new LinkedHashMap<>();
+        strategyFactories.put(MECH_BASIC, () -> authConfig.isBasicAuthEnabled() && basicAuthenticationMechanism.isResolvable()
+                ? new DelegatingAuthenticationStrategy(MECH_BASIC, basicAuthenticationMechanism.get())
+                : null);
+        strategyFactories.put(MECH_FORM, () -> {
+            if (!authConfig.isFormAuthEnabled()) {
+                return null;
+            }
+            if (!formAuthenticationMechanism.isResolvable()) {
+                log.warn("Form auth is enabled but no FormAuthenticationMechanism is available. "
+                        + "A Quarkus identity provider (e.g. quarkus.security.users.embedded.* "
+                        + "or a JDBC/LDAP realm) must be configured.");
+                return null;
+            }
+            return new DelegatingAuthenticationStrategy(MECH_FORM, formAuthenticationMechanism.get());
+        });
+        strategyFactories.put(MECH_PROXY_HEADER, () -> authConfig.isProxyHeaderAuthEnabled()
+                ? new DelegatingAuthenticationStrategy(MECH_PROXY_HEADER,
+                        proxyHeaderAuthenticationMechanism)
+                : null);
+        strategyFactories.put(MECH_OIDC, () -> {
+            if (!authConfig.isOidcAuthEnabled()) {
+                return null;
+            }
+            return new OidcAuthenticationStrategy(oidcAuthenticationMechanism, authConfig,
+                    auditLog, webClient, log, this);
+        });
+        strategyFactories.put(MECH_KUBERNETES, () -> {
+            if (!authConfig.isKubernetesAuthEnabled()) {
+                return null;
+            }
+            if (!kubernetesClient.isResolvable()) {
+                log.warn("Kubernetes auth enabled but no KubernetesClient available. "
+                        + "The quarkus-kubernetes-client extension must be on the classpath "
+                        + "and the application must be running in a Kubernetes cluster.");
+                return null;
+            }
+            return new KubernetesAuthenticationStrategy(tokenReviewClient, authConfig, log);
+        });
+        return strategyFactories;
+    }
+
+    private void warnEnabledMechanismsMissingFromPriority(Set<String> prioritySet) {
+        if (authConfig.isBasicAuthEnabled() && !prioritySet.contains(MECH_BASIC)) {
+            log.warn("Basic auth is enabled but '{}' is missing from apicurio.authn.mechanism.priority.", MECH_BASIC);
+        }
+        if (authConfig.isFormAuthEnabled() && !prioritySet.contains(MECH_FORM)) {
+            log.warn("Form auth is enabled but '{}' is missing from apicurio.authn.mechanism.priority. This will result in a silent lockout.", MECH_FORM);
+        }
+        if (authConfig.isProxyHeaderAuthEnabled() && !prioritySet.contains(MECH_PROXY_HEADER)) {
+            log.warn("Proxy header auth is enabled but '{}' is missing from apicurio.authn.mechanism.priority.", MECH_PROXY_HEADER);
+        }
+        if (authConfig.isOidcAuthEnabled() && !prioritySet.contains(MECH_OIDC)) {
+            log.warn("OIDC auth is enabled but '{}' is missing from apicurio.authn.mechanism.priority.", MECH_OIDC);
+        }
+        if (authConfig.isKubernetesAuthEnabled() && !prioritySet.contains(MECH_KUBERNETES)) {
+            log.warn("Kubernetes auth is enabled but '{}' is missing from apicurio.authn.mechanism.priority.", MECH_KUBERNETES);
+        }
     }
 
     @Override
@@ -207,17 +260,16 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
      * bean (rather than on {@link OidcAuthenticationStrategy}) so that the MicroProfile
      * {@link Retry} interceptor is applied.
      *
+     * <p>This method performs only the HTTP token request. Cache insertion is handled
+     * atomically by the caller via {@code ConcurrentHashMap.compute()}.
+     *
      * @param clientCredentials the client ID and secret
-     * @param credentialsHash hash key for the token cache
-     * @param cachedAccessTokens token cache (owned by the OIDC strategy)
-     * @param cachedAuthFailures failure cache (owned by the OIDC strategy)
      * @param oidcTokenUrl the token endpoint URL (computed by the OIDC strategy at init)
+     * @return the fetched token wrapped with its computed expiration
      */
     @Retry(retryOn = OidcAuthException.class, maxRetries = 4, delay = 1,
             delayUnit = ChronoUnit.SECONDS)
-    public String getAccessToken(Pair<String, String> clientCredentials, String credentialsHash,
-            ConcurrentHashMap<String, WrappedValue<String>> cachedAccessTokens,
-            ConcurrentHashMap<String, WrappedValue<RuntimeException>> cachedAuthFailures,
+    public WrappedValue<String> getAccessToken(Pair<String, String> clientCredentials,
             String oidcTokenUrl) {
         String clientId = clientCredentials.getLeft();
         String clientSecret = clientCredentials.getRight();
@@ -241,23 +293,11 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
 
             int statusCode = response.statusCode();
             if (statusCode == 401) {
-                var ex = new io.quarkus.security.UnauthorizedException(
+                throw new io.quarkus.security.UnauthorizedException(
                         "OIDC token request returned 401");
-                cachedAuthFailures.put(credentialsHash,
-                        new WrappedValue<>(
-                                OidcAuthenticationStrategy.getAccessTokenExpiration(null,
-                                        authConfig, jwtParser, log),
-                                Instant.now(), ex));
-                throw ex;
             } else if (statusCode == 403) {
-                var ex = new io.quarkus.security.ForbiddenException(
+                throw new io.quarkus.security.ForbiddenException(
                         "OIDC token request returned 403");
-                cachedAuthFailures.put(credentialsHash,
-                        new WrappedValue<>(
-                                OidcAuthenticationStrategy.getAccessTokenExpiration(null,
-                                        authConfig, jwtParser, log),
-                                Instant.now(), ex));
-                throw ex;
             } else if (statusCode < 200 || statusCode >= 300) {
                 throw new OidcAuthException(
                         "OIDC token request failed with status " + statusCode);
@@ -265,12 +305,10 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
 
             JsonObject json = response.bodyAsJsonObject();
             String jwtToken = json.getString("access_token");
-            cachedAccessTokens.put(credentialsHash,
-                    new WrappedValue<>(
-                            OidcAuthenticationStrategy.getAccessTokenExpiration(jwtToken,
-                                    authConfig, jwtParser, log),
-                            Instant.now(), jwtToken));
-            return jwtToken;
+            return new WrappedValue<>(
+                    OidcAuthenticationStrategy.getAccessTokenExpiration(jwtToken,
+                            authConfig, jwtParser, log),
+                    Instant.now(), jwtToken);
         } catch (io.quarkus.security.UnauthorizedException
                 | io.quarkus.security.ForbiddenException ex) {
             throw ex;

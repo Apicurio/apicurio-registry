@@ -2,8 +2,8 @@ import { FunctionComponent } from "react";
 import "./ArtifactPageHeader.css";
 import { Button, Flex, FlexItem, Content, ContentVariants } from "@patternfly/react-core";
 import { IfAuth, IfFeature } from "@app/components";
-import { If } from "@apicurio/common-ui-components";
-import { ArtifactMetaData } from "@sdk/lib/generated-client/models";
+import { If } from "@apitomy/common-ui-components";
+import { ArtifactMetaData, ResourcePermissions } from "@sdk/lib/generated-client/models";
 
 
 /**
@@ -11,7 +11,9 @@ import { ArtifactMetaData } from "@sdk/lib/generated-client/models";
  */
 export type ArtifactPageHeaderProps = {
     artifact: ArtifactMetaData;
+    permissions?: ResourcePermissions;
     onDeleteArtifact: () => void;
+    onImportMcpTools?: () => void;
 };
 
 /**
@@ -32,8 +34,16 @@ export const ArtifactPageHeader: FunctionComponent<ArtifactPageHeaderProps> = (p
                 </Content>
             </FlexItem>
             <FlexItem align={{ default: "alignRight" }}>
-                <IfAuth isDeveloper={true} owner={props.artifact.owner}>
+                <IfAuth isDeveloper={true} owner={props.artifact.owner} permissions={props.permissions}>
                     <IfFeature feature="readOnly" isNot={true}>
+                        <If condition={props.artifact.artifactType === "MCP_SERVER" && props.onImportMcpTools !== undefined}>
+                            <IfFeature feature="mcpImport" is={true}>
+                                <Button id="import-mcp-tools-button" variant="secondary"
+                                    style={{ marginRight: "8px" }}
+                                    data-testid="header-btn-import-mcp-tools"
+                                    onClick={props.onImportMcpTools}>Import tools</Button>
+                            </IfFeature>
+                        </If>
                         <IfFeature feature="deleteArtifact" is={true}>
                             <Button id="delete-artifact-button" variant="danger"
                                 data-testid="header-btn-delete" onClick={props.onDeleteArtifact}>Delete artifact</Button>

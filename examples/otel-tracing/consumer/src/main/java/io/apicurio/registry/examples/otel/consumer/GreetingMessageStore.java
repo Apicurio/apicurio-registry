@@ -24,6 +24,7 @@ import io.opentelemetry.context.Scope;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
+import io.quarkus.runtime.Startup;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.apache.kafka.clients.consumer.Consumer;
@@ -51,6 +52,8 @@ import java.util.concurrent.atomic.AtomicLong;
  * - Message processing with custom spans
  * - Statistics tracking for observability
  */
+// Created at startup, so the background consumer runs before the first REST call
+@Startup
 @ApplicationScoped
 public class GreetingMessageStore {
 

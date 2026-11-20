@@ -1,5 +1,7 @@
 package io.apicurio.registry.serde.protobuf;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.protobuf.util.JsonFormat;
 import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.Descriptors.Descriptor;
 import com.google.protobuf.Descriptors.DescriptorValidationException;
@@ -417,5 +419,40 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
         }
         String msg = cause.getMessage();
         return msg != null ? msg : cause.getClass().getName();
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Map<String, Object> toRuleRecord(U data) {
+        try {
+            String json = JsonFormat.printer().preservingProtoFieldNames().print(data);
+            return new ObjectMapper().readValue(json, Map.class);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    /**
+     * The output of READ TRANSFORM rules only: it keeps the record's message type. A migrated record has
+     * the message type of another schema version, so migrations still return the original record.
+     */
+    @Override
+    protected boolean supportsTransformResult(U data) {
+        return data != null;
+    }
+
+    /**
+     * A message of the same type as the original, built from the canonical JSON form of the rule record.
+     */
+    @Override
+    @SuppressWarnings("unchecked")
+    protected U fromRuleRecord(Map<String, Object> record, ParsedSchema<ProtobufSchema> schema, U original) {
+        try {
+            Message.Builder builder = original.newBuilderForType();
+            JsonFormat.parser().ignoringUnknownFields().merge(new ObjectMapper().writeValueAsString(record), builder);
+            return (U) builder.build();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 }

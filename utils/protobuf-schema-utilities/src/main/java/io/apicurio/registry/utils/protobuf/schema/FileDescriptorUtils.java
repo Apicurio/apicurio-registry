@@ -296,7 +296,7 @@ public class FileDescriptorUtils {
             requiredSchemaDeps.clear();
         }
         return resolveFileDescriptor(mainProtoElement, schemaDefinition, mainProtoFile.getName(), schemaDeps,
-                resolvedDeps, requiredSchemaDeps, new HashSet<>(), cachedProtoFileDependencies);
+                resolvedDeps, requiredSchemaDeps, new HashSet<>(), cachedProtoFileDependencies, new HashMap<>());
     }
 
     private static void readAndParseSchemas(Collection<File> schemas, Map<String, String> schemaContents,
@@ -452,7 +452,7 @@ public class FileDescriptorUtils {
                 : mainProtoFile.schemaDefinition();
         return resolveFileDescriptor(mainProtoElement, mainSchemaText,
                 mainProtoFile.fileName(), schemaDefinitions, resolvedDependencies, requiredSchemaDeps,
-                new HashSet<>(), protoFileElements);
+                new HashSet<>(), protoFileElements, new HashMap<>());
     }
 
     /**
@@ -468,7 +468,8 @@ public class FileDescriptorUtils {
     private static FileDescriptor resolveFileDescriptor(ProtoFileElement mainProtoElement,
                                                         String schemaDefinition, String protoFileName, Map<String, String> schemaDefinitions,
                                                         Map<String, FileDescriptor> resolvedDependencies, Map<String, String> requiredDependentSchemas,
-                                                        Set<String> unresolvedImportNames, Map<String, ProtoFileElement> cachedProtoFileDependencies)
+                                                        Set<String> unresolvedImportNames, Map<String, ProtoFileElement> cachedProtoFileDependencies,
+                                                        Map<String, Map<String, String>> requiredSchemasByResolvedDependency)
             throws DescriptorValidationException {
         final String mainProtoImportName = toProtoFullName(mainProtoElement, protoFileName);
         if (!unresolvedImportNames.add(mainProtoImportName)) {
@@ -520,7 +521,10 @@ public class FileDescriptorUtils {
                 // schemaDep is already in text format (converted by parseSchemas if binary)
                 fdDep = resolveFileDescriptor(protoFile, schemaDep, fileName, schemaDefinitions,
                         resolvedDependencies, requiredSubDependencies, unresolvedImportNames,
-                        cachedProtoFileDependencies);
+                        cachedProtoFileDependencies, requiredSchemasByResolvedDependency);
+                // remember what this dependency needs, so a later import of it can reuse fdDep
+                // and still hand its imports over to Wire
+                requiredSchemasByResolvedDependency.put(depFullName, new HashMap<>(requiredSubDependencies));
                 // no need to add anything
                 if (requiredDependentSchemas != requiredSubDependencies) {
                     requiredDependentSchemas.putAll(requiredSubDependencies);
@@ -528,6 +532,13 @@ public class FileDescriptorUtils {
                 // we have accumulated new requiredSubDependencies, we need to add them to the
                 // requiredDependentSchemas
                 resolvedDependencies.put(depFullName, fdDep);
+            } else {
+                // already resolved through another import path: fdDep is reused, but Wire still needs
+                // the schemas it depends on to load it, otherwise it fails with "unable to find ..."
+                final Map<String, String> requiredByDep = requiredSchemasByResolvedDependency.get(depFullName);
+                if (requiredByDep != null) {
+                    requiredDependentSchemas.putAll(requiredByDep);
+                }
             }
             // this is the case of a well-known dependency
             if (schemaDep != null) {
@@ -771,7 +782,7 @@ public class FileDescriptorUtils {
     private static boolean isParentLevelType(ProtoType protoType, Optional<String> optionalPackageName) {
         String typeName = protoType.toString();
         if (optionalPackageName.isPresent()) {
-            String packageName = optionalPackageName.get();
+            String packageName = optionalPackageName.orElseThrow(NoSuchElementException::new);
 
             // If the type doesn't start with the package name, ignore it.
             if (!typeName.startsWith(packageName)) {
@@ -1747,8 +1758,13 @@ public class FileDescriptorUtils {
                 fieldType = toMapEntry(field.getName());
                 MessageDefinition.Builder mapMessage = MessageDefinition.newBuilder(fieldType);
                 mapMessage.setMapEntry(true);
-                mapMessage.addField(null, keyType.getSimpleName(), KEY_FIELD, 1, null);
-                mapMessage.addField(null, valueType.getSimpleName(), VALUE_FIELD, 2, null);
+                // Key and value types must keep their qualification exactly as declared:
+                // getSimpleName() turns map<string, google.protobuf.Value> into a value
+                // field of bare type "Value", which fails descriptor validation with
+                // '"Value" is not defined' for any value type outside the entry's own
+                // resolution scope (cross-package, or nested like Outer.Inner).
+                mapMessage.addField(null, keyType.toString(), KEY_FIELD, 1, null);
+                mapMessage.addField(null, valueType.toString(), VALUE_FIELD, 2, null);
                 message.addMessageDefinition(mapMessage.build());
             }
             message.addField(label, fieldType, field.getName(), field.getTag(), defaultVal, jsonName,

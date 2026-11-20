@@ -22,6 +22,11 @@ public class AvroDataConfig extends AbstractConfig {
     public static final int SCHEMAS_CACHE_SIZE_DEFAULT = 1000;
     public static final String SCHEMAS_CACHE_SIZE_DOC = "Size of the converted schemas cache";
 
+    public static final String AVRO_NAMESPACE_CONFIG = "avro.namespace";
+    public static final String AVRO_NAMESPACE_DEFAULT = "io.confluent.connect.avro";
+    public static final String AVRO_NAMESPACE_DOC = "Avro namespace used when converting Connect schemas that do not "
+            + "specify a name. Also used as the prefix for Connect-specific metadata properties embedded in Avro schemas.";
+
     public static ConfigDef baseConfigDef() {
         return new ConfigDef()
                 .define(ENHANCED_AVRO_SCHEMA_SUPPORT_CONFIG, ConfigDef.Type.BOOLEAN,
@@ -30,7 +35,9 @@ public class AvroDataConfig extends AbstractConfig {
                 .define(CONNECT_META_DATA_CONFIG, ConfigDef.Type.BOOLEAN, CONNECT_META_DATA_DEFAULT,
                         ConfigDef.Importance.LOW, CONNECT_META_DATA_DOC)
                 .define(SCHEMAS_CACHE_SIZE_CONFIG, ConfigDef.Type.INT, SCHEMAS_CACHE_SIZE_DEFAULT,
-                        ConfigDef.Importance.LOW, SCHEMAS_CACHE_SIZE_DOC);
+                        ConfigDef.Importance.LOW, SCHEMAS_CACHE_SIZE_DOC)
+                .define(AVRO_NAMESPACE_CONFIG, ConfigDef.Type.STRING, AVRO_NAMESPACE_DEFAULT,
+                        ConfigDef.Importance.MEDIUM, AVRO_NAMESPACE_DOC);
     }
 
     public AvroDataConfig(Map<?, ?> props) {
@@ -47,6 +54,10 @@ public class AvroDataConfig extends AbstractConfig {
 
     public int getSchemasCacheSize() {
         return this.getInt(SCHEMAS_CACHE_SIZE_CONFIG);
+    }
+
+    public String getAvroNamespace() {
+        return this.getString(AVRO_NAMESPACE_CONFIG);
     }
 
     public static class Builder {

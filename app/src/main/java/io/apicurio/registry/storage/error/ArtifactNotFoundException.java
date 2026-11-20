@@ -31,6 +31,6 @@ public class ArtifactNotFoundException extends NotFoundException {
     }
 
     private static String message(String groupId, String artifactId) {
-        return "No artifact with ID '" + artifactId + "' in group '" + groupId + "' was found.";
+        return "No artifact with ID '" + artifactId + "' in group '" + GroupId.displayName(groupId) + "' was found.";
     }
 }

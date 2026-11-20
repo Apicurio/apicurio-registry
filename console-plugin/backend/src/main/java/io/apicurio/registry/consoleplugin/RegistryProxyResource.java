@@ -25,6 +25,8 @@ import java.util.concurrent.CompletionStage;
 @Path("/proxy")
 public class RegistryProxyResource {
 
+    private static final String CONTENT_TYPE = "Content-Type";
+
     private static final Logger log = LoggerFactory.getLogger(RegistryProxyResource.class);
 
     @ConfigProperty(name = "registry.api.url", defaultValue = "http://localhost:8080")
@@ -51,7 +53,7 @@ public class RegistryProxyResource {
     @POST
     @Path("/{path:.*}")
     public CompletionStage<Response> proxyPost(@HeaderParam("Authorization") String authorization,
-                                               @HeaderParam("Content-Type") String contentType,
+                                               @HeaderParam(CONTENT_TYPE) String contentType,
                                                @HeaderParam("Accept") String accept,
                                                @Context UriInfo uriInfo, byte[] body) {
         return proxy("POST", authorization, contentType, accept, uriInfo, body);
@@ -60,7 +62,7 @@ public class RegistryProxyResource {
     @PUT
     @Path("/{path:.*}")
     public CompletionStage<Response> proxyPut(@HeaderParam("Authorization") String authorization,
-                                              @HeaderParam("Content-Type") String contentType,
+                                              @HeaderParam(CONTENT_TYPE) String contentType,
                                               @HeaderParam("Accept") String accept,
                                               @Context UriInfo uriInfo, byte[] body) {
         return proxy("PUT", authorization, contentType, accept, uriInfo, body);
@@ -102,7 +104,7 @@ public class RegistryProxyResource {
             requestBuilder.header("Authorization", authorization);
         }
         if (contentType != null && !contentType.isEmpty()) {
-            requestBuilder.header("Content-Type", contentType);
+            requestBuilder.header(CONTENT_TYPE, contentType);
         }
         if (accept != null && !accept.isEmpty()) {
             requestBuilder.header("Accept", accept);
@@ -122,8 +124,8 @@ public class RegistryProxyResource {
                                 .entity("Response body too large").build();
                     }
                     Response.ResponseBuilder builder = Response.status(resp.statusCode());
-                    resp.headers().firstValue("Content-Type")
-                            .ifPresent(ct -> builder.header("Content-Type", ct));
+                    resp.headers().firstValue(CONTENT_TYPE)
+                            .ifPresent(ct -> builder.header(CONTENT_TYPE, ct));
                     builder.entity(resp.body());
                     return builder.build();
                 })

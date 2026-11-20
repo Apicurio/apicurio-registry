@@ -1,0 +1,11 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Shipment",
+  "type": "object",
+  "properties": {
+    "shipmentId": {"type": "string"},
+    "orderId": {"type": "string"},
+    "parcels": {"type": "integer", "minimum": 1}
+  },
+  "required": ["shipmentId", "orderId", "parcels"]
+}

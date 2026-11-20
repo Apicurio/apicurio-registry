@@ -80,6 +80,21 @@ public class SqlContentRepository {
     }
 
     /**
+     * Get content by contentId, together with the artifact type of one artifact version that references it,
+     * in a single query. Throws {@link ContentNotFoundException} if the content does not exist or is
+     * orphaned (i.e. not referenced by any artifact version), since the join used to fetch the artifact type
+     * would return no rows in either case.
+     */
+    public ContentWrapperDto getContentAndArtifactTypeById(long contentId)
+            throws ContentNotFoundException, RegistryStorageException {
+        return handles.<ContentWrapperDto, RuntimeException>withHandleNoException(handle -> {
+            Optional<ContentWrapperDto> res = handle.createQuery(sqlStatements.selectContentAndArtifactTypeById())
+                    .bind(0, contentId).map(ContentMapper.instanceWithArtifactType).findFirst();
+            return res.orElseThrow(() -> new ContentNotFoundException(contentId));
+        });
+    }
+
+    /**
      * Get content by content hash.
      */
     public ContentWrapperDto getContentByHash(String contentHash)
@@ -108,7 +123,7 @@ public class SqlContentRepository {
                     return null;
                 }
 
-                ArtifactVersionMetaDataDto meta = metaRes.get();
+                ArtifactVersionMetaDataDto meta = metaRes.orElseThrow();
                 ContentWrapperDto content = getContentByIdRaw(handle, meta.getContentId());
                 content.setArtifactType(meta.getArtifactType());
                 return content;
@@ -270,8 +285,9 @@ public class SqlContentRepository {
      */
     public void deleteAllOrphanedContentRaw(Handle handle) {
         log.debug("Deleting all orphaned content");
-        handle.createUpdate(sqlStatements.deleteOrphanedContentReferences()).execute();
-        handle.createUpdate(sqlStatements.deleteAllOrphanedContent()).execute();
+        int references = handle.createUpdate(sqlStatements.deleteOrphanedContentReferences()).execute();
+        int contents = handle.createUpdate(sqlStatements.deleteAllOrphanedContent()).execute();
+        log.debug("Deleted {} orphaned content references and {} orphaned content rows", references, contents);
     }
 
     /**
@@ -617,33 +633,50 @@ public class SqlContentRepository {
         final List<ArtifactReferenceDto> finalReferences = references;
 
         handles.withHandleNoException(handle -> {
-            long contentId = sequenceRepository.nextContentIdRaw(handle);
-
-            try {
-                handle.createUpdate(sqlStatements.insertContent())
-                        .bind(0, contentId)
-                        .bind(1, finalCanonicalContentHash)
-                        .bind(2, finalContentHash)
-                        .bind(3, content.getContentType())
-                        .bind(4, content.getContent().bytes())
-                        .bind(5, finalSerializedReferences)
-                        .execute();
-            } catch (Exception e) {
-                if (sqlStatements.isPrimaryKeyViolation(e)) {
-                    log.debug("Content with content hash {} already exists: {}", finalContentHash, content);
-                    return null;
-                } else {
-                    throw e;
-                }
-            }
-
-            // If we get here, then the content was inserted and we need to insert the references.
-            insertReferencesRaw(handle, contentId, finalReferences);
+            insertContentIfAbsentRaw(handle, content, finalContentHash, finalCanonicalContentHash,
+                    finalSerializedReferences, finalReferences);
             return null;
         });
 
         // Get the contentId using the unique contentHash.
         Optional<Long> contentId = contentIdFromHash(contentHash);
         return contentId.orElseThrow(() -> new RegistryStorageException("Failed to ensure content."));
+    }
+
+    private void insertContentIfAbsentRaw(Handle handle, TypedContent content, String contentHash,
+            String canonicalContentHash, String serializedReferences, List<ArtifactReferenceDto> references) {
+        // Look the hash up first so duplicate content skips the INSERT entirely. A row inserted
+        // concurrently after this check is still handled below by insertContentIfAbsent / the
+        // PK-violation path.
+        boolean exists = contentIdFromHashRaw(handle, contentHash).isPresent();
+        // Always allocate so contentId allocation is unchanged from the insert-and-catch-duplicate
+        // behavior; the check only avoids a failing INSERT.
+        long contentId = sequenceRepository.nextContentIdRaw(handle);
+        if (exists) {
+            return;
+        }
+        try {
+            int inserted = handle.createUpdate(sqlStatements.insertContentIfAbsent())
+                    .bind(0, contentId)
+                    .bind(1, canonicalContentHash)
+                    .bind(2, contentHash)
+                    .bind(3, content.getContentType())
+                    .bind(4, content.getContent().bytes())
+                    .bind(5, serializedReferences)
+                    .execute();
+            if (inserted == 0) {
+                return;
+            }
+        } catch (Exception e) {
+            if (sqlStatements.isPrimaryKeyViolation(e)) {
+                log.debug("Content with content hash {} already exists: {}", contentHash, content);
+                return;
+            } else {
+                throw e;
+            }
+        }
+
+        // If we get here, then the content was inserted and we need to insert the references.
+        insertReferencesRaw(handle, contentId, references);
     }
 }

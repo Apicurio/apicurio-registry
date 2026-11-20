@@ -1,5 +1,6 @@
 package io.apicurio.registry.cli.config;
 
+import io.apicurio.registry.cli.InstallCommand;
 import io.apicurio.registry.cli.common.CliException;
 import io.apicurio.registry.cli.services.CliVersion;
 import io.apicurio.registry.cli.utils.Mapper;
@@ -8,14 +9,17 @@ import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Consumer;
 import lombok.Getter;
 import lombok.Setter;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import static io.apicurio.registry.cli.common.CliException.APPLICATION_ERROR_RETURN_CODE;
+import static io.apicurio.registry.cli.common.CliException.VALIDATION_ERROR_RETURN_CODE;
 import static io.apicurio.registry.cli.utils.Mapper.copy;
 import static io.apicurio.registry.cli.utils.Utils.isBlank;
 import static java.lang.System.err;
@@ -23,6 +27,8 @@ import static java.lang.System.out;
 
 @ApplicationScoped
 public class Config {
+
+    private static final String CONTEXT_AUTO_UPDATE_PROPERTY = "context.auto-update";
 
     /**
      * Static reference for use by {@link AcrHomeConfigSource}, which is loaded via SPI
@@ -137,12 +143,88 @@ public class Config {
 
     public void write(ConfigModel config) {
         var configPath = getConfigFilePath();
+        ensureWritable(configPath);
         try {
             Mapper.MAPPER.writeValue(configPath.toFile(), config);
             cachedConfig = null;
         } catch (IOException ex) {
             throw new CliException("Could not write config file '%s'.".formatted(configPath), ex, APPLICATION_ERROR_RETURN_CODE);
         }
+    }
+
+    /**
+     * Verifies that the CLI config file can be written, failing with a clear, actionable error before
+     * the caller does any work or reports success. A global installation places {@code config.json} in
+     * a shared, root-owned location, so a non-root user cannot write it; without this check the user
+     * would see a success message immediately followed by a permission-denied failure.
+     *
+     * <p>The check is best-effort: {@link Files#isWritable} reflects the state at call time, so the
+     * subsequent write still guards against a late failure. Per-user installs keep the config in a
+     * writable location, so this passes silently and their behavior is unchanged.
+     *
+     * @throws CliException with {@link CliException#VALIDATION_ERROR_RETURN_CODE} when the config file
+     *         is not writable, explaining the global-install limitation when that is the cause.
+     */
+    private void ensureWritable(Path configPath) {
+        if (isWritable(configPath)) {
+            return;
+        }
+        var message = isGlobalInstall()
+                ? "Cannot write to the CLI config file '%s'. This CLI was installed globally, and per-user configuration for global installs is not yet supported.".formatted(configPath)
+                : "Cannot write to the CLI config file '%s'. Please check that you have permission to write it.".formatted(configPath);
+        throw new CliException(message, VALIDATION_ERROR_RETURN_CODE);
+    }
+
+    private static boolean isWritable(Path file) {
+        if (Files.exists(file)) {
+            return Files.isWritable(file);
+        }
+        // The config file does not exist yet: it can be created only if the nearest existing ancestor
+        // directory is writable.
+        var probe = file.getParent();
+        while (probe != null && !Files.exists(probe)) {
+            probe = probe.getParent();
+        }
+        return probe != null && Files.isWritable(probe);
+    }
+
+    /**
+     * Reports whether this CLI was installed system-wide (global). The scope is recorded in
+     * {@code config.json} at install time (see {@code InstallCommand}); a global install shares one
+     * root-owned config across all users. Best-effort: any failure to read the marker is treated as a
+     * per-user installation.
+     */
+    public boolean isGlobalInstall() {
+        try {
+            return Boolean.parseBoolean(read().getConfig().get(InstallCommand.CONFIG_KEY_GLOBAL_INSTALL));
+        } catch (RuntimeException ex) {
+            return false;
+        }
+    }
+
+    /**
+     * Whether the {@code context.auto-update} property is enabled.
+     */
+    public boolean isAutoUpdateEnabled() {
+        return Boolean.parseBoolean(read().getConfig().get(CONTEXT_AUTO_UPDATE_PROPERTY));
+    }
+
+    /**
+     * Applies {@code mutator} to the current context and persists the result. No-op if there is no
+     * current context set, or if the current context does not exist.
+     */
+    public void updateCurrentContext(final Consumer<ConfigModel.Context> mutator) {
+        final var model = read();
+        final var contextName = model.getCurrentContext();
+        if (isBlank(contextName)) {
+            return;
+        }
+        final var context = model.getContext().get(contextName);
+        if (context == null) {
+            return;
+        }
+        mutator.accept(context);
+        write(model);
     }
 
     /**

@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: schema-registry
+spec:
+  serviceName: schema-registry
+  replicas: 1
+  selector:
+    matchLabels: { app: schema-registry }
+  template:
+    metadata:
+      labels: { app: schema-registry }
+    spec:
+      enableServiceLinks: false
+      containers:
+        - name: redpanda
+          image: docker.redpanda.com/redpandadata/redpanda:v26.2.2
+          args:
+            - redpanda
+            - start
+            - --smp=4
+            - --memory=3584M
+            - --reserve-memory=0M
+            - --node-id=0
+            - --kafka-addr=internal://0.0.0.0:9092
+            - --advertise-kafka-addr=internal://schema-registry-0.schema-registry:9092
+            - --schema-registry-addr=0.0.0.0:8081
+          resources:
+            requests: { cpu: "2", memory: 2Gi }
+            limits: { cpu: "4", memory: 4Gi }
+          ports:
+            - { name: registry, containerPort: 8081 }
+            - { name: kafka, containerPort: 9092 }
+            - { name: admin, containerPort: 9644 }
+          volumeMounts:
+            - { name: data, mountPath: /var/lib/redpanda/data }
+          readinessProbe:
+            httpGet: { path: /status/ready, port: registry }
+            initialDelaySeconds: 15
+            periodSeconds: 5
+  volumeClaimTemplates:
+    - metadata: { name: data }
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources:
+          requests: { storage: 10Gi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: schema-registry
+spec:
+  clusterIP: None
+  selector: { app: schema-registry }
+  ports:
+    - { name: registry, port: 8081, targetPort: registry }
+    - { name: kafka, port: 9092, targetPort: kafka }

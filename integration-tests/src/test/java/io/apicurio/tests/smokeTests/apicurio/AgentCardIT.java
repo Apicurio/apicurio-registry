@@ -21,6 +21,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import org.junit.jupiter.api.parallel.Isolated;
 
 /**
  * Integration tests for A2A Agent Card artifact type. Tests CRUD operations, validation, and compatibility
@@ -28,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
  */
 @Tag(SMOKE)
 @QuarkusIntegrationTest
+@Isolated
 class AgentCardIT extends ApicurioRegistryBaseIT {
 
     private static final String AGENT_CARD_CONTENT = """

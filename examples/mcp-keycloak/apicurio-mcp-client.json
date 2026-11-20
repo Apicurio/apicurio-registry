@@ -1,0 +1,53 @@
+{
+  "clientId": "apicurio-mcp",
+  "name": "Apicurio Registry MCP",
+  "description": "Public OAuth client for HTTP-mode MCP clients using authorization code + PKCE",
+  "enabled": true,
+  "publicClient": true,
+  "standardFlowEnabled": true,
+  "implicitFlowEnabled": false,
+  "directAccessGrantsEnabled": false,
+  "serviceAccountsEnabled": false,
+  "redirectUris": [
+    "cursor://anysphere.cursor-mcp/oauth/callback",
+    "http://localhost:6274/oauth/callback",
+    "http://127.0.0.1:6274/oauth/callback"
+  ],
+  "webOrigins": [
+    "http://localhost:6274",
+    "http://127.0.0.1:6274",
+    "+"
+  ],
+  "attributes": {
+    "pkce.code.challenge.method": "S256",
+    "oauth2.device.authorization.grant.enabled": "false",
+    "post.logout.redirect.uris": "+",
+    "display.on.consent.screen": "false"
+  },
+  "protocol": "openid-connect",
+  "fullScopeAllowed": true,
+  "protocolMappers": [
+    {
+      "name": "audience-apicurio-mcp",
+      "protocol": "openid-connect",
+      "protocolMapper": "oidc-audience-mapper",
+      "consentRequired": false,
+      "config": {
+        "included.client.audience": "apicurio-mcp",
+        "id.token.claim": "false",
+        "access.token.claim": "true"
+      }
+    },
+    {
+      "name": "audience-registry-api",
+      "protocol": "openid-connect",
+      "protocolMapper": "oidc-audience-mapper",
+      "consentRequired": false,
+      "config": {
+        "included.client.audience": "registry-api",
+        "id.token.claim": "false",
+        "access.token.claim": "true"
+      }
+    }
+  ]
+}

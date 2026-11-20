@@ -46,6 +46,10 @@ public class AuthConfig {
     @Info(category = CATEGORY_AUTH, description = "Enable basic auth", availableSince = "3.X.X.Final")
     boolean basicAuthEnabled;
 
+    @ConfigProperty(name = "quarkus.http.auth.form.enabled", defaultValue = "false")
+    @Info(category = CATEGORY_AUTH, description = "Enable form auth. Requires adding 'form' to apicurio.authn.mechanism.priority and configuring a Quarkus identity provider (e.g. quarkus.security.users.embedded.* or a JDBC/LDAP realm). WARNING: Form auth with session cookies reintroduces CSRF exposure for state-changing requests. Production deployments must configure CSRF protection and Secure/HttpOnly cookies.", availableSince = "3.3.1")
+    boolean formAuthEnabled;
+
     // TODO: Add suffix?
     @ConfigProperty(name = "apicurio.authn.basic-client-credentials.cache-expiration", defaultValue = "10")
     @Info(category = CATEGORY_AUTH, description = "Default client credentials token expiration time in minutes.", availableSince = "2.2.6.Final")
@@ -195,32 +199,33 @@ public class AuthConfig {
     Optional<String> kubernetesReadOnlyGroups;
 
     @ConfigProperty(name = "apicurio.authn.mechanism.priority", defaultValue = "basic,proxy-header,oidc")
-    @Info(category = CATEGORY_AUTH, description = "Comma-separated ordered list of authentication mechanism names. Only mechanisms that are also enabled will be used. Valid values: basic, proxy-header, oidc, kubernetes.", availableSince = "3.2.3")
+    @Info(category = CATEGORY_AUTH, description = "Comma-separated ordered list of authentication mechanism names. Only mechanisms that are also enabled will be used. Valid values: basic, form, proxy-header, oidc, kubernetes.", availableSince = "3.2.3")
     String mechanismPriority;
 
     @PostConstruct
     void onConstruct() {
         log.debug("===============================");
-        log.debug("OIDC Auth Enabled: " + oidcAuthEnabled);
-        log.debug("Basic Auth Enabled: " + basicAuthEnabled);
-        log.debug("Proxy Auth Enabled: " + proxyHeaderAuthEnabled);
-        log.debug("Kubernetes Auth Enabled: " + kubernetesAuthEnabled);
-        log.debug("Mechanism Priority: " + mechanismPriority);
-        log.debug("Anonymous Read Access Enabled: " + anonymousReadAccessEnabled);
-        log.debug("Authenticated Read Access Enabled: " + authenticatedReadAccessEnabled);
-        log.debug("RBAC Enabled: " + roleBasedAuthorizationEnabled);
+        log.debug("OIDC Auth Enabled: {}", oidcAuthEnabled);
+        log.debug("Basic Auth Enabled: {}", basicAuthEnabled);
+        log.debug("Form Auth Enabled: {}", formAuthEnabled);
+        log.debug("Proxy Auth Enabled: {}", proxyHeaderAuthEnabled);
+        log.debug("Kubernetes Auth Enabled: {}", kubernetesAuthEnabled);
+        log.debug("Mechanism Priority: {}", mechanismPriority);
+        log.debug("Anonymous Read Access Enabled: {}", anonymousReadAccessEnabled);
+        log.debug("Authenticated Read Access Enabled: {}", authenticatedReadAccessEnabled);
+        log.debug("RBAC Enabled: {}", roleBasedAuthorizationEnabled);
         if (roleBasedAuthorizationEnabled) {
-            log.debug("   RBAC Roles: " + readOnlyRole + ", " + developerRole + ", " + adminRole);
-            log.debug("   Role Source: " + roleSource);
+            log.debug("   RBAC Roles: {}, {}, {}", readOnlyRole, developerRole, adminRole);
+            log.debug("   Role Source: {}", roleSource);
         }
-        log.debug("OBAC Enabled: " + ownerOnlyAuthorizationEnabled);
-        log.debug("Admin Override Enabled: " + adminOverrideEnabled);
+        log.debug("OBAC Enabled: {}", ownerOnlyAuthorizationEnabled);
+        log.debug("Admin Override Enabled: {}", adminOverrideEnabled);
         if (adminOverrideEnabled) {
-            log.debug("   Admin Override from: " + adminOverrideFrom);
-            log.debug("   Admin Override type: " + adminOverrideType);
-            log.debug("   Admin Override role: " + adminOverrideRole);
-            log.debug("   Admin Override claim: " + adminOverrideClaim);
-            log.debug("   Admin Override claim-value: " + adminOverrideClaimValue);
+            log.debug("   Admin Override from: {}", adminOverrideFrom);
+            log.debug("   Admin Override type: {}", adminOverrideType);
+            log.debug("   Admin Override role: {}", adminOverrideRole);
+            log.debug("   Admin Override claim: {}", adminOverrideClaim);
+            log.debug("   Admin Override claim-value: {}", adminOverrideClaimValue);
         }
         log.debug("===============================");
     }
@@ -233,6 +238,22 @@ public class AuthConfig {
         return this.basicAuthEnabled;
     }
 
+    public boolean isFormAuthEnabled() {
+        return this.formAuthEnabled;
+    }
+
+    public boolean isProxyHeaderAuthEnabled() {
+        return this.proxyHeaderAuthEnabled;
+    }
+
+    /**
+     * True when any authentication backend is enabled. Canonical check used by
+     * {@link AuthorizedInterceptor} and ownership-transfer authorization — keep those
+     * call sites on this method so a new backend cannot silently bypass authz.
+     */
+    public boolean isAuthenticationEnabled() {
+        return oidcAuthEnabled || basicAuthEnabled || proxyHeaderAuthEnabled || kubernetesAuthEnabled || formAuthEnabled;
+    }
     public boolean isRbacEnabled() {
         return this.roleBasedAuthorizationEnabled;
     }
@@ -362,7 +383,7 @@ public class AuthConfig {
             String clientSpecificKey = "apicurio.authn.basic.scope." + clientId;
             var clientScope = config.getOptionalValue(clientSpecificKey, String.class);
             if (clientScope.isPresent()) {
-                return normalizeScope(clientScope.get());
+                return normalizeScope(clientScope.orElseThrow());
             }
         }
         return scope.map(this::normalizeScope).orElse(null);

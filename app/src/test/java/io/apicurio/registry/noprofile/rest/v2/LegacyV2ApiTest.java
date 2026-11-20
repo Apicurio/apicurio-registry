@@ -1,6 +1,9 @@
 package io.apicurio.registry.noprofile.rest.v2;
 
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
+import io.apicurio.registry.rest.client.models.VersionState;
+import io.apicurio.registry.rest.client.models.WrappedVersionState;
 import io.apicurio.registry.rest.v2.beans.EditableMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
@@ -230,4 +233,26 @@ public class LegacyV2ApiTest extends AbstractResourceTestBase {
                         equalTo("Second version"));
     }
 
+
+    @Test
+    public void testGetContentByGlobalIdOfDisabledVersionReturns404() throws Exception {
+        String artifactContent = resourceToString("openapi-empty.json");
+        String artifactId = "testGetContentByGlobalIdOfDisabledVersion";
+        CreateArtifactResponse created = this.createArtifact(GROUP, artifactId, ArtifactType.OPENAPI,
+                artifactContent, ContentTypes.APPLICATION_JSON);
+        long globalId = created.getVersion().getGlobalId();
+
+        given().when().pathParam("globalId", globalId).get("/registry/v2/ids/globalIds/{globalId}").then()
+                .statusCode(200);
+
+        WrappedVersionState state = new WrappedVersionState();
+        state.setState(VersionState.DISABLED);
+        clientV3.groups().byGroupId(GROUP).artifacts().byArtifactId(artifactId).versions()
+                .byVersionExpression(created.getVersion().getVersion()).state().put(state);
+
+        given().when().pathParam("globalId", globalId).get("/registry/v2/ids/globalIds/{globalId}").then()
+                .statusCode(404);
+        given().when().pathParam("globalId", globalId).get("/registry/v3/ids/globalIds/{globalId}").then()
+                .statusCode(404);
+    }
 }

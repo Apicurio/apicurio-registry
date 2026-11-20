@@ -1,6 +1,9 @@
 import { FunctionComponent, useState } from "react";
 import "./AgentCardEditor.css";
 import {
+    ActionList,
+    ActionListItem,
+    Button,
     Card,
     CardBody,
     CardHeader,
@@ -20,9 +23,10 @@ import {
     InputGroup,
     InputGroupItem
 } from "@patternfly/react-core";
+import { PlusCircleIcon, TrashIcon } from "@patternfly/react-icons";
 import { CapabilityEditor } from "./CapabilityEditor";
 import { SkillEditor } from "./SkillEditor";
-import { AgentCard } from "./AgentCardViewer";
+import { AgentCard, AgentInterface } from "./AgentCardViewer";
 import { AgentCapabilities } from "./AgentCardCapabilities";
 import { AgentSkill } from "./AgentCardSkills";
 
@@ -97,6 +101,23 @@ export const AgentCardEditor: FunctionComponent<AgentCardEditorProps> = (props: 
         });
     };
 
+    const handleAddInterface = (): void => {
+        const newInterface: AgentInterface = { id: crypto.randomUUID(), url: "", protocolBinding: "A2A", protocolVersion: "1.0" };
+        updateField("supportedInterfaces", [...(agentCard.supportedInterfaces || []), newInterface]);
+    };
+
+    const handleRemoveInterface = (index: number): void => {
+        const updated = (agentCard.supportedInterfaces || []).filter((_, i) => i !== index);
+        updateField("supportedInterfaces", updated);
+    };
+
+    const handleUpdateInterface = (index: number, field: keyof AgentInterface, value: string): void => {
+        const updated = (agentCard.supportedInterfaces || []).map((iface, i) =>
+            i === index ? { ...iface, [field]: value } : iface
+        );
+        updateField("supportedInterfaces", updated);
+    };
+
     return (
         <Card className={`agent-card-editor ${className || ""}`}>
             <CardHeader>
@@ -118,7 +139,7 @@ export const AgentCardEditor: FunctionComponent<AgentCardEditorProps> = (props: 
                         />
                     </FormGroup>
 
-                    <FormGroup label="Description" fieldId="agent-description">
+                    <FormGroup label="Description" isRequired fieldId="agent-description">
                         <TextArea
                             id="agent-description"
                             value={agentCard.description || ""}
@@ -128,7 +149,7 @@ export const AgentCardEditor: FunctionComponent<AgentCardEditorProps> = (props: 
                         />
                     </FormGroup>
 
-                    <FormGroup label="Version" fieldId="agent-version">
+                    <FormGroup label="Version" isRequired fieldId="agent-version">
                         <TextInput
                             id="agent-version"
                             value={agentCard.version || ""}
@@ -146,6 +167,67 @@ export const AgentCardEditor: FunctionComponent<AgentCardEditorProps> = (props: 
                             placeholder="https://example.com/agent"
                         />
                     </FormGroup>
+
+                    <Divider className="section-divider" />
+
+                    {/* Supported Interfaces Section (A2A v1.0 required) */}
+                    <Title headingLevel="h3" className="section-header">
+                        Supported Interfaces <span style={{ color: "var(--pf-t--global--color--status--danger--default)" }}>*</span>
+                    </Title>
+
+                    {(agentCard.supportedInterfaces || []).map((iface, index) => (
+                        <Card isPlain key={iface.id || index} className="interface-entry">
+                            <CardBody>
+                                <FormGroup label="URL" isRequired fieldId={`interface-url-${index}`}>
+                                    <InputGroup>
+                                        <InputGroupItem isFill>
+                                            <TextInput
+                                                id={`interface-url-${index}`}
+                                                type="url"
+                                                value={iface.url}
+                                                onChange={(_event, value) => handleUpdateInterface(index, "url", value)}
+                                                placeholder="https://agent.example.com/a2a"
+                                            />
+                                        </InputGroupItem>
+                                    </InputGroup>
+                                </FormGroup>
+                                <FormGroup label="Protocol Binding" isRequired fieldId={`interface-binding-${index}`}>
+                                    <TextInput
+                                        id={`interface-binding-${index}`}
+                                        value={iface.protocolBinding}
+                                        onChange={(_event, value) => handleUpdateInterface(index, "protocolBinding", value)}
+                                        placeholder="e.g., A2A, JSONRPC"
+                                    />
+                                </FormGroup>
+                                <FormGroup label="Protocol Version" isRequired fieldId={`interface-version-${index}`}>
+                                    <TextInput
+                                        id={`interface-version-${index}`}
+                                        value={iface.protocolVersion}
+                                        onChange={(_event, value) => handleUpdateInterface(index, "protocolVersion", value)}
+                                        placeholder="e.g., 1.0"
+                                    />
+                                </FormGroup>
+                                <ActionList>
+                                    <ActionListItem>
+                                        <Button
+                                            variant="danger"
+                                            icon={<TrashIcon />}
+                                            onClick={() => handleRemoveInterface(index)}
+                                        >
+                                            Remove interface
+                                        </Button>
+                                    </ActionListItem>
+                                </ActionList>
+                            </CardBody>
+                        </Card>
+                    ))}
+                    <Button
+                        variant="link"
+                        icon={<PlusCircleIcon />}
+                        onClick={handleAddInterface}
+                    >
+                        Add interface
+                    </Button>
 
                     <Divider className="section-divider" />
 

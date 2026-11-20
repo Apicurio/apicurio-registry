@@ -1,0 +1,14 @@
+{
+    "name": "decompress",
+    "version": "4.2.1-apicurio.0",
+    "private": true,
+    "license": "Apache-2.0",
+    "description": "CommonJS shim that replaces the unmaintained and vulnerable 'decompress' package (GHSA-mp2f-45pm-3cg9, GHSA-h39j-r5qq-r9mm, GHSA-jwp9-9v96-94mx) with its maintained fork '@xhmikosr/decompress'. Wired in through the 'overrides' section of ../../package.json; only used by @kiota-community/kiota-gen to unpack the kiota binary.",
+    "main": "index.cjs",
+    "engines": {
+        "node": ">=20.20.2"
+    },
+    "dependencies": {
+        "@xhmikosr/decompress": "11.1.4"
+    }
+}

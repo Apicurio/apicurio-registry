@@ -21,6 +21,7 @@ export type RuleListProps = {
     rules: Rule[];
     type: RuleListType;
     resourceOwner?: string | null;
+    pendingRuleType?: string;
 };
 
 const NAME_COLUMN_WIDTH: string = "250px";
@@ -29,6 +30,10 @@ export const RuleList: FunctionComponent<RuleListProps> = (props: RuleListProps)
 
     const isRuleEnabled = (ruleType: string): boolean => {
         return props.rules.filter(rule => rule.ruleType === ruleType).length > 0;
+    };
+
+    const isPending = (ruleType: string): boolean => {
+        return props.pendingRuleType === ruleType;
     };
 
     const getRuleRowClasses = (ruleType: string): string => {
@@ -83,6 +88,8 @@ export const RuleList: FunctionComponent<RuleListProps> = (props: RuleListProps)
         <Button variant="secondary"
             key="enable-action"
             data-testid="rules-validity-enable"
+            isDisabled={isPending("VALIDITY")}
+            isLoading={isPending("VALIDITY")}
             onClick={doEnableRule("VALIDITY")}>Enable</Button>
     );
     if (isRuleEnabled("VALIDITY")) {
@@ -93,7 +100,10 @@ export const RuleList: FunctionComponent<RuleListProps> = (props: RuleListProps)
                 <Button icon={<TrashIcon />} variant="plain"
                     key="delete-action"
                     data-testid="rules-validity-disable"
-                    title="Disable the  validity rule"
+                    title="Disable the validity rule"
+                    aria-label="Disable the validity rule"
+                    isDisabled={isPending("VALIDITY")}
+                    isLoading={isPending("VALIDITY")}
                     onClick={doDisableRule("VALIDITY")} />
             </React.Fragment>
         );
@@ -109,6 +119,8 @@ export const RuleList: FunctionComponent<RuleListProps> = (props: RuleListProps)
         <Button variant="secondary"
             key="enable-action"
             data-testid="rules-compatibility-enable"
+            isDisabled={isPending("COMPATIBILITY")}
+            isLoading={isPending("COMPATIBILITY")}
             onClick={doEnableRule("COMPATIBILITY")}>Enable</Button>
     );
     if (isRuleEnabled("COMPATIBILITY")) {
@@ -120,6 +132,9 @@ export const RuleList: FunctionComponent<RuleListProps> = (props: RuleListProps)
                     key="delete-action"
                     data-testid="rules-compatibility-disable"
                     title="Disable the compatibility rule"
+                    aria-label="Disable the compatibility rule"
+                    isDisabled={isPending("COMPATIBILITY")}
+                    isLoading={isPending("COMPATIBILITY")}
                     onClick={doDisableRule("COMPATIBILITY")} />
             </React.Fragment>
         );
@@ -135,6 +150,8 @@ export const RuleList: FunctionComponent<RuleListProps> = (props: RuleListProps)
         <Button variant="secondary"
             key="enable-action"
             data-testid="rules-integrity-enable"
+            isDisabled={isPending("INTEGRITY")}
+            isLoading={isPending("INTEGRITY")}
             onClick={doEnableRule("INTEGRITY")}>Enable</Button>
     );
     if (isRuleEnabled("INTEGRITY")) {
@@ -146,6 +163,9 @@ export const RuleList: FunctionComponent<RuleListProps> = (props: RuleListProps)
                     key="delete-action"
                     data-testid="rules-integrity-disable"
                     title="Disable the integrity rule"
+                    aria-label="Disable the integrity rule"
+                    isDisabled={isPending("INTEGRITY")}
+                    isLoading={isPending("INTEGRITY")}
                     onClick={doDisableRule("INTEGRITY")} />
             </React.Fragment>
         );

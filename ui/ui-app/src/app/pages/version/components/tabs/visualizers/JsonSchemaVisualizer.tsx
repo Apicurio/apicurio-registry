@@ -2,7 +2,7 @@ import { FunctionComponent, useMemo } from "react";
 import "./JsonSchemaVisualizer.css";
 import { JsonSchemaViewer } from "@app/components/jsonSchema";
 import { generateJsonExample } from "@app/components/jsonSchema/generateJsonExample";
-import Editor from "@monaco-editor/react";
+import { RegistryCodeEditor } from "@app/components/codeEditor/RegistryEditors.tsx";
 
 export type JsonSchemaVisualizerProps = {
     spec: any;
@@ -29,7 +29,7 @@ export const JsonSchemaVisualizer: FunctionComponent<JsonSchemaVisualizerProps> 
                     Generated Example
                 </div>
                 <div className="json-schema-panel-right-editor">
-                    <Editor
+                    <RegistryCodeEditor
                         language="json"
                         value={exampleJson}
                         theme="vs-dark"

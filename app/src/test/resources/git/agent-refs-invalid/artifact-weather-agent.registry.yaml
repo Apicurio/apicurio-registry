@@ -1,0 +1,10 @@
+$type: artifact-v0
+registryIds: [test]
+groupId: com.example.agents
+artifactId: weather-agent
+artifactType: AGENT_CARD
+versions:
+  - version: "1"
+    state: ENABLED
+    content: ./content/weather-agent.json
+    contentMetadata: ./content-weather-agent.registry.yaml

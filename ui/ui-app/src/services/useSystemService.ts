@@ -1,7 +1,7 @@
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 import { getRegistryClient } from "@utils/rest.utils.ts";
 import { SystemInfo } from "@sdk/lib/generated-client/models";
-import { AuthService, useAuth } from "@apicurio/common-ui-components";
+import { AuthService, useAuth } from "@apitomy/common-ui-components";
 
 
 const getInfo = async (config: ConfigService, auth: AuthService): Promise<SystemInfo> => {

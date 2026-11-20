@@ -1,4 +1,4 @@
-import { FunctionComponent, MouseEvent, Ref, useEffect, useState } from "react";
+import { FunctionComponent, MouseEvent, Ref, useEffect, useRef, useState } from "react";
 import "./CreateArtifactModal.css";
 import {
     FileUpload,
@@ -27,15 +27,15 @@ import {
 import {
     Modal
 } from "@patternfly/react-core/deprecated";
-import { CreateArtifact } from "@sdk/lib/generated-client/models";
-import { If, UrlUpload } from "@apicurio/common-ui-components";
+import { CreateArtifact, CreateVersion, Labels } from "@sdk/lib/generated-client/models";
+import { If, UrlUpload } from "@apitomy/common-ui-components";
 import { ExclamationCircleIcon } from "@patternfly/react-icons";
 import { UrlService, useUrlService } from "@services/useUrlService.ts";
 import { ArtifactTypesService, useArtifactTypesService } from "@services/useArtifactTypesService.ts";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 import { ArtifactLabel, LabelsFormGroup, ArtifactReferenceFormItem, ReferencesFormGroup, formItemsToReferences, isReferencesValid } from "@app/components";
 import { listToLabels } from "@utils/labels.utils.ts";
-import { detectContentType } from "@utils/content.utils.ts";
+import { detectContentType, detectVersionInContent } from "@utils/content.utils.ts";
 
 
 export type ValidType = "default" | "success" | "error";
@@ -84,6 +84,14 @@ const validateField = (value: string | undefined | null): ValidType => {
 const EMPTY_FORM_DATA: CreateArtifact = {
 };
 
+/**
+ * Converts the labels shown in the form to the SDK model, or undefined when there are none, so that
+ * no empty labels object is sent.
+ */
+const labelsOrUndefined = (labels: ArtifactLabel[]): Labels | undefined => {
+    return labels.length === 0 ? undefined : listToLabels(labels);
+};
+
 
 type ArtifactTypeItem = {
     value?: string;
@@ -127,6 +135,10 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
     const [versionLabels, setVersionLabels] = useState<ArtifactLabel[]>([]);
     const [versionReferences, setVersionReferences] = useState<ArtifactReferenceFormItem[]>([]);
     const [isDetectingRefs, setIsDetectingRefs] = useState(false);
+    const [autoDetectedVersion, setAutoDetectedVersion] = useState<string | undefined>();
+    // Ref rather than state: content change handlers can fire asynchronously (e.g. when
+    // a URL fetch resolves) and must see the current value, not a stale closure.
+    const versionIsDirty = useRef(false);
 
     const urlService: UrlService = useUrlService();
     const atService: ArtifactTypesService = useArtifactTypesService();
@@ -186,25 +198,29 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
         });
     };
 
-    const _setArtifactLabels = (newLabels: ArtifactLabel[]): void => {
-        setArtifactLabels(newLabels);
-        setData({
-            ...data,
-            labels: listToLabels(newLabels)
-        });
-    };
-
     const onFileTextChange = (_event: any, value: string | undefined): void => {
-        setData({
-            ...data,
+        // Auto-detect the version from the content (e.g. "info.version" in an OpenAPI or
+        // AsyncAPI spec), but only while the user has not edited the version themselves.
+        // When nothing is detected (non-spec content, or content that is transiently
+        // unparseable mid-edit) the previous value is preserved rather than cleared.
+        // The functional update matters: this handler can be called asynchronously (URL
+        // fetch, file read), so spreading a captured `data` could clobber newer state.
+        const detectedVersion: string | undefined = detectVersionInContent(value);
+        const applyDetectedVersion: boolean = !versionIsDirty.current && detectedVersion !== undefined;
+        setData(prevData => ({
+            ...prevData,
             firstVersion: {
-                ...data.firstVersion,
+                ...prevData.firstVersion,
+                version: applyDetectedVersion ? detectedVersion : prevData.firstVersion?.version,
                 content: {
                     content: value,
-                    contentType: detectContentType(data.artifactType, value)
+                    contentType: detectContentType(prevData.artifactType, value)
                 }
             }
-        });
+        }));
+        if (applyDetectedVersion) {
+            setAutoDetectedVersion(detectedVersion);
+        }
     };
 
     const onFileClear = (): void => {
@@ -220,13 +236,16 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
     };
 
     const setVersionNumber = (newVersion: string): void => {
-        setData({
-            ...data,
+        // The user edited the version (including clearing it): stop auto-detecting.
+        versionIsDirty.current = true;
+        setAutoDetectedVersion(undefined);
+        setData(prevData => ({
+            ...prevData,
             firstVersion: {
-                ...data.firstVersion,
+                ...prevData.firstVersion,
                 version: newVersion
             }
-        });
+        }));
     };
 
     const setVersionName = (newName: string): void => {
@@ -249,31 +268,6 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
         });
     };
 
-    const _setVersionLabels = (newLabels: ArtifactLabel[]): void => {
-        setVersionLabels(newLabels);
-        setData({
-            ...data,
-            firstVersion: {
-                ...data.firstVersion,
-                labels: listToLabels(newLabels)
-            }
-        });
-    };
-
-    const _setVersionReferences = (newReferences: ArtifactReferenceFormItem[]): void => {
-        setVersionReferences(newReferences);
-        setData({
-            ...data,
-            firstVersion: {
-                ...data.firstVersion,
-                content: {
-                    ...data.firstVersion?.content,
-                    references: formItemsToReferences(newReferences)
-                }
-            }
-        });
-    };
-
     const onDetectReferences = (): void => {
         const content = data.firstVersion?.content?.content;
         if (!content) {
@@ -289,7 +283,7 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
                 artifactId: ref.artifactId || "",
                 version: ref.version || ""
             }));
-            _setVersionReferences(formItems);
+            setVersionReferences(formItems);
         }).catch(error => {
             console.error("[CreateArtifactModal] Failed to detect references:", error);
         }).finally(() => {
@@ -301,8 +295,32 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
         props.onClose();
     };
 
+    /**
+     * Builds the request from the state the form renders. Labels and references live in their own
+     * state (that is what the form groups show), so they are merged in here, at submit time, rather
+     * than copied into `data` on every change, where later edits could silently drop them.
+     */
+    const buildCreateArtifact = (): CreateArtifact => {
+        const firstVersion: CreateVersion | null | undefined = data.firstVersion?.content?.content === undefined ?
+            data.firstVersion :
+            {
+                ...data.firstVersion,
+                labels: labelsOrUndefined(versionLabels),
+                content: {
+                    ...data.firstVersion.content,
+                    references: formItemsToReferences(versionReferences)
+                }
+            };
+        return {
+            ...data,
+            artifactType: selectedType.value,
+            labels: labelsOrUndefined(artifactLabels),
+            firstVersion
+        };
+    };
+
     const fireCreateEvent = (): void => {
-        props.onCreate(groupId, data);
+        props.onCreate(groupId, buildCreateArtifact());
     };
 
     useEffect(() => {
@@ -312,7 +330,12 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
     useEffect(() => {
         if (props.isOpen) {
             setData(EMPTY_FORM_DATA);
+            setSelectedType(DEFAULT_ARTIFACT_TYPE);
+            setArtifactLabels([]);
+            setVersionLabels([]);
             setVersionReferences([]);
+            setAutoDetectedVersion(undefined);
+            versionIsDirty.current = false;
             if (props.groupId) {
                 setGroupId(props.groupId);
             } else {
@@ -524,7 +547,7 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
                                     />
                                 </FormGroup>
                             </GridItem>
-                            <LabelsFormGroup labels={artifactLabels} onChange={_setArtifactLabels} />
+                            <LabelsFormGroup labels={artifactLabels} onChange={setArtifactLabels} />
                         </Grid>
                     </Form>
                 </WizardStep>
@@ -549,6 +572,13 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
                                 onChange={(_evt, value) => setVersionNumber(value)}
                                 // validated={groupValidated()}
                             />
+                            <If condition={autoDetectedVersion !== undefined && data.firstVersion?.version === autoDetectedVersion}>
+                                <FormHelperText>
+                                    <HelperText>
+                                        <HelperTextItem>Version detected from the content.</HelperTextItem>
+                                    </HelperText>
+                                </FormHelperText>
+                            </If>
                         </FormGroup>
                         <FormGroup label="Content" isRequired={false} fieldId="form-content">
                             <Tabs
@@ -620,7 +650,7 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
                     <Form>
                         <ReferencesFormGroup
                             references={versionReferences}
-                            onChange={_setVersionReferences}
+                            onChange={setVersionReferences}
                             onDetect={onDetectReferences}
                             isDetecting={isDetectingRefs}
                         />
@@ -666,7 +696,7 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
                                     />
                                 </FormGroup>
                             </GridItem>
-                            <LabelsFormGroup labels={versionLabels} onChange={_setVersionLabels} />
+                            <LabelsFormGroup labels={versionLabels} onChange={setVersionLabels} />
                         </Grid>
                     </Form>
                 </WizardStep>

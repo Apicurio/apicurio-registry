@@ -11,6 +11,9 @@ import io.apicurio.registry.storage.RegistryStorage.RetrievalBehavior;
 import io.apicurio.registry.storage.dto.*;
 import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
+import io.apicurio.registry.storage.error.InvalidPeerException;
+import io.apicurio.registry.storage.error.PeerAlreadyExistsException;
+import io.apicurio.registry.storage.error.PeerNotFoundException;
 import io.apicurio.registry.storage.error.RuleAlreadyExistsException;
 import io.apicurio.registry.storage.error.RuleNotFoundException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
@@ -25,12 +28,16 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBase {
 
@@ -140,6 +147,53 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         List<String> versions = storage().getArtifactVersions(GROUP_ID, artifactId);
         Assertions.assertNotNull(versions);
         Assertions.assertEquals("1", versions.iterator().next());
+    }
+
+    /**
+     * The version and artifact read together for authorization match what each read returns on its
+     * own, and the batch read returns the artifacts that exist.
+     */
+    @Test
+    public void testVersionWithArtifactMetaDataAndBatchArtifactMetaData() throws Exception {
+        String artifactId = "testVersionWithArtifactMetaData-1";
+        ContentWrapperDto content = ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON)
+                .content(ContentHandle.create(OPENAPI_CONTENT)).build();
+        ArtifactVersionMetaDataDto created = storage().createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI,
+                EditableArtifactMetaDataDto.builder().name("The artifact").description("Artifact description")
+                        .labels(Map.of("team", "a")).build(),
+                null, content, EditableVersionMetaDataDto.builder().name("The version").build(),
+                Collections.emptyList(), false, false, null).getValue();
+        storage().createArtifact(GROUP_ID, artifactId + "-other", ArtifactType.OPENAPI, null, null, content, null,
+                Collections.emptyList(), false, false, null);
+
+        VersionWithArtifactMetaDataDto read = storage().getArtifactVersionWithArtifactMetaData(created.getGlobalId());
+        ArtifactVersionMetaDataDto version = storage().getArtifactVersionMetaData(created.getGlobalId());
+        ArtifactMetaDataDto artifact = storage().getArtifactMetaData(GROUP_ID, artifactId);
+        Assertions.assertEquals(version, read.version());
+        Assertions.assertEquals(artifact, read.artifact());
+        Assertions.assertEquals("The version", read.version().getName());
+        Assertions.assertEquals("The artifact", read.artifact().getName());
+        Assertions.assertEquals(Map.of("team", "a"), read.artifact().getLabels());
+        Assertions.assertThrows(VersionNotFoundException.class,
+                () -> storage().getArtifactVersionWithArtifactMetaData(Long.MAX_VALUE));
+
+        List<ArtifactMetaDataDto> batch = storage().getArtifactsMetaData(List.of(new GA(GROUP_ID, artifactId),
+                new GA(GROUP_ID, artifactId + "-other"), new GA(GROUP_ID, artifactId + "-missing"),
+                new GA(GROUP_ID, artifactId)));
+        Assertions.assertEquals(Set.of(artifactId, artifactId + "-other"),
+                batch.stream().map(ArtifactMetaDataDto::getArtifactId).collect(Collectors.toSet()));
+        Assertions.assertEquals(2, batch.size());
+        Assertions.assertTrue(batch.contains(artifact));
+        Assertions.assertEquals(List.of(), storage().getArtifactsMetaData(List.of()));
+
+        // More artifacts than one query binds: read in several queries
+        List<GA> many = new ArrayList<>();
+        for (int i = 0; i < 450; i++) {
+            many.add(new GA(GROUP_ID, artifactId + "-missing-" + i));
+        }
+        many.add(new GA(GROUP_ID, artifactId + "-other"));
+        Assertions.assertEquals(List.of(artifactId + "-other"),
+                storage().getArtifactsMetaData(many).stream().map(ArtifactMetaDataDto::getArtifactId).toList());
     }
 
     @Test
@@ -518,10 +572,11 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
         EditableVersionMetaDataDto versionMetaDataDto = EditableVersionMetaDataDto.builder().name("Empty API")
                 .description("An example API design using OpenAPI.").build();
+        String staleOwner = "stale-creation-user";
         ArtifactVersionMetaDataDto dto = storage().createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI,
                 null, null, ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON)
                         .content(content).build(),
-                versionMetaDataDto, Collections.emptyList(), false, false, null).getValue();
+                versionMetaDataDto, Collections.emptyList(), false, false, staleOwner).getValue();
         Assertions.assertNotNull(dto);
         Assertions.assertEquals(GROUP_ID, dto.getGroupId());
         Assertions.assertEquals(artifactId, dto.getArtifactId());
@@ -529,6 +584,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertEquals("An example API design using OpenAPI.", dto.getDescription());
         Assertions.assertNull(dto.getLabels());
         Assertions.assertEquals("1", dto.getVersion());
+        Assertions.assertEquals(staleOwner, dto.getModifiedBy());
 
         String newName = "Updated Name";
         String newDescription = "Updated description.";
@@ -542,6 +598,51 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertNotNull(metaData);
         Assertions.assertEquals(newName, metaData.getName());
         Assertions.assertEquals(newDescription, metaData.getDescription());
+    }
+
+    @Test
+    public void testUpdateArtifactVersionMetaDataNameOnlyUpdatesModified() throws Exception {
+        String artifactId = "testUpdateArtifactVersionMetaDataNameOnly-1";
+        ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
+        EditableVersionMetaDataDto versionMetaDataDto = EditableVersionMetaDataDto.builder().name("Empty API")
+                .build();
+        String staleOwner = "stale-creation-user";
+        storage().createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI, null, null,
+                ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON).content(content).build(),
+                versionMetaDataDto, Collections.emptyList(), false, false, staleOwner);
+
+        ArtifactVersionMetaDataDto before = storage().getArtifactVersionMetaData(GROUP_ID, artifactId, "1");
+        Assertions.assertEquals(staleOwner, before.getModifiedBy());
+
+        storage().updateArtifactVersionMetaData(GROUP_ID, artifactId, "1",
+                EditableVersionMetaDataDto.builder().name("Name Only Update").build());
+
+        ArtifactVersionMetaDataDto after = storage().getArtifactVersionMetaData(GROUP_ID, artifactId, "1");
+        Assertions.assertEquals("Name Only Update", after.getName());
+        // modifiedBy must move off the stale creation owner, proving the audit update ran
+        Assertions.assertNotEquals(staleOwner, after.getModifiedBy());
+        Assertions.assertTrue(after.getModifiedOn() >= before.getModifiedOn());
+    }
+
+    @Test
+    public void testUpdateArtifactVersionMetaDataEmptyUpdateDoesNotModify() throws Exception {
+        String artifactId = "testUpdateArtifactVersionMetaDataEmpty-1";
+        ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
+        EditableVersionMetaDataDto versionMetaDataDto = EditableVersionMetaDataDto.builder().name("Empty API")
+                .build();
+        storage().createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI, null, null,
+                ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON).content(content).build(),
+                versionMetaDataDto, Collections.emptyList(), false, false, null);
+
+        ArtifactVersionMetaDataDto before = storage().getArtifactVersionMetaData(GROUP_ID, artifactId, "1");
+
+        // An update with no fields set is a no-op: audit fields must be left untouched.
+        storage().updateArtifactVersionMetaData(GROUP_ID, artifactId, "1",
+                EditableVersionMetaDataDto.builder().build());
+
+        ArtifactVersionMetaDataDto after = storage().getArtifactVersionMetaData(GROUP_ID, artifactId, "1");
+        Assertions.assertEquals(before.getModifiedBy(), after.getModifiedBy());
+        Assertions.assertEquals(before.getModifiedOn(), after.getModifiedOn());
     }
 
     @Test
@@ -874,6 +975,138 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
     }
 
     @Test
+    public void testPeers() {
+        storage().deleteAllUserData();
+        try {
+            testPeersBody();
+        } finally {
+            // Runs even if an assertion above fails, so a failed run does not leave peer rows
+            // behind for the next test in this class (or the next run of this one) to trip over.
+            storage().deleteAllUserData();
+        }
+    }
+
+    private void testPeersBody() {
+        Assertions.assertTrue(storage().getPeers().isEmpty());
+
+        PeerDto peer1 = PeerDto.builder().peerId("peer-test-1").url("https://peer1.example.com")
+                .name("Peer One").description("First test peer").enabled(true)
+                .credentialSecretRef("peer1-cred").build();
+        PeerDto peer2 = PeerDto.builder().peerId("peer-test-2").url("https://peer2.example.com")
+                .enabled(true).build();
+        PeerDto peer3 = PeerDto.builder().peerId("peer-test-3").url("https://peer3.example.com")
+                .enabled(false).build();
+
+        storage().createPeer(peer1);
+        storage().createPeer(peer2);
+        storage().createPeer(peer3);
+
+        PeerDto fetched = storage().getPeer("peer-test-1");
+        Assertions.assertEquals("peer-test-1", fetched.getPeerId());
+        Assertions.assertEquals("https://peer1.example.com", fetched.getUrl());
+        Assertions.assertEquals("Peer One", fetched.getName());
+        Assertions.assertEquals("First test peer", fetched.getDescription());
+        Assertions.assertTrue(fetched.isEnabled());
+        Assertions.assertEquals("peer1-cred", fetched.getCredentialSecretRef());
+
+        List<PeerDto> all = storage().getPeers();
+        Assertions.assertEquals(3, all.size());
+        Assertions.assertTrue(all.stream()
+                .anyMatch(p -> "peer-test-3".equals(p.getPeerId()) && !p.isEnabled()));
+
+        PeerSearchResultsDto page1 = storage().searchPeers(0, 2);
+        Assertions.assertEquals(3, page1.getCount());
+        Assertions.assertEquals(2, page1.getPeers().size());
+        Assertions.assertEquals("peer-test-1", page1.getPeers().get(0).getPeerId());
+        Assertions.assertEquals("peer-test-2", page1.getPeers().get(1).getPeerId());
+
+        PeerSearchResultsDto page2 = storage().searchPeers(2, 2);
+        Assertions.assertEquals(3, page2.getCount());
+        Assertions.assertEquals(1, page2.getPeers().size());
+        Assertions.assertEquals("peer-test-3", page2.getPeers().get(0).getPeerId());
+
+        Assertions.assertThrows(PeerAlreadyExistsException.class, () -> storage().createPeer(peer1));
+
+        PeerDto updated = PeerDto.builder().peerId("peer-test-1")
+                .url("https://peer1-updated.example.com").name("Peer One Updated")
+                .description("Updated description").enabled(false)
+                .credentialSecretRef("peer1-cred-updated").build();
+        storage().updatePeer(updated);
+        PeerDto reFetched = storage().getPeer("peer-test-1");
+        Assertions.assertEquals("https://peer1-updated.example.com", reFetched.getUrl());
+        Assertions.assertEquals("Peer One Updated", reFetched.getName());
+        Assertions.assertEquals("Updated description", reFetched.getDescription());
+        Assertions.assertFalse(reFetched.isEnabled());
+        Assertions.assertEquals("peer1-cred-updated", reFetched.getCredentialSecretRef());
+
+        Assertions.assertThrows(PeerNotFoundException.class, () -> storage()
+                .updatePeer(PeerDto.builder().peerId("peer-does-not-exist").url("https://x.example.com").build()));
+
+        storage().deletePeer("peer-test-1");
+        Assertions.assertThrows(PeerNotFoundException.class, () -> storage().getPeer("peer-test-1"));
+
+        Assertions.assertThrows(PeerNotFoundException.class, () -> storage().deletePeer("peer-does-not-exist"));
+        Assertions.assertThrows(PeerNotFoundException.class, () -> storage().getPeer("peer-does-not-exist"));
+
+        Assertions.assertThrows(InvalidPeerException.class, () -> storage()
+                .createPeer(PeerDto.builder().peerId("local").url("https://x.example.com").build()));
+
+        Assertions.assertThrows(InvalidPeerException.class,
+                () -> storage().createPeer(PeerDto.builder().peerId("peer-test-invalid-1")
+                        .url("https://x.example.com").credentialSecretRef("../etc/passwd").build()));
+
+        Assertions.assertThrows(InvalidPeerException.class,
+                () -> storage().createPeer(PeerDto.builder().peerId("peer-test-invalid-2")
+                        .url("https://user:pass@x.example.com").build()));
+
+        Assertions.assertTrue(storage().isPeerExists("peer-test-2"));
+        Assertions.assertFalse(storage().isPeerExists("peer-test-1"));
+        Assertions.assertFalse(storage().isPeerExists("peer-does-not-exist"));
+
+        // Peer ids are lowercase-only so identity is consistent across SQL dialects: MySQL's
+        // peers table collates case-insensitively, so an uppercase id would address a different
+        // row than the same id in lowercase on Postgres/H2 if it were allowed through. Covered
+        // here (not just at the validator level) so it is exercised against a real MySQL
+        // database too, via MysqlStorageTest extending this class.
+        storage().createPeer(PeerDto.builder().peerId("peer-test-case").url("https://case.example.com")
+                .enabled(true).build());
+        Assertions.assertThrows(InvalidPeerException.class, () -> storage()
+                .createPeer(PeerDto.builder().peerId("PEER-TEST-CASE").url("https://case-2.example.com").build()));
+        Assertions.assertThrows(InvalidPeerException.class, () -> storage()
+                .updatePeer(PeerDto.builder().peerId("PEER-TEST-CASE").url("https://case-2.example.com").build()));
+        Assertions.assertThrows(InvalidPeerException.class, () -> storage().getPeer("PEER-TEST-CASE"));
+        Assertions.assertThrows(InvalidPeerException.class, () -> storage().isPeerExists("PEER-TEST-CASE"));
+        Assertions.assertThrows(InvalidPeerException.class, () -> storage().deletePeer("PEER-TEST-CASE"));
+        Assertions.assertThrows(InvalidPeerException.class, () -> storage().deletePeer("Peer-Test-Case"));
+
+        Assertions.assertTrue(storage().isPeerExists("peer-test-case"));
+        PeerDto caseSurvivor = storage().getPeer("peer-test-case");
+        Assertions.assertEquals("https://case.example.com", caseSurvivor.getUrl());
+        Assertions.assertTrue(caseSurvivor.isEnabled());
+        Assertions.assertEquals(List.of("peer-test-case"), storage().getPeers().stream().map(PeerDto::getPeerId)
+                .filter("peer-test-case"::equalsIgnoreCase).toList());
+
+        storage().deletePeer("peer-test-case");
+        Assertions.assertFalse(storage().isPeerExists("peer-test-case"));
+
+        // A peer url may carry non-ASCII path characters, which the validator accepts. MySQL's
+        // peers table defaults to the ascii character set, so its url column is declared utf8mb4.
+        // Covered here so it is exercised against a real MySQL database too, via MysqlStorageTest.
+        String unicodeUrl = "https://unicode.example.com/café";
+        storage().createPeer(PeerDto.builder().peerId("peer-test-unicode").url(unicodeUrl).enabled(true)
+                .build());
+        Assertions.assertEquals(unicodeUrl, storage().getPeer("peer-test-unicode").getUrl());
+
+        String updatedUnicodeUrl = "https://unicode.example.com/注册表";
+        storage().updatePeer(PeerDto.builder().peerId("peer-test-unicode").url(updatedUnicodeUrl)
+                .enabled(true).build());
+        Assertions.assertEquals(updatedUnicodeUrl, storage().getPeer("peer-test-unicode").getUrl());
+
+        storage().deletePeer("peer-test-unicode");
+        Assertions.assertFalse(storage().isPeerExists("peer-test-unicode"));
+    }
+
+    @Test
     public void testSearchGroups() throws Exception {
         String groupIdPrefix = "testSearchGroups-";
         for (int idx = 1; idx <= 50; idx++) {
@@ -889,11 +1122,12 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
 
         long start = System.currentTimeMillis();
 
-        Set<SearchFilter> filters = Collections.emptySet();
+        // Filtered to this test's groups, because other tests share the store and add their own.
+        Set<SearchFilter> filters = Collections.singleton(SearchFilter.ofGroupId(groupIdPrefix + "*"));
         GroupSearchResultsDto results = storage().searchGroups(filters, OrderBy.groupId, OrderDirection.asc,
                 0, 10);
         Assertions.assertNotNull(results);
-        Assertions.assertEquals(51, results.getCount());
+        Assertions.assertEquals(50, results.getCount());
         Assertions.assertNotNull(results.getGroups());
         Assertions.assertEquals(10, results.getGroups().size());
 
@@ -919,6 +1153,48 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
 
         long end = System.currentTimeMillis();
         System.out.println("Search time: " + (end - start) + "ms");
+    }
+
+    /**
+     * Thirty artifacts that tie on the sort key (one name, one version number), read in pages of
+     * seven: every page query must order the ties the same way, so each item appears exactly once,
+     * in artifact ID order for artifacts and creation order for versions.
+     */
+    @Test
+    public void testSearchPagesThroughTiesWithoutRepeatsOrGaps() throws Exception {
+        String group = "testSearchTies-" + UUID.randomUUID();
+        List<String> artifactIds = new ArrayList<>();
+        for (int idx = 0; idx < 30; idx++) {
+            String artifactId = "tie-" + (idx < 10 ? "0" : "") + idx;
+            artifactIds.add(artifactId);
+            storage().createArtifact(group, artifactId, ArtifactType.OPENAPI,
+                    new EditableArtifactMetaDataDto("tie", null, null, null), null,
+                    ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON)
+                            .content(ContentHandle.create(OPENAPI_CONTENT)).build(),
+                    null, Collections.emptyList(), false, false, null);
+        }
+        Set<SearchFilter> filters = Set.of(SearchFilter.ofGroupId(group));
+
+        for (OrderDirection direction : OrderDirection.values()) {
+            List<String> paged = new ArrayList<>();
+            for (int offset = 0; offset < 30; offset += 7) {
+                storage().searchArtifacts(filters, OrderBy.name, direction, offset, 7, false).getArtifacts()
+                        .forEach(artifact -> paged.add(artifact.getArtifactId()));
+            }
+            List<String> expected = new ArrayList<>(artifactIds);
+            if (direction == OrderDirection.desc) {
+                Collections.reverse(expected);
+            }
+            Assertions.assertEquals(expected, paged, "artifacts, " + direction);
+
+            List<String> pagedVersions = new ArrayList<>();
+            for (int offset = 0; offset < 30; offset += 7) {
+                storage().searchVersions(filters, OrderBy.version, direction, offset, 7, false).getVersions()
+                        .forEach(version -> pagedVersions.add(version.getArtifactId()));
+            }
+            // Every version is "1", so creation order decides
+            Assertions.assertEquals(expected, pagedVersions, "versions, " + direction);
+        }
     }
 
     @Test
@@ -980,6 +1256,52 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
 
         long end = System.currentTimeMillis();
         System.out.println("Search time: " + (end - start) + "ms");
+    }
+
+    @Test
+    public void testCaseInsensitiveNameSearch() throws Exception {
+        String suffix = UUID.randomUUID().toString();
+        String artifactId = "CaseSensitiveArtifactId-" + suffix;
+        String artifactName = "MixedCaseArtifactName-" + suffix;
+        String versionName = "MixedCaseVersionName-" + suffix;
+        ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
+        EditableArtifactMetaDataDto artifactMetaData = EditableArtifactMetaDataDto.builder()
+                .name(artifactName).build();
+        EditableVersionMetaDataDto versionMetaData = EditableVersionMetaDataDto.builder()
+                .name(versionName).build();
+
+        boolean created = false;
+        try {
+            storage().createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI, artifactMetaData,
+                    null, ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON)
+                            .content(content).build(),
+                    versionMetaData, Collections.emptyList(), false, false, null).getValue();
+            created = true;
+
+            ArtifactSearchResultsDto artifactResults = storage().searchArtifacts(
+                    Set.of(SearchFilter.ofNameCaseInsensitive("*" + artifactName.toLowerCase(Locale.ROOT)
+                            + "*")), OrderBy.name, OrderDirection.asc, 0, 10, false);
+            Assertions.assertEquals(1, artifactResults.getCount());
+            Assertions.assertEquals(artifactId, artifactResults.getArtifacts().get(0).getArtifactId());
+            Assertions.assertEquals(artifactName, artifactResults.getArtifacts().get(0).getName());
+
+            artifactResults = storage().searchArtifacts(
+                    Set.of(SearchFilter.ofNameCaseInsensitive("*" + artifactId.toLowerCase(Locale.ROOT)
+                            + "*")), OrderBy.name, OrderDirection.asc, 0, 10, false);
+            Assertions.assertEquals(1, artifactResults.getCount());
+            Assertions.assertEquals(artifactId, artifactResults.getArtifacts().get(0).getArtifactId());
+
+            VersionSearchResultsDto versionResults = storage().searchVersions(
+                    Set.of(SearchFilter.ofNameCaseInsensitive("*" + versionName.toLowerCase(Locale.ROOT)
+                            + "*")), OrderBy.name, OrderDirection.asc, 0, 10, false);
+            Assertions.assertEquals(1, versionResults.getCount());
+            Assertions.assertEquals(artifactId, versionResults.getVersions().get(0).getArtifactId());
+            Assertions.assertEquals(versionName, versionResults.getVersions().get(0).getName());
+        } finally {
+            if (created) {
+                storage().deleteArtifact(GROUP_ID, artifactId);
+            }
+        }
     }
 
     @Test
@@ -1086,6 +1408,45 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
                 Set.of(invalidGlobalId), OrderBy.globalId, OrderDirection.asc, 0, 10, false));
     }
 
+    @Test
+    public void testVersionSortingAndSemver() throws Exception {
+        String artifactId = "testSemverSorting-1";
+        ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
+        storage().createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI, null, null,
+                ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON).content(content).build(),
+                null, Collections.emptyList(), false, false, null);
+
+        String[] versionsToInsert = { "2", "10", "1.0.0-10", "1.0.0-9", "1.0.0-alpha", "1.0.1", "latest", "zzz-custom" };
+        
+        for (String ver : versionsToInsert) {
+            storage().createArtifactVersion(GROUP_ID, artifactId, ver, ArtifactType.OPENAPI,
+                    ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON).content(content).build(),
+                    null, Collections.emptyList(), false, false, null);
+        }
+
+        TestUtils.retry(() -> {
+            VersionSearchResultsDto results = storage().searchVersions(
+                    Set.of(SearchFilter.ofGroupId(GROUP_ID), SearchFilter.ofArtifactId(artifactId)),
+                    OrderBy.version, OrderDirection.asc, 0, 10, false);
+
+            Assertions.assertNotNull(results);
+            Assertions.assertEquals(9, results.getCount());
+            
+            List<SearchedVersionDto> sortedVersions = results.getVersions();
+            
+            // Validate the mathematically correct SemVer sorting order:
+            Assertions.assertEquals("1.0.0-9", sortedVersions.get(0).getVersion());
+            Assertions.assertEquals("1.0.0-10", sortedVersions.get(1).getVersion());
+            Assertions.assertEquals("1.0.0-alpha", sortedVersions.get(2).getVersion());
+            Assertions.assertEquals("1", sortedVersions.get(3).getVersion());
+            Assertions.assertEquals("1.0.1", sortedVersions.get(4).getVersion());
+            Assertions.assertEquals("2", sortedVersions.get(5).getVersion());
+            Assertions.assertEquals("10", sortedVersions.get(6).getVersion());
+            Assertions.assertEquals("latest", sortedVersions.get(7).getVersion());
+            Assertions.assertEquals("zzz-custom", sortedVersions.get(8).getVersion());
+        });
+    }
+
     private void createSomeUserData() {
         final String group1 = "testGroup-1";
         final String group2 = "testGroup-2";
@@ -1093,6 +1454,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         final String artifactId2 = "testArtifact-2";
         final String principal = "testPrincipal";
         final String role = "testRole";
+        final String peerId = "test-peer";
 
         ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
         storage().createGroup(GroupMetaDataDto.builder().groupId(group1).build());
@@ -1115,6 +1477,8 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         storage().createGlobalRule(RuleType.VALIDITY,
                 RuleConfigurationDto.builder().configuration("FULL").build());
         storage().createRoleMapping(principal, role, null);
+        storage().createPeer(PeerDto.builder().peerId(peerId).url("https://peer.example.com").enabled(true)
+                .build());
 
         // Verify data exists
 
@@ -1125,6 +1489,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
                 storage().getArtifactVersionContent(group2, artifactId2, artifactDto2.getVersion()));
         Assertions.assertEquals(1, storage().getGlobalRules().size());
         Assertions.assertEquals(role, storage().getRoleForPrincipal(principal));
+        Assertions.assertEquals(peerId, storage().getPeer(peerId).getPeerId());
     }
 
     private int countStorageEntities() {
@@ -1140,6 +1505,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         int res = count.get();
         // Count data that is not exported
         res += storage().getRoleMappings().size();
+        res += storage().getPeers().size();
         return res;
     }
 
@@ -1148,7 +1514,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         // Delete first to cleanup after other tests
         storage().deleteAllUserData();
         createSomeUserData();
-        Assertions.assertEquals(12, countStorageEntities());
+        Assertions.assertEquals(13, countStorageEntities());
         storage().deleteAllUserData();
         Assertions.assertEquals(0, countStorageEntities());
     }
@@ -1180,6 +1546,16 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertEquals("test-value", stringProp.getValue());
         Assertions.assertEquals("true", boolProp.getValue());
         Assertions.assertEquals("12345", longProp.getValue());
+
+        // Set the same property again (UPSERT path): must update, not duplicate or error
+        storage().setConfigProperty(
+                new DynamicConfigPropertyDto("apicurio.test.property-string", "updated-value"));
+        properties = storage().getConfigProperties();
+        Assertions.assertEquals(3, properties.size(),
+                "Setting the same property again must update it, not create a duplicate");
+        DynamicConfigPropertyDto updatedProp = getProperty(properties, "apicurio.test.property-string");
+        Assertions.assertNotNull(updatedProp);
+        Assertions.assertEquals("updated-value", updatedProp.getValue());
     }
 
     private DynamicConfigPropertyDto getProperty(List<DynamicConfigPropertyDto> properties,
@@ -1357,4 +1733,129 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         return builder.toString();
     }
 
+    /**
+     * Verifies that label-based artifact search is locale-safe. Under the Turkish locale,
+     * plain .toLowerCase() maps 'I' to dotless-i (U+0131) instead of 'i', causing a
+     * mismatch between the stored label key and the search filter value. All normalization
+     * must use Locale.ROOT so this round-trip is consistent regardless of the JVM locale.
+     *
+     * <p>The label key is intentionally unique (UUID-based) so the test is isolated from
+     * any pre-existing artifacts in the shared database, making it safe to run inside
+     * {@code @QuarkusTest} classes ({@code DefaultRegistryStorageTest},
+     * {@code KafkaSqlRegistryStorageTest}) where the database is not reset between methods.
+     */
+    @Test
+    public void testSearchArtifactsByLabelWithTurkishLocale() throws Exception {
+        Locale savedLocale = Locale.getDefault();
+        // Unique suffix prevents collision with any other test's artifacts in the shared DB.
+        String uniqueSuffix = java.util.UUID.randomUUID().toString().substring(0, 8);
+        String artifactId = "testTurkishLocale-" + uniqueSuffix;
+        // Uppercase I in the key — this is the character that Turkish locale maps to
+        // dotless-i (U+0131) instead of plain 'i', the canonical bug trigger.
+        String labelKey = "INSTABILITY-" + uniqueSuffix.toUpperCase();
+        try {
+            // Switch the JVM default locale to Turkish. After this point any bare
+            // .toLowerCase() call will produce the wrong result for keys containing 'I'.
+            Locale.setDefault(new Locale("tr", "TR"));
+
+            Map<String, String> labels = Collections.singletonMap(labelKey, "HIGH");
+            EditableArtifactMetaDataDto metaData = new EditableArtifactMetaDataDto(
+                    "Locale Test Artifact", "locale sensitivity check", null, labels);
+            storage().createArtifact(
+                    GROUP_ID, artifactId, ArtifactType.OPENAPI, metaData, null,
+                    ContentWrapperDto.builder()
+                            .contentType(ContentTypes.APPLICATION_JSON)
+                            .content(ContentHandle.create(OPENAPI_CONTENT)).build(),
+                    null, Collections.emptyList(), false, false, null).getValue();
+
+            // Search using the same label key. Locale.ROOT normalization on both the
+            // write path (storage) and read path (query) must agree, otherwise the
+            // stored key ("instability-XXXXX" via ROOT) and the query key
+            // ("ınstability-XXXXX" via Turkish) diverge and the result list is empty.
+            Set<SearchFilter> filters = Collections.singleton(
+                    SearchFilter.ofLabel(labelKey, "HIGH"));
+            ArtifactSearchResultsDto results = storage().searchArtifacts(
+                    filters, OrderBy.name, OrderDirection.asc, 0, 10, false);
+
+            Assertions.assertNotNull(results);
+            // Because the label key contains our unique suffix it cannot match any
+            // pre-existing artifact; we assert getCount() >= 1 to allow for any
+            // concurrent test activity without making the assertion brittle.
+            boolean found = results.getArtifacts().stream()
+                    .anyMatch(a -> artifactId.equals(a.getArtifactId()));
+            Assertions.assertTrue(found,
+                    "Label search must find the artifact even under a Turkish JVM locale. "
+                    + "Returned " + results.getCount() + " result(s), none matching "
+                    + artifactId + ". This indicates Locale.ROOT was not used consistently "
+                    + "in the storage write or search path.");
+        } finally {
+            // Always restore the JVM locale first so subsequent tests are not affected.
+            Locale.setDefault(savedLocale);
+            // Then clean up the artifact (locale is already restored at this point).
+            try {
+                storage().deleteArtifact(GROUP_ID, artifactId);
+            } catch (Exception ignored) {
+                // Artifact may not exist if createArtifact threw; safe to ignore.
+            }
+        }
+    }
+
+    @Test
+    public void testPromoteDraftVersionDefaultAndNonDefaultGroup() throws Exception {
+        doTestPromoteDraftVersion(null);
+        doTestPromoteDraftVersion(GROUP_ID);
+    }
+
+    private void doTestPromoteDraftVersion(String groupId) throws Exception {
+        var content = ContentHandle.create(OPENAPI_CONTENT);
+        var contentWrapper = ContentWrapperDto.builder()
+                .contentType(ContentTypes.APPLICATION_JSON)
+                .content(content)
+                .build();
+
+        String artifactId = "test-promote-draft-" + (groupId == null ? "default" : "custom") + "-" + System.currentTimeMillis();
+        GA ga = new GA(groupId, artifactId);
+        try {
+            var dto = storage().createArtifact(
+                    groupId,
+                    artifactId,
+                    ArtifactType.OPENAPI,
+                    null,
+                    "1.0.0",
+                    contentWrapper,
+                    null,
+                    Collections.emptyList(),
+                    true, // versionIsDraft
+                    false,
+                    null
+            ).getValue();
+
+            Assertions.assertNotNull(dto);
+            Assertions.assertEquals(VersionState.DRAFT, dto.getState());
+
+            // Assert the version is on 'drafts' branch
+            var drafts = storage().getBranchVersions(ga, BranchId.DRAFTS, 0, 10);
+            Assertions.assertEquals(1, drafts.getCount());
+            Assertions.assertEquals(dto.getVersion(), drafts.getVersions().get(0).getVersion());
+
+            // Transition it to ENABLED
+            storage().updateArtifactVersionState(groupId, artifactId, dto.getVersion(), VersionState.ENABLED, false);
+
+            // Assert it is no longer on 'drafts' and is on 'latest'
+            var draftsAfter = storage().getBranchVersions(ga, BranchId.DRAFTS, 0, 10);
+            Assertions.assertEquals(0, draftsAfter.getCount());
+            Assertions.assertTrue(draftsAfter.getVersions().isEmpty());
+
+            var latest = storage().getBranchVersions(ga, BranchId.LATEST, 0, 10);
+            Assertions.assertEquals(1, latest.getCount());
+            Assertions.assertEquals(dto.getVersion(), latest.getVersions().get(0).getVersion());
+        } finally {
+            try {
+                storage().deleteArtifact(groupId, artifactId);
+            } catch (Exception ignored) {
+            }
+        }
+    }
+
 }
+

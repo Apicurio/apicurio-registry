@@ -7,12 +7,14 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.apitomy.datamodels.Library;
 import io.apitomy.datamodels.TraverserDirection;
 import io.apitomy.datamodels.models.Document;
+import io.apitomy.datamodels.util.ModelTypeUtil;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.content.util.ContentTypeUtil;
 
 import java.io.IOException;
+import java.util.Locale;
 import java.util.Map;
 
 public class ApicurioDataModelsContentDereferencer implements ContentDereferencer {
@@ -23,7 +25,18 @@ public class ApicurioDataModelsContentDereferencer implements ContentDereference
             JsonNode node = ContentTypeUtil.parseJsonOrYaml(content);
             Document doc = Library.readDocument((ObjectNode) node);
             RegistryReferenceResolver resolver = new RegistryReferenceResolver(resolvedReferences);
+            if (ModelTypeUtil.isAsyncApi2Model(doc)) {
+                // 2.x message payloads are raw JSON that the library does not dereference
+                Library.visitTree(doc, new AsyncApi2PayloadInliner(resolver), TraverserDirection.down);
+            }
             Document dereferencedDoc = Library.dereferenceDocument(doc, resolver, false);
+
+            // An inlined schema may be shared by several wrappers, but the resolver only sees the first one.
+            // Make every wrapper pointing at an inlined Avro/Protobuf schema carry a versioned schemaFormat.
+            ObjectNode dereferencedNode = Library.writeDocument(dereferencedDoc);
+            if (AsyncApiSchemaFormats.normalizeVersionless(dereferencedNode)) {
+                dereferencedDoc = Library.readDocument(dereferencedNode);
+            }
 
             // Preserve the original content format (YAML or JSON)
             String dereferencedContent = writeDocumentPreservingFormat(dereferencedDoc, content.getContentType());
@@ -85,10 +98,7 @@ public class ApicurioDataModelsContentDereferencer implements ContentDereference
      * @return true if the content type is YAML, false otherwise
      */
     private boolean isYamlContentType(String contentType) {
-        if (contentType == null) {
-            return false;
-        }
-        String lowerContentType = contentType.toLowerCase();
-        return lowerContentType.contains("yaml") || lowerContentType.contains("yml");
+        String lc = contentType != null ? contentType.toLowerCase(Locale.ROOT) : null;
+        return lc != null && (lc.contains("yaml") || lc.contains("yml"));
     }
 }

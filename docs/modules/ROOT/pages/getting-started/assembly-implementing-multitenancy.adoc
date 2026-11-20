@@ -7,8 +7,11 @@ include::{mod-loc}shared/all-attributes.adoc[]
 :_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
-Implement multitenancy with {registry} on {kubernetes} using the {operator}.
-{registry} uses a multi-instance operator pattern. Each tenant receives a dedicated `ApicurioRegistry3` custom resource (CR), which the operator reconciles into an independent set of {kubernetes} resources. This approach provides strong isolation between tenants at the infrastructure level. It uses {kubernetes}-native mechanisms for security, resource management, and network segmentation.
+You can implement multitenancy with {registry} on {kubernetes} by using the {operator}. {registry} uses a multi-instance operator pattern in which each tenant receives a dedicated `ApicurioRegistry3` custom resource (CR).
+
+The {operator} reconciles each CR into an independent set of {kubernetes} resources. This approach provides strong isolation between tenants at the infrastructure level. It uses {kubernetes}-native mechanisms for security, resource management, and network segmentation.
+
+NOTE: {registry} 3.x has no built-in tenant concept: the tenant ID, tenant manager, and per-tenant storage of {registry} 2.x were removed and are not planned to return. For lighter isolation inside one instance, see xref:multitenancy-lightweight-group-isolation_{context}[].
 
 == Prerequisites
 
@@ -18,7 +21,7 @@ Implement multitenancy with {registry} on {kubernetes} using the {operator}.
 
 [role="_additional-resources"]
 .Additional resources
-* xref:deploying-registry-operator_{context}[]
+* xref:getting-started/assembly-deploying-registry-operator.adoc[]
 
 //INCLUDES
 
@@ -32,26 +35,29 @@ Implement multitenancy with {registry} on {kubernetes} using the {operator}.
 The {operator} watches for `ApicurioRegistry3` custom resources and creates the following {kubernetes} resources
 for each CR:
 
+.{kubernetes} resources the {operator} creates for each `ApicurioRegistry3` CR
 [cols="1,3", options="header"]
 |===
 | Component
 | Resources created
 
 | *{registry-app}*
-| Deployment, Service, Ingress, NetworkPolicy, PodDisruptionBudget
+| Deployment, Service, and NetworkPolicy. An Ingress when `spec.app.ingress.host` is set. A PodDisruptionBudget when there is more than one replica, or autoscaling can go above one. A HorizontalPodAutoscaler when autoscaling is enabled.
 
 | *{registry-ui}*
-| Deployment, Service, Ingress, NetworkPolicy, PodDisruptionBudget
+| Deployment, Service, and NetworkPolicy. An Ingress when `spec.ui.ingress.host` is set. A PodDisruptionBudget when there is more than one replica, or autoscaling can go above one. A HorizontalPodAutoscaler when autoscaling is enabled.
 |===
 
+NetworkPolicies and PodDisruptionBudgets can be disabled per component with `networkPolicy.enabled: false` and `podDisruptionBudget.enabled: false`.
+
 Each CR instance is completely independent. Resources are named using the pattern
-`{cr-name}-{component}-{resource-type}` and labeled with instance-specific selectors to prevent any
+`\{cr-name}-\{component}-\{resource-type}` and labeled with instance-specific selectors to prevent any
 cross-tenant interference.
 
 The multi-instance approach provides the following isolation boundaries:
 
 * *Compute isolation*: Separate Deployments and Pods per tenant
-* *Network isolation*: Separate Services, Ingresses, and optional NetworkPolicies per tenant
+* *Network isolation*: Separate Services, Ingresses, and NetworkPolicies per tenant
 * *Storage isolation*: Each tenant can use a separate database or Kafka cluster
 * *Authentication isolation*: Each tenant can have its own OIDC provider or realm
 * *Configuration isolation*: Environment variables and settings are per-CR
@@ -101,7 +107,7 @@ This pattern provides stronger isolation using {kubernetes} RBAC, ResourceQuotas
 {kubernetes-namespace} level. It is the recommended approach for most production environments.
 
 Pattern C: Operator per namespace::
-Each {kubernetes-namespace} has its own operator instance. The instance is restricted to watching only that {kubernetes-namespace} by using the `APICURIO_OPERATOR_WATCHED_NAMESPACES` environment variable.
+Each {kubernetes-namespace} has its own operator instance, installed with `operator/install/install-namespaced.yaml`. The instance is restricted to watching only that {kubernetes-namespace} by using the `APICURIO_OPERATOR_WATCHED_NAMESPACES` environment variable. The `ApicurioRegistry3` CustomResourceDefinition is shared by the whole cluster, so all operator instances must be the same version.
 +
 ----
 Cluster
@@ -321,9 +327,10 @@ spec:
         bootstrapServers: "kafka-alpha.tenant-alpha.svc:9092"
 ----
 
-WARNING: When using KafkaSQL, ensure that each tenant uses separate Kafka topics. The default topic name
-`kafkasql-journal` is the same for all instances. Configure separate topic names by using the
-`APICURIO_KAFKASQL_TOPIC` environment variable if tenants share a Kafka cluster.
+WARNING: When using KafkaSQL, ensure that each tenant uses separate Kafka topics. The default topic names,
+`kafkasql-journal` and `kafkasql-snapshots`, are the same for all instances. If tenants share a Kafka cluster,
+set separate topic names with the `APICURIO_KAFKASQL_TOPIC` and `APICURIO_KAFKASQL_SNAPSHOTS_TOPIC`
+environment variables in `spec.app.env`, and use Kafka ACLs so that each tenant's principal can access only its own topics.
 
 // ref-multitenancy-authentication-per-tenant
 [id="multitenancy-authentication-per-tenant_{context}"]
@@ -569,8 +576,11 @@ With this configuration:
 * `ownerOnlyEnabled` restricts artifact modifications to the artifact's creator
 * `groupAccessEnabled` restricts group modifications to the group's creator
 
+Owner-only authorization limits writes only: every authenticated user can still read and search all groups. To hide one tenant's groups from another, including in search results and counts, also enable per-resource authorization with an access rules file that grants each tenant its own groups. See xref:getting-started/assembly-configuring-resource-authorization.adoc[].
+
 The following table compares the advantages and limitations of this approach:
 
+.Advantages and limitations of group-based isolation
 [cols="1,1", options="header"]
 |===
 | Advantage | Limitation
@@ -579,7 +589,7 @@ The following table compares the advantages and limitations of this approach:
 | Weaker isolation than separate instances
 
 | Faster tenant provisioning (create a group, not a deployment)
-| No separate storage per tenant
+| No separate storage, instance configuration, or limits per tenant (content rules can still be set per group or artifact)
 
 | Single deployment to monitor and upgrade
 | A bug or outage affects all tenants
@@ -589,11 +599,12 @@ The following table compares the advantages and limitations of this approach:
 |===
 
 This configuration is suitable for development environments, internal teams, or scenarios where tenants do not
-require strict data or infrastructure isolation.
+require strict data or infrastructure isolation. A first-class tenant inside one instance, with its own configuration and limits, is not available yet.
 
 [role="_additional-resources"]
 .Additional resources
 
 * xref:getting-started/assembly-deploying-registry-operator.adoc[]
 * xref:getting-started/assembly-configuring-registry-security.adoc[]
+* xref:getting-started/assembly-configuring-resource-authorization.adoc[]
 * xref:getting-started/assembly-operator-config-reference.adoc[]

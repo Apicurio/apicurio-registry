@@ -40,6 +40,7 @@ public class OTelMetricsProvider {
     private LongCounter schemaValidationCounter;
     private LongCounter ruleEvaluationCounter;
     private LongCounter searchRequestCounter;
+    private LongCounter authzDecisionsCounter;
 
     // Usage telemetry
     private LongUpDownCounter activeSchemasGauge;
@@ -87,6 +88,11 @@ public class OTelMetricsProvider {
 
         searchRequestCounter = meter.counterBuilder(METRIC_PREFIX + "search.requests")
                 .setDescription("Total number of search requests")
+                .setUnit("1")
+                .build();
+
+        authzDecisionsCounter = meter.counterBuilder(METRIC_PREFIX + "authz.decisions")
+                .setDescription("Per-resource authorization (grants) decisions")
                 .setUnit("1")
                 .build();
 
@@ -206,6 +212,21 @@ public class OTelMetricsProvider {
     public void recordSearchRequest(String searchType) {
         safeIncrement(searchRequestCounter, Attributes.of(
                 OTelAttributes.ATTR_OPERATION, searchType != null ? searchType : UNKNOWN_TYPE
+        ));
+    }
+
+    /**
+     * Record a per-resource authorization (grants) decision.
+     *
+     * @param allowed whether access was allowed
+     * @param resourceType the resource type ("artifact", "group" or "content")
+     * @param operation the operation ("read", "write" or "admin")
+     */
+    public void recordAuthzDecision(boolean allowed, String resourceType, String operation) {
+        safeIncrement(authzDecisionsCounter, Attributes.of(
+                OTelAttributes.ATTR_RESULT, allowed ? "allow" : "deny",
+                OTelAttributes.ATTR_ENTITY_TYPE, resourceType != null ? resourceType : UNKNOWN_TYPE,
+                OTelAttributes.ATTR_OPERATION, operation != null ? operation : UNKNOWN_TYPE
         ));
     }
 

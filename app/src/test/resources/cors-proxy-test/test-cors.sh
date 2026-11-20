@@ -23,7 +23,7 @@ check() {
     local code
     code=$(echo "$response" | head -1)
 
-    if [ "$code" = "$expected_code" ]; then
+    if [[ "$code" = "$expected_code" ]]; then
         echo "  PASS: $desc (HTTP $code)"
         PASS=$((PASS + 1))
     else
@@ -44,7 +44,7 @@ for i in $(seq 1 30); do
         echo "Registry is ready."
         break
     fi
-    if [ "$i" -eq 30 ]; then
+    if [[ "$i" -eq 30 ]]; then
         echo "Registry not ready after 30s, aborting."
         exit 1
     fi
@@ -84,4 +84,4 @@ check "Preflight with unknown origin" "403" "" \
 
 echo ""
 echo "=== Results: $PASS passed, $FAIL failed ==="
-[ "$FAIL" -eq 0 ] && exit 0 || exit 1
+[[ "$FAIL" -eq 0 ]] && exit 0 || exit 1

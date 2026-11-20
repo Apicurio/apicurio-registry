@@ -36,6 +36,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -269,7 +270,7 @@ public class FileDescriptorUtilsTest {
         return Stream.of(files).filter(f -> f.getName().equals(fileName))
                 .collect(Collectors.reducing((a, b) -> {
                     throw new IllegalStateException("More than one file with name " + fileName + " found");
-                })).map(FileDescriptorUtilsTest::readSchemaAsString).get();
+                })).map(FileDescriptorUtilsTest::readSchemaAsString).orElseThrow();
     }
 
     private static String readSchemaAsString(File file) {
@@ -498,5 +499,326 @@ public class FileDescriptorUtilsTest {
 
         // Both should produce same package
         assertEquals(textResult.getPackageName(), binaryResult.getPackageName());
+    }
+
+    /**
+     * toDescriptor must preserve the qualification of map key and value types when it
+     * expands map&lt;K, V&gt; into the synthetic entry message. Before this fix the entry's
+     * value field was created from the type's SIMPLE name, so any value type outside the
+     * entry's own resolution scope (cross-package such as google.protobuf.Value, or a
+     * nested type such as Outer.Inner) failed descriptor validation with
+     * '"Value" is not defined' and toDescriptor threw IllegalStateException.
+     */
+    @Test
+    public void testToDescriptorMapWithCrossPackageValueType() {
+        String schema = """
+                syntax = "proto3";
+                package test.maps;
+                import "google/protobuf/struct.proto";
+                message Doc {
+                  map<string, google.protobuf.Value> metadata = 1;
+                }
+                """;
+        ProtoFileElement element = ProtoParser.Companion.parse(FileDescriptorUtils.DEFAULT_LOCATION,
+                schema);
+
+        Descriptors.Descriptor descriptor = FileDescriptorUtils.toDescriptor("Doc", element,
+                Collections.emptyMap());
+
+        assertNotNull(descriptor);
+        Descriptors.FieldDescriptor metadata = descriptor.findFieldByName("metadata");
+        assertTrue(metadata.isMapField());
+        assertEquals("google.protobuf.Value",
+                metadata.getMessageType().findFieldByName("value").getMessageType().getFullName());
+    }
+
+    @Test
+    public void testToDescriptorMapWithNestedMessageValueType() {
+        String schema = """
+                syntax = "proto3";
+                package test.maps;
+                message Outer {
+                  message Inner {
+                    string id = 1;
+                  }
+                }
+                message Root {
+                  map<string, Outer.Inner> items = 1;
+                }
+                """;
+        ProtoFileElement element = ProtoParser.Companion.parse(FileDescriptorUtils.DEFAULT_LOCATION,
+                schema);
+
+        Descriptors.Descriptor descriptor = FileDescriptorUtils.toDescriptor("Root", element,
+                Collections.emptyMap());
+
+        assertNotNull(descriptor);
+        Descriptors.FieldDescriptor items = descriptor.findFieldByName("items");
+        assertTrue(items.isMapField());
+        assertEquals("test.maps.Outer.Inner",
+                items.getMessageType().findFieldByName("value").getMessageType().getFullName());
+    }
+
+    @Test
+    public void testToDescriptorMapWithCrossFileValueTypeFromDependencies() {
+        String depSchema = """
+                syntax = "proto3";
+                package test.common;
+                message Item {
+                  string id = 1;
+                }
+                """;
+        String schema = """
+                syntax = "proto3";
+                package test.maps;
+                import "test/common/item.proto";
+                message Bundle {
+                  map<string, test.common.Item> items = 1;
+                }
+                """;
+        ProtoFileElement depElement = ProtoParser.Companion.parse(FileDescriptorUtils.DEFAULT_LOCATION,
+                depSchema);
+        ProtoFileElement element = ProtoParser.Companion.parse(FileDescriptorUtils.DEFAULT_LOCATION,
+                schema);
+
+        Descriptors.Descriptor descriptor = FileDescriptorUtils.toDescriptor("Bundle", element,
+                Map.of("test/common/item.proto", depElement));
+
+        assertNotNull(descriptor);
+        Descriptors.FieldDescriptor items = descriptor.findFieldByName("items");
+        assertTrue(items.isMapField());
+        assertEquals("test.common.Item",
+                items.getMessageType().findFieldByName("value").getMessageType().getFullName());
+    }
+
+    /**
+     * An enum map value must be classified as TYPE_ENUM, not TYPE_MESSAGE, and a
+     * cross-package enum value must resolve through the fully qualified name that
+     * toString() now preserves (previously unreachable: name resolution failed first).
+     */
+    @Test
+    public void testToDescriptorMapWithEnumValueType() {
+        String depSchema = """
+                syntax = "proto3";
+                package test.common;
+                enum Status {
+                  STATUS_UNSPECIFIED = 0;
+                  STATUS_ACTIVE = 1;
+                }
+                """;
+        String schema = """
+                syntax = "proto3";
+                package test.maps;
+                import "test/common/status.proto";
+                enum Priority {
+                  PRIORITY_UNSPECIFIED = 0;
+                  PRIORITY_HIGH = 1;
+                }
+                message Config {
+                  map<string, Priority> priorities = 1;
+                  map<string, test.common.Status> statuses = 2;
+                }
+                """;
+        ProtoFileElement depElement = ProtoParser.Companion.parse(FileDescriptorUtils.DEFAULT_LOCATION,
+                depSchema);
+        ProtoFileElement element = ProtoParser.Companion.parse(FileDescriptorUtils.DEFAULT_LOCATION,
+                schema);
+
+        Descriptors.Descriptor descriptor = FileDescriptorUtils.toDescriptor("Config", element,
+                Map.of("test/common/status.proto", depElement));
+
+        assertNotNull(descriptor);
+
+        Descriptors.FieldDescriptor priorities = descriptor.findFieldByName("priorities");
+        assertTrue(priorities.isMapField());
+        Descriptors.FieldDescriptor priorityValue = priorities.getMessageType().findFieldByName("value");
+        assertEquals(Descriptors.FieldDescriptor.Type.ENUM, priorityValue.getType());
+        assertEquals("test.maps.Priority", priorityValue.getEnumType().getFullName());
+
+        Descriptors.FieldDescriptor statuses = descriptor.findFieldByName("statuses");
+        assertTrue(statuses.isMapField());
+        Descriptors.FieldDescriptor statusValue = statuses.getMessageType().findFieldByName("value");
+        assertEquals(Descriptors.FieldDescriptor.Type.ENUM, statusValue.getType());
+        assertEquals("test.common.Status", statusValue.getEnumType().getFullName());
+    }
+
+    /**
+     * The full text round trip a registry client performs: descriptor to .proto text
+     * (fileDescriptorToProtoFile, which since #8771 emits real map&lt;K, V&gt; syntax with
+     * relative type names) and back through toDescriptor. Before this fix the re-parse
+     * failed for every schema whose map value type carries qualification.
+     */
+    @Test
+    public void testMapFieldSurvivesDescriptorTextRoundTrip() throws Exception {
+        String schema = """
+                syntax = "proto3";
+                package test.maps;
+                import "google/protobuf/struct.proto";
+                message Doc {
+                  map<string, google.protobuf.Value> metadata = 1;
+                  map<string, string> labels = 2;
+                }
+                """;
+        Descriptors.FileDescriptor fd = FileDescriptorUtils.protoFileToFileDescriptor(schema,
+                "doc.proto", Optional.of("test.maps"));
+        ProtoFileElement regenerated = FileDescriptorUtils.fileDescriptorToProtoFile(fd.toProto());
+
+        Descriptors.Descriptor descriptor = FileDescriptorUtils.toDescriptor("Doc", regenerated,
+                Collections.emptyMap());
+
+        assertNotNull(descriptor);
+        Descriptors.FieldDescriptor metadata = descriptor.findFieldByName("metadata");
+        assertTrue(metadata.isMapField());
+        assertEquals("google.protobuf.Value",
+                metadata.getMessageType().findFieldByName("value").getMessageType().getFullName());
+        assertTrue(descriptor.findFieldByName("labels").isMapField());
+    }
+
+    /**
+     * A dependency reachable through two import paths is resolved once and then reused. When it is
+     * reused, its own imports must still be handed to the file that imports it, otherwise Wire cannot
+     * load that file: main -> a -> b -> c resolves b, then main -> d -> b reuses b without c and
+     * fails with "unable to find test/transitive/c.proto".
+     */
+    @Test
+    public void testParseProtoFileWithDependencyReachableThroughTwoImportPaths() throws Exception {
+        String c = """
+                syntax = "proto3";
+                package test.transitive;
+                message C {
+                  enum Reason {
+                    UNKNOWN = 0;
+                  }
+                }
+                """;
+        String b = """
+                syntax = "proto3";
+                package test.transitive;
+                import "test/transitive/c.proto";
+                message B {
+                  C.Reason reason = 1;
+                }
+                """;
+        String a = """
+                syntax = "proto3";
+                package test.transitive;
+                import "test/transitive/b.proto";
+                message A {
+                  B b = 1;
+                }
+                """;
+        String d = """
+                syntax = "proto3";
+                package test.transitive;
+                import "test/transitive/b.proto";
+                message D {
+                  B b = 1;
+                }
+                """;
+        String main = """
+                syntax = "proto3";
+                package test.transitive;
+                import "test/transitive/a.proto";
+                import "test/transitive/d.proto";
+                message Main {
+                  A a = 1;
+                  D d = 2;
+                }
+                """;
+        Set<FileDescriptorUtils.ProtobufSchemaContent> deps = Set.of(
+                FileDescriptorUtils.ProtobufSchemaContent.of("test/transitive/a.proto", a),
+                FileDescriptorUtils.ProtobufSchemaContent.of("test/transitive/b.proto", b),
+                FileDescriptorUtils.ProtobufSchemaContent.of("test/transitive/c.proto", c),
+                FileDescriptorUtils.ProtobufSchemaContent.of("test/transitive/d.proto", d));
+
+        Descriptors.FileDescriptor fd = FileDescriptorUtils.parseProtoFileWithDependencies(
+                FileDescriptorUtils.ProtobufSchemaContent.of("main.proto", main), deps, null, true, true);
+
+        Descriptors.Descriptor reason = fd.findMessageTypeByName("Main").findFieldByName("d")
+                .getMessageType().findFieldByName("b").getMessageType().findFieldByName("reason")
+                .getEnumType().getContainingType();
+        assertEquals("test.transitive.C", reason.getFullName());
+    }
+
+    /**
+     * Same scenario as {@link #testParseProtoFileWithDependencyReachableThroughTwoImportPaths()}, but
+     * with one extra level of transitive imports (b -> c -> e) to confirm that the full chain of
+     * required schemas - not just the immediate dependency's own needs - is carried over when a
+     * dependency is reused through a second import path: main -> a -> b -> c -> e resolves the whole
+     * chain, then main -> d -> b must reuse b while still pulling in both c and e.
+     */
+    @Test
+    public void testParseProtoFileWithDependencyChainReachableThroughTwoImportPaths() throws Exception {
+        String e = """
+                syntax = "proto3";
+                package test.transitive;
+                message E {
+                  enum Kind {
+                    UNKNOWN = 0;
+                  }
+                }
+                """;
+        String c = """
+                syntax = "proto3";
+                package test.transitive;
+                import "test/transitive/e.proto";
+                message C {
+                  E.Kind kind = 1;
+                  enum Reason {
+                    UNKNOWN = 0;
+                  }
+                }
+                """;
+        String b = """
+                syntax = "proto3";
+                package test.transitive;
+                import "test/transitive/c.proto";
+                message B {
+                  C.Reason reason = 1;
+                }
+                """;
+        String a = """
+                syntax = "proto3";
+                package test.transitive;
+                import "test/transitive/b.proto";
+                message A {
+                  B b = 1;
+                }
+                """;
+        String d = """
+                syntax = "proto3";
+                package test.transitive;
+                import "test/transitive/b.proto";
+                message D {
+                  B b = 1;
+                }
+                """;
+        String main = """
+                syntax = "proto3";
+                package test.transitive;
+                import "test/transitive/a.proto";
+                import "test/transitive/d.proto";
+                message Main {
+                  A a = 1;
+                  D d = 2;
+                }
+                """;
+        Set<FileDescriptorUtils.ProtobufSchemaContent> deps = Set.of(
+                FileDescriptorUtils.ProtobufSchemaContent.of("test/transitive/a.proto", a),
+                FileDescriptorUtils.ProtobufSchemaContent.of("test/transitive/b.proto", b),
+                FileDescriptorUtils.ProtobufSchemaContent.of("test/transitive/c.proto", c),
+                FileDescriptorUtils.ProtobufSchemaContent.of("test/transitive/d.proto", d),
+                FileDescriptorUtils.ProtobufSchemaContent.of("test/transitive/e.proto", e));
+
+        Descriptors.FileDescriptor fd = FileDescriptorUtils.parseProtoFileWithDependencies(
+                FileDescriptorUtils.ProtobufSchemaContent.of("main.proto", main), deps, null, true, true);
+
+        Descriptors.Descriptor dReason = fd.findMessageTypeByName("Main").findFieldByName("d")
+                .getMessageType().findFieldByName("b").getMessageType().findFieldByName("reason")
+                .getEnumType().getContainingType();
+        assertEquals("test.transitive.C", dReason.getFullName());
+
+        Descriptors.FieldDescriptor dKind = dReason.findFieldByName("kind");
+        assertEquals("test.transitive.E", dKind.getEnumType().getContainingType().getFullName());
     }
 }

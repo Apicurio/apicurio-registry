@@ -41,10 +41,13 @@ public class GroupCommandTest extends AbstractCLITest {
         executeAndAssertSuccess("group", "--output-type", "json");
         var groups = MAPPER.readValue(out.toString(), GroupSearchResults.class);
 
-        // Then
+        // Then — the implicit default group should always be present
         assertThat(groups.getGroups())
-                .as(withCliOutput("There should not be any groups initially (`default` group is hidden)."))
-                .isEmpty();
+                .as(withCliOutput("There should be one group initially (the implicit `default` group)."))
+                .hasSize(1);
+        assertThat(groups.getGroups().get(0).getGroupId())
+                .as(withCliOutput("The initial group should be the implicit `default` group."))
+                .isEqualTo("default");
     }
 
     @Test
@@ -87,15 +90,14 @@ public class GroupCommandTest extends AbstractCLITest {
         executeAndAssertSuccess("group", "--output-type", "json");
         var groups = MAPPER.readValue(out.toString(), GroupSearchResults.class);
 
-        // Then
+        // Then — default + first
         assertThat(groups.getGroups())
-                .as(withCliOutput("There should be the one group we have just created (`default` group is hidden)."))
-                .hasSize(1);
+                .as(withCliOutput("There should be two groups (`default` plus the one we just created)."))
+                .hasSize(2);
         assertThat(groups.getGroups())
-                .as(withCliOutput("Created group should have the correct groupId"))
-                .first()
+                .as(withCliOutput("Groups should contain 'default' and 'first'"))
                 .extracting(SearchedGroup::getGroupId)
-                .isEqualTo("first");
+                .contains("default", "first");
 
         // And when
         executeAndAssertSuccess("group", "create", "second");
@@ -111,13 +113,46 @@ public class GroupCommandTest extends AbstractCLITest {
     }
 
     @Test
-    public void testGroupGetCommandFails() {
-        // Unknown output type
-        executeAndAssertFailure("group", "create", "--output-type", "foo");
+    public void testGroupListCommandFails() {
+        // Pagination options belong to the `group` list command, not to `group create`.
+        // Assert on the error message so these cases cannot pass merely because the
+        // option is unrecognized by the command under test.
+
         // Page must be greater than 0
-        executeAndAssertFailure("group", "create", "-p", "-1");
+        err.getBuffer().setLength(0);
+        executeAndAssertFailure("group", "-p", "-1");
+        assertThat(err.toString())
+                .as(withCliOutput("Page must be rejected as not greater than 0"))
+                .contains("must be greater than 0");
+
         // Size must be greater than 0
-        executeAndAssertFailure("group", "create", "-s", "0");
+        err.getBuffer().setLength(0);
+        executeAndAssertFailure("group", "-s", "0");
+        assertThat(err.toString())
+                .as(withCliOutput("Size must be rejected as not greater than 0"))
+                .contains("must be greater than 0");
+    }
+
+    @Test
+    public void testGroupGetCommandFails() {
+        // Assert on the error message so these cases cannot pass merely because the
+        // command failed for some other reason.
+
+        // Required groupId parameter is missing
+        err.getBuffer().setLength(0);
+        executeAndAssertFailure("group", "get");
+        assertThat(err.toString())
+                .as(withCliOutput("Missing groupId parameter must be reported"))
+                .contains("Missing required parameter")
+                .contains("groupId");
+
+        // Unknown output type (rejected while parsing, so the group need not exist)
+        err.getBuffer().setLength(0);
+        executeAndAssertFailure("group", "get", "some-group", "--output-type", "foo");
+        assertThat(err.toString())
+                .as(withCliOutput("Invalid --output-type value must be reported"))
+                .contains("--output-type")
+                .contains("foo");
     }
 
     @Test
@@ -128,10 +163,10 @@ public class GroupCommandTest extends AbstractCLITest {
         executeAndAssertSuccess("group", "--output-type", "json");
         var groups = MAPPER.readValue(out.toString(), GroupSearchResults.class);
 
-        // Then
+        // Then — default + first + second + third
         assertThat(groups.getGroups())
-                .as(withCliOutput("There should be three groups before deletion."))
-                .hasSize(3);
+                .as(withCliOutput("There should be four groups before deletion (default + 3 created)."))
+                .hasSize(4);
 
         // When
         executeAndAssertSuccess("group", "delete", "second");
@@ -141,8 +176,8 @@ public class GroupCommandTest extends AbstractCLITest {
         executeAndAssertSuccess("group", "--output-type", "json");
         groups = MAPPER.readValue(out.toString(), GroupSearchResults.class);
         assertThat(groups.getGroups())
-                .as(withCliOutput("There should be two groups after deletion."))
-                .hasSize(2);
+                .as(withCliOutput("There should be three groups after deletion (default + 2 remaining)."))
+                .hasSize(3);
 
         // TODO: Test `--force` when we have a way to create artifacts via the CLI.
     }

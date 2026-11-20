@@ -490,4 +490,62 @@ public class AvroDataTest {
         Assertions.assertEquals(microsSinceEpoch, (long) result.getValue());
     }
 
+    @Test
+    public void testCustomAvroNamespaceForUnnamedSchema() {
+        AvroDataConfig config = new AvroDataConfig.Builder()
+                .with(AvroDataConfig.SCHEMAS_CACHE_SIZE_CONFIG, 0)
+                .with(AvroDataConfig.AVRO_NAMESPACE_CONFIG, "com.example.avro")
+                .build();
+        AvroData avroData = new AvroData(config);
+
+        Schema connectSchema = SchemaBuilder.struct()
+                .field("id", Schema.INT32_SCHEMA)
+                .build();
+
+        org.apache.avro.Schema avroSchema = avroData.fromConnectSchema(connectSchema);
+        assertEquals("com.example.avro", avroSchema.getNamespace());
+        assertEquals("ConnectDefault", avroSchema.getName());
+    }
+
+    @Test
+    public void testDefaultAvroNamespaceUnchanged() {
+        AvroData avroData = new AvroData(0);
+
+        Schema connectSchema = SchemaBuilder.struct()
+                .field("id", Schema.INT32_SCHEMA)
+                .build();
+
+        org.apache.avro.Schema avroSchema = avroData.fromConnectSchema(connectSchema);
+        assertEquals(AvroData.NAMESPACE, avroSchema.getNamespace());
+    }
+
+    @Test
+    public void testCustomAvroNamespaceRoundTrip() {
+        AvroDataConfig config = new AvroDataConfig.Builder()
+                .with(AvroDataConfig.SCHEMAS_CACHE_SIZE_CONFIG, 0)
+                .with(AvroDataConfig.AVRO_NAMESPACE_CONFIG, "com.mycompany.schemas")
+                .build();
+        AvroData avroData = new AvroData(config);
+
+        Schema connectSchema = SchemaBuilder.struct()
+                .name("com.mycompany.schemas.Order")
+                .field("order_id", Schema.INT32_SCHEMA)
+                .field("amount", Schema.FLOAT64_SCHEMA)
+                .build();
+
+        Struct input = new Struct(connectSchema)
+                .put("order_id", 42)
+                .put("amount", 99.5);
+
+        org.apache.avro.Schema avroSchema = avroData.fromConnectSchema(connectSchema);
+        Object avroValue = avroData.fromConnectData(connectSchema, input);
+        SchemaAndValue result = avroData.toConnectData(avroSchema, avroValue);
+
+        assertNotNull(result);
+        assertEquals("com.mycompany.schemas", avroSchema.getNamespace());
+        Struct output = (Struct) result.value();
+        assertEquals(42, output.get("order_id"));
+        assertEquals(99.5, output.get("amount"));
+    }
+
 }

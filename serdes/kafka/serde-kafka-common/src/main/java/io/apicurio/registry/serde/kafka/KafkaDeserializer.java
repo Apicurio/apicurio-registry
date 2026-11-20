@@ -19,6 +19,8 @@ public class KafkaDeserializer<T, U> implements Deserializer<U> {
     protected final AbstractDeserializer<T, U> delegatedDeserializer;
     protected HeadersHandler headersHandler;
 
+    private KafkaDeadLetterQueue deadLetterQueue;
+
     protected KafkaDeserializer(AbstractDeserializer<T, U> delegatedDeserializer) {
         this.delegatedDeserializer = delegatedDeserializer;
     }
@@ -27,6 +29,11 @@ public class KafkaDeserializer<T, U> implements Deserializer<U> {
     public void configure(Map<String, ?> configs, boolean isKey) {
         delegatedDeserializer.configure(new SerdeConfig(configs), isKey);
         this.configure(new BaseKafkaSerDeConfig(configs), isKey);
+        Object dlqTopic = configs.get(SerdeConfig.CONTRACT_RULES_DLQ_TOPIC);
+        if (dlqTopic != null && !dlqTopic.toString().isBlank()) {
+            deadLetterQueue = new KafkaDeadLetterQueue(dlqTopic.toString(), configs);
+            delegatedDeserializer.setDeadLetterQueue(deadLetterQueue);
+        }
     }
 
     @Override
@@ -73,6 +80,9 @@ public class KafkaDeserializer<T, U> implements Deserializer<U> {
 
     @Override
     public void close() {
+        if (deadLetterQueue != null) {
+            deadLetterQueue.close();
+        }
         delegatedDeserializer.getSerdeConfigurer().close();
     }
 

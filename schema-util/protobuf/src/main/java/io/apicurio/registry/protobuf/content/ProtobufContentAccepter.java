@@ -7,6 +7,7 @@ import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
 
 import java.util.Base64;
+import java.util.Locale;
 import java.util.Map;
 
 public class ProtobufContentAccepter implements ContentAccepter {
@@ -15,7 +16,7 @@ public class ProtobufContentAccepter implements ContentAccepter {
     public boolean acceptsContent(TypedContent content, Map<String, TypedContent> resolvedReferences) {
         try {
             String contentType = content.getContentType();
-            if (contentType != null && !contentType.toLowerCase().contains("proto")) {
+            if (contentType != null && !contentType.toLowerCase(Locale.ROOT).contains("proto")) {
                 return false;
             }
             ProtobufFile.toProtoFileElement(content.getContent().content());

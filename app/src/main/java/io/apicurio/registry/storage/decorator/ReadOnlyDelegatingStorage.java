@@ -20,6 +20,8 @@ import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
+import io.apicurio.registry.storage.dto.PeerDto;
+import io.apicurio.registry.storage.dto.PeerSearchResultsDto;
 import io.apicurio.registry.storage.dto.RoleMappingDto;
 import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
@@ -32,6 +34,7 @@ import io.apicurio.registry.storage.dto.UsageSummaryCountsDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.dto.VersionContentDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.registry.storage.dto.VersionWithArtifactMetaDataDto;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.ContentNotFoundException;
 import io.apicurio.registry.storage.error.GroupNotFoundException;
@@ -43,6 +46,7 @@ import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.impexp.Entity;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -92,6 +96,12 @@ public abstract class ReadOnlyDelegatingStorage implements RegistryStorage {
     public ContentWrapperDto getContentById(long contentId)
             throws ContentNotFoundException, RegistryStorageException {
         return delegate.getContentById(contentId);
+    }
+
+    @Override
+    public ContentWrapperDto getContentAndArtifactTypeById(long contentId)
+            throws ContentNotFoundException, RegistryStorageException {
+        return delegate.getContentAndArtifactTypeById(contentId);
     }
 
     @Override
@@ -242,6 +252,17 @@ public abstract class ReadOnlyDelegatingStorage implements RegistryStorage {
     }
 
     @Override
+    public VersionWithArtifactMetaDataDto getArtifactVersionWithArtifactMetaData(Long globalId)
+            throws VersionNotFoundException, RegistryStorageException {
+        return delegate.getArtifactVersionWithArtifactMetaData(globalId);
+    }
+
+    @Override
+    public List<ArtifactMetaDataDto> getArtifactsMetaData(Collection<GA> artifacts) throws RegistryStorageException {
+        return delegate.getArtifactsMetaData(artifacts);
+    }
+
+    @Override
     public ArtifactVersionMetaDataDto getArtifactVersionMetaDataByVersionOrder(String groupId,
             String artifactId, int versionOrder)
             throws VersionNotFoundException, RegistryStorageException {
@@ -315,6 +336,21 @@ public abstract class ReadOnlyDelegatingStorage implements RegistryStorage {
     public RoleMappingSearchResultsDto searchRoleMappings(int offset, int limit)
             throws RegistryStorageException {
         return delegate.searchRoleMappings(offset, limit);
+    }
+
+    @Override
+    public PeerDto getPeer(String peerId) throws RegistryStorageException {
+        return delegate.getPeer(peerId);
+    }
+
+    @Override
+    public List<PeerDto> getPeers() throws RegistryStorageException {
+        return delegate.getPeers();
+    }
+
+    @Override
+    public PeerSearchResultsDto searchPeers(int offset, int limit) throws RegistryStorageException {
+        return delegate.searchPeers(offset, limit);
     }
 
     @Override
@@ -416,6 +452,11 @@ public abstract class ReadOnlyDelegatingStorage implements RegistryStorage {
     @Override
     public boolean isRoleMappingExists(String principalId) {
         return delegate.isRoleMappingExists(principalId);
+    }
+
+    @Override
+    public boolean isPeerExists(String peerId) {
+        return delegate.isPeerExists(peerId);
     }
 
     @Override

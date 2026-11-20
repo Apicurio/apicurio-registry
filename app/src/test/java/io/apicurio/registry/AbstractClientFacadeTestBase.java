@@ -28,6 +28,7 @@ public abstract class AbstractClientFacadeTestBase extends AbstractResourceTestB
     public RegistryClient isolatedClientV3;
 
     @BeforeAll
+    @SuppressWarnings("removal")
     public void createIsolatedClients() {
         isolatedClientV2 = RegistryV2ClientFactory.create(RegistryClientOptions.create()
                 .registryUrl(TestUtils.getRegistryV2ApiUrl(testPort))

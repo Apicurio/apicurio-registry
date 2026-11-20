@@ -264,7 +264,9 @@ public class SharedDebeziumInfrastructure {
      */
     private static DebeziumContainer createDebeziumContainer(KafkaContainer kafka, String suffix) {
         DebeziumContainer container = new DebeziumContainer("quay.io/debezium/connect")
-                .withKafka(network, kafka.getBootstrapServers())
+                // Equivalent to the pre-3.7 withKafka(Network, String) overload
+                .withNetwork(network)
+                .withEnv("BOOTSTRAP_SERVERS", kafka.getBootstrapServers())
                 .withEnv("ENABLE_APICURIO_CONVERTERS", "true")
                 .dependsOn(kafka);
 

@@ -1,7 +1,7 @@
 package io.apicurio.registry.storage.impl.search;
 
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.content.extract.PromptTemplateStructuredContentExtractor;
+import io.apicurio.registry.agents.content.extract.PromptTemplateStructuredContentExtractor;
 import io.apicurio.registry.content.extract.StructuredElement;
 import org.junit.jupiter.api.Test;
 

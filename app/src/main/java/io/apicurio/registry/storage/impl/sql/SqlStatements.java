@@ -8,6 +8,8 @@ import java.util.List;
  */
 public interface SqlStatements {
 
+    String COMPRESSED_SNAPSHOT_EXTENSION = ".sql.gz";
+
     /**
      * Gets the database type associated with these statements.
      */
@@ -106,6 +108,12 @@ public interface SqlStatements {
     public String selectArtifactVersionMetaDataByGlobalId();
 
     /**
+     * A statement to select the versions row with a globalId together with its artifacts row, whose
+     * columns are prefixed with {@code artifact}.
+     */
+    public String selectArtifactVersionWithArtifactMetaDataByGlobalId();
+
+    /**
      * A statement used to select a single row in the versions by artifactId and content hash.
      */
     public String selectArtifactVersionMetaDataByContentHash();
@@ -186,6 +194,10 @@ public interface SqlStatements {
      */
     public String insertContent();
 
+    default String insertContentIfAbsent() {
+        return insertContent();
+    }
+
     /**
      * A statement to update canonicalHash value in a row in the "content" table
      */
@@ -195,6 +207,12 @@ public interface SqlStatements {
      * A statement to get a single artifact (latest version) meta-data by artifactId.
      */
     public String selectArtifactMetaData();
+
+    /**
+     * A statement to select the artifacts rows of {@code count} (groupId, artifactId) pairs, bound in
+     * that order.
+     */
+    public String selectArtifactsMetaData(int count);
 
     /**
      * A statement to select the contentId of a row in the content table by hash value.
@@ -280,6 +298,8 @@ public interface SqlStatements {
 
     public String updateArtifactVersionStateByGAV();
 
+    public String updateVersionSortKey();
+
     /**
      * A statement to delete all rows in the group_labels table for a given group.
      */
@@ -298,9 +318,14 @@ public interface SqlStatements {
     public String deleteArtifactLabelsByPrefix();
 
     /**
-     * A statement to delete version labels matching a key prefix.
+     * A statement to delete all rows in the artifact_structured_content table for a given artifact.
      */
-    public String deleteVersionLabelsByPrefix();
+    public String deleteArtifactStructuredContent();
+
+    /**
+     * A statement to insert a row into the artifact_structured_content table.
+     */
+    public String insertArtifactStructuredContent();
 
     /**
      * A statement to delete the labels for a single artifact version.
@@ -336,6 +361,11 @@ public interface SqlStatements {
      * A statement to delete a all artifacts from the artifacts table by groupId.
      */
     public String deleteArtifactsByGroupId();
+
+    /**
+     * A statement to select the ids of all artifacts in a group.
+     */
+    public String selectArtifactIdsByGroupId();
 
     /**
      * A statement to delete a all artifact rules by groupId.
@@ -433,6 +463,13 @@ public interface SqlStatements {
     public String selectContentById();
 
     /**
+     * A statement to select the bytes of a content row by contentId, joined with one artifact version that
+     * references it, so that the artifact type can be returned in the same query. Returns no rows if the
+     * content does not exist or if it is orphaned (not referenced by any artifact version).
+     */
+    public String selectContentAndArtifactTypeById();
+
+    /**
      * A statement template for batch loading artifact version metadata. The REFERENCES_CONDITION placeholder
      * is replaced at runtime with OR conditions for each reference.
      */
@@ -519,18 +556,6 @@ public interface SqlStatements {
      * conditional version creation.
      */
     public String selectMaxVersionOrderForUpdate();
-
-    /*
-     * The next few statements support globalId and contentId management.
-     */
-
-    public String getNextSequenceValue();
-
-    public String selectCurrentSequenceValue();
-
-    public String resetSequenceValue();
-
-    public String insertSequenceValue();
 
     /*
      * The next few statements support exporting data from the DB.
@@ -627,6 +652,26 @@ public interface SqlStatements {
     public String selectRoleMappingCountByPrincipal();
 
     /*
+     * The next few statements support peers
+     */
+
+    public String insertPeer();
+
+    public String deletePeer();
+
+    public String deleteAllPeers();
+
+    public String selectPeerById();
+
+    public String selectPeers();
+
+    public String countPeers();
+
+    public String updatePeer();
+
+    public String selectPeerCountById();
+
+    /*
      * The next few statements support group rule management.
      */
 
@@ -663,6 +708,8 @@ public interface SqlStatements {
     public String deleteConfigProperty();
 
     public String insertConfigProperty();
+
+    public String upsertConfigProperty();
 
     public String deleteAllConfigProperties();
 
@@ -724,7 +771,23 @@ public interface SqlStatements {
 
     public String createDataSnapshot();
 
+    /**
+     * Returns the SQL statement to create a data snapshot at the given location, optionally
+     * applying compression based on the file extension.
+     */
+    default String createDataSnapshot(String location) {
+        return createDataSnapshot();
+    }
+
     public String restoreFromSnapshot();
+
+    /**
+     * Returns the SQL statement to restore from a snapshot at the given location, optionally
+     * applying decompression based on the file extension.
+     */
+    default String restoreFromSnapshot(String location) {
+        return restoreFromSnapshot();
+    }
 
     // ========== Events ==========
 
@@ -835,9 +898,27 @@ public interface SqlStatements {
 
     String selectContractRulesByTag();
 
-    String updateVersionLabels();
+    /**
+     * A statement to delete the artifact-level contract rules of every artifact in a group, except
+     * the global ruleset. Version-level rules are removed with their versions (foreign key cascade).
+     */
+    String deleteContractRulesByGroupId();
 
-    String selectVersionLabels();
+    /**
+     * A statement to delete the artifact-level contract rules of an artifact that is being deleted.
+     * Unlike deleteContractRulesByArtifact, it never matches the global ruleset.
+     */
+    String deleteContractRulesOfDeletedArtifact();
+
+    /**
+     * A statement to delete the contract audit entries of an artifact.
+     */
+    String deleteContractAuditEntriesByArtifact();
+
+    /**
+     * A statement to delete the contract audit entries of every artifact in a group.
+     */
+    String deleteContractAuditEntriesByGroupId();
 
     String selectGlobalContractRules();
 
@@ -850,4 +931,34 @@ public interface SqlStatements {
     String selectContractAuditLogCount();
 
     String deleteAllContractAuditEntries();
+
+    /**
+     * Returns the statement that allocates the next value of the given sequence. On MySQL this is an
+     * INSERT whose value is read back with {@link #selectLastInsertedSequenceValue()}; elsewhere it is
+     * a query returning the value.
+     */
+    public String nextSequenceValue(String sequenceName);
+
+    /**
+     * Returns the MySQL statement that reads the value generated by {@link #nextSequenceValue(String)}
+     * on the same connection.
+     */
+    public String selectLastInsertedSequenceValue();
+
+    /**
+     * Returns a query for the last value issued by the given sequence, or 0 if none was issued.
+     */
+    public String selectSequenceLastValue(String sequenceName);
+
+    /**
+     * Returns the statement that moves the sequence forward. Bind parameter: the target value
+     * (PostgreSQL, MySQL) or the number of values to skip (SQL Server).
+     */
+    public String advanceSequenceValue(String sequenceName);
+
+    /**
+     * Returns the MySQL statement deleting ticket rows below the bound value.
+     */
+    public String deleteSequenceTicketsBelow(String sequenceName);
+
 }

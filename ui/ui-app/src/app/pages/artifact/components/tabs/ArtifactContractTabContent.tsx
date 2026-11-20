@@ -32,6 +32,7 @@ import { ArrowUpIcon, ExternalLinkAltIcon } from "@patternfly/react-icons";
 import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 import { ArtifactMetaData } from "@sdk/lib/generated-client/models";
 import { ContractStatusBadge, QualityScoreGauge } from "@app/components/contracts";
+import { IfFeature } from "@app/components";
 import { useAppNavigation } from "@services/useAppNavigation.ts";
 import {
     ContractAuditEntry,
@@ -223,7 +224,7 @@ export const ArtifactContractTabContent: FunctionComponent<ArtifactContractTabCo
             <Grid hasGutter>
                 {/* Metadata card */}
                 <GridItem span={6}>
-                    <Card className="contract-section" variant="secondary" style={{ backgroundColor: "white" }}>
+                    <Card className="contract-section" variant="secondary" style={{ backgroundColor: "var(--registry-card-bg)" }}>
                         <CardTitle>Contract Metadata</CardTitle>
                         <Divider />
                         <CardBody>
@@ -238,11 +239,13 @@ export const ArtifactContractTabContent: FunctionComponent<ArtifactContractTabCo
                                                 onClick={() => appNavigation.navigateTo(contractLink)}>
                                                 View contract artifact
                                             </Button>
-                                            {" | "}
-                                            <Button variant="link" isInline
-                                                onClick={openOdcsEditor}>
-                                                Edit YAML
-                                            </Button>
+                                            <IfFeature feature="readOnly" isNot={true}>
+                                                {" | "}
+                                                <Button variant="link" isInline
+                                                    onClick={openOdcsEditor}>
+                                                    Edit YAML
+                                                </Button>
+                                            </IfFeature>
                                         </DescriptionListDescription>
                                     </DescriptionListGroup>
                                 )}
@@ -300,7 +303,7 @@ export const ArtifactContractTabContent: FunctionComponent<ArtifactContractTabCo
 
                 {/* Quality score card */}
                 <GridItem span={6}>
-                    <Card className="contract-section" variant="secondary" style={{ backgroundColor: "white" }}>
+                    <Card className="contract-section" variant="secondary" style={{ backgroundColor: "var(--registry-card-bg)" }}>
                         <CardTitle>Quality Score</CardTitle>
                         <Divider />
                         <CardBody>
@@ -321,7 +324,7 @@ export const ArtifactContractTabContent: FunctionComponent<ArtifactContractTabCo
                                             <HelperTextItem variant={qualityScore.completeness >= 1.0 ? "success" : "warning"}>
                                                 {qualityScore.completeness >= 1.0
                                                     ? "All metadata fields are set."
-                                                    : "To improve: ensure the ODCS contract YAML includes all of: info.description, team.name, team.domain, team.contact, info.dataClassification, and serviceLevel.availability. These are projected onto the artifact as contract labels when the contract is submitted."}
+                                                    : "To improve: give the artifact a description, and ensure the ODCS contract YAML includes team.name, team.domain, team.contact, info.dataClassification and serviceLevel.availability, which are projected onto the artifact as contract labels when the contract is submitted."}
                                             </HelperTextItem>
                                         </HelperText>
                                     </div>
@@ -355,7 +358,7 @@ export const ArtifactContractTabContent: FunctionComponent<ArtifactContractTabCo
 
                 {/* Contract rules card */}
                 <GridItem span={12}>
-                    <Card className="contract-section" variant="secondary" style={{ backgroundColor: "white" }}>
+                    <Card className="contract-section" variant="secondary" style={{ backgroundColor: "var(--registry-card-bg)" }}>
                         <CardTitle>Contract Rules</CardTitle>
                         <Divider />
                         <CardBody>
@@ -390,16 +393,20 @@ export const ArtifactContractTabContent: FunctionComponent<ArtifactContractTabCo
                                 <>
                                     <p>No contract rules defined. Add quality rules by editing the ODCS contract YAML
                                         (quality.accuracy section) and re-submitting it.</p>
-                                    <Button variant="secondary" onClick={openOdcsEditor}
-                                        style={{ marginTop: 10 }}>
-                                        Edit ODCS Contract
-                                    </Button>
+                                    <IfFeature feature="readOnly" isNot={true}>
+                                        <Button variant="secondary" onClick={openOdcsEditor}
+                                            style={{ marginTop: 10 }}>
+                                            Edit ODCS Contract
+                                        </Button>
+                                    </IfFeature>
                                 </>
                             )}
                             <div style={{ marginTop: 10, display: "flex", gap: 10, alignItems: "center" }}>
-                                <Button variant="secondary" onClick={openOdcsEditor}>
-                                    Edit ODCS Contract
-                                </Button>
+                                <IfFeature feature="readOnly" isNot={true}>
+                                    <Button variant="secondary" onClick={openOdcsEditor}>
+                                        Edit ODCS Contract
+                                    </Button>
+                                </IfFeature>
                                 <HelperText>
                                     <HelperTextItem variant="indeterminate">
                                         <strong>Condition</strong> rules validate data (pass/fail). <strong>Transform</strong> rules modify data (e.g. schema migration).
@@ -413,7 +420,7 @@ export const ArtifactContractTabContent: FunctionComponent<ArtifactContractTabCo
 
                 {/* Audit log card */}
                 <GridItem span={12}>
-                    <Card className="contract-section" variant="secondary" style={{ backgroundColor: "white" }}>
+                    <Card className="contract-section" variant="secondary" style={{ backgroundColor: "var(--registry-card-bg)" }}>
                         <CardTitle>Audit Log</CardTitle>
                         <Divider />
                         <CardBody>

@@ -83,6 +83,7 @@ public class ConfiguredContentValidator extends AbstractConfiguredArtifactTypeUt
                 throw rve;
             } catch (Throwable e) {
                 log.error("Error invoking webhook", e);
+                throw webhookFailure(RuleType.VALIDITY, level.name(), e);
             }
         }
 
@@ -103,7 +104,19 @@ public class ConfiguredContentValidator extends AbstractConfiguredArtifactTypeUt
                 throw rve;
             } catch (Throwable e) {
                 log.error("Error invoking webhook", e);
+                throw webhookFailure(RuleType.INTEGRITY, IntegrityLevel.ALL_REFS_MAPPED.name(), e);
             }
+        }
+
+        /**
+         * Fails closed when the webhook cannot be invoked, so invalid content is never accepted. The
+         * client gets a generic message; the details of the failure are only logged.
+         */
+        private RuleViolationException webhookFailure(RuleType ruleType, String ruleConfiguration, Throwable cause) {
+            String description = "Error invoking Content Validator webhook for '"
+                    + this.artifactType.getArtifactType() + "'.";
+            return new RuleViolationException("Validation failed.", ruleType, ruleConfiguration,
+                    Set.of(new RuleViolation(description, "")), cause);
         }
 
     }

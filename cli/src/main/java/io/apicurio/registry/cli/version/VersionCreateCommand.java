@@ -3,6 +3,7 @@ package io.apicurio.registry.cli.version;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.IdUtil;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
+import io.apicurio.registry.cli.utils.ContentTypeDetector;
 import io.apicurio.registry.cli.utils.Conversions;
 import io.apicurio.registry.cli.utils.FileUtils;
 import io.apicurio.registry.cli.utils.OutputBuffer;
@@ -75,7 +76,7 @@ public class VersionCreateCommand extends AbstractCommand {
     @Option(
             names = {"--content-type"},
             description = "Content type of the version (e.g. application/json, application/x-protobuf). " +
-                    "Defaults to 'application/json' if not specified."
+                    "Defaults based on the file extension if not specified."
     )
     private String contentType;
 
@@ -116,7 +117,9 @@ public class VersionCreateCommand extends AbstractCommand {
         final var content = FileUtils.readContent(file);
         final var versionContent = new VersionContent();
         versionContent.setContent(content);
-        versionContent.setContentType(!isBlank(contentType) ? contentType : "application/json");
+        versionContent.setContentType(!isBlank(contentType)
+                ? contentType
+                : ContentTypeDetector.detect(file));
         newVersion.setContent(versionContent);
 
         final var registryClient = client.getRegistryClient();

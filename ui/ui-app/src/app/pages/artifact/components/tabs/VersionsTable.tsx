@@ -2,8 +2,9 @@ import React, { FunctionComponent, useEffect, useState } from "react";
 import "./VersionsTable.css";
 import { Link } from "react-router";
 import { SortByDirection, ThProps } from "@patternfly/react-table";
-import { FromNow, If, ObjectDropdown, ResponsiveTable } from "@apicurio/common-ui-components";
+import { FromNow, If, ObjectDropdown, ResponsiveTable } from "@apitomy/common-ui-components";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
+import { isPermitted } from "@utils/permissions.utils.ts";
 import { shash } from "@utils/string.utils.ts";
 import { ArtifactDescription, VersionStateBadge } from "@app/components";
 import { UsageClassificationBadge } from "@app/components/common/UsageClassificationBadge.tsx";
@@ -134,11 +135,10 @@ export const VersionsTable: FunctionComponent<VersionsTableProps> = (props: Vers
 
     const actionsFor = (version: SearchedVersion): (VersionAction | VersionActionSeparator)[] => {
         const vhash: number = shash(version.version!);
-        // TODO hide/show actions based on user role
         const actions: (VersionAction | VersionActionSeparator)[] = [
             { label: "View version", onClick: () => props.onView(version), testId: `view-version-${vhash}` },
         ];
-        if (!config.featureReadOnly() && user.isUserDeveloper(props.artifact.owner)) {
+        if (!config.featureReadOnly() && user.isUserDeveloper(props.artifact.owner) && isPermitted(version.permissions)) {
             if (config.featureDraftMutability() && version.state === "DRAFT") {
                 actions.push(
                     { label: "Edit draft", onClick: () => props.onEditDraft(version), testId: `edit-draft-${vhash}` },

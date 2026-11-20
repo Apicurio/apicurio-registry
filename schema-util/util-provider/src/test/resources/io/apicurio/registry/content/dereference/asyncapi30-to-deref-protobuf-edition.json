@@ -1,0 +1,27 @@
+{
+    "asyncapi": "3.0.0",
+    "info": {
+        "title": "Edition Service API",
+        "version": "1.0.0",
+        "description": "API referencing a Protobuf schema that uses an edition"
+    },
+    "channels": {
+        "editionRecords": {
+            "address": "edition/records",
+            "messages": {
+                "editionRecordMessage": {
+                    "$ref": "#/components/messages/EditionRecordMessage"
+                }
+            }
+        }
+    },
+    "components": {
+        "messages": {
+            "EditionRecordMessage": {
+                "payload": {
+                    "$ref": "http://schemas.example.org/edition-record.proto"
+                }
+            }
+        }
+    }
+}

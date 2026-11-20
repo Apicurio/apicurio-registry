@@ -140,8 +140,8 @@ public class GitOpsConfig extends AbstractPollingStorageConfig {
             String branch = config.getOptionalValue("apicurio.gitops.repos." + i + ".branch", String.class)
                     .orElse("main");
             String id = config.getOptionalValue("apicurio.gitops.repos." + i + ".id", String.class)
-                    .orElse(dir.get());
-            result.add(new GitRepoConfig(id, dir.get(), branch));
+                    .orElse(dir.orElseThrow());
+            result.add(new GitRepoConfig(id, dir.orElseThrow(), branch));
         }
 
         return result;

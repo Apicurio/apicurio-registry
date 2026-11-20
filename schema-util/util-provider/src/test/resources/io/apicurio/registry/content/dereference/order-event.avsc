@@ -1,0 +1,1 @@
+{"type":"record","name":"OrderEvent","fields":[{"name":"orderId","type":"string"}]}

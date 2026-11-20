@@ -55,6 +55,11 @@ public class ConfigurableArtifactTypeUtilProvider extends AbstractArtifactTypeUt
         return config.getContentTypes();
     }
 
+    @Override
+    public Set<String> getFileExtensions() {
+        return config.getFileExtensions();
+    }
+
     /**
      * Indicates whether this provider supports reference resolution with context.
      *

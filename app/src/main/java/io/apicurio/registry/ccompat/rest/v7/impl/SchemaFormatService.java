@@ -4,6 +4,7 @@ import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.avro.content.dereference.AvroDereferencer;
+import io.apicurio.registry.avro.util.AvroParserAccessor;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.protobuf.content.dereference.ProtobufDereferencer;
 import io.apicurio.registry.types.ArtifactType;
@@ -25,7 +26,7 @@ import java.util.Set;
 @ApplicationScoped
 public class SchemaFormatService {
 
-    private static final String FORMAT_RESOLVED = "resolved";
+    static final String FORMAT_RESOLVED = "resolved";
     private static final String FORMAT_IGNORE_EXTENSIONS = "ignore_extensions";
     private static final String FORMAT_SERIALIZED = "serialized";
 
@@ -109,7 +110,7 @@ public class SchemaFormatService {
                 return dereferencedContent.getContent();
             } else {
                 // No references to resolve, but still parse and return the canonical form
-                Schema.Parser parser = new Schema.Parser();
+                Schema.Parser parser = AvroParserAccessor.newParser();
                 Schema schema = parser.parse(content.content());
                 return ContentHandle.create(schema.toString());
             }

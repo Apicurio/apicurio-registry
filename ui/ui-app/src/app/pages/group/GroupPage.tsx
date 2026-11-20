@@ -1,6 +1,7 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import "./GroupPage.css";
 import { LoaderGuard, newLoaderGuard } from "@utils/loader.utils.ts";
+import { SubmittedContent, toSubmittedContent } from "@utils/ruleViolation.utils.ts";
 import { Breadcrumb, BreadcrumbItem, PageSection, PageSectionVariants, Tab, Tabs } from "@patternfly/react-core";
 import { Link, useLocation, useMatch, useParams } from "react-router";
 import {
@@ -22,13 +23,15 @@ import {
     InvalidContentModal,
     MetaData, RootPageHeader
 } from "@app/components";
-import { PleaseWaitModal } from "@apicurio/common-ui-components";
+import { PleaseWaitModal } from "@apitomy/common-ui-components";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
+import { SearchService, useSearchService } from "@services/useSearchService.ts";
 import {
     CreateArtifact,
     GroupMetaData,
+    ResourcePermissions,
     Rule,
     RuleType,
     RuleViolationProblemDetails,
@@ -43,6 +46,7 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
     const [pageError, setPageError] = useState<PageError>();
     const [loaders, setLoaders] = useState<Promise<any> | Promise<any>[] | undefined>();
     const [group, setGroup] = useState<GroupMetaData>();
+    const [permissions, setPermissions] = useState<ResourcePermissions>();
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isDeleteArtifactModalOpen, setIsDeleteArtifactModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -51,14 +55,18 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
     const [pleaseWaitMessage, setPleaseWaitMessage] = useState("");
     const [isCreateArtifactModalOpen, setCreateArtifactModalOpen] = useState<boolean>(false);
     const [invalidContentError, setInvalidContentError] = useState<RuleViolationProblemDetails>();
+    const [invalidContent, setInvalidContent] = useState<SubmittedContent>();
     const [isInvalidContentModalOpen, setInvalidContentModalOpen] = useState<boolean>(false);
     const [artifactToDelete, setArtifactToDelete] = useState<SearchedVersion>();
     const [artifactDeleteSuccessCallback, setArtifactDeleteSuccessCallback] = useState<() => void>();
     const [rules, setRules] = useState<Rule[]>([]);
+    const [ruleActionError, setRuleActionError] = useState<string>();
+    const [pendingRuleType, setPendingRuleType] = useState<string>();
 
     const appNavigation: AppNavigation = useAppNavigation();
     const logger: LoggerService = useLoggerService();
     const groups: GroupsService = useGroupsService();
+    const search: SearchService = useSearchService();
     const { groupId }= useParams();
     const location = useLocation();
     const rulesMatch = useMatch("/explore/:groupId/rules");
@@ -79,6 +87,8 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
                 .catch(guard.wrap((error: any) => {
                     setPageError(toPageError(error, "Error loading page data."));
                 })),
+            // Never fails: without permissions, the UI shows the actions and lets the server decide
+            search.groupPermissions(groupId as string).then(guard.wrap(setPermissions)),
             groups.getGroupRules(groupId as string)
                 .then(guard.wrap(setRules))
                 .catch(guard.wrap((error: any) => {
@@ -148,7 +158,7 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
         }).catch( error => {
             pleaseWait(false);
             if (error && (error.status === 400 || error.status === 409)) {
-                handleInvalidContentError(error);
+                handleInvalidContentError(error, toSubmittedContent(data.firstVersion?.content));
             } else {
                 setPageError(toPageError(error, "Error creating artifact."));
             }
@@ -157,45 +167,61 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
 
     const doEnableRule = (ruleType: string): void => {
         logger.debug("[GroupPage] Enabling rule:", ruleType);
+        setRuleActionError(undefined);
+        setPendingRuleType(ruleType);
         let config: string = "FULL";
         if (ruleType === "COMPATIBILITY") {
             config = "BACKWARD";
         }
-        groups.createGroupRule(groupId as string, ruleType, config).catch(error => {
-            setPageError(toPageError(error, `Error enabling "${ ruleType }" group rule.`));
+        groups.createGroupRule(groupId as string, ruleType, config).then(() => {
+            setRules(prev => [...prev, { config, ruleType: ruleType as RuleType }]);
+        }).catch(error => {
+            setRuleActionError(error?.detail || error?.title || `Error enabling "${ ruleType }" group rule. Please try again.`);
+        }).finally(() => {
+            setPendingRuleType(undefined);
         });
-        setRules([...rules, { config, ruleType: ruleType as RuleType }]);
     };
 
     const doDisableRule = (ruleType: string): void => {
         logger.debug("[GroupPage] Disabling rule:", ruleType);
-        groups.deleteGroupRule(groupId as string, ruleType).catch(error => {
-            setPageError(toPageError(error, `Error disabling "${ ruleType }" group rule.`));
+        setRuleActionError(undefined);
+        setPendingRuleType(ruleType);
+        groups.deleteGroupRule(groupId as string, ruleType).then(() => {
+            setRules(prev => prev.filter(r => r.ruleType !== ruleType));
+        }).catch(error => {
+            setRuleActionError(error?.detail || error?.title || `Error disabling "${ ruleType }" group rule. Please try again.`);
+        }).finally(() => {
+            setPendingRuleType(undefined);
         });
-        setRules(rules.filter(r => r.ruleType !== ruleType));
     };
 
     const doConfigureRule = (ruleType: string, config: string): void => {
         logger.debug("[GroupPage] Configuring rule:", ruleType, config);
-        groups.updateGroupRule(groupId as string, ruleType, config).catch(error => {
-            setPageError(toPageError(error, `Error configuring "${ ruleType }" group rule.`));
+        setRuleActionError(undefined);
+        setPendingRuleType(ruleType);
+        groups.updateGroupRule(groupId as string, ruleType, config).then(() => {
+            setRules(prev => prev.map(r => {
+                if (r.ruleType === ruleType) {
+                    return { config, ruleType: r.ruleType };
+                } else {
+                    return r;
+                }
+            }));
+        }).catch(error => {
+            setRuleActionError(error?.detail || error?.title || `Error configuring "${ ruleType }" group rule. Please try again.`);
+        }).finally(() => {
+            setPendingRuleType(undefined);
         });
-        setRules(rules.map(r => {
-            if (r.ruleType === ruleType) {
-                return { config, ruleType: r.ruleType };
-            } else {
-                return r;
-            }
-        }));
     };
 
     const closeInvalidContentModal = (): void => {
         setInvalidContentModalOpen(false);
     };
 
-    const handleInvalidContentError = (error: any): void => {
+    const handleInvalidContentError = (error: any, content?: SubmittedContent): void => {
         logger.info("[SearchPage] Invalid content error:", error);
         setInvalidContentError(error);
+        setInvalidContent(content);
         setInvalidContentModalOpen(true);
     };
 
@@ -253,6 +279,7 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
     };
 
     useEffect(() => {
+        setPageError(undefined);
         const guard: LoaderGuard = newLoaderGuard();
         setLoaders(createLoaders(guard));
         return () => guard.cancel();
@@ -262,6 +289,7 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
         <Tab data-testid="group-overview-tab" eventKey="overview" title="Overview" key="overview" tabContentId="tab-overview">
             <GroupOverviewTabContent
                 group={group as GroupMetaData}
+                permissions={permissions}
                 onEditMetaData={() => setIsEditModalOpen(true)}
                 onChangeOwner={openChangeOwnerModal}
                 onCreateArtifact={onCreateArtifact}
@@ -276,6 +304,9 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
                 onEnableRule={doEnableRule}
                 onDisableRule={doDisableRule}
                 onConfigureRule={doConfigureRule}
+                actionError={ruleActionError}
+                onDismissActionError={() => setRuleActionError(undefined)}
+                pendingRuleType={pendingRuleType}
             />
         </Tab>
     ];
@@ -299,6 +330,7 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
                 <PageSection hasBodyWrapper={false} className="ps_artifact-version-header" >
                     <GroupPageHeader title={groupId as string}
                         onDeleteGroup={onDeleteGroup}
+                        permissions={permissions}
                         groupId={groupId as string} />
                 </PageSection>
                 <PageSection hasBodyWrapper={false} variant={PageSectionVariants.default} isFilled={true} padding={{ default: "noPadding" }} className="artifact-details-main">
@@ -310,7 +342,7 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
                         activeKey={activeTabKey}
                         children={tabs}
                         onSelect={handleTabClick}
-                        style={{ backgroundColor: "white" }}
+                        style={{ backgroundColor: "var(--registry-card-bg)" }}
                     />
                 </PageSection>
             </PageDataLoader>
@@ -344,6 +376,8 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
                 groupId={group?.groupId as string} />
             <InvalidContentModal
                 error={invalidContentError}
+                content={invalidContent?.content}
+                contentType={invalidContent?.contentType}
                 isOpen={isInvalidContentModalOpen}
                 onClose={closeInvalidContentModal} />
             <PleaseWaitModal message={pleaseWaitMessage}

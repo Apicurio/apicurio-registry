@@ -18,6 +18,7 @@ import io.apicurio.registry.storage.dto.EditableBranchMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableGroupMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
+import io.apicurio.registry.storage.dto.PeerDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.SchemaUsageEventDto;
 import io.apicurio.registry.storage.dto.SchemaUsageSummaryDto;
@@ -41,6 +42,7 @@ import io.apicurio.registry.utils.impexp.v3.GroupRuleEntity;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.List;
+import java.util.Map;
 
 public abstract class AbstractReadOnlyRegistryStorage implements RegistryStorage {
 
@@ -189,6 +191,12 @@ public abstract class AbstractReadOnlyRegistryStorage implements RegistryStorage
     }
 
     @Override
+    public void updateArtifactVersionStates(String groupId, String artifactId, List<String> versions,
+            VersionState newState, String labelPrefix, Map<String, String> labels) {
+        readOnlyViolation();
+    }
+
+    @Override
     public void updateArtifactVersionState(String groupId, String artifactId, String version,
             VersionState newState, boolean dryRun) {
         readOnlyViolation();
@@ -254,6 +262,21 @@ public abstract class AbstractReadOnlyRegistryStorage implements RegistryStorage
 
     @Override
     public void updateRoleMapping(String principalId, String role) throws RegistryStorageException {
+        readOnlyViolation();
+    }
+
+    @Override
+    public void createPeer(PeerDto peer) throws RegistryStorageException {
+        readOnlyViolation();
+    }
+
+    @Override
+    public void updatePeer(PeerDto peer) throws RegistryStorageException {
+        readOnlyViolation();
+    }
+
+    @Override
+    public void deletePeer(String peerId) throws RegistryStorageException {
         readOnlyViolation();
     }
 
@@ -430,12 +453,14 @@ public abstract class AbstractReadOnlyRegistryStorage implements RegistryStorage
 
     @Override
     public void deleteOldUsageEvents(long cutoffTimestamp) {
-        readOnlyViolation();
+        // Usage events are best-effort telemetry produced as a side effect of reads, so a read-only
+        // storage drops them instead of failing the background flush. The retention job skips read-only
+        // storages itself and never called this, but the method must not throw if it is.
     }
 
     @Override
     public void recordUsageEvent(SchemaUsageEventDto event) {
-        readOnlyViolation();
+        // See deleteOldUsageEvents: dropped on purpose.
     }
 
     @Override

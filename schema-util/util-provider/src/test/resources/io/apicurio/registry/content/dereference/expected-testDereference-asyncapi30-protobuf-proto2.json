@@ -1,0 +1,33 @@
+{
+    "asyncapi": "3.0.0",
+    "info": {
+        "title": "Settings Service API",
+        "version": "1.0.0",
+        "description": "API for settings updates with proto2 schemas"
+    },
+    "channels": {
+        "settingsUpdates": {
+            "address": "settings/updates",
+            "messages": {
+                "settingsUpdateMessage": {
+                    "$ref": "#/components/messages/SettingsUpdateMessage"
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "UserSettings": {
+                "schemaFormat": "application/vnd.google.protobuf;version=2",
+                "schema": "syntax = \"proto2\";\n\npackage com.example;\n\nmessage UserSettings {\n    required string user_id = 1;\n    optional bool notifications_enabled = 2;\n    optional string locale = 3;\n}"
+            }
+        },
+        "messages": {
+            "SettingsUpdateMessage": {
+                "payload": {
+                    "$ref": "#/components/schemas/UserSettings"
+                }
+            }
+        }
+    }
+}

@@ -15,6 +15,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.TestMethodOrder;
+import org.rnorth.ducttape.TimeoutException;
 import org.rnorth.ducttape.unreliables.Unreliables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -48,11 +50,37 @@ public abstract class DebeziumAvroBaseIT extends ApicurioRegistryBaseIT {
     protected Connection dbConnection;
     protected List<String> createdTables = new ArrayList<>();
 
-    // Class-level connector that is shared across all test methods in a test class
-    protected static String sharedConnectorName;
-    protected static String sharedTopicPrefix;
-    protected static String tablePrefix;
+    // Class-level connector that is shared across all test methods in a test class.
+    // Instance fields, NOT static: @TestInstance(Lifecycle.PER_CLASS) (see
+    // ApicurioRegistryBaseIT) gives each test class exactly one instance, reused across all
+    // of its own @Test methods — but junit-platform.properties runs distinct test classes
+    // concurrently in the same JVM (mode.classes.default=concurrent). Since Java static
+    // fields have ONE identity shared by every subclass instance regardless of which
+    // concrete class it belongs to, declaring these static meant every concurrently-running
+    // Debezium test class (MySQL/PostgreSQL x Integration/LocalConverters, 4 total) stomped
+    // on the same connector name/topic prefix/table prefix throughout its entire lifetime,
+    // not just at setup — producing exactly the symptoms seen in CI: "connector already
+    // exists" 409s, tables colliding ("column already exists" / duplicate key), and consumers
+    // reading another class's events (wrong CDC counts, rules "already exists"). Instance
+    // fields give each concurrently-running class its own isolated copy.
+    protected String sharedConnectorName;
+    protected String sharedTopicPrefix;
+    protected String tablePrefix;
+    // This class's own stable numeric id, captured once in setup(). Subclasses that need a
+    // unique-but-stable derived number (e.g. MySQL's database.server.id) must use this, not a
+    // fresh connectorCounter.get() — the counter keeps moving as sibling classes run
+    // concurrently, so re-reading it later can race and collide with another class's value.
+    protected int classId;
+    // Global across all Debezium test classes, intentionally: this is what guarantees
+    // sharedConnectorName/classId are unique across concurrently-running classes in the first
+    // place. Safe to stay static/shared — only ever incremented, never read-then-cached
+    // elsewhere except into the per-instance classId field above.
     protected static final AtomicInteger connectorCounter = new AtomicInteger(0);
+
+    // Kafka Connect connector registration/deletion is not safe to run concurrently across
+    // test classes (POST /connectors returns 409 while a previous register is still settling),
+    // and test classes run in parallel in CI. Serialize the register/delete window.
+    private static final Object CONNECTOR_LOCK = new Object();
 
     /**
      * Returns the registry URL to use for connector configuration.
@@ -112,7 +140,7 @@ public abstract class DebeziumAvroBaseIT extends ApicurioRegistryBaseIT {
         }
 
         // Create a single shared connector for this test class that watches all tables
-        int classId = connectorCounter.incrementAndGet();
+        classId = connectorCounter.incrementAndGet();
         sharedConnectorName = "connector-" + classId;
         sharedTopicPrefix = "test" + classId;
         tablePrefix = "tbl" + classId + "_";
@@ -122,10 +150,14 @@ public abstract class DebeziumAvroBaseIT extends ApicurioRegistryBaseIT {
 
         // Register connector to watch all tables in the schema
         String tablePattern = getTableIncludePattern();
-        registerDebeziumConnectorWithApicurioConverters(sharedConnectorName, sharedTopicPrefix, tablePattern);
-
-        // Wait for connector to be ready with a longer timeout for initial startup
-        waitForConnectorReady(sharedConnectorName, Duration.ofSeconds(30));
+        synchronized (CONNECTOR_LOCK) {
+            registerDebeziumConnectorWithApicurioConverters(sharedConnectorName, sharedTopicPrefix, tablePattern);
+            // Wait for connector to be ready with a longer timeout for initial startup
+            // Under class-level parallel execution the shared Kafka Connect can take >30 s to
+            // bring a connector to RUNNING; a tighter budget makes the second class time out
+            // while the first is still booting. 120 s matches the other CI-visible timeouts.
+            waitForConnectorReady(sharedConnectorName, Duration.ofSeconds(120));
+        }
 
         log.info("Shared connector {} is ready and watching pattern: {}", sharedConnectorName, tablePattern);
     }
@@ -159,7 +191,9 @@ public abstract class DebeziumAvroBaseIT extends ApicurioRegistryBaseIT {
         if (sharedConnectorName != null) {
             try {
                 log.info("Deleting shared connector: {}", sharedConnectorName);
-                getDebeziumContainer().deleteConnector(sharedConnectorName);
+                synchronized (CONNECTOR_LOCK) {
+                    getDebeziumContainer().deleteConnector(sharedConnectorName);
+                }
                 log.info("Successfully deleted shared connector: {}", sharedConnectorName);
             }
             catch (Exception e) {
@@ -262,7 +296,7 @@ public abstract class DebeziumAvroBaseIT extends ApicurioRegistryBaseIT {
             throws Exception {
         List<GenericRecord> records = new ArrayList<>();
 
-        Unreliables.retryUntilTrue((int) timeout.getSeconds(), TimeUnit.SECONDS, () -> {
+        pollUntilTrue(timeout, () -> {
             consumer.poll(Duration.ofMillis(500)).forEach(record -> {
                 try {
                     if (record.value() == null || record.value().length < 5) {
@@ -284,10 +318,87 @@ public abstract class DebeziumAvroBaseIT extends ApicurioRegistryBaseIT {
         return records;
     }
 
+    /**
+     * Like {@link #consumeAvroEvents(String, int, Duration)}, but only counts records whose
+     * {@code after.data} matches {@code expectedData}. Connector snapshots of a freshly created
+     * table (or inserts from a concurrently running test class sharing the same Kafka) otherwise
+     * inflate a bare record count and make exact-count assertions flaky.
+     */
+    protected List<GenericRecord> consumeAvroEvents(String topic, int expectedCount, Duration timeout,
+            String expectedData) throws Exception {
+        List<GenericRecord> records = new ArrayList<>();
+
+        pollUntilTrue(timeout, () -> {
+            consumer.poll(Duration.ofMillis(500)).forEach(record -> {
+                try {
+                    if (record.value() == null || record.value().length < 5) {
+                        log.debug("Skipping tombstone message from {}", topic);
+                        return;
+                    }
+                    GenericRecord avroRecord = deserializeAvroValue(record.value());
+                    Object afterField = avroRecord.get("after");
+                    if (afterField instanceof GenericRecord after
+                            && after.get("data") != null
+                            && expectedData.equals(after.get("data").toString())) {
+                        records.add(avroRecord);
+                        log.debug("Consumed matching Avro event from {}: {}", topic, avroRecord);
+                    } else {
+                        log.debug("Ignoring non-matching event from {}: {}", topic, avroRecord);
+                    }
+                }
+                catch (Exception e) {
+                    log.error("Failed to deserialize Avro record", e);
+                }
+            });
+            return records.size() >= expectedCount;
+        });
+
+        return records;
+    }
+
+    /**
+     * Repeatedly calls {@code check} on the CALLING thread until it returns true or the timeout
+     * elapses, then throws the same {@link TimeoutException} type Unreliables.retryUntilTrue
+     * would have thrown.
+     *
+     * Deliberately does NOT delegate to Unreliables.retryUntilTrue/retryUntilSuccess: those
+     * submit the retry loop to a separate, shared daemon thread pool
+     * (org.rnorth.ducttape.timeouts.Timeouts#getWithTimeout) and, on timeout, simply give up
+     * waiting on the Future WITHOUT cancelling it — the submitted loop keeps running in the
+     * background until its own next doContinue check. Every caller here polls this class's
+     * shared, mutable, non-thread-safe `consumer` field, which the next test's @BeforeEach
+     * reassigns (after closing the old one). A timed-out test's leaked background thread can
+     * still be mid-poll() when that happens, and end up calling poll()/close() concurrently on
+     * whichever consumer `this.consumer` now refers to — producing "KafkaConsumer is not safe
+     * for multi-threaded access" and cascading failures through every later test in the class
+     * (observed in CI: one timeout in test N caused all of tests N+1..11 to fail). Polling on
+     * the calling thread has no such leak: once the deadline is hit, nothing from this call
+     * touches the consumer again.
+     */
+    protected void pollUntilTrue(Duration timeout, Callable<Boolean> check) throws Exception {
+        long deadlineNanos = System.nanoTime() + timeout.toNanos();
+        Exception lastException = null;
+        while (System.nanoTime() < deadlineNanos) {
+            try {
+                if (check.call()) {
+                    return;
+                }
+                lastException = null;
+            }
+            catch (Exception e) {
+                lastException = e;
+            }
+        }
+        if (lastException != null) {
+            throw new TimeoutException("Timeout waiting for result with exception", lastException);
+        }
+        throw new TimeoutException(new RuntimeException("Not ready yet"));
+    }
+
     protected void waitForConsumerReady(Duration timeout) throws Exception {
         log.info("Waiting for consumer to complete partition assignment...");
 
-        Unreliables.retryUntilTrue((int) timeout.getSeconds(), TimeUnit.SECONDS, () -> {
+        pollUntilTrue(timeout, () -> {
             consumer.poll(Duration.ofMillis(100));
             boolean hasAssignment = !consumer.assignment().isEmpty();
 
@@ -297,6 +408,7 @@ public abstract class DebeziumAvroBaseIT extends ApicurioRegistryBaseIT {
             else {
                 log.debug("Consumer waiting for partition assignment...");
             }
+
 
             return hasAssignment;
         });

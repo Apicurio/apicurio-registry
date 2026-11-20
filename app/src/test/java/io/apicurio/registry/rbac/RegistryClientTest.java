@@ -1194,7 +1194,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
     @Test
     public void smokeGlobalRules() throws Exception {
         createGlobalRule(io.apicurio.registry.types.RuleType.COMPATIBILITY, "BACKWARD");
-        createGlobalRule(io.apicurio.registry.types.RuleType.VALIDITY, "FORWARD");
+        createGlobalRule(io.apicurio.registry.types.RuleType.VALIDITY, "FULL");
 
         final List<RuleType> globalRules = clientV3.admin().rules().get();
         assertEquals(2, globalRules.size());
@@ -1459,11 +1459,11 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         Optional<ConfigurationProperty> anonymousRead = configProperties.stream()
                 .filter(cp -> cp.getName().equals(property1Name)).findFirst();
         Assertions.assertTrue(anonymousRead.isPresent());
-        Assertions.assertEquals("false", anonymousRead.get().getValue());
+        Assertions.assertEquals("false", anonymousRead.orElseThrow().getValue());
         Optional<ConfigurationProperty> obacLimit = configProperties.stream()
                 .filter(cp -> cp.getName().equals(property2Name)).findFirst();
         Assertions.assertTrue(obacLimit.isPresent());
-        Assertions.assertEquals("true", obacLimit.get().getValue());
+        Assertions.assertEquals("true", obacLimit.orElseThrow().getValue());
 
         // Change value of anonymous read access
         UpdateConfigurationProperty updateProp = new UpdateConfigurationProperty();
@@ -1477,7 +1477,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         Assertions.assertEquals("true", prop.getValue());
 
         List<ConfigurationProperty> properties = clientV3.admin().config().properties().get();
-        prop = properties.stream().filter(cp -> cp.getName().equals(property1Name)).findFirst().get();
+        prop = properties.stream().filter(cp -> cp.getName().equals(property1Name)).findFirst().orElseThrow();
         Assertions.assertEquals(property1Name, prop.getName());
         Assertions.assertEquals("true", prop.getValue());
 
@@ -1491,7 +1491,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         Assertions.assertEquals("false", prop.getValue());
 
         properties = clientV3.admin().config().properties().get();
-        prop = properties.stream().filter(cp -> cp.getName().equals(property2Name)).findFirst().get();
+        prop = properties.stream().filter(cp -> cp.getName().equals(property2Name)).findFirst().orElseThrow();
         Assertions.assertEquals("false", prop.getValue());
 
         // Reset a config property
@@ -1503,7 +1503,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         Assertions.assertEquals("true", prop.getValue());
 
         properties = clientV3.admin().config().properties().get();
-        prop = properties.stream().filter(cp -> cp.getName().equals(property2Name)).findFirst().get();
+        prop = properties.stream().filter(cp -> cp.getName().equals(property2Name)).findFirst().orElseThrow();
         Assertions.assertEquals("true", prop.getValue());
 
         // Reset the other property
@@ -1515,7 +1515,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         Assertions.assertEquals("false", prop.getValue());
 
         properties = clientV3.admin().config().properties().get();
-        prop = properties.stream().filter(cp -> cp.getName().equals(property1Name)).findFirst().get();
+        prop = properties.stream().filter(cp -> cp.getName().equals(property1Name)).findFirst().orElseThrow();
         Assertions.assertEquals(property1Name, prop.getName());
         Assertions.assertEquals("false", prop.getValue());
 

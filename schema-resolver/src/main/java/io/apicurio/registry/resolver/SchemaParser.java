@@ -54,4 +54,25 @@ public interface SchemaParser<S, U> {
     default boolean supportsGetSchemaFromLocation() {
         return false;
     }
+
+    /**
+     * The namespace of a referenced schema, used by reference naming strategies: the Avro namespace or the
+     * Protobuf package. Formats without namespaces return null.
+     *
+     * @param schema a schema referenced by another schema
+     * @return the namespace, or null
+     */
+    default String referenceNamespace(ParsedSchema<S> schema) {
+        return null;
+    }
+
+    /**
+     * Whether schemas of this type can be fetched dereferenced by content ID or content hash. Formats that
+     * return false keep fetching their references instead.
+     *
+     * @return true if dereferenced content lookups can be used for this format
+     */
+    default boolean supportsDereferencedContentLookups() {
+        return true;
+    }
 }

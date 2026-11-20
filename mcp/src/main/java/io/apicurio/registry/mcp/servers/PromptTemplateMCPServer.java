@@ -1,10 +1,12 @@
 package io.apicurio.registry.mcp.servers;
 
+import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.mcp.PromptTemplateConverter;
 import io.apicurio.registry.mcp.PromptTemplateConverter.MCPPrompt;
 import io.apicurio.registry.mcp.PromptTemplateConverter.PromptTemplate;
 import io.apicurio.registry.mcp.RegistryService;
 import io.apicurio.registry.rest.client.models.SearchedVersion;
+import io.apicurio.registry.rest.client.models.VersionState;
 import io.quarkiverse.mcp.server.Prompt;
 import io.quarkiverse.mcp.server.PromptArg;
 import io.quarkiverse.mcp.server.PromptMessage;
@@ -12,6 +14,8 @@ import io.quarkiverse.mcp.server.TextContent;
 import io.quarkiverse.mcp.server.Tool;
 import io.quarkiverse.mcp.server.ToolArg;
 import jakarta.inject.Inject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -31,6 +35,8 @@ import static io.quarkiverse.mcp.server.PromptMessage.withUserRole;
  */
 public class PromptTemplateMCPServer {
 
+    private static final Logger log = LoggerFactory.getLogger(PromptTemplateMCPServer.class);
+
     private static final String PROMPT_TEMPLATE_TYPE = "PROMPT_TEMPLATE";
 
     @Inject
@@ -46,7 +52,7 @@ public class PromptTemplateMCPServer {
         return handleError(() -> {
             List<MCPPrompt> prompts = new ArrayList<>();
 
-            // Search for PROMPT_TEMPLATE artifacts
+            // Search for ENABLED PROMPT_TEMPLATE artifacts
             var versions = service.searchVersions(
                     null,  // groupId - search all groups
                     null,  // artifactId
@@ -55,7 +61,8 @@ public class PromptTemplateMCPServer {
                     null,  // description
                     null,  // labels
                     "asc", // order
-                    "artifactId"  // orderBy
+                    "artifactId", // orderBy
+                    VersionState.ENABLED // state - filter for active enabled prompts
             );
 
             for (SearchedVersion version : versions) {
@@ -73,8 +80,9 @@ public class PromptTemplateMCPServer {
                             prompts.add(prompt);
                         }
                     }
-                } catch (IOException e) {
-                    // Skip artifacts that can't be read
+                } catch (ApiException | IOException e) {
+                    log.warn("Failed to retrieve or parse prompt template artifact {}/{}:{}: {}",
+                            version.getGroupId(), version.getArtifactId(), version.getVersion(), e.getMessage());
                 }
             }
 
@@ -108,7 +116,7 @@ public class PromptTemplateMCPServer {
             }
 
             Map<String, Object> args = parseArguments(argumentsJson);
-            return converter.renderTemplate(template.getTemplate(), args);
+            return converter.renderTemplate(template, args);
         });
     }
 

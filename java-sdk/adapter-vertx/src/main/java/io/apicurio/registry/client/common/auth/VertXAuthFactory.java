@@ -37,13 +37,13 @@ public class VertXAuthFactory {
         WebClient webClient = WebClient.create(vertx, options);
 
         OAuth2Auth oAuth2Options = OAuth2Auth.create(vertx, new OAuth2Options()
-                .setFlow(OAuth2FlowType.CLIENT)
                 .setHttpClientOptions(options)
                 .setClientId(clientId)
                 .setClientSecret(clientSecret)
                 .setTokenPath(tokenUrl));
 
-        Oauth2Credentials oauth2Credentials = new Oauth2Credentials();
+        // Configure the flow on the credentials: OAuth2Options.setFlow was removed in Vert.x 5.
+        Oauth2Credentials oauth2Credentials = new Oauth2Credentials().setFlow(OAuth2FlowType.CLIENT);
         if (scope != null) {
             oauth2Credentials.addScope(scope);
         }
@@ -64,6 +64,11 @@ public class VertXAuthFactory {
                 .encodeToString((username + ":" + password).getBytes(StandardCharsets.UTF_8));
         return WebClientSession.create(webClient).addHeader("Authorization",
                 "Basic " + usernameAndPassword);
+    }
+
+    public static WebClient buildBearerAuthWebClient(Vertx vertx, WebClientOptions options, String accessToken) {
+        WebClient webClient = options != null ? WebClient.create(vertx, options) : WebClient.create(vertx);
+        return WebClientSession.create(webClient).addHeader("Authorization", "Bearer " + accessToken);
     }
 
 }

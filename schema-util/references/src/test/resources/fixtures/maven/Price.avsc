@@ -1,0 +1,15 @@
+{
+    "namespace": "io.apicurio.test.trade",
+    "type": "record",
+    "name": "Price",
+    "fields": [
+        {
+            "name": "amount",
+            "type": "double"
+        },
+        {
+            "name": "currency",
+            "type": "string"
+        }
+    ]
+}

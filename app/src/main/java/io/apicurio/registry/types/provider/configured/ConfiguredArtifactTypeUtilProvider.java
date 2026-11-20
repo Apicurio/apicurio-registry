@@ -55,6 +55,14 @@ public class ConfiguredArtifactTypeUtilProvider extends AbstractArtifactTypeUtil
     }
 
     @Override
+    public Set<String> getFileExtensions() {
+        if (this.artifactType.getFileExtensions() == null || this.artifactType.getFileExtensions().isEmpty()) {
+            return Set.of();
+        }
+        return Set.of(this.artifactType.getFileExtensions().toArray(new String[this.artifactType.getFileExtensions().size()]));
+    }
+
+    @Override
     public boolean supportsReferencesWithContext() {
         Boolean srwc = this.artifactType.getSupportsReferencesWithContext();
         return srwc == null ? Boolean.FALSE : srwc;

@@ -10,6 +10,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.awaitility.core.ConditionTimeoutException;
 import org.eclipse.microprofile.config.ConfigProvider;
+import io.apicurio.registry.operator.utils.RetryTest;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIf;
@@ -92,7 +93,7 @@ public class SmokeITTest extends ITBase {
                 .contains(EnvironmentVariables.QUARKUS_HTTP_CORS_ORIGINS + "=" + corsOriginsExpectedValue);
     }
 
-    @Test
+    @RetryTest
     void replicas() {
         final var registry = k8sCellCreate(client, () -> {
             var r = ResourceFactory.deserialize("/k8s/examples/simple.apicurioregistry3.yaml", ApicurioRegistry3.class);

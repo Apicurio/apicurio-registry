@@ -9,8 +9,9 @@ import {
     Content,
     ContentVariants
 } from "@patternfly/react-core";
-import { If, ObjectDropdown } from "@apicurio/common-ui-components";
-import { ArtifactMetaData, VersionMetaData } from "@sdk/lib/generated-client/models";
+import { If, ObjectDropdown } from "@apitomy/common-ui-components";
+import { ArtifactMetaData, ResourcePermissions, VersionMetaData } from "@sdk/lib/generated-client/models";
+import { isPermitted } from "@utils/permissions.utils.ts";
 import { useUserService } from "@services/useUserService.ts";
 import { useConfigService } from "@services/useConfigService.ts";
 import { PencilAltIcon } from "@patternfly/react-icons";
@@ -22,12 +23,14 @@ import { IfFeature } from "@app/components";
  */
 export type VersionPageHeaderProps = {
     artifact: ArtifactMetaData | undefined;
+    permissions?: ResourcePermissions;
     version: VersionMetaData | undefined;
     codegenEnabled: boolean;
     onEdit: () => void;
     onEditAgentCard: () => void;
     onDelete: () => void;
     onDownload: () => void;
+    onTest: () => void;
     onFinalizeDraft: () => void;
     onCreateDraftFrom: () => void;
     onGenerateClient: () => void;
@@ -43,6 +46,8 @@ export const VersionPageHeader: FunctionComponent<VersionPageHeaderProps> = (pro
 
     const user = useUserService();
     const config = useConfigService();
+    // The permissions are hints: when the server reports none, it decides on its own
+    const canWrite: boolean = isPermitted(props.permissions);
 
     const actions: any[] = [
         {
@@ -59,7 +64,7 @@ export const VersionPageHeader: FunctionComponent<VersionPageHeaderProps> = (pro
             onSelect: () => props.onCreateDraftFrom(),
             isVisible: () => {
                 return !config.featureReadOnly() &&
-                    config.featureDraftMutability();
+                    config.featureDraftMutability() && canWrite;
             }
         },
         {
@@ -69,7 +74,17 @@ export const VersionPageHeader: FunctionComponent<VersionPageHeaderProps> = (pro
             isVisible: () => {
                 return !config.featureReadOnly() &&
                     props.version?.artifactType === "AGENT_CARD" &&
-                    user.isUserDeveloper(props.artifact?.owner);
+                    user.isUserDeveloper(props.artifact?.owner) && canWrite;
+            }
+        },
+        {
+            label: "Test content",
+            testId: "action-test-version",
+            onSelect: () => props.onTest(),
+            isVisible: () => {
+                return !config.featureReadOnly() &&
+                    props.artifact !== undefined &&
+                    user.isUserDeveloper(props.artifact?.owner) && canWrite;
             }
         },
         {
@@ -80,13 +95,13 @@ export const VersionPageHeader: FunctionComponent<VersionPageHeaderProps> = (pro
                 return !config.featureReadOnly() &&
                     config.featureDraftMutability() &&
                     props.version?.state === "DRAFT" &&
-                    user.isUserDeveloper(props.artifact?.owner);
+                    user.isUserDeveloper(props.artifact?.owner) && canWrite;
             }
         },
         {
             divider: true,
             isVisible: () => {
-                return !config.featureReadOnly() && config.featureDeleteVersion() && user.isUserDeveloper(props.artifact?.owner);
+                return !config.featureReadOnly() && config.featureDeleteVersion() && user.isUserDeveloper(props.artifact?.owner) && canWrite;
             }
         },
         {
@@ -94,10 +109,11 @@ export const VersionPageHeader: FunctionComponent<VersionPageHeaderProps> = (pro
             testId: "action-delete-version",
             onSelect: () => props.onDelete(),
             isVisible: () => {
-                return !config.featureReadOnly() && config.featureDeleteVersion() && user.isUserDeveloper(props.artifact?.owner);
+                return !config.featureReadOnly() && config.featureDeleteVersion() && user.isUserDeveloper(props.artifact?.owner) && canWrite;
             }
         }
     ];
+    const visibleActions = actions.filter(action => action.isVisible());
 
     return (
         <Flex className="example-border">
@@ -121,28 +137,30 @@ export const VersionPageHeader: FunctionComponent<VersionPageHeaderProps> = (pro
                             data-testid="header-btn-download" onClick={props.onDownload}>Download</Button>
                         <IfFeature feature="readOnly" isNot={true}>
                             <IfFeature feature="draftMutability" is={true}>
-                                <If condition={props.version?.state === "DRAFT" && user.isUserDeveloper(props.artifact?.owner)}>
+                                <If condition={props.version?.state === "DRAFT" && user.isUserDeveloper(props.artifact?.owner) && canWrite}>
                                     <Button id="edit-version-button" variant="primary" icon={<PencilAltIcon />}
                                         data-testid="header-btn-edit" onClick={props.onEdit}>Edit draft</Button>
                                 </If>
                             </IfFeature>
                         </IfFeature>
                     </ActionListItem>
-                    <ActionListItem key="actions">
-                        <ObjectDropdown
-                            label=""
-                            items={actions}
-                            onSelect={item => item.onSelect()}
-                            itemToString={item => item.label}
-                            itemToTestId={item => item.testId}
-                            itemIsVisible={item => item.isVisible()}
-                            itemIsDivider={item => item.divider}
-                            popperProps={{
-                                position: "right"
-                            }}
-                            isKebab={true}
-                        />
-                    </ActionListItem>
+                    <If condition={visibleActions.length > 0}>
+                        <ActionListItem key="actions">
+                            <ObjectDropdown
+                                label=""
+                                testId="version-actions-toggle"
+                                items={visibleActions}
+                                onSelect={item => item.onSelect()}
+                                itemToString={item => item.label}
+                                itemToTestId={item => item.testId}
+                                itemIsDivider={item => item.divider}
+                                popperProps={{
+                                    position: "right"
+                                }}
+                                isKebab={true}
+                            />
+                        </ActionListItem>
+                    </If>
                 </ActionList>
             </FlexItem>
         </Flex>

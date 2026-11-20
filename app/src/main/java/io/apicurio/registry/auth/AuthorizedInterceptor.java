@@ -1,5 +1,7 @@
 package io.apicurio.registry.auth;
 
+import io.apicurio.registry.auth.grants.GrantsAccessController;
+import io.apicurio.registry.auth.grants.GrantsAccessControllerConfig;
 import io.apicurio.registry.util.Priorities;
 import io.quarkus.security.ForbiddenException;
 import io.quarkus.security.UnauthorizedException;
@@ -24,6 +26,8 @@ import org.slf4j.Logger;
 @Priority(Priorities.Interceptors.AUTHORIZATION)
 public class AuthorizedInterceptor {
 
+    public static final String FORBIDDEN_MESSAGE = "User is not authorized to perform the requested operation.";
+
     @Inject
     Logger log;
 
@@ -45,28 +49,20 @@ public class AuthorizedInterceptor {
     @Inject
     OwnerBasedAccessController obac;
 
+    @Inject
+    GrantsAccessController grantsAc;
+
+    @Inject
+    GrantsAccessControllerConfig grantsAcConfig;
+
     @AroundInvoke
     public Object authorizeMethod(InvocationContext context) throws Exception {
 
-        // If the user is trying to invoke a role-mapping operation, deny it if
-        // database based RBAC is not enabled.
-        RoleBasedAccessApiOperation rbacOpAnnotation = context.getMethod()
-                .getAnnotation(RoleBasedAccessApiOperation.class);
-        if (rbacOpAnnotation != null) {
-            if (!authConfig.isApplicationRbacEnabled()) {
-                log.warn(
-                        "Access to /admin/roleMappings denied because application managed RBAC is not enabled.");
-                throw new ForbiddenException("Application RBAC not enabled.");
-            }
-        }
+        checkRoleMappingOperation(context);
 
         // If proxy authorization is trusted, skip local authorization checks
         // This only applies to requests authenticated via proxy headers
-        if (authConfig.proxyHeaderAuthEnabled
-                && authConfig.proxyHeaderTrustProxyAuthorization
-                && securityIdentity != null
-                && !securityIdentity.isAnonymous()
-                && securityIdentity.getCredential(ProxyHeaderCredential.class) != null) {
+        if (isTrustedProxyIdentity()) {
 
             log.debug("Trusting proxy authorization for user: {}, skipping local authorization checks",
                     securityIdentity.getPrincipal().getName());
@@ -74,8 +70,7 @@ public class AuthorizedInterceptor {
         }
 
         // If authentication is not enabled, just do it.
-        if (!authConfig.oidcAuthEnabled && !authConfig.basicAuthEnabled
-                && !authConfig.proxyHeaderAuthEnabled && !authConfig.kubernetesAuthEnabled) {
+        if (!authConfig.isAuthenticationEnabled()) {
             return context.proceed();
         }
 
@@ -88,23 +83,7 @@ public class AuthorizedInterceptor {
             if (securityIdentity == null || securityIdentity.isAnonymous()) {
                 log.debug("Identity was null or anonymous: " + securityIdentity);
 
-                // Anonymous users are allowed to perform "None" operations.
-                if (annotation.level() == AuthorizedLevel.None) {
-                    log.trace("Anonymous user is being granted access to unprotected operation.");
-                    return context.proceed();
-                }
-
-                // Anonymous users are allowed to perform read-only operations, but only if
-                // apicurio.auth.anonymous-read-access.enabled is set to 'true'
-                if (authConfig.anonymousReadAccessEnabled.get()
-                        && annotation.level() == AuthorizedLevel.Read) {
-                    log.trace("Anonymous user is being granted access to read-only operation.");
-                    return context.proceed();
-                }
-
-                // Otherwise just fail - auth was enabled but no credentials provided.
-                log.warn("Authentication credentials missing and required for protected endpoint.");
-                throw new UnauthorizedException("User is not authenticated.");
+                return authorizeAnonymous(context, annotation);
             }
         } catch (UnauthorizedException e) {
             throw e;
@@ -113,8 +92,8 @@ public class AuthorizedInterceptor {
             throw t;
         }
 
-        log.info("principalId:" + securityIdentity.getPrincipal().getName());
-        log.info("roles:" + securityIdentity.getRoles());
+        log.debug("principalId: {}", securityIdentity.getPrincipal().getName());
+        log.debug("roles: {}", securityIdentity.getRoles());
 
         // If the user is authenticated and the operation auth level is None, allow it
         if (annotation.level() == AuthorizedLevel.None) {
@@ -128,29 +107,97 @@ public class AuthorizedInterceptor {
             return context.proceed();
         }
 
-        // If Authenticated read access is enabled, and the operation auth level is Read, allow it.
-        if (authConfig.authenticatedReadAccessEnabled.get() && annotation.level() == AuthorizedLevel.Read) {
+        // If Authenticated read access is enabled, and the operation auth level is Read, any
+        // authenticated user passes RBAC (and OBAC, which only restricts writes). Per-resource
+        // authorization below still applies.
+        boolean authenticatedRead = authConfig.authenticatedReadAccessEnabled.get()
+                && annotation.level() == AuthorizedLevel.Read;
+        if (authenticatedRead && !grantsAcConfig.isEnabled()) {
             return context.proceed();
         }
 
+        checkLocalAuthorization(context, authenticatedRead);
+
+        return context.proceed();
+    }
+
+    private void checkRoleMappingOperation(InvocationContext context) {
+        // If the user is trying to invoke a role-mapping operation, deny it if
+        // database based RBAC is not enabled.
+        RoleBasedAccessApiOperation rbacOpAnnotation = context.getMethod()
+                .getAnnotation(RoleBasedAccessApiOperation.class);
+        if (rbacOpAnnotation != null) {
+            if (!authConfig.isApplicationRbacEnabled()) {
+                log.warn(
+                        "Access to /admin/roleMappings denied because application managed RBAC is not enabled.");
+                throw new ForbiddenException("Application RBAC not enabled.");
+            }
+        }
+    }
+
+    private boolean isTrustedProxyIdentity() {
+        return authConfig.proxyHeaderAuthEnabled
+                && authConfig.proxyHeaderTrustProxyAuthorization
+                && securityIdentity != null
+                && !securityIdentity.isAnonymous()
+                && securityIdentity.getCredential(ProxyHeaderCredential.class) != null;
+    }
+
+    private Object authorizeAnonymous(InvocationContext context, Authorized annotation) throws Exception {
+        // Anonymous users are allowed to perform "None" operations.
+        if (annotation.level() == AuthorizedLevel.None) {
+            log.trace("Anonymous user is being granted access to unprotected operation.");
+            return context.proceed();
+        }
+
+        // Anonymous users are allowed to perform read-only operations, but only if
+        // apicurio.auth.anonymous-read-access.enabled is set to 'true'. Per-resource
+        // authorization still applies: anonymous callers get the "$anonymous" grants role.
+        if (authConfig.anonymousReadAccessEnabled.get()
+                && annotation.level() == AuthorizedLevel.Read) {
+            if (grantsAcConfig.isEnabled() && !grantsAc.isAuthorized(context)) {
+                log.warn("Per-resource authorization denied anonymous read access.");
+                throw new UnauthorizedException("User is not authenticated.");
+            }
+            log.trace("Anonymous user is being granted access to read-only operation.");
+            return context.proceed();
+        }
+
+        // Otherwise just fail - auth was enabled but no credentials provided.
+        log.warn("Authentication credentials missing and required for protected endpoint.");
+        throw new UnauthorizedException("User is not authenticated.");
+    }
+
+    private void checkLocalAuthorization(InvocationContext context, boolean authenticatedRead) {
         // If RBAC is enabled, apply role based rules
-        if (authConfig.roleBasedAuthorizationEnabled && !rbac.isAuthorized(context)) {
+        if (!authenticatedRead && authConfig.roleBasedAuthorizationEnabled && !rbac.isAuthorized(context)) {
             log.warn("RBAC enabled and required role missing.");
-            throw new ForbiddenException("User " + securityIdentity.getPrincipal().getName()
-                    + " is not authorized to perform the requested operation.");
+            log.debug("Denying access for user: {}", securityIdentity.getPrincipal().getName());
+            throw new ForbiddenException(FORBIDDEN_MESSAGE);
         }
 
         // If Owner-only is enabled, apply ownership rules
-        if (authConfig.ownerOnlyAuthorizationEnabled.get()) {
+        if (!authenticatedRead && authConfig.ownerOnlyAuthorizationEnabled.get()) {
             if (authConfig.roleBasedAuthorizationEnabled && rbac.isAdmin()) {
                 // User is admin, that's good enough.
             } else if (!obac.isAuthorized(context)) {
                 log.warn("OBAC enabled and operation not permitted due to wrong owner.");
-                throw new ForbiddenException("User " + securityIdentity.getPrincipal().getName()
-                        + " is not authorized to perform the requested operation.");
+                log.debug("Denying access for user: {}", securityIdentity.getPrincipal().getName());
+                throw new ForbiddenException(FORBIDDEN_MESSAGE);
             }
         }
 
-        return context.proceed();
+        // Per-resource authorization (grants). Restricts within what RBAC allows. The owner of the
+        // addressed artifact/group bypasses grants; resources that do not exist or have no owner
+        // never grant a bypass.
+        // RBAC administrators are not subject to per-resource authorization.
+        if (grantsAcConfig.isEnabled()
+                && !(authConfig.roleBasedAuthorizationEnabled && rbac.isAdmin())
+                && !grantsAc.isStrictOwner(context)
+                && !grantsAc.isAuthorized(context)) {
+            log.warn("Per-resource authorization denied access.");
+            log.debug("Denying access for user: {}", securityIdentity.getPrincipal().getName());
+            throw new ForbiddenException(FORBIDDEN_MESSAGE);
+        }
     }
 }

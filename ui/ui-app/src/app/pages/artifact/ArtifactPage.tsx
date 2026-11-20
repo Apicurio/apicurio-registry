@@ -1,6 +1,7 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import "./ArtifactPage.css";
 import { LoaderGuard, newLoaderGuard } from "@utils/loader.utils.ts";
+import { SubmittedContent, toSubmittedContent } from "@utils/ruleViolation.utils.ts";
 import { Breadcrumb, BreadcrumbItem, PageSection, Tab, Tabs } from "@patternfly/react-core";
 import { Link, useMatch, useParams } from "react-router";
 import { EXPLORE_PAGE_IDX, PageDataLoader, PageError, PageErrorHandler, PageProperties, toPageError } from "@app/pages";
@@ -10,15 +11,17 @@ import {
     CreateBranchModal,
     CreateVersionModal,
     EditMetaDataModal,
+    ImportMcpToolsModal,
     IfFeature,
     InvalidContentModal,
     MetaData,
     RootPageHeader
 } from "@app/components";
-import { PleaseWaitModal } from "@apicurio/common-ui-components";
+import { PleaseWaitModal } from "@apitomy/common-ui-components";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
+import { SearchService, useSearchService } from "@services/useSearchService.ts";
 import {
     ArtifactOverviewTabContent,
     ArtifactPageHeader,
@@ -29,6 +32,7 @@ import { ArtifactUsageTabContent } from "@app/pages/artifact/components/tabs/Art
 import {
     AddVersionToBranch,
     ArtifactMetaData,
+    ResourcePermissions,
     CreateBranch,
     CreateVersion,
     Rule,
@@ -48,6 +52,7 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
     const [pageError, setPageError] = useState<PageError>();
     const [loaders, setLoaders] = useState<Promise<any> | Promise<any>[] | undefined>();
     const [artifact, setArtifact] = useState<ArtifactMetaData>();
+    const [permissions, setPermissions] = useState<ResourcePermissions>();
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isDeleteVersionModalOpen, setIsDeleteVersionModalOpen] = useState(false);
     const [isDeleteBranchModalOpen, setIsDeleteBranchModalOpen] = useState(false);
@@ -56,10 +61,14 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
     const [isAddVersionToBranchModalOpen, setIsAddVersionToBranchModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isChangeOwnerModalOpen, setIsChangeOwnerModalOpen] = useState(false);
+    const [isImportMcpToolsModalOpen, setIsImportMcpToolsModalOpen] = useState(false);
     const [isPleaseWaitModalOpen, setIsPleaseWaitModalOpen] = useState(false);
     const [pleaseWaitMessage, setPleaseWaitMessage] = useState("");
     const [rules, setRules] = useState<Rule[]>([]);
+    const [ruleActionError, setRuleActionError] = useState<string>();
+    const [pendingRuleType, setPendingRuleType] = useState<string>();
     const [invalidContentError, setInvalidContentError] = useState<RuleViolationProblemDetails>();
+    const [invalidContent, setInvalidContent] = useState<SubmittedContent>();
     const [isInvalidContentModalOpen, setIsInvalidContentModalOpen] = useState(false);
     const [versionToDelete, setVersionToDelete] = useState<SearchedVersion>();
     const [versionDeleteSuccessCallback, setVersionDeleteSuccessCallback] = useState<() => void>();
@@ -70,6 +79,7 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
     const appNavigation: AppNavigation = useAppNavigation();
     const logger: LoggerService = useLoggerService();
     const groups: GroupsService = useGroupsService();
+    const search: SearchService = useSearchService();
     const { groupId, artifactId }= useParams();
     const rulesMatch = useMatch("/explore/:groupId/:artifactId/rules");
     const branchesMatch = useMatch("/explore/:groupId/:artifactId/branches");
@@ -99,6 +109,8 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
                 .catch(guard.wrap((error: any) => {
                     setPageError(toPageError(error, "Error loading page data."));
                 })),
+            // Never fails: without permissions, the UI shows the actions and lets the server decide
+            search.artifactPermissions(groupId as string, artifactId as string).then(guard.wrap(setPermissions)),
             groups.getArtifactRules(gid, artifactId as string)
                 .then(guard.wrap(setRules))
                 .catch(guard.wrap((error: any) => {
@@ -124,36 +136,51 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
 
     const doEnableRule = (ruleType: string): void => {
         logger.debug("[ArtifactPage] Enabling rule:", ruleType);
+        setRuleActionError(undefined);
+        setPendingRuleType(ruleType);
         let config: string = "FULL";
         if (ruleType === "COMPATIBILITY") {
             config = "BACKWARD";
         }
-        groups.createArtifactRule(groupId as string, artifactId as string, ruleType, config).catch(error => {
-            setPageError(toPageError(error, `Error enabling "${ ruleType }" artifact rule.`));
+        groups.createArtifactRule(groupId as string, artifactId as string, ruleType, config).then(() => {
+            setRules(prev => [...prev, { config, ruleType: ruleType as RuleType }]);
+        }).catch(error => {
+            setRuleActionError(error?.detail || error?.title || `Error enabling "${ ruleType }" artifact rule. Please try again.`);
+        }).finally(() => {
+            setPendingRuleType(undefined);
         });
-        setRules([...rules, { config, ruleType: ruleType as RuleType }]);
     };
 
     const doDisableRule = (ruleType: string): void => {
         logger.debug("[ArtifactPage] Disabling rule:", ruleType);
-        groups.deleteArtifactRule(groupId as string, artifactId as string, ruleType).catch(error => {
-            setPageError(toPageError(error, `Error disabling "${ ruleType }" artifact rule.`));
+        setRuleActionError(undefined);
+        setPendingRuleType(ruleType);
+        groups.deleteArtifactRule(groupId as string, artifactId as string, ruleType).then(() => {
+            setRules(prev => prev.filter(r => r.ruleType !== ruleType));
+        }).catch(error => {
+            setRuleActionError(error?.detail || error?.title || `Error disabling "${ ruleType }" artifact rule. Please try again.`);
+        }).finally(() => {
+            setPendingRuleType(undefined);
         });
-        setRules(rules.filter(r => r.ruleType !== ruleType));
     };
 
     const doConfigureRule = (ruleType: string, config: string): void => {
         logger.debug("[ArtifactPage] Configuring rule:", ruleType, config);
-        groups.updateArtifactRule(groupId as string, artifactId as string, ruleType, config).catch(error => {
-            setPageError(toPageError(error, `Error configuring "${ ruleType }" artifact rule.`));
+        setRuleActionError(undefined);
+        setPendingRuleType(ruleType);
+        groups.updateArtifactRule(groupId as string, artifactId as string, ruleType, config).then(() => {
+            setRules(prev => prev.map(r => {
+                if (r.ruleType === ruleType) {
+                    return { config, ruleType: r.ruleType };
+                } else {
+                    return r;
+                }
+            }));
+        }).catch(error => {
+            setRuleActionError(error?.detail || error?.title || `Error configuring "${ ruleType }" artifact rule. Please try again.`);
+        }).finally(() => {
+            setPendingRuleType(undefined);
         });
-        setRules(rules.map(r => {
-            if (r.ruleType === ruleType) {
-                return { config, ruleType: r.ruleType };
-            } else {
-                return r;
-            }
-        }));
     };
 
     const onDeleteModalClose = (): void => {
@@ -308,9 +335,10 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
         });
     };
 
-    const handleInvalidContentError = (error: any): void => {
+    const handleInvalidContentError = (error: any, content?: SubmittedContent): void => {
         logger.info("INVALID CONTENT ERROR", error);
         setInvalidContentError(error);
+        setInvalidContent(content);
         setIsInvalidContentModalOpen(true);
     };
 
@@ -329,7 +357,7 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
         }).catch( error => {
             pleaseWait(false);
             if (error && (error.status === 400 || error.status === 409)) {
-                handleInvalidContentError(error);
+                handleInvalidContentError(error, toSubmittedContent(data.content));
             } else {
                 setPageError(toPageError(error, "Error creating artifact version."));
             }
@@ -358,12 +386,21 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
         });
     };
 
+    const onImportMcpToolsModalClose = (imported: boolean): void => {
+        setIsImportMcpToolsModalOpen(false);
+        if (imported) {
+            // The import added a version of this artifact; load the page again to show it.
+            setLoaders(createLoaders(newLoaderGuard()));
+        }
+    };
+
     const pleaseWait = (isOpen: boolean, message: string = ""): void => {
         setIsPleaseWaitModalOpen(isOpen);
         setPleaseWaitMessage(message);
     };
 
     useEffect(() => {
+        setPageError(undefined);
         const guard: LoaderGuard = newLoaderGuard();
         setLoaders(createLoaders(guard));
         return () => guard.cancel();
@@ -373,6 +410,7 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
         <Tab data-testid="artifact-overview-tab" eventKey="overview" title="Overview" key="overview" tabContentId="tab-overview">
             <ArtifactOverviewTabContent
                 artifact={artifact as ArtifactMetaData}
+                permissions={permissions}
                 rules={rules}
                 onCreateVersion={() => setIsCreateVersionModalOpen(true)}
                 onAddVersionToBranch={onAddVersionToBranch}
@@ -390,6 +428,9 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
                 onEnableRule={doEnableRule}
                 onDisableRule={doDisableRule}
                 onConfigureRule={doConfigureRule}
+                actionError={ruleActionError}
+                onDismissActionError={() => setRuleActionError(undefined)}
+                pendingRuleType={pendingRuleType}
             />
         </Tab>,
         <Tab data-testid="artifact-branches-tab" eventKey="branches" title="Branches" key="branches" tabContentId="tab-branches">
@@ -434,7 +475,9 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
                 <PageSection hasBodyWrapper={false} className="ps_artifact-version-header" >
                     <ArtifactPageHeader
                         artifact={artifact as ArtifactMetaData}
-                        onDeleteArtifact={onDeleteArtifact} />
+                        permissions={permissions}
+                        onDeleteArtifact={onDeleteArtifact}
+                        onImportMcpTools={() => setIsImportMcpToolsModalOpen(true)} />
                 </PageSection>
                 <PageSection hasBodyWrapper={false}  isFilled={true} padding={{ default: "noPadding" }} className="artifact-details-main">
                     <Tabs className="artifact-page-tabs"
@@ -485,6 +528,13 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
                 onClose={() => setIsCreateBranchModalOpen(false)}
                 onCreate={doCreateArtifactBranch}
             />
+            <ImportMcpToolsModal
+                isOpen={isImportMcpToolsModalOpen}
+                groupId={gid}
+                artifactId={artifactId as string}
+                onClose={onImportMcpToolsModalClose}
+                onImport={data => groups.importMcpTools(groupId as string, artifactId as string, data)}
+            />
             <ChangeOwnerModal isOpen={isChangeOwnerModalOpen}
                 onClose={onChangeOwnerModalClose}
                 currentOwner={artifact?.owner || ""}
@@ -499,6 +549,10 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
             <PleaseWaitModal message={pleaseWaitMessage}
                 isOpen={isPleaseWaitModalOpen} />
             <InvalidContentModal error={invalidContentError}
+                content={invalidContent?.content}
+                contentType={invalidContent?.contentType}
+                groupId={groupId}
+                artifactId={artifactId}
                 isOpen={isInvalidContentModalOpen}
                 onClose={() => {setIsInvalidContentModalOpen(false);}} />
         </PageErrorHandler>

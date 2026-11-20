@@ -16,7 +16,7 @@ custom resource.
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-The `ApicurioRegistry3` custom resource defines the desired state of a {registry} instance. The resource is
+The `ApicurioRegistry3` custom resource defines the desired state of an instance of {registry}. The resource is
 organized into two main sections under `spec`:
 
 [source,yaml,subs="attributes"]
@@ -76,6 +76,11 @@ The following fields are available for both `spec.app` and `spec.ui` components:
 |PodDisruptionSpec
 |`{ enabled: true }`
 
+|`autoscaling`
+|Horizontal pod autoscaling configuration for the component
+|AutoscalingSpec
+|`{ enabled: false }`
+
 |`networkPolicy`
 |NetworkPolicy configuration
 |NetworkPolicySpec
@@ -86,6 +91,8 @@ The following fields are available for both `spec.app` and `spec.ui` components:
 |String
 |`""`
 |===
+
+The top-level `spec.consolePlugin.enabled` field (Boolean, default `false`) controls whether the {operator} deploys the OpenShift Console plugin component.
 
 The following fields are specific to `spec.app`:
 
@@ -879,9 +886,9 @@ Configure TLS for OIDC connections:
 |Default
 
 |`tlsVerificationType`
-|TLS verification type: `all`, `none`
+|TLS verification type. `required` validates the certificate chain and verifies the hostname. `certificate-validation` validates the certificate chain and, when a custom truststore is configured, skips hostname verification. Without a custom truststore, hostname verification stays enabled. `none` disables certificate and hostname verification.
 |String
-|`all`
+|`required`
 
 |`truststoreSecretRef`
 |Reference to a Secret containing the TLS truststore (PKCS12 format). Default key: `ca.p12`
@@ -901,7 +908,7 @@ spec:
   app:
     auth:
       tls:
-        tlsVerificationType: all
+        tlsVerificationType: required
         truststoreSecretRef:
           name: keycloak-ca-cert
           key: ca.p12

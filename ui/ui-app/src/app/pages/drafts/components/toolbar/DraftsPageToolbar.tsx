@@ -1,13 +1,14 @@
 import { FunctionComponent } from "react";
 import "./DraftsPageToolbar.css";
 import { Button, Pagination, Toolbar, ToolbarContent, ToolbarGroup, ToolbarItem } from "@patternfly/react-core";
+import { IfFeature } from "@app/components";
 import {
     ChipFilterCriteria,
     ChipFilterInput,
     ChipFilterType,
     FilterChips,
     ObjectSelect
-} from "@apicurio/common-ui-components";
+} from "@apitomy/common-ui-components";
 import { DraftsFilterBy, DraftsSearchFilter, DraftsSearchResults, DraftsSortBy } from "@models/drafts";
 import { Paging } from "@models/Paging.ts";
 import { SortOrder } from "@models/SortOrder.ts";
@@ -65,9 +66,9 @@ export const DraftsPageToolbar: FunctionComponent<DraftsPageToolbarProps> = (pro
         props.onPageChange(newPaging);
     };
 
-    const onPerPageSelect = (_event: any, newPerPage: number): void => {
+    const onPerPageSelect = (_event: any, newPerPage: number, newPage: number): void => {
         const newPaging: Paging = {
-            page: props.paging.page,
+            page: newPage,
             pageSize: newPerPage
         };
         props.onPageChange(newPaging);
@@ -172,10 +173,12 @@ export const DraftsPageToolbar: FunctionComponent<DraftsPageToolbarProps> = (pro
                         </ToolbarItem>
                     </ToolbarGroup>
                     <ToolbarGroup>
-                        <ToolbarItem className="create-draft-item" style={{ paddingLeft: "20px" }} align={{ default: "alignEnd" }}>
-                            <Button className="btn-header-create-draft" data-testid="btn-toolbar-create-draft"
-                                variant="primary" onClick={props.onCreateDraft}>Create draft</Button>
-                        </ToolbarItem>
+                        <IfFeature feature="readOnly" isNot={true}>
+                            <ToolbarItem className="create-draft-item" style={{ paddingLeft: "20px" }} align={{ default: "alignEnd" }}>
+                                <Button className="btn-header-create-draft" data-testid="btn-toolbar-create-draft"
+                                    variant="primary" onClick={props.onCreateDraft}>Create draft</Button>
+                            </ToolbarItem>
+                        </IfFeature>
                     </ToolbarGroup>
                 </ToolbarContent>
             </Toolbar>

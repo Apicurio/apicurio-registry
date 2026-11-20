@@ -1,0 +1,10 @@
+$type: artifact-v0
+registryIds: [test]
+groupId: default
+artifactId: avro-in-json
+artifactType: AVRO
+name: Avro schema stored as .json
+versions:
+  - version: "1"
+    state: ENABLED
+    content: ./content/schema.json

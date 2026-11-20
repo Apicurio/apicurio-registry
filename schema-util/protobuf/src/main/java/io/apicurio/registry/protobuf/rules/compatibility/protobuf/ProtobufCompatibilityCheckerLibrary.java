@@ -168,6 +168,13 @@ public class ProtobufCompatibilityCheckerLibrary {
             Map<String, FieldElement> updated = after.get(entry.getKey());
             if (updated != null) {
                 removedFieldNames.removeAll(updated.keySet());
+            } else if (isSyntheticMapEntryRemoved(entry.getKey())) {
+                // The message is a synthetic map entry (a nested message with
+                // "option map_entry = true") that only exists in the desugared descriptor
+                // representation of a map field. Its absence on the other side just means the
+                // other schema renders the same map field using map<K, V> syntax, so its
+                // key/value fields are not actually removed.
+                continue;
             }
 
             int issuesCount = 0;
@@ -266,29 +273,37 @@ public class ProtobufCompatibilityCheckerLibrary {
                     FieldElement afterFE = afterMap.get(beforeKV.getKey());
 
                     if (afterFE != null) {
-
-                        String beforeType = normalizeType(fileBefore, beforeKV.getValue().getType(),
-                                entry.getKey());
-                        String afterType = normalizeType(fileAfter, afterFE.getType(), entry.getKey());
-
-                        if (afterFE != null && !beforeType.equals(afterType)) {
-                            issues.add(ProtobufDifference.from(String.format(
-                                    "Field type changed, message %s , before: %s , after %s", entry.getKey(),
-                                    beforeKV.getValue().getType(), afterFE.getType())));
-                        }
-
-                        if (afterFE != null
-                                && !Objects.equals(beforeKV.getValue().getLabel(), afterFE.getLabel())) {
-                            issues.add(ProtobufDifference.from(String.format(
-                                    "Field label changed, message %s , before: %s , after %s", entry.getKey(),
-                                    beforeKV.getValue().getLabel(), afterFE.getLabel())));
-                        }
+                        checkFieldTypeAndLabel(entry.getKey(), beforeKV.getValue(), afterFE, issues);
                     }
                 }
             }
         }
 
         return issues;
+    }
+
+    private void checkFieldTypeAndLabel(String messageName, FieldElement beforeFE, FieldElement afterFE,
+            List<ProtobufDifference> issues) {
+        String beforeType = normalizeType(fileBefore, beforeFE.getType(), messageName);
+        String afterType = normalizeType(fileAfter, afterFE.getType(), messageName);
+
+        if (!Objects.equals(beforeType, afterType)) {
+            issues.add(ProtobufDifference.from(String.format(
+                    "Field type changed, message %s , before: %s , after %s", messageName,
+                    beforeFE.getType(), afterFE.getType())));
+        }
+
+        if (!Objects.equals(beforeFE.getLabel(), afterFE.getLabel())
+                && !(beforeType != null && beforeType.startsWith("map<")
+                        && beforeType.equals(afterType))) {
+            // A label difference is benign when both sides resolved to the same
+            // map<K, V> type: one side renders the map field with map syntax (no
+            // label) while the other uses the desugared descriptor representation
+            // (REPEATED label on the synthetic map entry type).
+            issues.add(ProtobufDifference.from(String.format(
+                    "Field label changed, message %s , before: %s , after %s", messageName,
+                    beforeFE.getLabel(), afterFE.getLabel())));
+        }
     }
 
     /**
@@ -305,9 +320,20 @@ public class ProtobufCompatibilityCheckerLibrary {
             return null;
         }
 
-        // Handle Protobuf map types
+        // Handle Protobuf map types: normalize the key and value types so that equivalent map
+        // fields compare equal even when one side uses qualified type names and the other does
+        // not (e.g. "map<string, Foo>" vs "map<string, .test.Foo>").
         if (type.startsWith("map<")) {
-            return type;
+            return normalizeMapType(file, type, messageContext);
+        }
+
+        // A repeated field whose type is a synthetic map entry message (a nested message with
+        // "option map_entry = true") is the desugared descriptor representation of a map field.
+        // Resolve it to the equivalent map<K, V> type so that it compares equal to the same
+        // field rendered with map syntax on the other side.
+        String mapType = findMapEntryType(file, type, messageContext);
+        if (mapType != null) {
+            return normalizeMapType(file, mapType, messageContext);
         }
 
         // If already fully qualified (starts with .), return it as-is
@@ -337,21 +363,9 @@ public class ProtobufCompatibilityCheckerLibrary {
         //   2. ParentOne.NestedType
         //   3. NestedType (top-level)
 
-        if (messageContext != null && !messageContext.isEmpty()) {
-            // Split the message context into scopes (e.g., "ParentOne.ParentTwo" -> ["ParentOne", "ParentTwo"])
-            String[] scopes = messageContext.split("\\.");
-
-            // Iterate from innermost scope outward through parent scopes
-            for (int i = scopes.length; i > 0; i--) {
-                // Build the candidate path by joining the first i scopes
-                String scopePath = String.join(".", java.util.Arrays.copyOfRange(scopes, 0, i));
-                String candidate = scopePath + "." + type;
-
-                if (typeExistsInFile(file, candidate)) {
-                    // Found the type in this scope
-                    return buildFullyQualifiedName(file, candidate);
-                }
-            }
+        String scoped = resolveInEnclosingScopes(file, type, messageContext);
+        if (scoped != null) {
+            return scoped;
         }
 
         // Check if it's a top-level type in the same file
@@ -368,6 +382,84 @@ public class ProtobufCompatibilityCheckerLibrary {
         // the same file) are already handled by the scope-iteration loop above, which walks the
         // messageContext chain outward before reaching this fallback.
         return buildFullyQualifiedName(file, type);
+    }
+
+    /**
+     * Returns the {@code map<K, V>} type of the synthetic map entry message referenced by
+     * {@code type} within {@code messageContext}, or {@code null} if it is not a map entry type.
+     */
+    private static String findMapEntryType(ProtobufFile file, String type, String messageContext) {
+        Map<String, String> entryTypes = file.getMapEntryTypes().get(messageContext);
+        if (entryTypes == null) {
+            return null;
+        }
+        // The field's type may be simple ("DataEntry"), qualified
+        // ("OrderChanged.DataEntry"), or fully qualified (".test.OrderChanged.DataEntry");
+        // the entry message's simple name is always its last component.
+        String simpleName = type.startsWith(".") ? type.substring(1) : type;
+        int lastDot = simpleName.lastIndexOf('.');
+        if (lastDot >= 0) {
+            simpleName = simpleName.substring(lastDot + 1);
+        }
+        return entryTypes.get(simpleName);
+    }
+
+    /**
+     * Resolves {@code type} against the scopes of {@code messageContext}, innermost first.
+     *
+     * @return the fully qualified name, or {@code null} if not found in any enclosing scope
+     */
+    private String resolveInEnclosingScopes(ProtobufFile file, String type, String messageContext) {
+        if (messageContext != null && !messageContext.isEmpty()) {
+            // Split the message context into scopes (e.g., "ParentOne.ParentTwo" -> ["ParentOne", "ParentTwo"])
+            String[] scopes = messageContext.split("\\.");
+
+            // Iterate from innermost scope outward through parent scopes
+            for (int i = scopes.length; i > 0; i--) {
+                // Build the candidate path by joining the first i scopes
+                String scopePath = String.join(".", java.util.Arrays.copyOfRange(scopes, 0, i));
+                String candidate = scopePath + "." + type;
+
+                if (typeExistsInFile(file, candidate)) {
+                    // Found the type in this scope
+                    return buildFullyQualifiedName(file, candidate);
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Normalizes a map type by normalizing its key and value types, so that map fields
+     * compare equal regardless of the type reference style used on each side.
+     *
+     * @param file           the protobuf file containing the type
+     * @param type           the map type (e.g., "map&lt;string, Foo&gt;")
+     * @param messageContext the message in which the field is defined
+     * @return the normalized map type (e.g., "map&lt;string, .test.Foo&gt;")
+     */
+    private String normalizeMapType(ProtobufFile file, String type, String messageContext) {
+        int comma = type.indexOf(',');
+        if (!type.endsWith(">") || comma < 0) {
+            return type;
+        }
+        String keyType = type.substring("map<".length(), comma).trim();
+        String valueType = type.substring(comma + 1, type.length() - 1).trim();
+        return "map<" + normalizeType(file, keyType, messageContext) + ", "
+                + normalizeType(file, valueType, messageContext) + ">";
+    }
+
+    /**
+     * Checks whether the given message, which exists in the "before" file but not in the
+     * "after" file, is a synthetic map entry message (the desugared descriptor representation
+     * of a map field). Its absence on the other side just means that side renders the same map
+     * field using map syntax instead, so its key/value fields are not actually removed.
+     *
+     * @param messageName the scoped message name (e.g. "OrderChanged.DataEntry")
+     * @return true if the message is a synthetic map entry in the "before" file
+     */
+    private boolean isSyntheticMapEntryRemoved(String messageName) {
+        return fileBefore.getMapEntryMessages().contains(messageName);
     }
 
     /**

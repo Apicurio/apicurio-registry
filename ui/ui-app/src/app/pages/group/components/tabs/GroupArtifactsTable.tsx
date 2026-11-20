@@ -2,9 +2,10 @@ import React, { FunctionComponent, useEffect, useState } from "react";
 import "./GroupArtifactsTable.css";
 import { Link } from "react-router";
 import { SortByDirection, ThProps } from "@patternfly/react-table";
-import { FromNow, ObjectDropdown, ResponsiveTable } from "@apicurio/common-ui-components";
+import { FromNow, ObjectDropdown, ResponsiveTable } from "@apitomy/common-ui-components";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { ArtifactDescription, ArtifactTypeIcon } from "@app/components";
+import { isPermitted } from "@utils/permissions.utils.ts";
 import { shash } from "@utils/string.utils.ts";
 import { Truncate } from "@patternfly/react-core";
 import {
@@ -91,7 +92,8 @@ export const GroupArtifactsTable: FunctionComponent<GroupArtifactsTableProps> = 
     const actionsFor = (artifact: SearchedVersion): (ArtifactAction | ArtifactActionSeparator)[] => {
         const ahash: number = shash(artifact.artifactId!);
 
-        return config.featureDeleteArtifact() ? [
+        // The permissions are hints: a server that reports none leaves the action to its own checks
+        return config.featureDeleteArtifact() && isPermitted(artifact.permissions) ? [
             { label: "Explore artifact", onClick: () => props.onView(artifact), testId: `view-artifact-${ahash}` },
             { isSeparator: true },
             { label: "Delete artifact", onClick: () => props.onDelete(artifact), testId: `delete-artifact-${ahash}` }

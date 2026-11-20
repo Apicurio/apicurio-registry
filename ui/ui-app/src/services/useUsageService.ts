@@ -1,4 +1,4 @@
-import { AuthService, useAuth } from "@apicurio/common-ui-components";
+import { AuthService, useAuth } from "@apitomy/common-ui-components";
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 import { getRegistryClient } from "@utils/rest.utils.ts";
 import { ArtifactUsageMetrics, ConsumerVersionHeatmap, DeprecationReadiness, UsageSummary } from "@sdk/lib/generated-client/models";

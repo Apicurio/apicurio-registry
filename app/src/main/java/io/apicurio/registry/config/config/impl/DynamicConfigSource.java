@@ -73,10 +73,10 @@ public class DynamicConfigSource implements ConfigSource {
     @Override
     public String getValue(String propertyName) {
         String pname = normalizePropertyName(propertyName);
-        if (configIndex.isPresent() && configIndex.get().hasProperty(pname)) {
+        if (configIndex.isPresent() && configIndex.orElseThrow().hasProperty(pname)) {
             if (storage.isPresent()) {
-                if (storage.get().isReady()) { // TODO Merge the ifs after removing logging
-                    DynamicConfigPropertyDto dto = storage.get().getConfigProperty(pname);
+                if (storage.orElseThrow().isReady()) { // TODO Merge the ifs after removing logging
+                    DynamicConfigPropertyDto dto = storage.orElseThrow().getConfigProperty(pname);
                     if (dto != null) {
                         log.trace("Got dynamic configuration value {} for {} in thread {}", dto.getValue(),
                                 pname, Thread.currentThread().getName());

@@ -1,0 +1,19 @@
+{
+  "name": "get_forecast",
+  "title": "Get forecast",
+  "description": "Daily forecast for a city (fictional data)",
+  "inputSchema": {
+    "type": "object",
+    "properties": { "city": { "type": "string" } },
+    "required": ["city"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "city": { "type": "string" },
+      "temperature": { "type": "number" },
+      "conditions": { "type": "string" }
+    },
+    "required": ["city", "temperature", "conditions"]
+  }
+}

@@ -28,20 +28,14 @@
       "name": "mapTest",
       "type": {
         "type": "map",
-        "values": {
-          "name": "schemaFMapValue",
-          "type": "com.kubetrade.schema.trade.AvroSchemaF"
-        }
+        "values": "com.kubetrade.schema.trade.AvroSchemaF"
       }
     },
     {
       "name": "arrayTest",
       "type": {
         "type": "array",
-        "items": {
-          "name": "schemaFArrayValue",
-          "type": "com.kubetrade.schema.trade.AvroSchemaF"
-        }
+        "items": "com.kubetrade.schema.trade.AvroSchemaF"
       }
     },
     {

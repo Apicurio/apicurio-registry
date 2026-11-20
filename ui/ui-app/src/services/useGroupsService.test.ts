@@ -1,0 +1,286 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { Paging } from "@models/Paging.ts";
+import { HeadersInspectionOptions } from "@microsoft/kiota-http-fetchlibrary";
+import { HandleReferencesTypeObject } from "@sdk/lib/generated-client/models";
+
+const { axiosGetMock, createAuthOptionsMock, getRegistryClientMock } = vi.hoisted(() => {
+    // useConfigService.ts reads this global at module load time (normally injected
+    // by the app's config.js in a real browser); provide a minimal stand-in so the
+    // service modules under test can be imported in a Vitest (node) environment.
+    const registryConfig = { artifacts: { url: "http://localhost:8080/apis/registry/v3/" } };
+    (globalThis as any).ApicurioRegistryConfig = registryConfig;
+    (globalThis as any).window = { ApicurioRegistryConfig: registryConfig };
+    return {
+        axiosGetMock: vi.fn(),
+        createAuthOptionsMock: vi.fn(),
+        getRegistryClientMock: vi.fn()
+    };
+});
+
+vi.mock("@apitomy/common-ui-components", () => ({
+    useAuth: () => ({})
+}));
+
+vi.mock("@utils/rest.utils.ts", () => {
+    return {
+        createAuthOptions: createAuthOptionsMock,
+        createEndpoint: (baseHref: string, path: string, params?: any, queryParams?: any) => {
+            if (params) {
+                Object.keys(params).forEach(key => {
+                    path = path.replace(":" + key, encodeURIComponent(params[key]));
+                });
+            }
+            let href = `${baseHref.replace(/\/$/, "")}${path}`;
+            if (queryParams) {
+                const search = new URLSearchParams();
+                Object.keys(queryParams).forEach(key => {
+                    if (queryParams[key] !== undefined && queryParams[key] !== null && queryParams[key] !== "") {
+                        search.set(key, queryParams[key]);
+                    }
+                });
+                const query = search.toString();
+                if (query) {
+                    href = `${href}?${query}`;
+                }
+            }
+            return href;
+        },
+        getRegistryClient: getRegistryClientMock
+    };
+});
+
+vi.mock("axios", () => ({
+    default: {
+        get: axiosGetMock,
+        post: vi.fn()
+    }
+}));
+
+import { useGroupsService } from "./useGroupsService";
+
+beforeEach(() => {
+    axiosGetMock.mockReset();
+    createAuthOptionsMock.mockReset();
+    getRegistryClientMock.mockReset();
+});
+
+const PAGES_TO_CHECK: { page: number; expectedOffset: number }[] = [
+    { page: 1, expectedOffset: 0 },
+    { page: 2, expectedOffset: 10 },
+    { page: 3, expectedOffset: 20 }
+];
+
+function assertConstantLimit(get: ReturnType<typeof vi.fn>): void {
+    expect(get).toHaveBeenCalledTimes(PAGES_TO_CHECK.length);
+    const queryParams = get.mock.calls.map(call => call[0].queryParameters);
+    queryParams.forEach((params: any, i: number) => {
+        expect(params.limit).toBe(10);
+        expect(params.offset).toBe(PAGES_TO_CHECK[i].expectedOffset);
+    });
+}
+
+// Regression test for issue #9086: the `limit` query param must always equal
+// `pageSize`, regardless of which page is being requested. Previously it was
+// computed as `offset + pageSize`, so it grew on every page past page 1.
+describe("useGroupsService pagination", () => {
+    it("sends a constant limit and correct offset across pages for getGroupArtifacts", async () => {
+        const get = vi.fn().mockResolvedValue({ count: 0, artifacts: [] });
+        getRegistryClientMock.mockReturnValue({
+            groups: { byGroupId: () => ({ artifacts: { get } }) }
+        });
+
+        const service = useGroupsService();
+        for (const { page } of PAGES_TO_CHECK) {
+            const paging: Paging = { page, pageSize: 10 };
+            await service.getGroupArtifacts("default", "name" as any, "asc" as any, paging);
+        }
+
+        assertConstantLimit(get);
+    });
+
+    it("sends a constant limit and correct offset across pages for getArtifactVersions", async () => {
+        const get = vi.fn().mockResolvedValue({ count: 0, versions: [] });
+        getRegistryClientMock.mockReturnValue({
+            groups: { byGroupId: () => ({ artifacts: { byArtifactId: () => ({ versions: { get } }) } }) }
+        });
+
+        const service = useGroupsService();
+        for (const { page } of PAGES_TO_CHECK) {
+            const paging: Paging = { page, pageSize: 10 };
+            await service.getArtifactVersions("default", "my-artifact", "version" as any, "asc" as any, paging);
+        }
+
+        assertConstantLimit(get);
+    });
+
+    it("sends a constant limit and correct offset across pages for getArtifactBranches", async () => {
+        const get = vi.fn().mockResolvedValue({ count: 0, branches: [] });
+        getRegistryClientMock.mockReturnValue({
+            groups: { byGroupId: () => ({ artifacts: { byArtifactId: () => ({ branches: { get } }) } }) }
+        });
+
+        const service = useGroupsService();
+        for (const { page } of PAGES_TO_CHECK) {
+            const paging: Paging = { page, pageSize: 10 };
+            await service.getArtifactBranches("default", "my-artifact", paging);
+        }
+
+        assertConstantLimit(get);
+    });
+
+    it("sends a constant limit and correct offset across pages for getArtifactBranchVersions", async () => {
+        const get = vi.fn().mockResolvedValue({ count: 0, versions: [] });
+        getRegistryClientMock.mockReturnValue({
+            groups: {
+                byGroupId: () => ({
+                    artifacts: {
+                        byArtifactId: () => ({
+                            branches: { byBranchId: () => ({ versions: { get } }) }
+                        })
+                    }
+                })
+            }
+        });
+
+        const service = useGroupsService();
+        for (const { page } of PAGES_TO_CHECK) {
+            const paging: Paging = { page, pageSize: 10 };
+            await service.getArtifactBranchVersions("default", "my-artifact", "my-branch", paging);
+        }
+
+        assertConstantLimit(get);
+    });
+});
+
+describe("useGroupsService content loading", () => {
+    it("returns artifact version content with the response content type", async () => {
+        const get = vi.fn().mockImplementation((options: any) => {
+            const headerOption = options?.options?.[0];
+            if (headerOption) {
+                headerOption.getResponseHeaders().add("content-type", "application/x-yaml; charset=utf-8");
+            }
+            return Promise.resolve(new TextEncoder().encode("templateId: prompt\ntemplate: Hello {{name}}\n").buffer);
+        });
+        const byVersionExpression = vi.fn(() => ({ content: { get } }));
+        const byArtifactId = vi.fn(() => ({ versions: { byVersionExpression } }));
+        const byGroupId = vi.fn(() => ({ artifacts: { byArtifactId } }));
+        getRegistryClientMock.mockReturnValue({ groups: { byGroupId } });
+
+        const service = useGroupsService();
+        const result = await service.getArtifactVersionContentWithType("default", "my-prompt", "1");
+
+        expect(byGroupId).toHaveBeenCalledWith("default");
+        expect(byArtifactId).toHaveBeenCalledWith("my-prompt");
+        expect(byVersionExpression).toHaveBeenCalledWith("1");
+        expect(get).toHaveBeenCalledWith(
+            expect.objectContaining({
+                headers: {
+                    Accept: "*"
+                },
+                options: [expect.any(HeadersInspectionOptions)]
+            })
+        );
+        expect(result).toEqual({
+            content: "templateId: prompt\ntemplate: Hello {{name}}\n",
+            contentType: "application/x-yaml; charset=utf-8"
+        });
+    });
+
+    it("normalizes latest to the latest branch when loading content with type", async () => {
+        const get = vi.fn().mockImplementation(() => {
+            return Promise.resolve(new TextEncoder().encode("{}").buffer);
+        });
+        const byVersionExpression = vi.fn(() => ({ content: { get } }));
+        const byArtifactId = vi.fn(() => ({ versions: { byVersionExpression } }));
+        const byGroupId = vi.fn(() => ({ artifacts: { byArtifactId } }));
+        getRegistryClientMock.mockReturnValue({ groups: { byGroupId } });
+
+        const service = useGroupsService();
+        await service.getArtifactVersionContentWithType(null, "my-prompt", "latest");
+
+        expect(byGroupId).toHaveBeenCalledWith("default");
+        expect(byVersionExpression).toHaveBeenCalledWith("branch=latest");
+    });
+
+    it("returns non-prompt content without transforming the response body", async () => {
+        const xmlContent = "<?xml version=\"1.0\"?>\n<schema>\n    <element name=\"example\" />\n</schema>\n";
+        const get = vi.fn().mockImplementation((options: any) => {
+            const headerOption = options?.options?.[0];
+            if (headerOption) {
+                headerOption.getResponseHeaders().add("content-type", "application/xml");
+            }
+            return Promise.resolve(new TextEncoder().encode(xmlContent).buffer);
+        });
+        const byVersionExpression = vi.fn(() => ({ content: { get } }));
+        const byArtifactId = vi.fn(() => ({ versions: { byVersionExpression } }));
+        const byGroupId = vi.fn(() => ({ artifacts: { byArtifactId } }));
+        getRegistryClientMock.mockReturnValue({ groups: { byGroupId } });
+
+        const service = useGroupsService();
+        const result = await service.getArtifactVersionContentWithType("default", "my-xsd", "2");
+
+        expect(result.content).toBe(xmlContent);
+        expect(result.contentType).toBe("application/xml");
+    });
+
+    it("returns dereferenced artifact version content with references query parameter", async () => {
+        const dereferencedContent = "{\"openapi\": \"3.0.0\", \"info\": { \"title\": \"Dereferenced API\" }}";
+        const get = vi.fn().mockResolvedValue(new TextEncoder().encode(dereferencedContent).buffer);
+        const byVersionExpression = vi.fn(() => ({ content: { get } }));
+        const byArtifactId = vi.fn(() => ({ versions: { byVersionExpression } }));
+        const byGroupId = vi.fn(() => ({ artifacts: { byArtifactId } }));
+        getRegistryClientMock.mockReturnValue({ groups: { byGroupId } });
+
+        const service = useGroupsService();
+        const result = await service.getArtifactVersionContentDereferenced("default", "my-api", "1");
+
+        expect(byGroupId).toHaveBeenCalledWith("default");
+        expect(byArtifactId).toHaveBeenCalledWith("my-api");
+        expect(byVersionExpression).toHaveBeenCalledWith("1");
+        expect(get).toHaveBeenCalledWith(
+            expect.objectContaining({
+                headers: {
+                    Accept: "*"
+                },
+                queryParameters: {
+                    references: HandleReferencesTypeObject.DEREFERENCE
+                }
+            })
+        );
+        expect(result).toBe(dereferencedContent);
+    });
+
+    it("normalizes latest to the latest branch for dereferenced content", async () => {
+        const get = vi.fn().mockResolvedValue(new TextEncoder().encode("{}").buffer);
+        const byVersionExpression = vi.fn(() => ({ content: { get } }));
+        const byArtifactId = vi.fn(() => ({ versions: { byVersionExpression } }));
+        const byGroupId = vi.fn(() => ({ artifacts: { byArtifactId } }));
+        getRegistryClientMock.mockReturnValue({ groups: { byGroupId } });
+
+        const service = useGroupsService();
+        await service.getArtifactVersionContentDereferenced(null, "my-api", "latest");
+
+        expect(byGroupId).toHaveBeenCalledWith("default");
+        expect(byVersionExpression).toHaveBeenCalledWith("branch=latest");
+    });
+});
+
+describe("useGroupsService testArtifactVersion", () => {
+    it("posts the content with dryRun: true in the query parameters", async () => {
+        const post = vi.fn().mockResolvedValue(undefined);
+        const byGroupId = vi.fn(() => ({ artifacts: { byArtifactId: () => ({ versions: { post } }) } }));
+        getRegistryClientMock.mockReturnValue({ groups: { byGroupId } });
+
+        const service = useGroupsService();
+        const data = { content: { content: "{}", contentType: "application/json" } } as any;
+        await service.testArtifactVersion("default", "my-artifact", data);
+
+        // normalizeGroupId maps null/"" to "default" (not the other way around), so "default"
+        // in is "default" out - pin that behavior here since no other test in this file does.
+        expect(byGroupId).toHaveBeenCalledWith("default");
+        expect(post).toHaveBeenCalledTimes(1);
+        const [postedData, options] = post.mock.calls[0];
+        expect(postedData).toBe(data);
+        expect(options.queryParameters).toEqual({ dryRun: true });
+    });
+});

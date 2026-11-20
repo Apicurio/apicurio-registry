@@ -7,13 +7,9 @@ import {
 } from "@microsoft/kiota-abstractions";
 import {
     FetchRequestAdapter,
-    HeadersInspectionHandler,
     KiotaClientFactory,
     Middleware,
-    ParametersNameDecodingHandler,
-    RedirectHandler,
-    RetryHandler,
-    UserAgentHandler
+    MiddlewareFactory
 } from "@microsoft/kiota-http-fetchlibrary";
 import { JsonParseNodeFactory, JsonSerializationWriterFactory } from "@microsoft/kiota-serialization-json";
 import { ApicurioRegistryClient, createApicurioRegistryClient } from "../generated-client/apicurioRegistryClient.js";
@@ -32,7 +28,7 @@ localSerializationWriterFactory.contentTypeAssociatedFactories.set(jsonSerialize
 
 export class RegistryClientFactory {
 
-    public static createRegistryClient(baseUrl: string, authProvider?: AuthenticationProvider, middlewares: Middleware[] = []): ApicurioRegistryClient {
+    public static createRegistryClient(baseUrl: string, authProvider?: AuthenticationProvider, middlewares: Middleware[] = [], useDefaultMiddlewares: boolean = true): ApicurioRegistryClient {
         if (baseUrl.endsWith("/")) {
             baseUrl = baseUrl.substring(0, baseUrl.length - 1);
         }
@@ -40,15 +36,14 @@ export class RegistryClientFactory {
             authProvider = new AnonymousAuthenticationProvider();
         }
 
-        const defaultMiddlewares = [
-            new RetryHandler(),
-            new RedirectHandler(),
-            new ParametersNameDecodingHandler(),
-            new UserAgentHandler(),
-            new HeadersInspectionHandler()
-        ];
+        // getPerformanceMiddlewares() is the default chain plus CompressionHandler, which
+        // gzip-compresses request bodies. Pass useDefaultMiddlewares=false to opt out entirely
+        // (e.g. to fully control the chain yourself via `middlewares`).
+        const finalMiddlewares: Middleware[] = useDefaultMiddlewares
+            ? [...MiddlewareFactory.getPerformanceMiddlewares(), ...middlewares]
+            : middlewares;
 
-        const http = KiotaClientFactory.create(undefined, [...defaultMiddlewares, ...middlewares]);
+        const http = KiotaClientFactory.create(undefined, finalMiddlewares);
         const requestAdapter: RequestAdapter = new FetchRequestAdapter(authProvider, localParseNodeFactory, localSerializationWriterFactory, http);
         requestAdapter.baseUrl = baseUrl;
         return createApicurioRegistryClient(requestAdapter);

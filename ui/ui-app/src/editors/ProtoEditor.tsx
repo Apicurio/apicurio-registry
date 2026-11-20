@@ -1,11 +1,9 @@
 import { MutableRefObject, useEffect, useRef, useState } from "react";
 import { Editor as DraftEditor, EditorProps } from "./editor-types";
-import Editor from "@monaco-editor/react";
-import { editor } from "monaco-editor";
-import IStandaloneCodeEditor = editor.IStandaloneCodeEditor;
+import { RegistryCodeEditor } from "@app/components/codeEditor/RegistryEditors.tsx";
+import type { editor } from "monaco-editor";
+type IStandaloneCodeEditor = editor.IStandaloneCodeEditor;
 import { draftContentToString } from "@utils/content.utils.ts";
-
-import { registerCustomLanguages } from "./registerLanguages.ts";
 
 export const ProtoEditor: DraftEditor = (props: EditorProps) => {
     const defaultValue: string = draftContentToString(props.content);
@@ -25,8 +23,7 @@ export const ProtoEditor: DraftEditor = (props: EditorProps) => {
 
 
     return (
-        <Editor
-            beforeMount={registerCustomLanguages}
+        <RegistryCodeEditor
             className="text-editor"
             defaultLanguage="protobuf"
             defaultValue={value}

@@ -30,12 +30,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.parallel.Isolated;
 
 /**
  * Integration tests for the Reference Graph API endpoint.
  */
 @Tag(SMOKE)
 @QuarkusIntegrationTest
+@Isolated
 class ReferenceGraphIT extends ApicurioRegistryBaseIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ReferenceGraphIT.class);
@@ -273,10 +275,152 @@ class ReferenceGraphIT extends ApicurioRegistryBaseIT {
     }
 
     /**
-     * Test the graph endpoint with circular references (cycle detection).
+     * Builds a reference to the given artifact version.
+     */
+    private static ArtifactReference reference(String groupId, String artifactId, String version,
+            String name) {
+        ArtifactReference ref = new ArtifactReference();
+        ref.setGroupId(groupId);
+        ref.setArtifactId(artifactId);
+        ref.setVersion(version);
+        ref.setName(name);
+        return ref;
+    }
+
+    /**
+     * Creates four artifacts shaped so that one of them is reachable by both a long and a short path:
+     *
+     * <pre>
+     *   root -> mid -> leaf -> deep
+     *   root ---------> leaf
+     * </pre>
+     *
+     * The order of the root artifact's own references is controlled by the caller, because references are
+     * stored as a JSON array and read back in the order they were supplied. Requesting the graph with a
+     * depth of 2 must return all four artifacts either way. "leaf" sits at depth 1 through the direct
+     * reference, so "deep" sits at depth 2 and is inside the requested depth.
+     *
+     * @param midFirst whether the root artifact lists "mid" before "leaf"
+     * @return the graph reported for the root artifact at a depth of 2
+     */
+    private ReferenceGraph buildSharedReferenceGraph(String groupId, boolean midFirst, String[] artifactIds)
+            throws Exception {
+        String deepArtifactId = TestUtils.generateArtifactId();
+        CreateArtifactResponse deepResponse = createArtifact(groupId, deepArtifactId, ArtifactType.AVRO,
+                String.format(AVRO_SCHEMA_TEMPLATE, "RecordDeep"), ContentTypes.APPLICATION_JSON, null,
+                null);
+        String deepVersion = deepResponse.getVersion().getVersion();
+
+        String leafArtifactId = TestUtils.generateArtifactId();
+        List<ArtifactReference> leafRefs = new ArrayList<>();
+        leafRefs.add(reference(groupId, deepArtifactId, deepVersion, "deep.avsc"));
+        CreateArtifactResponse leafResponse = createArtifact(groupId, leafArtifactId, ArtifactType.AVRO,
+                String.format(AVRO_SCHEMA_TEMPLATE, "RecordLeaf"), ContentTypes.APPLICATION_JSON, null,
+                createArtifact -> {
+                    createArtifact.getFirstVersion().getContent().setReferences(leafRefs);
+                });
+        String leafVersion = leafResponse.getVersion().getVersion();
+
+        String midArtifactId = TestUtils.generateArtifactId();
+        List<ArtifactReference> midRefs = new ArrayList<>();
+        midRefs.add(reference(groupId, leafArtifactId, leafVersion, "leaf.avsc"));
+        CreateArtifactResponse midResponse = createArtifact(groupId, midArtifactId, ArtifactType.AVRO,
+                String.format(AVRO_SCHEMA_TEMPLATE, "RecordMid"), ContentTypes.APPLICATION_JSON, null,
+                createArtifact -> {
+                    createArtifact.getFirstVersion().getContent().setReferences(midRefs);
+                });
+        String midVersion = midResponse.getVersion().getVersion();
+
+        // The root artifact references both "mid" and "leaf". The order decides which path the
+        // traversal walks first.
+        List<ArtifactReference> rootRefs = new ArrayList<>();
+        if (midFirst) {
+            rootRefs.add(reference(groupId, midArtifactId, midVersion, "mid.avsc"));
+            rootRefs.add(reference(groupId, leafArtifactId, leafVersion, "leaf.avsc"));
+        } else {
+            rootRefs.add(reference(groupId, leafArtifactId, leafVersion, "leaf.avsc"));
+            rootRefs.add(reference(groupId, midArtifactId, midVersion, "mid.avsc"));
+        }
+
+        String rootArtifactId = TestUtils.generateArtifactId();
+        CreateArtifactResponse rootResponse = createArtifact(groupId, rootArtifactId, ArtifactType.AVRO,
+                String.format(AVRO_SCHEMA_TEMPLATE, "RecordRoot"), ContentTypes.APPLICATION_JSON, null,
+                createArtifact -> {
+                    createArtifact.getFirstVersion().getContent().setReferences(rootRefs);
+                });
+        String rootVersion = rootResponse.getVersion().getVersion();
+
+        artifactIds[0] = rootArtifactId;
+        artifactIds[1] = midArtifactId;
+        artifactIds[2] = leafArtifactId;
+        artifactIds[3] = deepArtifactId;
+
+        return registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(rootArtifactId)
+                .versions().byVersionExpression(rootVersion).references().graph().get(config -> {
+                    config.queryParameters.depth = 2;
+                });
+    }
+
+    /**
+     * Asserts that the graph holds all four artifacts of the shared reference shape.
+     */
+    private static void assertSharedReferenceGraphIsComplete(ReferenceGraph graph, String[] artifactIds) {
+        assertNotNull(graph);
+
+        List<String> graphArtifactIds = graph.getNodes().stream()
+                .map(node -> node.getArtifactId()).toList();
+
+        for (String artifactId : artifactIds) {
+            assertTrue(graphArtifactIds.contains(artifactId),
+                    "Graph is missing artifact " + artifactId + ". Nodes present: " + graphArtifactIds);
+        }
+
+        assertEquals(4, graph.getNodes().size(), "Expected root, mid, leaf and deep");
+        // root -> mid, mid -> leaf, root -> leaf, leaf -> deep
+        assertEquals(4, graph.getEdges().size());
+        assertEquals(4, graph.getMetadata().getTotalNodes());
+        assertEquals(4, graph.getMetadata().getTotalEdges());
+        assertEquals(2, graph.getMetadata().getMaxDepth());
+    }
+
+    /**
+     * A node that is reachable at more than one depth must be expanded at its shallowest depth. Here the
+     * traversal reaches "leaf" through "mid" first, which puts it at the depth limit, and then reaches it
+     * again directly from the root at depth 1. Its reference to "deep" is inside the requested depth and
+     * has to be reported.
      */
     @Test
-    void testReferenceGraphWithCycles() throws Exception {
+    void testSharedReferenceIsExpandedWhenDeepPathIsWalkedFirst() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String[] artifactIds = new String[4];
+
+        ReferenceGraph graph = buildSharedReferenceGraph(groupId, true, artifactIds);
+
+        assertSharedReferenceGraphIsComplete(graph, artifactIds);
+    }
+
+    /**
+     * The same shape as above, with the root artifact's references listed in the opposite order so the
+     * traversal reaches "leaf" directly first. The graph must not depend on the order the references are
+     * stored in, so the result has to match the previous test exactly.
+     */
+    @Test
+    void testSharedReferenceIsExpandedWhenShortPathIsWalkedFirst() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String[] artifactIds = new String[4];
+
+        ReferenceGraph graph = buildSharedReferenceGraph(groupId, false, artifactIds);
+
+        assertSharedReferenceGraphIsComplete(graph, artifactIds);
+    }
+
+    /**
+     * Test the graph endpoint with a cross-version chain through the same artifact: A@2 -> B@1 -> A@1.
+     * This is not a cycle - A@1 and A@2 are different nodes, and A@1 has no reference back to A@2 - even
+     * though both nodes share an artifactId (#9069).
+     */
+    @Test
+    void testReferenceGraphCrossVersionChainIsNotACycle() throws Exception {
         String groupId = TestUtils.generateGroupId();
 
         // Create artifact A first (no references initially)
@@ -303,7 +447,8 @@ class ReferenceGraphIT extends ApicurioRegistryBaseIT {
                 });
         String versionB = responseB.getVersion().getVersion();
 
-        // Create a new version of A with reference back to B (creating a cycle)
+        // Create a new version of A with a reference to B: A@2 -> B@1 -> A@1 - not a cycle, since A@1
+        // has no reference back to A@2.
         String contentA2 = String.format(AVRO_SCHEMA_TEMPLATE, "RecordAv2");
         List<ArtifactReference> refsA2 = new ArrayList<>();
         ArtifactReference refB = new ArtifactReference();
@@ -327,9 +472,68 @@ class ReferenceGraphIT extends ApicurioRegistryBaseIT {
         // Wait for sync
         Thread.sleep(1000);
 
-        // Get the graph from A v2 - should detect cycle
+        // Get the graph from A v2 - should not detect a cycle
         ReferenceGraph graph = registryClient.groups().byGroupId(groupId).artifacts()
                 .byArtifactId(artifactA).versions().byVersionExpression(versionA2).references().graph()
+                .get(config -> {
+                    config.queryParameters.depth = 3;
+                });
+
+        assertNotNull(graph);
+        assertFalse(graph.getMetadata().getHasCycles(),
+                "A@2 -> B@1 -> A@1 is a valid cross-version chain, not a cycle");
+        boolean foundCycleNode = graph.getNodes().stream()
+                .anyMatch(node -> Boolean.TRUE.equals(node.getIsCycleNode()));
+        assertFalse(foundCycleNode, "no node should be marked as a cycle node");
+    }
+
+    /**
+     * Test the graph endpoint with a genuine two-hop, version-level cycle: A@1 -> B@1 -> A@1. B does not
+     * exist yet when A@1 is created (no INTEGRITY rule is configured in this test, so a reference to a
+     * not-yet-existing version is accepted); B@1 then closes the cycle back to A@1.
+     */
+    @Test
+    void testReferenceGraphWithCycles() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String artifactA = TestUtils.generateArtifactId();
+        String artifactB = TestUtils.generateArtifactId();
+
+        ArtifactReference refB = new ArtifactReference();
+        refB.setGroupId(groupId);
+        refB.setArtifactId(artifactB);
+        refB.setVersion("1");
+        refB.setName("b.avsc");
+        List<ArtifactReference> refsA = new ArrayList<>();
+        refsA.add(refB);
+
+        String contentA = String.format(AVRO_SCHEMA_TEMPLATE, "RecordA");
+        createArtifact(groupId, artifactA, ArtifactType.AVRO, contentA, ContentTypes.APPLICATION_JSON, null,
+                createArtifact -> {
+                    createArtifact.getFirstVersion().setVersion("1");
+                    createArtifact.getFirstVersion().getContent().setReferences(refsA);
+                });
+
+        ArtifactReference refA = new ArtifactReference();
+        refA.setGroupId(groupId);
+        refA.setArtifactId(artifactA);
+        refA.setVersion("1");
+        refA.setName("a.avsc");
+        List<ArtifactReference> refsB = new ArrayList<>();
+        refsB.add(refA);
+
+        String contentB = String.format(AVRO_SCHEMA_TEMPLATE, "RecordB");
+        createArtifact(groupId, artifactB, ArtifactType.AVRO, contentB, ContentTypes.APPLICATION_JSON, null,
+                createArtifact -> {
+                    createArtifact.getFirstVersion().setVersion("1");
+                    createArtifact.getFirstVersion().getContent().setReferences(refsB);
+                });
+
+        // Wait for sync
+        Thread.sleep(1000);
+
+        // Get the graph from A v1 - should detect the cycle
+        ReferenceGraph graph = registryClient.groups().byGroupId(groupId).artifacts()
+                .byArtifactId(artifactA).versions().byVersionExpression("1").references().graph()
                 .get(config -> {
                     config.queryParameters.depth = 3;
                 });

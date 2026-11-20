@@ -20,6 +20,23 @@ public class RegisterArtifact {
         INHERIT_PARENT_GROUP, USE_AVRO_NAMESPACE
     }
 
+    /**
+     * Naming strategy for artifacts discovered by autoRefs.
+     */
+    public enum AutoRefsNamingStrategy {
+        /**
+         * Historical naming (raw reference strings). Only under this strategy is
+         * {@link RegisterArtifact#getAvroAutoRefsNamingStrategy() avroAutoRefsNamingStrategy} applied to
+         * decide the group of Avro child artifacts.
+         */
+        LEGACY,
+        /**
+         * Normalized source locations. {@link RegisterArtifact#getAvroAutoRefsNamingStrategy()
+         * avroAutoRefsNamingStrategy} is ignored under this strategy.
+         */
+        DEFAULT
+    }
+
     public enum VersionStrategy {
         EXPLICIT_ONLY, API_INFO_VERSION
     }
@@ -34,6 +51,7 @@ public class RegisterArtifact {
     private Boolean minify;
     private Boolean autoRefs;
     private AvroAutoRefsNamingStrategy avroAutoRefsNamingStrategy;
+    private AutoRefsNamingStrategy autoRefsNamingStrategy;
     private Boolean isDraft;
     private String contentType;
     private VersionStrategy versionStrategy;
@@ -218,6 +236,24 @@ public class RegisterArtifact {
 
     public void setAvroAutoRefsNamingStrategy(AvroAutoRefsNamingStrategy avroAutoRefsNamingStrategy) {
         this.avroAutoRefsNamingStrategy = avroAutoRefsNamingStrategy;
+    }
+
+    /**
+     * Returns the autoRefs naming strategy.
+     *
+     * @return the configured strategy, or {@link AutoRefsNamingStrategy#LEGACY} if none is set
+     */
+    public AutoRefsNamingStrategy getAutoRefsNamingStrategy() {
+        return autoRefsNamingStrategy == null ? AutoRefsNamingStrategy.LEGACY : autoRefsNamingStrategy;
+    }
+
+    /**
+     * Sets the autoRefs naming strategy.
+     *
+     * @param autoRefsNamingStrategy the strategy
+     */
+    public void setAutoRefsNamingStrategy(AutoRefsNamingStrategy autoRefsNamingStrategy) {
+        this.autoRefsNamingStrategy = autoRefsNamingStrategy;
     }
 
     public Boolean getIsDraft() {

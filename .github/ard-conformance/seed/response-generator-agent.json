@@ -1,0 +1,73 @@
+{
+  "name": "Response Generator Agent",
+  "description": "Customer service response generator that creates empathetic, professional replies with concrete resolutions.",
+  "version": "1.0.0",
+  "protocolVersion": "1.0",
+  "supportedInterfaces": [
+    {
+      "url": "https://agents.example.com/response-generator-agent",
+      "protocolBinding": "http+json",
+      "protocolVersion": "1.0"
+    }
+  ],
+  "provider": {
+    "organization": "A2A Demo",
+    "url": "https://agents.example.com"
+  },
+  "capabilities": {
+    "streaming": false,
+    "pushNotifications": false
+  },
+  "skills": [
+    {
+      "id": "response-generation",
+      "name": "Response Generation",
+      "description": "Skill: response-generation",
+      "tags": [
+        "response-generation"
+      ],
+      "examples": [
+        "Draft a reply to a customer whose refund is delayed."
+      ]
+    },
+    {
+      "id": "customer-service",
+      "name": "Customer Service",
+      "description": "Skill: customer-service",
+      "tags": [
+        "customer-service"
+      ],
+      "examples": [
+        "Write a professional answer to this support question."
+      ]
+    },
+    {
+      "id": "conflict-resolution",
+      "name": "Conflict Resolution",
+      "description": "Skill: conflict-resolution",
+      "tags": [
+        "conflict-resolution"
+      ],
+      "examples": [
+        "Suggest a resolution for this disputed charge."
+      ]
+    },
+    {
+      "id": "empathetic-communication",
+      "name": "Empathetic Communication",
+      "description": "Skill: empathetic-communication",
+      "tags": [
+        "empathetic-communication"
+      ],
+      "examples": [
+        "Rewrite this reply to sound more empathetic."
+      ]
+    }
+  ],
+  "defaultInputModes": [
+    "text"
+  ],
+  "defaultOutputModes": [
+    "text"
+  ]
+}

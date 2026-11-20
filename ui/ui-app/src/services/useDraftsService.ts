@@ -1,4 +1,4 @@
-import { AuthService, useAuth } from "@apicurio/common-ui-components";
+import { AuthService, useAuth } from "@apitomy/common-ui-components";
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 import { getRegistryClient, labelsToAny } from "@utils/rest.utils.ts";
 import { ApicurioRegistryClient } from "@apicurio/apicurio-registry-sdk";
@@ -7,10 +7,12 @@ import {
     Draft,
     DraftContent,
     DraftInfo,
+    DraftsFilterBy,
     DraftsSearchFilter,
     DraftsSearchResults,
     DraftsSortBy
 } from "@models/drafts";
+import { toPartialNameFilter } from "@services/useSearchService.ts";
 import { SortOrder } from "@models/SortOrder.ts";
 import { Paging } from "@models/Paging.ts";
 import {
@@ -67,10 +69,9 @@ async function searchDrafts(config: ConfigService, auth: AuthService, filters: D
     const client: ApicurioRegistryClient = getRegistryClient(config, auth);
 
     const start: number = (paging.page - 1) * paging.pageSize;
-    const end: number = start + paging.pageSize;
     const queryParams: VersionsRequestBuilderGetQueryParameters = {
         state: "DRAFT",
-        limit: end,
+        limit: paging.pageSize,
         offset: start,
         order: sortOrder,
         orderby: sortBy as any
@@ -78,7 +79,12 @@ async function searchDrafts(config: ConfigService, auth: AuthService, filters: D
 
     // Apply filters
     filters.forEach(filter => {
-        (queryParams as any)[filter.by] = filter.value;
+        if (filter.by === DraftsFilterBy.name) {
+            queryParams.name = toPartialNameFilter(filter.value);
+            queryParams.nameCaseInsensitive = true;
+        } else {
+            (queryParams as any)[filter.by] = filter.value;
+        }
     });
 
     return client.search.versions.get({

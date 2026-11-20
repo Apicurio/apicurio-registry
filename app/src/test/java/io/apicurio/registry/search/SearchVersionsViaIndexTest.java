@@ -1,6 +1,7 @@
 package io.apicurio.registry.search;
 
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.SearchedVersion;
 import io.apicurio.registry.rest.client.models.VersionSearchResults;
 import io.apicurio.registry.storage.impl.search.ElasticsearchIndexUpdater;
@@ -13,6 +14,7 @@ import jakarta.inject.Inject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -93,6 +95,40 @@ public class SearchVersionsViaIndexTest extends AbstractResourceTestBase {
         });
         Assertions.assertEquals(0, results.getCount(),
                 "Content search for non-matching term should return 0 results");
+    }
+
+    @Test
+    public void testSearchVersionsByNameCaseInsensitive() throws Exception {
+        String group = TestUtils.generateGroupId();
+        String artifactId = "MixedCaseArtifact-" + TestUtils.generateArtifactId();
+        String versionName = "Mixed?Case*Version\\Name-" + TestUtils.generateArtifactId();
+        String content = "{\"openapi\":\"3.0.0\",\"info\":{\"title\":\"caseinsensitivemarker\"}}";
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.OPENAPI,
+                content, ContentTypes.APPLICATION_JSON);
+        createArtifact.getFirstVersion().setName(versionName);
+        clientV3.groups().byGroupId(group).artifacts().post(createArtifact);
+
+        indexUpdater.awaitIdle(10, TimeUnit.SECONDS);
+
+        VersionSearchResults results = clientV3.search().versions().get(config -> {
+            config.queryParameters.groupId = group;
+            config.queryParameters.content = "caseinsensitivemarker";
+            config.queryParameters.name = "*" + versionName.toLowerCase(Locale.ROOT) + "*";
+            config.queryParameters.nameCaseInsensitive = true;
+        });
+        Assertions.assertEquals(1, results.getCount());
+        Assertions.assertEquals(group, results.getVersions().get(0).getGroupId());
+        Assertions.assertEquals(artifactId, results.getVersions().get(0).getArtifactId());
+
+        results = clientV3.search().versions().get(config -> {
+            config.queryParameters.groupId = group;
+            config.queryParameters.content = "caseinsensitivemarker";
+            config.queryParameters.name = "*" + artifactId.toLowerCase(Locale.ROOT) + "*";
+            config.queryParameters.nameCaseInsensitive = true;
+        });
+        Assertions.assertEquals(1, results.getCount());
+        Assertions.assertEquals(group, results.getVersions().get(0).getGroupId());
+        Assertions.assertEquals(artifactId, results.getVersions().get(0).getArtifactId());
     }
 
     @Test

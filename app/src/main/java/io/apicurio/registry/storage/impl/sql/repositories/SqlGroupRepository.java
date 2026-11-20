@@ -52,6 +52,7 @@ public class SqlGroupRepository {
 
     // Internal default group ID representation (duplicated from RegistryContentUtils for access)
     private static final String NULL_GROUP_ID = "__$GROUPID$__";
+    private static final String G_GROUP_ID = "g.groupId";
 
     private final Logger log;
     private final SqlStatements sqlStatements;
@@ -109,7 +110,7 @@ public class SqlGroupRepository {
                     labels.forEach((k, v) -> {
                         handle.createUpdate(sqlStatements.insertGroupLabel())
                                 .bind(0, group.getGroupId())
-                                .bind(1, limitStr(k.toLowerCase(), MAX_LABEL_KEY_LENGTH))
+                                .bind(1, limitStr(asLowerCase(k), MAX_LABEL_KEY_LENGTH))
                                 .bind(2, limitStr(asLowerCase(v), MAX_LABEL_VALUE_LENGTH)).execute();
                     });
                 }
@@ -133,6 +134,12 @@ public class SqlGroupRepository {
         handles.withHandleNoException(handle -> {
             // Delete artifact rules
             handle.createUpdate(sqlStatements.deleteArtifactRulesByGroupId())
+                    .bind(0, normalizeGroupId(groupId)).execute();
+
+            // Delete artifact-level contract rules and contract audit entries
+            handle.createUpdate(sqlStatements.deleteContractRulesByGroupId())
+                    .bind(0, normalizeGroupId(groupId)).execute();
+            handle.createUpdate(sqlStatements.deleteContractAuditEntriesByGroupId())
                     .bind(0, normalizeGroupId(groupId)).execute();
 
             // Delete all artifacts in the group
@@ -215,7 +222,7 @@ public class SqlGroupRepository {
                     dto.getLabels().forEach((k, v) -> {
                         handle.createUpdate(sqlStatements.insertGroupLabel())
                                 .bind(0, groupId)
-                                .bind(1, limitStr(k.toLowerCase(), 256))
+                                .bind(1, limitStr(asLowerCase(k), 256))
                                 .bind(2, limitStr(asLowerCase(v), 512))
                                 .execute();
                     });
@@ -297,18 +304,24 @@ public class SqlGroupRepository {
                         });
                         break;
                     case groupId:
-                        buildWildcardClause(where, "g.groupId",
+                        buildWildcardClause(where, G_GROUP_ID,
                                 filter.getStringValue(), filter.isNot(), binders);
+                        break;
+                    case authorization:
+                        SqlAuthorizationFilter.appendGroupCondition(where, binders,
+                                filter.getAuthorizationValue(), sqlStatements.dbType(), G_GROUP_ID, "g.owner");
                         break;
                     case labels:
                         Pair<String, String> label = filter.getLabelFilterValue();
-                        String labelKey = label.getKey().toLowerCase();
+                        String labelKey = asLowerCase(label.getKey());
                         where.append("EXISTS(SELECT l.* FROM group_labels l WHERE ");
                         buildWildcardClause(where, "l.labelKey", labelKey, filter.isNot(), binders);
                         if (label.getValue() != null) {
-                            String labelValue = label.getValue().toLowerCase();
+                            String labelValue = asLowerCase(label.getValue());
                             where.append(" AND ");
-                            buildWildcardClause(where, "l.labelValue", labelValue, filter.isNot(),
+                            // Compare against LOWER(l.labelValue) because label values are not always
+                            // lowercased at write time.
+                            buildWildcardClause(where, "LOWER(l.labelValue)", labelValue, filter.isNot(),
                                     binders);
                         }
                         where.append(" AND l.groupId = g.groupId)");
@@ -330,13 +343,17 @@ public class SqlGroupRepository {
                     throw new RuntimeException("Sort by " + orderBy.name() + " not supported.");
             }
             orderByQuery.append(" ").append(orderDirection.name());
+            // groupId last, so groups created at the same time page in the same order every time
+            if (orderBy != OrderBy.groupId) {
+                orderByQuery.append(", g.groupId ").append(orderDirection.name());
+            }
 
             // Build queries
             String groupsQuerySql = sqlStatements.selectTableTemplate("*", "groups", "g", where.toString(),
                     orderByQuery.toString());
             Query groupsQuery = handle.createQuery(groupsQuerySql);
 
-            String countQuerySql = sqlStatements.selectCountTableTemplate("g.groupId", "groups", "g",
+            String countQuerySql = sqlStatements.selectCountTableTemplate(G_GROUP_ID, "groups", "g",
                     where.toString());
             Query countQuery = handle.createQuery(countQuerySql);
 
@@ -408,8 +425,8 @@ public class SqlGroupRepository {
                 entity.labels.forEach((k, v) -> {
                     handle.createUpdate(sqlStatements.insertGroupLabel())
                             .bind(0, normalizeGroupId(entity.groupId))
-                            .bind(1, k.toLowerCase())
-                            .bind(2, v.toLowerCase())
+                            .bind(1, asLowerCase(k))
+                            .bind(2, asLowerCase(v))
                             .execute();
                 });
             }

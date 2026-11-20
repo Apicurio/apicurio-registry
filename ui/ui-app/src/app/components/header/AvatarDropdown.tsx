@@ -1,11 +1,14 @@
-import React, { FunctionComponent, useState } from "react";
+import React, { FunctionComponent, useEffect, useState } from "react";
 import { Avatar, Dropdown, DropdownItem, DropdownList, MenuToggle, MenuToggleElement } from "@patternfly/react-core";
-import { AuthService, useAuth } from "@apicurio/common-ui-components";
+import { AuthService, useAuth } from "@apitomy/common-ui-components";
 import { UserService, useUserService } from "@services/useUserService.ts";
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
+import { UserInfo } from "@sdk/lib/generated-client/models";
 
 
 export type AvatarDropdownProps = object;
+
+const displayName = (info: UserInfo | undefined): string => info?.displayName || info?.username || "";
 
 
 export const AvatarDropdown: FunctionComponent<AvatarDropdownProps> = () => {
@@ -14,6 +17,12 @@ export const AvatarDropdown: FunctionComponent<AvatarDropdownProps> = () => {
     const config: ConfigService = useConfigService();
     const auth: AuthService = useAuth();
     const user: UserService = useUserService();
+    const [userName, setUserName] = useState<string>(displayName(user.currentUser()));
+
+    useEffect(() => {
+        // The masthead can render before the user is loaded, so it loads them itself
+        user.updateCurrentUser().then(info => setUserName(displayName(info))).catch(() => {});
+    }, []);
 
     const avatarSrc: string = `${config.uiContextPath() || "/"}avatar.png`;
 
@@ -43,7 +52,7 @@ export const AvatarDropdown: FunctionComponent<AvatarDropdownProps> = () => {
                     icon={icon}
                 >
                     {
-                        user.currentUser().displayName || "User"
+                        userName || "User"
                     }
                 </MenuToggle>
             )}

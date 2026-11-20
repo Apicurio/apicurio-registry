@@ -63,6 +63,10 @@ public class BaseSerde<T, U> implements AutoCloseable {
         if (this.idHandler == null) {
             Object idh = config.getIdHandler();
             Utils.instantiate(IdHandler.class, idh, this::setIdHandler);
+            if (this.idHandler == null) {
+                // The id handler was explicitly configured as null, fall back to the default one.
+                setIdHandler(new Default4ByteIdHandler());
+            }
         }
         this.idHandler.configure(config.originals(), isKey);
         configureSchemaResolver(config.originals(), isKey, schemaParser);
@@ -83,6 +87,7 @@ public class BaseSerde<T, U> implements AutoCloseable {
                 Utils.instantiate(SchemaResolver.class, sr, this::setSchemaResolver);
             }
         }
+        Objects.requireNonNull(this.schemaResolver, "Schema resolver must not be null");
         // enforce default artifactResolverStrategy for kafka apps
         if (!configs.containsKey(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY)) {
             configs.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY,

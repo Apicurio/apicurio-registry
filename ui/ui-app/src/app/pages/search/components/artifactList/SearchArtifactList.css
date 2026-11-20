@@ -2,7 +2,7 @@
 }
 
 .artifact-list .artifact-list-item {
-    background-color: white;
+    background-color: var(--registry-card-bg, white);
     margin-bottom: 2px;
 }
 

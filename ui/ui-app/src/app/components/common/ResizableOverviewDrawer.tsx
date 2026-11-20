@@ -1,0 +1,36 @@
+import { Drawer, DrawerContent, DrawerContentBody, DrawerPanelContent } from "@patternfly/react-core";
+import { FunctionComponent, ReactNode } from "react";
+import "./ResizableOverviewDrawer.css";
+
+const DEFAULT_PANE_WIDTH = "40%";
+const MINIMUM_PANE_WIDTH = "300px";
+
+export type ResizableOverviewDrawerProps = {
+    head: ReactNode;
+    body: ReactNode;
+};
+
+/**
+ * Shared split layout for the artifact, version, and group overview pages.
+ */
+export const ResizableOverviewDrawer: FunctionComponent<ResizableOverviewDrawerProps> = ({ head, body }) => (
+    <Drawer className="resizable-overview-drawer" isExpanded={true} onExpand={() => {}} isInline={true} position="start">
+        <DrawerContent
+            panelContent={
+                <DrawerPanelContent
+                    className="resizable-overview-drawer__panel"
+                    isResizable={true}
+                    defaultSize={DEFAULT_PANE_WIDTH}
+                    minSize={MINIMUM_PANE_WIDTH}
+                    maxSize={`calc(100% - ${MINIMUM_PANE_WIDTH})`}
+                    resizeAriaLabel="Resize overview panes"
+                >
+                    {head}
+                </DrawerPanelContent>
+            }
+            style={{ backgroundColor: "var(--registry-card-bg)" }}
+        >
+            <DrawerContentBody hasPadding={false}>{body}</DrawerContentBody>
+        </DrawerContent>
+    </Drawer>
+);

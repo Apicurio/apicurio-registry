@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -68,6 +69,29 @@ public class SearchArtifactsTest extends AbstractResourceTestBase {
 
         given().when().queryParam("name", name).get("/registry/v3/search/artifacts").then().statusCode(200)
                 .body("count", equalTo(2));
+    }
+
+    @Test
+    public void testSearchArtifactsByNameCaseInsensitive() throws Exception {
+        String group = UUID.randomUUID().toString();
+        String name = "MixedCase-" + UUID.randomUUID();
+        String artifactContent = resourceToString("openapi-empty.json");
+
+        this.createArtifact(group, "case-insensitive-name", ArtifactType.OPENAPI, artifactContent,
+                ContentTypes.APPLICATION_JSON, ca -> ca.setName(name));
+
+        String lowerCaseName = "*" + name.toLowerCase(Locale.ROOT) + "*";
+
+        // Without the opt-in parameter, preserve the existing SQL-backed behavior.
+        given().when().queryParam("name", lowerCaseName).get("/registry/v3/search/artifacts").then()
+                .statusCode(200).body("count", equalTo(0));
+
+        given().when().queryParam("name", lowerCaseName)
+                .queryParam("nameCaseInsensitive", true).get("/registry/v3/search/artifacts").then()
+                .statusCode(200).body("count", equalTo(1))
+                .body("artifacts[0].groupId", equalTo(group))
+                .body("artifacts[0].artifactId", equalTo("case-insensitive-name"))
+                .body("artifacts[0].name", equalTo(name));
     }
 
     @Test
@@ -168,6 +192,51 @@ public class SearchArtifactsTest extends AbstractResourceTestBase {
                 Map.of("key-1", "value-1", "another-key-1", "another-value-1", "all-key", "all-value",
                         "a-key-1", "lorem ipsum", "extra-key-1", "lorem ipsum"),
                 results.getArtifacts().get(0).getLabels().getAdditionalData());
+    }
+
+    @Test
+    public void testSearchArtifactsByLabelsNamespaceAndColonInValue() throws Exception {
+        String group = TestUtils.generateGroupId();
+        String artifactContent = resourceToString("openapi-empty.json");
+
+        // Artifact 1: Namespaced label key (env:tag = production)
+        String artifactId1 = "Artifact-Namespace";
+        this.createArtifact(group, artifactId1, ArtifactType.OPENAPI, artifactContent, ContentTypes.APPLICATION_JSON);
+        EditableArtifactMetaData metaData1 = new EditableArtifactMetaData();
+        metaData1.setLabels(Map.of("env:tag", "production"));
+        given().when().contentType(CT_JSON).pathParam("groupId", group)
+                .pathParam("artifactId", artifactId1).body(metaData1)
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}").then().statusCode(204);
+
+        // Artifact 2: Colon in label value (color = red:dark)
+        String artifactId2 = "Artifact-ColonInValue";
+        this.createArtifact(group, artifactId2, ArtifactType.OPENAPI, artifactContent, ContentTypes.APPLICATION_JSON);
+        EditableArtifactMetaData metaData2 = new EditableArtifactMetaData();
+        metaData2.setLabels(Map.of("color", "red:dark"));
+        given().when().contentType(CT_JSON).pathParam("groupId", group)
+                .pathParam("artifactId", artifactId2).body(metaData2)
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}").then().statusCode(204);
+
+        // --- 1. Namespace Key Regression Checks ---
+
+        // Query "env:tag:" (trailing colon) -> matches key "env:tag" with any value
+        given().when().queryParam("labels", "env:tag:").get("/registry/v3/search/artifacts").then()
+                .statusCode(200).body("count", equalTo(1)).body("artifacts[0].artifactId", equalTo(artifactId1));
+
+        // Query "env:tag:production" -> matches key "env:tag" and value "production"
+        given().when().queryParam("labels", "env:tag:production").get("/registry/v3/search/artifacts").then()
+                .statusCode(200).body("count", equalTo(1)).body("artifacts[0].artifactId", equalTo(artifactId1));
+
+        // --- 2. Colon-in-Value Behavior Tradeoff Check ---
+
+        // Querying "color:red:dark" splits via lastIndexOf(":") into key="color:red", value="dark".
+        // Since Artifact 2 has key="color" and value="red:dark", it does NOT match key="color:red".
+        given().when().queryParam("labels", "color:red:dark").get("/registry/v3/search/artifacts").then()
+                .statusCode(200).body("count", equalTo(0));
+
+        // Querying key-only "color" matches Artifact 2
+        given().when().queryParam("labels", "color").get("/registry/v3/search/artifacts").then()
+                .statusCode(200).body("count", equalTo(1)).body("artifacts[0].artifactId", equalTo(artifactId2));
     }
 
     @Test
@@ -341,4 +410,24 @@ public class SearchArtifactsTest extends AbstractResourceTestBase {
                 .body("count", equalTo(3)).body("artifacts.size()", equalTo(3));
     }
 
+
+    /** Without per-resource authorization, search results carry no permissions field at all. */
+    @Test
+    public void testSearchResultsOmitPermissionsWithoutResourceBasedAuthorization() throws Exception {
+        String group = UUID.randomUUID().toString();
+        this.createArtifact(group, "no-permissions", ArtifactType.JSON, "{}", ContentTypes.APPLICATION_JSON);
+
+        Map<String, Object> artifact = given().when().queryParam("groupId", group)
+                .get("/registry/v3/search/artifacts").then().statusCode(200).body("count", equalTo(1))
+                .extract().jsonPath().getMap("artifacts[0]");
+        Assertions.assertEquals("no-permissions", artifact.get("artifactId"));
+        Assertions.assertFalse(artifact.containsKey("permissions"));
+
+        Map<String, Object> version = given().when().queryParam("groupId", group)
+                .get("/registry/v3/search/versions").then().statusCode(200).body("count", equalTo(1))
+                .extract().jsonPath()
+                .getMap("versions[0]");
+        Assertions.assertEquals("no-permissions", version.get("artifactId"));
+        Assertions.assertFalse(version.containsKey("permissions"));
+    }
 }

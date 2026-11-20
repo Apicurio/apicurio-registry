@@ -110,7 +110,7 @@ public class TestUpdateRegistryMojo extends AbstractRegistryMojo {
                 throw new MojoExecutionException("Errors while testing artifacts for update...");
             }
         } finally {
-            vertx.close();
+            closeVertx(vertx);
         }
     }
 

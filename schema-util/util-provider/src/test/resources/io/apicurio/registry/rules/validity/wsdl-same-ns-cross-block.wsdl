@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://schemas.xmlsoap.org/wsdl/" xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+             xmlns:a="urn:a" targetNamespace="urn:svc">
+  <types>
+    <xsd:schema targetNamespace="urn:a">
+      <xsd:element name="usesA" type="a:A"/>
+    </xsd:schema>
+    <xsd:schema targetNamespace="urn:a">
+      <xsd:complexType name="A">
+        <xsd:sequence>
+          <xsd:element name="x" type="xsd:string"/>
+        </xsd:sequence>
+      </xsd:complexType>
+    </xsd:schema>
+  </types>
+</definitions>

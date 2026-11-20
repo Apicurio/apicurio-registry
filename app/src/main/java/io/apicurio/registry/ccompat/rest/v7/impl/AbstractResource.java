@@ -26,9 +26,13 @@ import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.RuleNotFoundException;
 import com.google.protobuf.DescriptorProtos;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
-import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
+import io.apicurio.registry.references.ReferenceResolution;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
+import io.apicurio.registry.auth.ISearchAuthorizer;
+import io.apicurio.registry.auth.AuthorizedLevel;
+import io.apicurio.registry.auth.AuthorizedResource;
+import io.apicurio.registry.auth.ResourceAccessGuard;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.VersionState;
@@ -63,6 +67,12 @@ public abstract class AbstractResource {
     RegistryStorage storage;
 
     @Inject
+    protected ResourceAccessGuard accessGuard;
+
+    @Inject
+    ISearchAuthorizer searchAuthorizer;
+
+    @Inject
     RulesService rulesService;
 
     @Inject
@@ -86,6 +96,27 @@ public abstract class AbstractResource {
 
     protected String toSubjectWithGroupConcat(SearchedArtifactDto dto) {
         return toSubjectWithGroupConcat(dto.getGroupId(), dto.getArtifactId());
+    }
+
+    /**
+     * Returns the format to apply to a schema. If the client did not provide a format and
+     * {@code apicurio.rest.artifact.references.default-handling} is set to DEREFERENCE, Avro and
+     * JSON Schema default to the "resolved" format so that references are inlined. Protobuf has no
+     * "resolved" format, so it is returned as stored rather than failing on a format the client
+     * never asked for.
+     */
+    protected String resolveEffectiveFormat(String format, String artifactType) {
+        if (format != null && !format.isBlank()) {
+            return format;
+        }
+        boolean dereference = restConfig.getDefaultReferenceHandling()
+                .map(String::trim)
+                .filter("DEREFERENCE"::equalsIgnoreCase)
+                .isPresent();
+        if (dereference && (ArtifactType.AVRO.equals(artifactType) || ArtifactType.JSON.equals(artifactType))) {
+            return SchemaFormatService.FORMAT_RESOLVED;
+        }
+        return format;
     }
 
     private Pair<String, String> toGAFromGroupConcatSubject(String subject) {
@@ -118,8 +149,8 @@ public abstract class AbstractResource {
                 .map(dto -> ArtifactReference.builder().name(dto.getName()).groupId(dto.getGroupId())
                         .artifactId(dto.getArtifactId()).version(dto.getVersion()).build())
                 .collect(Collectors.toList());
-        final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
-                .recursivelyResolveReferences(parsedReferences, storage::getContentByReference);
+        final Map<String, TypedContent> resolvedReferences = ReferenceResolution
+                .recursivelyResolveReferences(parsedReferences, accessGuard.referenceLoader());
 
         String owner = securityIdentity.getPrincipal().getName();
 
@@ -155,8 +186,11 @@ public abstract class AbstractResource {
             }
 
             if (!doesArtifactExist(artifactId, groupId)) {
-                // Apply rules using the potentially converted text content
-                rulesService.applyRules(groupId, artifactId, artifactType, contentForRules,
+                // Registering a new subject creates an artifact: as with the core API, this needs
+                // write access to the group as well as to the artifact (checked by the interceptor)
+                accessGuard.requireGrantsAccess(AuthorizedLevel.Write, AuthorizedResource.group(groupId));
+                // Apply rules using the potentially converted text content; the first version is stored as "1"
+                rulesService.applyRulesForNewVersion(groupId, artifactId, "1", artifactType, contentForRules,
                         RuleApplicationType.CREATE, artifactReferences, resolvedReferences);
 
                 EditableArtifactMetaDataDto artifactMetaData = EditableArtifactMetaDataDto.builder().build();
@@ -183,7 +217,10 @@ public abstract class AbstractResource {
             if (ex.getRuleType() == RuleType.VALIDITY) {
                 throw new UnprocessableEntityException(ex);
             } else {
-                throw new ConflictException(ex);
+                String subject = cconfig.groupConcatEnabled ? toSubjectWithGroupConcat(groupId, artifactId)
+                        : artifactId;
+                throw new ConflictException("Schema being registered is incompatible with an earlier schema"
+                        + " for subject \"" + subject + "\", details: " + ex.getMessage(), ex);
             }
         }
         return res;
@@ -248,9 +285,9 @@ public abstract class AbstractResource {
                         .getArtifactVersionContent(groupId, artifactId, version);
                 TypedContent typedArtifactVersion = TypedContent
                         .create(artifactVersion.getContent(), artifactVersion.getContentType());
-                Map<String, TypedContent> artifactVersionReferences = RegistryContentUtils
+                Map<String, TypedContent> artifactVersionReferences = ReferenceResolution
                         .recursivelyResolveReferences(artifactVersion.getReferences(),
-                                storage::getContentByReference);
+                                accessGuard.referenceLoader());
                 String dereferencedExistingContentSha = DigestUtils
                         .sha256Hex(artifactTypeProvider.getContentDereferencer()
                                 .dereference(typedArtifactVersion, artifactVersionReferences)
@@ -293,8 +330,8 @@ public abstract class AbstractResource {
     protected Map<String, TypedContent> resolveReferenceDtos(List<ArtifactReferenceDto> referencesAsDtos) {
         Map<String, TypedContent> resolvedReferences = Collections.emptyMap();
         if (referencesAsDtos != null && !referencesAsDtos.isEmpty()) {
-            resolvedReferences = RegistryContentUtils.recursivelyResolveReferences(referencesAsDtos,
-                    storage::getContentByReference);
+            resolvedReferences = ReferenceResolution.recursivelyResolveReferences(referencesAsDtos,
+                    accessGuard.referenceLoader());
 
             if (referencesAsDtos.size() > resolvedReferences.size()) {
                 // There are unresolvable references, which is not allowed.
@@ -330,7 +367,7 @@ public abstract class AbstractResource {
     }
 
     protected boolean areAllSchemasDisabled(List<Long> globalIds) {
-        return globalIds.stream().anyMatch(globalId -> {
+        return globalIds.stream().allMatch(globalId -> {
             VersionState state = storage.getArtifactVersionMetaData(globalId).getState();
             return state.equals(VersionState.DISABLED);
         });

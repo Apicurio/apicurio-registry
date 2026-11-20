@@ -1,0 +1,81 @@
+{
+    "asyncapi": "2.6.0",
+    "info": {
+        "title": "Event Service API",
+        "version": "1.0.0"
+    },
+    "channels": {
+        "userEvents": {
+            "publish": {
+                "message": {
+                    "payload": {
+                        "$ref": "http://schemas.example.org/user-event.avsc"
+                    }
+                }
+            }
+        },
+        "mixedEvents": {
+            "subscribe": {
+                "message": {
+                    "oneOf": [
+                        {
+                            "$ref": "#/components/messages/ProfileMessage"
+                        },
+                        {
+                            "schemaFormat": "application/vnd.apache.avro+json",
+                            "payload": {
+                                "$ref": "http://schemas.example.org/user-event.avsc"
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "Local": {
+                "type": "string"
+            }
+        },
+        "messages": {
+            "DeclaredAvroMessage": {
+                "schemaFormat": "application/vnd.apache.avro;version=1.9.0",
+                "payload": {
+                    "$ref": "http://schemas.example.org/user-event.avsc"
+                }
+            },
+            "ProfileMessage": {
+                "payload": {
+                    "$ref": "http://schemas.example.org/user-profile.proto"
+                }
+            },
+            "SettingsMessage": {
+                "schemaFormat": "application/vnd.google.protobuf;version=3",
+                "payload": {
+                    "$ref": "http://schemas.example.org/user-settings.proto"
+                }
+            },
+            "JsonSchemaMessage": {
+                "payload": {
+                    "$ref": "http://schemas.example.org/address.json"
+                }
+            },
+            "JsonSchemaWithRefsMessage": {
+                "payload": {
+                    "$ref": "http://schemas.example.org/order.json"
+                }
+            },
+            "LocalRefMessage": {
+                "payload": {
+                    "$ref": "#/components/schemas/Local"
+                }
+            },
+            "UnknownRefMessage": {
+                "payload": {
+                    "$ref": "http://schemas.example.org/missing.avsc"
+                }
+            }
+        }
+    }
+}

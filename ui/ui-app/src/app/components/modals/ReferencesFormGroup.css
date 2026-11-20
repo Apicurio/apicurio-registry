@@ -5,10 +5,10 @@
     align-items: flex-start;
 }
 
-.ref-field-group .pf-v5-c-form__group {
+.ref-field-group .pf-v6-c-form__group {
     flex: 1;
 }
 
-.ref-field-group .pf-v5-c-button {
+.ref-field-group .pf-v6-c-button {
     margin-top: 4px;
 }

@@ -11,12 +11,16 @@ import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.cli.utils.TableBuilder;
 import io.apicurio.registry.rest.client.search.groups.GroupsRequestBuilder;
 import io.apicurio.registry.rest.v3.beans.GroupSearchResults;
+
 import java.util.List;
 import java.util.Optional;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Option;
 
+import static io.apicurio.registry.cli.common.IdUtil.DEFAULT_GROUP;
+import static io.apicurio.registry.cli.common.IdUtil.injectDefaultGroup;
+import static io.apicurio.registry.cli.common.IdUtil.isDefaultGroup;
 import static io.apicurio.registry.cli.utils.Columns.CREATED_ON;
 import static io.apicurio.registry.cli.utils.Columns.DESCRIPTION;
 import static io.apicurio.registry.cli.utils.Columns.GROUP_ID;
@@ -72,6 +76,14 @@ public class SearchGroupsCommand extends AbstractCommand {
             //noinspection ConstantConditions
             applyFilters(r.queryParameters);
         }));
+
+        final boolean shouldInjectDefault = (groupId == null || isDefaultGroup(groupId))
+                && description == null && (labels == null || labels.isEmpty());
+
+        if (shouldInjectDefault) {
+            injectDefaultGroup(results, pagination.getPage());
+        }
+
         printResults(output, results);
     }
 
@@ -102,8 +114,11 @@ public class SearchGroupsCommand extends AbstractCommand {
                     final var table = new TableBuilder();
                     table.addColumns(GROUP_ID, DESCRIPTION, CREATED_ON, OWNER, MODIFIED_ON, MODIFIED_BY, LABELS);
                     Optional.ofNullable(results.getGroups()).orElse(List.of()).forEach(g -> {
+                        final String displayGroupId = DEFAULT_GROUP.equals(g.getGroupId())
+                                ? g.getGroupId() + " (implicit)"
+                                : g.getGroupId();
                         table.addRow(
-                                g.getGroupId(),
+                                displayGroupId,
                                 g.getDescription(),
                                 convertToString(g.getCreatedOn()),
                                 g.getOwner(),

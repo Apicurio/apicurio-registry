@@ -14,10 +14,12 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static io.apicurio.registry.operator.Tags.FEATURE;
+import static io.apicurio.registry.operator.Tags.FEATURE_A;
 import static org.awaitility.Awaitility.await;
 
 @QuarkusTest
 @Tag(FEATURE)
+@Tag(FEATURE_A)
 public class PodDisruptionBudgetITTest extends ITBase {
 
     private static final Logger log = LoggerFactory.getLogger(PodDisruptionBudgetITTest.class);
@@ -27,6 +29,7 @@ public class PodDisruptionBudgetITTest extends ITBase {
         ApicurioRegistry3 registry = ResourceFactory.deserialize(
                 "/k8s/examples/simple.apicurioregistry3.yaml", ApicurioRegistry3.class);
         registry.getSpec().getApp().setReplicas(2);
+        registry.getSpec().getUi().setReplicas(2);
         client.resource(registry).create();
 
         // Wait for the deployment to exist
@@ -66,9 +69,19 @@ public class PodDisruptionBudgetITTest extends ITBase {
         await().atMost(MEDIUM_DURATION).ignoreExceptions().untilAsserted(() -> {
             var status = client.policy().v1().podDisruptionBudget()
                     .inNamespace(namespace).withName(uiPdbName).get().getStatus();
-            Assertions.assertThat(status.getExpectedPods()).isEqualTo(1);
-            Assertions.assertThat(status.getDisruptionsAllowed()).isEqualTo(0);
+            Assertions.assertThat(status.getExpectedPods()).isEqualTo(2);
+            Assertions.assertThat(status.getDisruptionsAllowed()).isEqualTo(1);
         });
+
+        // With a single UI pod, a budget would allow no disruption and block node drains: it is removed
+        registry = client.resource(registry).get();
+        registry.getSpec().getUi().setReplicas(1);
+        client.resource(registry).update();
+        await().atMost(MEDIUM_DURATION).ignoreExceptions().untilAsserted(() -> Assertions.assertThat(
+                client.policy().v1().podDisruptionBudget().inNamespace(namespace).withName(uiPdbName).get())
+                .isNull());
+        Assertions.assertThat(client.policy().v1().podDisruptionBudget().inNamespace(namespace)
+                .withName(appPdbName).get()).isNotNull();
     }
 
     private void assertLabelsContains(Map<String, String> labels, String... values) {

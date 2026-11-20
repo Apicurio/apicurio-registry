@@ -1,0 +1,8 @@
+{
+  "_comment": "Baseline perf-main thresholds, in milliseconds, for the RegistryApiSimulation Gatling run. Update this file deliberately (in its own PR, with a comment explaining why) when a legitimate change in registry performance characteristics is expected - not as a drive-by change alongside unrelated work.",
+  "meanResponseTimeMs": 200,
+  "p95ResponseTimeMs": 500,
+  "p99ResponseTimeMs": 1000,
+  "maxFailedRequestsPercent": 1.0,
+  "regressionToleranceFactor": 1.25
+}

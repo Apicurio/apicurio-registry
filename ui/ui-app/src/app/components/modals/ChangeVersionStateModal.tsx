@@ -12,7 +12,8 @@ import {
     Modal
 } from "@patternfly/react-core/deprecated";
 import { VersionState, VersionStateObject } from "@sdk/lib/generated-client/models";
-import { ObjectSelect } from "@apicurio/common-ui-components";
+import { ObjectSelect } from "@apitomy/common-ui-components";
+import { stateToLabel } from "./VersionStateUtils";
 
 
 /**
@@ -67,21 +68,6 @@ const getStateOptions = (currentState: VersionState): StateOption[] => {
     }
 
     return options;
-};
-
-const stateToLabel = (state: VersionState | undefined): string => {
-    switch (state) {
-        case VersionStateObject.ENABLED:
-            return "Enabled";
-        case VersionStateObject.DISABLED:
-            return "Disabled";
-        case VersionStateObject.DEPRECATED:
-            return "Deprecated";
-        case VersionStateObject.DRAFT:
-            return "Draft";
-        default:
-            return "Unknown";
-    }
 };
 
 export const ChangeVersionStateModal: FunctionComponent<ChangeVersionStateModalProps> = (

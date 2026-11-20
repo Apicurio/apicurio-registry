@@ -35,7 +35,7 @@ public class SqlRegistryStorage extends AbstractSqlRegistryStorage {
     }
 
     public void restoreFromSnapshot(String snapshotLocation) {
-        handleFactory.withHandle(handle -> handle.createUpdate(sqlStatements.restoreFromSnapshot())
+        handleFactory.withHandle(handle -> handle.createUpdate(sqlStatements.restoreFromSnapshot(snapshotLocation))
                 .bind(0, snapshotLocation).execute());
     }
 

@@ -49,7 +49,7 @@ is already the contract the server is checked against, so it is the natural sour
    | Java | `kiota-maven-plugin` in [`java-sdk/client`](../java-sdk/client/pom.xml) at build time | No | `io.apicurio:apicurio-registry-java-sdk` |
    | Java v2 | Same plugin, from a filtered copy of `openapi-v2.json` ([`client-v2`](../java-sdk/client-v2/pom.xml)) | No | `apicurio-registry-v2-java-sdk` (deprecated) |
    | Go | [`generate.sh`](../go-sdk/generate.sh) (`make generate format`), v2 and v3 packages | Yes, `go-sdk/pkg/` | Go module `github.com/apicurio/apicurio-registry/go-sdk/v3` |
-   | Python | [`kiota-gen.py`](../python-sdk/kiota-gen.py), the Poetry build script | No | `apicurioregistrysdk` on PyPI |
+   | Python | [`kiota-gen.py`](../python-sdk/kiota-gen.py), run by `make generate` before the Poetry build | No | `apicurioregistrysdk` on PyPI |
    | TypeScript | `npm run generate-sources` | No | `@apicurio/apicurio-registry-sdk` on npm |
 
 3. **CI keeps the SDKs in step with the spec.** Java is regenerated in every Maven build, so it can

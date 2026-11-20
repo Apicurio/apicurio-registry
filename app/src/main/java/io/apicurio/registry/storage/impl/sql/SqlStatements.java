@@ -108,6 +108,12 @@ public interface SqlStatements {
     public String selectArtifactVersionMetaDataByGlobalId();
 
     /**
+     * A statement to select the versions row with a globalId together with its artifacts row, whose
+     * columns are prefixed with {@code artifact}.
+     */
+    public String selectArtifactVersionWithArtifactMetaDataByGlobalId();
+
+    /**
      * A statement used to select a single row in the versions by artifactId and content hash.
      */
     public String selectArtifactVersionMetaDataByContentHash();
@@ -201,6 +207,12 @@ public interface SqlStatements {
      * A statement to get a single artifact (latest version) meta-data by artifactId.
      */
     public String selectArtifactMetaData();
+
+    /**
+     * A statement to select the artifacts rows of {@code count} (groupId, artifactId) pairs, bound in
+     * that order.
+     */
+    public String selectArtifactsMetaData(int count);
 
     /**
      * A statement to select the contentId of a row in the content table by hash value.

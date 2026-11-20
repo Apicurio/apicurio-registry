@@ -74,6 +74,7 @@ import org.slf4j.Logger;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -980,6 +981,11 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         return artifactRepository.getArtifactMetaData(groupId, artifactId);
     }
 
+    @Override
+    public List<ArtifactMetaDataDto> getArtifactsMetaData(Collection<GA> artifacts) throws RegistryStorageException {
+        return artifactRepository.getArtifactsMetaData(artifacts);
+    }
+
     /**
      * @param references may be null
      */
@@ -1381,6 +1387,12 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             throws VersionNotFoundException, RegistryStorageException {
 
         return versionRepository.getArtifactVersionMetaData(globalId);
+    }
+
+    @Override
+    public VersionWithArtifactMetaDataDto getArtifactVersionWithArtifactMetaData(Long globalId)
+            throws VersionNotFoundException, RegistryStorageException {
+        return versionRepository.getArtifactVersionWithArtifactMetaData(globalId);
     }
 
     @Override

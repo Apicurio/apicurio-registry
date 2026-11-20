@@ -224,7 +224,7 @@ Deploy the container image with appropriate environment variables for storage co
 
 **Development:**
 ```bash
-./mvnw clean install -DskipTests && cd app && ../mvnw quarkus:dev
+./mvnw clean install -DskipTests && cd quarkus-app && ../mvnw quarkus:dev
 ```
 
 **How does an adopter test and validate the installation?**

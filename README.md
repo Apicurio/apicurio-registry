@@ -15,7 +15,7 @@ Build the project and run the registry with the in-memory storage variant:
 
  ```
  ./mvnw clean install -Dlocal -DskipTests
- cd app/
+ cd quarkus-app/
  ../mvnw quarkus:dev -Dlocal
  ```
 

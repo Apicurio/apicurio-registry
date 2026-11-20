@@ -19,6 +19,7 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -74,8 +75,8 @@ public class AgentSearchCandidatesTest extends AbstractResourceTestBase {
 
         verify(counting, times(1)).getArtifactVersionContent(eq(group), eq("skilled"), anyString());
         verify(counting, times(1)).getBranchTip(argThat(ga -> "skilled".equals(ga.getRawArtifactId())), any(), any());
-        verify(aiCatalogDiscovery, times(1)).collectAgentCandidates(anyString(), any(), any(), any());
-        verify(aiCatalogDiscovery, never()).collectAiCatalogCandidates(any(), any(), any(), any());
+        verify(aiCatalogDiscovery, times(1)).collectAgentCandidates(anyString(), any(), any(), any(), anyBoolean(), any());
+        verify(aiCatalogDiscovery, never()).collectAiCatalogCandidates(any(), any(), any(), any(), anyBoolean(), any());
     }
 
     private void search() {

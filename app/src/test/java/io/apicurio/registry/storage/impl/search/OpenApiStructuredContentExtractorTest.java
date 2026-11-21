@@ -197,4 +197,43 @@ class OpenApiStructuredContentExtractorTest {
         assertTrue(elements.stream().anyMatch(e -> e.kind().equals("security_scheme")));
         assertTrue(elements.stream().anyMatch(e -> e.kind().equals("server")));
     }
+
+    @Test
+    void testExtractFromYaml() {
+        String openApiYaml = """
+                openapi: 3.0.2
+                info:
+                  title: Pet Store API
+                  version: '1.0'
+                servers:
+                  - url: https://petstore.example.com
+                tags:
+                  - name: pets
+                paths:
+                  /pets:
+                    get:
+                      operationId: listPets
+                components:
+                  schemas:
+                    Pet:
+                      type: object
+                  parameters:
+                    pageSize:
+                      name: pageSize
+                      in: query
+                  securitySchemes:
+                    apiKey:
+                      type: apiKey
+                """;
+
+        List<StructuredElement> elements = extractor.extract(ContentHandle.create(openApiYaml));
+
+        assertTrue(elements.stream().anyMatch(e -> e.kind().equals("schema") && e.name().equals("Pet")));
+        assertTrue(elements.stream().anyMatch(e -> e.kind().equals("path") && e.name().equals("/pets")));
+        assertTrue(elements.stream().anyMatch(e -> e.kind().equals("operation") && e.name().equals("listPets")));
+        assertTrue(elements.stream().anyMatch(e -> e.kind().equals("tag") && e.name().equals("pets")));
+        assertTrue(elements.stream().anyMatch(e -> e.kind().equals("parameter") && e.name().equals("pageSize")));
+        assertTrue(elements.stream().anyMatch(e -> e.kind().equals("security_scheme") && e.name().equals("apiKey")));
+        assertTrue(elements.stream().anyMatch(e -> e.kind().equals("server") && e.name().equals("https://petstore.example.com")));
+    }
 }

@@ -1,18 +1,22 @@
 package io.apicurio.registry.openapi.content.extract;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.apitomy.datamodels.Library;
 import io.apitomy.datamodels.TraverserDirection;
 import io.apitomy.datamodels.models.Document;
 import io.apitomy.datamodels.models.Info;
 import io.apitomy.datamodels.models.visitors.CombinedVisitorAdapter;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.ExtractedMetaData;
+import io.apicurio.registry.content.util.ContentTypeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Performs meta-data extraction for OpenAPI content.
+ * Performs meta-data extraction for OpenAPI and AsyncAPI content in both JSON and YAML formats.
  */
 public class ApicurioDataModelsContentExtractor implements ContentExtractor {
 
@@ -21,7 +25,11 @@ public class ApicurioDataModelsContentExtractor implements ContentExtractor {
     @Override
     public ExtractedMetaData extract(ContentHandle content) {
         try {
-            Document openApi = Library.readDocumentFromJSONString(content.content());
+            JsonNode node = ContentTypeUtil.parseJsonOrYaml(TypedContent.create(content, null));
+            if (!(node instanceof ObjectNode objectNode)) {
+                return null;
+            }
+            Document openApi = Library.readDocument(objectNode);
             MetaDataVisitor viz = new MetaDataVisitor();
             Library.visitTree(openApi, viz, TraverserDirection.down);
 

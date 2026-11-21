@@ -86,25 +86,54 @@ public class UsageTelemetryTest extends AbstractResourceTestBase {
         createArtifact(groupId, artifactId, ArtifactType.JSON, "{\"type\": \"string\"}",
                 ContentTypes.APPLICATION_JSON);
         createArtifactVersion(groupId, artifactId, "{\"type\": \"int\"}", ContentTypes.APPLICATION_JSON);
+        createArtifactVersion(groupId, artifactId, "{\"type\": \"boolean\"}", ContentTypes.APPLICATION_JSON);
 
         long v1GlobalId = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
                 .versions().byVersionExpression("1").get().getGlobalId();
         long v2GlobalId = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
                 .versions().byVersionExpression("2").get().getGlobalId();
+        long v3GlobalId = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
+                .versions().byVersionExpression("3").get().getGlobalId();
 
-        fetchSchemaWithTelemetry(v2GlobalId, "current-app", "SERIALIZE");
+        fetchSchemaWithTelemetry(v3GlobalId, "current-app", "SERIALIZE");
         fetchSchemaWithTelemetry(v1GlobalId, "legacy-app", "DESERIALIZE");
+        fetchSchemaWithTelemetry(v1GlobalId, "multi-version-app", "DESERIALIZE");
+        fetchSchemaWithTelemetry(v2GlobalId, "multi-version-app", "DESERIALIZE");
         waitForFlush();
 
         ConsumerVersionHeatmap heatmap = clientV3.admin().usage().artifacts()
                 .byGroupId(groupId).byArtifactId(artifactId).heatmap().get();
         Assertions.assertNotNull(heatmap);
-        Assertions.assertEquals(2, heatmap.getConsumers().size());
+        Assertions.assertEquals(3, heatmap.getConsumers().size());
+        Assertions.assertEquals(3, heatmap.getVersions().size());
+        Assertions.assertTrue(heatmap.getVersions().contains("1"));
+        Assertions.assertTrue(heatmap.getVersions().contains("2"));
+        Assertions.assertTrue(heatmap.getVersions().contains("3"));
 
         var legacyConsumer = heatmap.getConsumers().stream()
                 .filter(c -> "legacy-app".equals(c.getClientId())).findFirst().orElse(null);
         Assertions.assertNotNull(legacyConsumer, "Should find legacy-app consumer");
-        Assertions.assertEquals(1, legacyConsumer.getVersionsBehind());
+        Assertions.assertEquals(2, legacyConsumer.getVersionsBehind());
+        Assertions.assertTrue(legacyConsumer.getDriftAlert());
+        Assertions.assertEquals(Integer.valueOf(1), legacyConsumer.getVersions().getAdditionalData().get("1"));
+        Assertions.assertEquals(1, legacyConsumer.getVersions().getAdditionalData().size());
+
+        var multiVersionConsumer = heatmap.getConsumers().stream()
+                .filter(c -> "multi-version-app".equals(c.getClientId())).findFirst().orElse(null);
+        Assertions.assertNotNull(multiVersionConsumer, "Should find multi-version-app consumer");
+        Assertions.assertEquals(1, multiVersionConsumer.getVersionsBehind());
+        Assertions.assertFalse(multiVersionConsumer.getDriftAlert());
+        Assertions.assertEquals(Integer.valueOf(1), multiVersionConsumer.getVersions().getAdditionalData().get("1"));
+        Assertions.assertEquals(Integer.valueOf(1), multiVersionConsumer.getVersions().getAdditionalData().get("2"));
+        Assertions.assertEquals(2, multiVersionConsumer.getVersions().getAdditionalData().size());
+
+        var currentConsumer = heatmap.getConsumers().stream()
+                .filter(c -> "current-app".equals(c.getClientId())).findFirst().orElse(null);
+        Assertions.assertNotNull(currentConsumer, "Should find current-app consumer");
+        Assertions.assertEquals(0, currentConsumer.getVersionsBehind());
+        Assertions.assertFalse(currentConsumer.getDriftAlert());
+        Assertions.assertEquals(Integer.valueOf(1), currentConsumer.getVersions().getAdditionalData().get("3"));
+        Assertions.assertEquals(1, currentConsumer.getVersions().getAdditionalData().size());
     }
 
     @Test

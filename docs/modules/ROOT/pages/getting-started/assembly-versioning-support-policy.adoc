@@ -171,10 +171,15 @@ You can upgrade to a new minor version (for example, from 3.3.x to the next mino
 
 .Procedure
 . Review the release notes for the target version to understand new features and any behavioral changes.
+If the target version has an upgrade page, review it too, and follow any steps that apply to your deployment.
 . Back up your database.
 . Replace the {registry} container image with the new minor version.
 . Start {registry}. Database schema migrations run automatically.
 . Verify that your client applications work correctly with the new version.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:getting-started/assembly-upgrading-to-3-4.adoc[]
 
 
 [id="skipping-minor-versions_{context}"]
@@ -185,7 +190,7 @@ You can upgrade to a new minor version (for example, from 3.3.x to the next mino
 [role="_abstract"]
 You can upgrade across multiple minor versions in one step (for example, from 3.2.x directly to a later minor version). Database migrations are cumulative, and {registry} applies them in order on startup.
 
-Review the release notes for all intermediate versions to understand the full set of changes.
+Review the release notes and upgrade pages for all intermediate versions to understand the full set of changes.
 
 
 [id="downgrades-and-rollbacks_{context}"]

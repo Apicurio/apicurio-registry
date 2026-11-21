@@ -1299,9 +1299,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                     .referenceDtosToReferences(artifact.getReferences());
 
             TypedContent typedContent = TypedContent.create(artifact.getContent(), artifact.getContentType());
-            rulesService.applyRules(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(),
-                    vmd.getArtifactType(), typedContent, RuleApplicationType.UPDATE, references,
-                    resolvedReferences);
+            rulesService.applyRulesForNewVersion(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(),
+                    gav.getRawVersionId(), vmd.getArtifactType(), typedContent, RuleApplicationType.UPDATE,
+                    references, resolvedReferences);
             afterPublish = beforePublish(new VersionWriteContext(VersionWriteContext.Operation.PUBLISH_DRAFT,
                     storage, gav, vmd.getArtifactType(), securityIdentity.getPrincipal().getName()),
                     typedContent);

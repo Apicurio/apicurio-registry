@@ -38,6 +38,12 @@ type WithGroupItemRequestBuilderPutRequestConfiguration struct {
 	Options []i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestOption
 }
 
+// AgentInventorySync keep this group in sync with an inventory of agents or MCP servers.
+// returns a *ItemAgentInventorySyncRequestBuilder when successful
+func (m *WithGroupItemRequestBuilder) AgentInventorySync() *ItemAgentInventorySyncRequestBuilder {
+	return NewItemAgentInventorySyncRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
 // Artifacts manage the collection of artifacts within a single group in the registry.
 // returns a *ItemArtifactsRequestBuilder when successful
 func (m *WithGroupItemRequestBuilder) Artifacts() *ItemArtifactsRequestBuilder {

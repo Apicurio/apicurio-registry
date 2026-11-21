@@ -41,22 +41,6 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
         return error.getMessage().contains("violates foreign key constraint");
     }
 
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#getNextSequenceValue()
-     */
-    @Override
-    public String getNextSequenceValue() {
-        return "INSERT INTO sequences (seqName, seqValue) VALUES (?, 1) ON CONFLICT (seqName) DO UPDATE SET seqValue = sequences.seqValue + 1 RETURNING seqValue";
-    }
-
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#resetSequenceValue()
-     */
-    @Override
-    public String resetSequenceValue() {
-        return "INSERT INTO sequences (seqName, seqValue) VALUES (?, ?) ON CONFLICT (seqName) DO UPDATE SET seqValue = ?";
-    }
-
     @Override
     public String upsertBranch() {
         return """
@@ -109,6 +93,40 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
     public String releaseInitLock() {
         // Note: pg_advisory_unlock() returns boolean, where true = successfully unlocked
         return "SELECT CASE WHEN pg_advisory_unlock(1886352239) THEN 1 ELSE 0 END";
+    }
+
+
+    /**
+     * Uses the native PostgreSQL sequence.
+     *
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#nextSequenceValue(String)
+     */
+    @Override
+    public String nextSequenceValue(String sequenceName) {
+        return "SELECT nextval('" + nativeSequenceName(sequenceName) + "')";
+    }
+
+    /**
+     * Reads the last issued value, or 0 if none.
+     *
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectSequenceLastValue(String)
+     */
+    @Override
+    public String selectSequenceLastValue(String sequenceName) {
+        return "SELECT CASE WHEN is_called THEN last_value ELSE 0 END FROM "
+                + nativeSequenceName(sequenceName);
+    }
+
+    /**
+     * Sets the sequence to the bound value. setval is absolute, so GREATEST keeps it from rewinding
+     * past values already issued when the statement runs.
+     *
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#advanceSequenceValue(String)
+     */
+    @Override
+    public String advanceSequenceValue(String sequenceName) {
+        String name = nativeSequenceName(sequenceName);
+        return "SELECT setval('" + name + "', GREATEST(?, (SELECT last_value FROM " + name + ")), true)";
     }
 
 }

@@ -5,6 +5,7 @@ import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
+import io.apicurio.registry.storage.dto.VersionWithArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.VersionContentDto;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.ContentNotFoundException;
@@ -20,6 +21,7 @@ import io.apicurio.registry.storage.impl.sql.jdb.Handle;
 import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactMetaDataDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactVersionMetaDataDtoMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.VersionWithArtifactMetaDataDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.VersionContentDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.GAVMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.StoredArtifactMapper;
@@ -102,6 +104,17 @@ public class SqlVersionRepository {
                     .map(ArtifactVersionMetaDataDtoMapper.instance).findOne();
             return res.orElseThrow(() -> new VersionNotFoundException(globalId));
         });
+    }
+
+    /**
+     * Get the metadata of the version with this globalId and of its artifact, in one query.
+     */
+    public VersionWithArtifactMetaDataDto getArtifactVersionWithArtifactMetaData(Long globalId)
+            throws VersionNotFoundException, RegistryStorageException {
+        return handles.withHandle(handle -> handle
+                .createQuery(sqlStatements.selectArtifactVersionWithArtifactMetaDataByGlobalId()).bind(0, globalId)
+                .map(VersionWithArtifactMetaDataDtoMapper.instance).findOne()
+                .orElseThrow(() -> new VersionNotFoundException(globalId)));
     }
 
     /**

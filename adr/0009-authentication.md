@@ -8,7 +8,7 @@
   [#11046](https://github.com/Apicurio/apicurio-registry/issues/11046) (all fixed; #11044 partly, see limitation 1).
 - **Scope:** How the registry establishes who is calling: the mechanisms, how they combine, the
   401/403 contract, the coarse role-based gates that consume the identity, the web console's login,
-  and how clients authenticate. Which resources an identity may use (per-resource rules, owner bypass)
+  how clients authenticate, and the transport security the credentials travel over. Which resources an identity may use (per-resource rules, owner bypass)
   is [ADR-0005](0005-per-resource-authorization.md).
 
 ## Reading this document
@@ -45,6 +45,10 @@ to work the same whatever established the identity.
    owner-only and per-resource rules all consume the same identity.
 5. **Clients get first-class support** for the same mechanisms: OAuth2 client credentials, basic and
    bearer tokens in the Java SDK, serdes, Maven plugin and CLI.
+6. **TLS is Quarkus's; mutual TLS is the front's.** The registry serves HTTPS through the Quarkus TLS
+   registry. The published images do not require client certificates: in them a proxy or the
+   platform enforces mutual TLS. A build that sets client authentication at build time can require
+   them itself. See [transport security](#transport-security).
 
 ### Why a chain
 
@@ -83,12 +87,33 @@ provider as the single source of truth for credentials and roles, while those to
 
 `GET /system/uiConfig` tells the console the type (`oidc`, `basic` or `none`) and the OIDC settings
 (`apicurio.ui.auth.oidc.*`); a separately deployed console reads `REGISTRY_AUTH_*`. The console uses
-the authorization code flow with a public client, and hides what the roles do not allow.
+the authorization code flow with a public client, and hides what the roles do not allow. The
+console's design is [ADR-0027](0027-web-console.md).
 
 ### Behaviour across storage variants
 
 Authentication does not touch storage, except the `application` role source, whose role mappings are
 stored like other registry data on every variant.
+
+## Transport security
+
+| Concern | How | Notes |
+|---|---|---|
+| Server certificate | Quarkus TLS registry: `quarkus.tls.key-store.p12.*`, `.jks.*` or `.pem.<name>.cert`/`.key` | HTTPS on `quarkus.http.ssl-port` (8443). The older `quarkus.http.ssl.certificate.*` properties still work (`TlsTestProfile`) |
+| Plain HTTP | `quarkus.http.insecure-requests`: `enabled` (default), `redirect`, `disabled` | `redirect` sends HTTP to HTTPS; `disabled` closes port 8080 |
+| Management port | Same certificate | With a key store set, port 9000 (health, metrics) serves HTTPS too |
+| Mutual TLS | With the published images, a front proxy, ingress or service mesh | `quarkus.http.ssl.client-auth` is a build-time property, `NONE` in the published images; setting it at runtime only logs `Build time property cannot be changed at runtime`. A build that sets it to `required` enforces client certificates in the registry itself, as the tests' `MtlsTestProfile` does |
+| Operator | `spec.app.tls` ([ADR-0019](0019-operator.md)) | Mounts a PKCS12 key store from a Secret and sets `QUARKUS_TLS_KEY_STORE_P12_*` and `QUARKUS_HTTP_INSECURE_REQUESTS` (`feat/TLS.java`) |
+| Clients | Trust and key stores in PKCS12, JKS or PEM | SDK options in [ADR-0022](0022-client-sdks-and-cli.md); serdes `apicurio.registry.tls.*`; Maven plugin `trustStore*` and `keyStore*`. `trustAll` and host-verification switches are for development |
+
+TLS protects the credentials of every mechanism above; it is not itself a mechanism: a client
+certificate checked by a proxy does not become a registry identity unless the proxy also forwards
+one (`proxy-header`).
+
+When PEM files are set through environment variables, name the pair
+(`QUARKUS_TLS_KEY_STORE_PEM_SERVER_CERT`): with a number (`QUARKUS_TLS_KEY_STORE_PEM_0_CERT`) the
+setting is ignored and the registry starts without HTTPS, while the system property
+`-Dquarkus.tls.key-store.pem.0.cert` works ([`examples/tls`](../examples/tls/README.md#notes)).
 
 ## Configuration
 
@@ -118,6 +143,7 @@ stored like other registry data on every variant.
 | Configuration | [`AuthConfig`](../app/src/main/java/io/apicurio/registry/auth/AuthConfig.java) | Every `apicurio.authn.*` and `apicurio.auth.*` setting |
 | Gates | [`AuthorizedInterceptor`](../app/src/main/java/io/apicurio/registry/auth/AuthorizedInterceptor.java) | 401/403, anonymous and authenticated read, RBAC, owner-only, admin override |
 | Roles | `TokenRoleProvider`, `StorageRoleProvider`, `HeaderRoleProvider`, `KubernetesRoleProvider` | Role sources |
+| TLS (operator) | [`TLS`](../operator/controller/src/main/java/io/apicurio/registry/operator/feat/TLS.java) | `spec.app.tls` to TLS registry environment variables |
 | Clients | [`java-sdk`](../java-sdk/), [`schema-resolver`](../schema-resolver/), [`utils/maven-plugin`](../utils/maven-plugin/), [`cli`](../cli/) | Client authentication |
 
 ## Limitations and open work
@@ -156,6 +182,9 @@ stored like other registry data on every variant.
   `docker compose up -d && ./demo.sh` checks anonymous access, users and service accounts with roles,
   basic as client credentials and its cache, embedded users, the proxy (including a spoofed header),
   Kubernetes tokens with k3s, the SDK, serdes, Maven plugin and CLI, and the console login.
+- **TLS example:** [`examples/tls`](../examples/tls/): `./demo.sh` checks HTTPS with PKCS12 and
+  PEM key stores, the HTTP redirect, the HTTPS management port, mutual TLS through an nginx proxy, and
+  the SDK, serdes and Maven plugin with PKCS12, JKS and PEM stores, including the refusals.
 - **User documentation:**
   [`assembly-configuring-registry-security.adoc`](../docs/modules/ROOT/pages/getting-started/assembly-configuring-registry-security.adoc).
 
@@ -166,6 +195,7 @@ stored like other registry data on every variant.
 | Basic, form, proxy | `BasicAuthWithPropertiesTest`, `FormAuthTest`, `ProxyHeaderAuthTest`, `ProxyHeaderTrustAuthTest`, `ProxyAndOidcDualAuthTest` (app) |
 | Kubernetes | `KubernetesAuthenticationStrategyTest`, `TokenReviewClientTest`, `TokenReviewClientCircuitBreakerTest` (app) |
 | Gates and roles | `AuthorizedInterceptorTest`, `AuthTestAnonymousCredentials`, `AuthTestAuthenticatedReadAccess`, `AuthTestLocalRoles`, `AuthTestNoRoles` (app) |
+| TLS | `TlsSdkClientTest`, `TlsSdkClientJdkAdapterTest`, `TlsSerdeTest`, `TlsAuthSerdeTest` (app), `TlsITTest` (operator) |
 | Clients | `JdkAdapterAuthenticationTest` (java-sdk), `AuthCommandTest` (cli), `MojoAuthTest` (app) |
 
 ```bash
@@ -181,3 +211,4 @@ stored like other registry data on every variant.
 | 3.3.1 | Form authentication |
 | This ADR | First written record, with a verified example |
 | [#11175](https://github.com/Apicurio/apicurio-registry/pull/11175), [#11176](https://github.com/Apicurio/apicurio-registry/pull/11176) | Fixed: a malformed basic header returns 401 instead of 500 (#11043); resetting a dynamic setting takes effect without a restart on the replica that served it (#11044); the Java SDK's `bearerToken()` works with the default Vert.x adapter (#11046) |
+| [#11350](https://github.com/Apicurio/apicurio-registry/pull/11350) | Transport security recorded, with the [TLS example](../examples/tls/) |

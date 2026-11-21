@@ -23,7 +23,9 @@ import java.util.Map;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -480,9 +482,10 @@ public class GrantsIndirectAccessTest extends AbstractResourceTestBase {
 
     @Test
     public void icebergRenameRequiresWriteOnTheDestinationNamespace() {
+        // The namespaces may already exist, created by the view rename test
         for (String namespace : List.of(ICEBERG_SOURCE, LOCKED_GROUP)) {
             alice().contentType(CT_JSON).body(Map.of("namespace", List.of(namespace)))
-                    .post("/iceberg/v1/default/namespaces").then().statusCode(200);
+                    .post("/iceberg/v1/default/namespaces").then().statusCode(anyOf(is(200), is(409)));
         }
         alice().contentType(CT_JSON).body(Map.of("name", "table", "schema", Map.of("type", "struct",
                 "schema-id", 0, "fields", List.of(Map.of("id", 1, "name", "id", "required", true, "type", "long")))))
@@ -497,6 +500,37 @@ public class GrantsIndirectAccessTest extends AbstractResourceTestBase {
         bob().contentType(CT_JSON).body(rename(ICEBERG_SOURCE, "renamed"))
                 .post("/iceberg/v1/default/tables/rename").then().statusCode(204);
         alice().get(path(ICEBERG_SOURCE, "renamed")).then().statusCode(200);
+    }
+
+    @Test
+    public void icebergViewRenameRequiresWriteOnTheDestinationNamespace() {
+        // The namespaces may already exist, created by the table rename test
+        for (String namespace : List.of(ICEBERG_SOURCE, LOCKED_GROUP)) {
+            alice().contentType(CT_JSON).body(Map.of("namespace", List.of(namespace)))
+                    .post("/iceberg/v1/default/namespaces").then().statusCode(anyOf(is(200), is(409)));
+        }
+        Map<String, Object> viewVersion = Map.of("version-id", 1, "schema-id", 0,
+                "timestamp-ms", System.currentTimeMillis(),
+                "representations", List.of(Map.of("type", "sql", "sql", "SELECT 1", "dialect", "spark")));
+        alice().contentType(CT_JSON).body(Map.of("name", "view", "view-version", viewVersion, "properties", Map.of(),
+                "schema", Map.of("type", "struct", "schema-id", 0,
+                        "fields", List.of(Map.of("id", 1, "name", "id", "required", true, "type", "long")))))
+                .post("/iceberg/v1/default/namespaces/" + ICEBERG_SOURCE + "/views").then().statusCode(200);
+
+        bob().contentType(CT_JSON).body(renameView(LOCKED_GROUP, "renamed-view"))
+                .post("/iceberg/v1/default/views/rename").then().statusCode(403)
+                .body("error.code", equalTo(403)).body("error.type", equalTo("ForbiddenException"));
+        alice().get(path(ICEBERG_SOURCE, "view")).then().statusCode(200);
+        alice().get(path(LOCKED_GROUP, "renamed-view")).then().statusCode(404);
+
+        bob().contentType(CT_JSON).body(renameView(ICEBERG_SOURCE, "renamed-view"))
+                .post("/iceberg/v1/default/views/rename").then().statusCode(204);
+        alice().get(path(ICEBERG_SOURCE, "renamed-view")).then().statusCode(200);
+    }
+
+    private static Map<String, Object> renameView(String destinationNamespace, String destinationName) {
+        return Map.of("source", Map.of("namespace", List.of(ICEBERG_SOURCE), "name", "view"),
+                "destination", Map.of("namespace", List.of(destinationNamespace), "name", destinationName));
     }
 
     private static Map<String, Object> rename(String destinationNamespace, String destinationName) {

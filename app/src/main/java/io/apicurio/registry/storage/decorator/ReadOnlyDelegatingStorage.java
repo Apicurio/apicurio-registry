@@ -34,6 +34,7 @@ import io.apicurio.registry.storage.dto.UsageSummaryCountsDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.dto.VersionContentDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.registry.storage.dto.VersionWithArtifactMetaDataDto;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.ContentNotFoundException;
 import io.apicurio.registry.storage.error.GroupNotFoundException;
@@ -45,6 +46,7 @@ import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.impexp.Entity;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -247,6 +249,17 @@ public abstract class ReadOnlyDelegatingStorage implements RegistryStorage {
     public ArtifactVersionMetaDataDto getArtifactVersionMetaData(Long globalId)
             throws VersionNotFoundException, RegistryStorageException {
         return delegate.getArtifactVersionMetaData(globalId);
+    }
+
+    @Override
+    public VersionWithArtifactMetaDataDto getArtifactVersionWithArtifactMetaData(Long globalId)
+            throws VersionNotFoundException, RegistryStorageException {
+        return delegate.getArtifactVersionWithArtifactMetaData(globalId);
+    }
+
+    @Override
+    public List<ArtifactMetaDataDto> getArtifactsMetaData(Collection<GA> artifacts) throws RegistryStorageException {
+        return delegate.getArtifactsMetaData(artifacts);
     }
 
     @Override

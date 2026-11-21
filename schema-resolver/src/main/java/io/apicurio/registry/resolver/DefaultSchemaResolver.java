@@ -262,10 +262,10 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         boolean dereferenced = dereferenceContentLookup(dereference);
         return schemaCache.getByContentId(contentId, contentIdKey -> {
             // it's impossible to retrieve more info about the artifact with only the contentId, and that's ok
-            String rawSchema = this.clientFacade.getSchemaByContentId(contentIdKey, dereferenced);
+            // Read as bytes: a dereferenced Protobuf schema is a binary descriptor
+            byte[] schema = this.clientFacade.getSchemaBytesByContentId(contentIdKey, dereferenced);
             Map<String, ParsedSchema<S>> resolvedReferences = dereferenced ? Map.of()
                     : resolveReferences(this.clientFacade.getReferencesByContentId(contentIdKey));
-            byte[] schema = rawSchema.getBytes(StandardCharsets.UTF_8);
             S parsed = schemaParser.parseSchema(schema, resolvedReferences);
             ParsedSchemaImpl<S> ps = new ParsedSchemaImpl<S>().setParsedSchema(parsed).setRawSchema(schema);
             return SchemaLookupResult.<S>builder().contentId(contentIdKey).parsedSchema(ps).build();
@@ -275,7 +275,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
     /**
      * Whether a content-ID or content-hash lookup fetches the schema dereferenced. Requires the explicit
      * {@code apicurio.registry.deserializer.dereference-schema} opt-in (servers older than 3.4.0 ignore the
-     * dereference parameter on these endpoints), a client facade that supports it, and a text-based format.
+     * dereference parameter on these endpoints), a client facade that supports it, and a format that supports it.
      *
      * @param dereference the dereference setting of the calling side
      * @return true if the lookup fetches the schema dereferenced
@@ -307,10 +307,10 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         boolean dereferenced = dereferenceContentLookup(dereference);
         return schemaCache.getByContentHash(contentHash, contentHashKey -> {
             // it's impossible to retrieve more info about the artifact with only the contentHash, and that's ok
-            String rawSchema = this.clientFacade.getSchemaByContentHash(contentHashKey, dereferenced);
+            // Read as bytes: a dereferenced Protobuf schema is a binary descriptor
+            byte[] schema = this.clientFacade.getSchemaBytesByContentHash(contentHashKey, dereferenced);
             Map<String, ParsedSchema<S>> resolvedReferences = dereferenced ? Map.of()
                     : resolveReferences(this.clientFacade.getReferencesByContentHash(contentHashKey));
-            byte[] schema = rawSchema.getBytes(StandardCharsets.UTF_8);
             S parsed = schemaParser.parseSchema(schema, resolvedReferences);
             ParsedSchemaImpl<S> ps = new ParsedSchemaImpl<S>().setParsedSchema(parsed).setRawSchema(schema);
             return SchemaLookupResult.<S>builder().contentHash(contentHashKey).parsedSchema(ps).build();

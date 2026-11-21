@@ -58,5 +58,6 @@ Override the ports with `REGISTRY_PORT` and `REGISTRY_B_PORT`.
 - *Operational guardrails* in the Registry documentation
   ([source](../../docs/modules/ROOT/pages/getting-started/assembly-configuring-the-registry.adoc)).
 - [ADR-0017](../../adr/0017-operational-guardrails.md): the design.
+- [ADR-0025](../../adr/0025-configuration.md): how runtime settings are stored and reach every replica.
 - [Storage variants](../storage-variants/): read-only mode on every variant, and the read-only
   GitOps and KubernetesOps storages.

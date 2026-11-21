@@ -50,6 +50,7 @@ import java.util.Base64;
 import static com.google.common.truth.extensions.proto.ProtoTruth.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class FileDescriptorUtilsTest {
@@ -820,5 +821,116 @@ public class FileDescriptorUtilsTest {
 
         Descriptors.FieldDescriptor dKind = dReason.findFieldByName("kind");
         assertEquals("test.transitive.E", dKind.getEnumType().getContainingType().getFullName());
+    }
+
+    @Test
+    public void testDescriptorExcludesImportedTypeFromPackageSharingNamePrefix() throws Exception {
+        String money = """
+                syntax = "proto3";
+                package acme_common;
+                message Money {
+                  string currency = 1;
+                }
+                """;
+        String order = """
+                syntax = "proto3";
+                package acme;
+                import "acme_common/money.proto";
+                message Order {
+                  acme_common.Money total = 1;
+                }
+                """;
+        Set<FileDescriptorUtils.ProtobufSchemaContent> deps = Set.of(
+                FileDescriptorUtils.ProtobufSchemaContent.of("acme_common/money.proto", money));
+
+        Descriptors.FileDescriptor fd = FileDescriptorUtils.parseProtoFileWithDependencies(
+                FileDescriptorUtils.ProtobufSchemaContent.of("acme/order.proto", order), deps, null, true, true);
+
+        Descriptors.Descriptor orderDescriptor = fd.findMessageTypeByName("Order");
+        assertNotNull(orderDescriptor);
+        assertNull(fd.findMessageTypeByName("Money"));
+        assertEquals("acme_common.Money",
+                orderDescriptor.findFieldByName("total").getMessageType().getFullName());
+    }
+
+    @Test
+    public void testDescriptorIncludesTypesFromCurrentPackage() throws Exception {
+        String schema = """
+                syntax = "proto3";
+                package acme;
+                message Order {
+                  Customer customer = 1;
+                }
+                message Customer {
+                  string name = 1;
+                }
+                """;
+
+        Descriptors.FileDescriptor fd = FileDescriptorUtils.parseProtoFileWithDependencies(
+                FileDescriptorUtils.ProtobufSchemaContent.of("acme/order.proto", schema), Set.of(), null, true,
+                true);
+
+        assertNotNull(fd.findMessageTypeByName("Order"));
+        Descriptors.Descriptor customer = fd.findMessageTypeByName("Customer");
+        assertNotNull(customer);
+        assertEquals("acme.Customer", customer.getFullName());
+    }
+
+    @Test
+    public void testDescriptorKeepsNestedTypesNested() throws Exception {
+        String schema = """
+                syntax = "proto3";
+                package acme;
+                enum Channel {
+                  CHANNEL_UNSPECIFIED = 0;
+                }
+                message Order {
+                  message Item {
+                    string id = 1;
+                  }
+                  enum Status {
+                    STATUS_UNSPECIFIED = 0;
+                  }
+                  Item item = 1;
+                  Status status = 2;
+                  Channel channel = 3;
+                }
+                """;
+
+        Descriptors.FileDescriptor fd = FileDescriptorUtils.parseProtoFileWithDependencies(
+                FileDescriptorUtils.ProtobufSchemaContent.of("acme/order.proto", schema), Set.of(), null, true,
+                true);
+
+        Descriptors.Descriptor order = fd.findMessageTypeByName("Order");
+        assertNotNull(order);
+        assertNotNull(order.findNestedTypeByName("Item"));
+        assertNotNull(order.findEnumTypeByName("Status"));
+        assertNull(fd.findMessageTypeByName("Item"));
+        assertNull(fd.findEnumTypeByName("Status"));
+        assertNotNull(fd.findEnumTypeByName("Channel"));
+    }
+
+    @Test
+    public void testDescriptorPackageMatchingDoesNotTreatPackageAsRegex() throws Exception {
+        String schema = """
+                syntax = "proto3";
+                package acme.foo;
+                message Order {
+                  message acmeXfoo {
+                    message Item {
+                      string id = 1;
+                    }
+                  }
+                }
+                """;
+
+        Descriptors.FileDescriptor fd = FileDescriptorUtils.parseProtoFileWithDependencies(
+                FileDescriptorUtils.ProtobufSchemaContent.of("acme/foo/order.proto", schema), Set.of(), null,
+                true, true);
+
+        Descriptors.Descriptor order = fd.findMessageTypeByName("Order");
+        assertNotNull(order);
+        assertNotNull(order.findNestedTypeByName("acmeXfoo"));
+        assertNull(fd.findMessageTypeByName("Item"));
     }
 }

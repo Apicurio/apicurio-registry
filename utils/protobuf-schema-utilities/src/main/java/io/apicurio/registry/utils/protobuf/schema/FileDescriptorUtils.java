@@ -784,16 +784,16 @@ public class FileDescriptorUtils {
         if (optionalPackageName.isPresent()) {
             String packageName = optionalPackageName.orElseThrow(NoSuchElementException::new);
 
-            // If the type doesn't start with the package name, ignore it.
-            if (!typeName.startsWith(packageName)) {
+            // If the type doesn't belong to the package, ignore it. The dot boundary prevents
+            // matching packages that merely share a name prefix, such as acme and acme_common.
+            if (!typeName.startsWith(packageName + ".")) {
                 return false;
             }
             // We only want to consider the parent level types. The list can contain following,
             // [io.apicurio.foo.bar.Customer.Address, io.apicurio.foo.bar.Customer, google.protobuf.Timestamp]
             // We want to only get the type "io.apicurio.foo.bar.Customer" which is parent level type.
-            String[] typeNames = typeName.split(packageName)[1].split("\\.");
-            boolean isNotNested = typeNames.length <= 2;
-            return isNotNested;
+            String relativeTypeName = typeName.substring(packageName.length() + 1);
+            return !relativeTypeName.contains(".");
         }
 
         // In case the package is not defined, we select the types that are not google types or metadata

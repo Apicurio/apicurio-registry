@@ -1,6 +1,8 @@
 package io.apicurio.registry.operator.it;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
+import io.apicurio.registry.operator.api.v1.spec.GitOpsMode;
+import io.apicurio.registry.operator.api.v1.status.ConditionStatus;
 import io.apicurio.registry.operator.feat.GitOps;
 import io.apicurio.registry.operator.resource.ResourceFactory;
 import io.fabric8.kubernetes.api.model.SecretBuilder;
@@ -302,6 +304,111 @@ public class GitOpsITTest extends ITBase {
                 .then()
                 .statusCode(200)
                 .body("count", equalTo(1)));
+    }
+
+    @Test
+    @DisplayName("GitOps push mode with autoscaling enforces single replica and blocks HPA")
+    void testPushModeAutoscalingEnforcesSingleReplicaNoHpa() {
+        final var registry = ResourceFactory.deserialize(
+                "/k8s/examples/gitops/example-push-autoscaling.yaml",
+                ApicurioRegistry3.class);
+        registry.getMetadata().setNamespace(namespace);
+        client.resource(registry).create();
+
+        final var deploymentName = registry.getMetadata().getName() + "-app-deployment";
+
+        await().atMost(MEDIUM_DURATION).ignoreExceptions().untilAsserted(() -> {
+            final var deployment = client.apps().deployments()
+                    .inNamespace(namespace).withName(deploymentName).get();
+            assertThat(deployment).isNotNull();
+            assertThat(deployment.getSpec().getReplicas()).isEqualTo(1);
+            assertThat(deployment.getSpec().getStrategy().getType()).isEqualTo("Recreate");
+        });
+
+        await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
+            final var updated = client.resources(ApicurioRegistry3.class)
+                    .inNamespace(namespace).withName(registry.getMetadata().getName()).get();
+            assertThat(updated.getStatus().getConditions()).anyMatch(c ->
+                    "ValidationError".equals(c.getType())
+                            && ConditionStatus.TRUE.equals(c.getStatus()));
+        });
+
+        assertThat(client.autoscaling().v2().horizontalPodAutoscalers()
+                .inNamespace(namespace).list().getItems()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("GitOps pull→push→pull: strategy switches and HPA lifecycle")
+    void testPullToPushToPullLifecycle() {
+        final var registry = ResourceFactory.deserialize(
+                "/k8s/examples/gitops/example-push-autoscaling.yaml",
+                ApicurioRegistry3.class);
+        registry.getMetadata().setNamespace(namespace);
+        registry.getSpec().getApp().getStorage().getGitops().setMode(GitOpsMode.PULL);
+        client.resource(registry).create();
+
+        final var deploymentName = registry.getMetadata().getName() + "-app-deployment";
+        final var crName = registry.getMetadata().getName();
+
+        // Pull mode: RollingUpdate strategy, HPA created
+        await().atMost(MEDIUM_DURATION).ignoreExceptions().untilAsserted(() -> {
+            final var deployment = client.apps().deployments()
+                    .inNamespace(namespace).withName(deploymentName).get();
+            assertThat(deployment).isNotNull();
+            assertThat(deployment.getSpec().getStrategy().getType()).isEqualTo("RollingUpdate");
+        });
+        await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() ->
+                assertThat(client.autoscaling().v2().horizontalPodAutoscalers()
+                        .inNamespace(namespace).list().getItems()).isNotEmpty());
+
+        // Switch to push mode
+        client.resources(ApicurioRegistry3.class).inNamespace(namespace).withName(crName)
+                .edit(r -> {
+                    r.getSpec().getApp().getStorage().getGitops().setMode(GitOpsMode.PUSH);
+                    return r;
+                });
+
+        // Push mode: Recreate strategy, no HPA, ValidationError
+        await().atMost(MEDIUM_DURATION).ignoreExceptions().untilAsserted(() -> {
+            final var deployment = client.apps().deployments()
+                    .inNamespace(namespace).withName(deploymentName).get();
+            assertThat(deployment.getSpec().getReplicas()).isEqualTo(1);
+            assertThat(deployment.getSpec().getStrategy().getType()).isEqualTo("Recreate");
+        });
+        await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() ->
+                assertThat(client.autoscaling().v2().horizontalPodAutoscalers()
+                        .inNamespace(namespace).list().getItems()).isEmpty());
+        await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
+            final var updated = client.resources(ApicurioRegistry3.class)
+                    .inNamespace(namespace).withName(crName).get();
+            assertThat(updated.getStatus().getConditions()).anyMatch(c ->
+                    "ValidationError".equals(c.getType())
+                            && ConditionStatus.TRUE.equals(c.getStatus()));
+        });
+
+        // Switch back to pull mode
+        client.resources(ApicurioRegistry3.class).inNamespace(namespace).withName(crName)
+                .edit(r -> {
+                    r.getSpec().getApp().getStorage().getGitops().setMode(GitOpsMode.PULL);
+                    return r;
+                });
+
+        // Pull mode restored: RollingUpdate, HPA returns, no ValidationError
+        await().atMost(MEDIUM_DURATION).ignoreExceptions().untilAsserted(() -> {
+            final var deployment = client.apps().deployments()
+                    .inNamespace(namespace).withName(deploymentName).get();
+            assertThat(deployment.getSpec().getStrategy().getType()).isEqualTo("RollingUpdate");
+        });
+        await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() ->
+                assertThat(client.autoscaling().v2().horizontalPodAutoscalers()
+                        .inNamespace(namespace).list().getItems()).isNotEmpty());
+        await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
+            final var updated = client.resources(ApicurioRegistry3.class)
+                    .inNamespace(namespace).withName(crName).get();
+            assertThat(updated.getStatus().getConditions()).noneMatch(c ->
+                    "ValidationError".equals(c.getType())
+                            && ConditionStatus.TRUE.equals(c.getStatus()));
+        });
     }
 
     private void applyTestDataConfigMap() {

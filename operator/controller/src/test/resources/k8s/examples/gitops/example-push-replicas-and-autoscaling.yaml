@@ -1,0 +1,22 @@
+# Push mode with both replicas > 1 and autoscaling enabled
+# The operator enforces a single replica, blocks HPA, and records two ValidationError conditions.
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: gitops-push-both
+spec:
+  app:
+    replicas: 3
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 5
+    storage:
+      type: gitops
+      gitops:
+        mode: push
+        registryId: prod
+        push:
+          authorizedKeys:
+            name: gitops-push-authorized-keys
+            key: authorized_keys

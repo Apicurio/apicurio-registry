@@ -72,13 +72,19 @@ public class EnhancedAvroContentCanonicalizer implements ContentCanonicalizer {
                     // don't normalize again
                     return existing;
                 }
-                result = Schema.createRecord(schema.getName(), EMPTY_DOC, schema.getNamespace(), false);
+                boolean isError = schema.isError();
+                if (!isError && schema.getObjectProps().containsKey("isError")) {
+                    isError = Boolean.parseBoolean(schema.getObjectProps().get("isError").toString());
+                }
+                result = Schema.createRecord(schema.getName(), EMPTY_DOC, schema.getNamespace(), isError);
                 alreadyNormalized.put(key, result);
+                copyAliases(schema, result);
                 result.setFields(normalizeFields(schema.getFields(), alreadyNormalized));
                 break;
             case ENUM:
                 result = Schema.createEnum(schema.getName(), EMPTY_DOC, schema.getNamespace(),
                         schema.getEnumSymbols());
+                copyAliases(schema, result);
                 break;
             case ARRAY:
                 result = Schema.createArray(normalizeSchema(schema.getElementType(), alreadyNormalized));
@@ -86,6 +92,7 @@ public class EnhancedAvroContentCanonicalizer implements ContentCanonicalizer {
             case FIXED:
                 result = Schema.createFixed(schema.getName(), EMPTY_DOC, schema.getNamespace(),
                         schema.getFixedSize());
+                copyAliases(schema, result);
                 break;
             case UNION:
                 result = Schema.createUnion(normalizeSchemasList(schema.getTypes(), alreadyNormalized));
@@ -121,7 +128,24 @@ public class EnhancedAvroContentCanonicalizer implements ContentCanonicalizer {
                 normalizeSchema(field.schema(), alreadyNormalized), EMPTY_DOC, defaultVal,
                 field.order());
         field.getObjectProps().forEach(result::addProp);
+        copyFieldAliases(field, result);
         return result;
+    }
+
+    private static void copyAliases(Schema source, Schema target) {
+        if (source.getAliases() != null) {
+            for (String alias : source.getAliases()) {
+                target.addAlias(alias);
+            }
+        }
+    }
+
+    private static void copyFieldAliases(Schema.Field source, Schema.Field target) {
+        if (source.aliases() != null) {
+            for (String alias : source.aliases()) {
+                target.addAlias(alias);
+            }
+        }
     }
 
     private static List<Schema.Field> normalizeFields(List<Schema.Field> fields,

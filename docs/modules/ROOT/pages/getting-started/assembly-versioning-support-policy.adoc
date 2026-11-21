@@ -147,6 +147,88 @@ Always back up your database before upgrading to a new minor version.
 * xref:backup-before-upgrade_{context}[]
 
 
+[id="deprecated-configuration-properties_{context}"]
+== Deprecated configuration properties
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+{registry} retires a configuration property in two phases. A deployment that sets a deprecated property keeps working until the release that removes the property.
+
+Deprecated::
+{registry} still accepts the property. At startup, it logs a warning that names the property, the version that deprecated it, the version that removes it, and the replacement, if one exists:
++
+----
+Property 'apicurio.kafkasql.ssl.keystore.location' is deprecated since 3.1.0 and will be removed in 4.0.0. Use 'apicurio.kafkasql.security.ssl.keystore.location' instead.
+----
++
+If you set both the deprecated property and its replacement, the replacement takes precedence and the warning changes:
++
+----
+Both 'apicurio.kafkasql.ssl.keystore.location' (deprecated since 3.1.0) and 'apicurio.kafkasql.security.ssl.keystore.location' are configured. 'apicurio.kafkasql.security.ssl.keystore.location' will take precedence.
+----
++
+For a deprecated property without a replacement, the warning states what {registry} does instead.
+Removed::
+{registry} does not start while a removed property is set. It logs an error for each one and fails with an `IllegalStateException` that lists them all:
++
+----
+The following configuration properties were removed and are no longer supported: Property 'apicurio.kafkasql.ssl.keystore.location' was removed in 4.0.0. Use 'apicurio.kafkasql.security.ssl.keystore.location' instead.
+----
++
+Remove or replace the property before you upgrade to the release that removes it.
+
+No property has reached the removed phase in this release. The following table lists the deprecated properties.
+
+.Deprecated configuration properties
+[cols="3,3,1,1", options="header"]
+|===
+| Deprecated property
+| Replacement
+| Deprecated since
+| Removed in
+
+| `apicurio.compat.json-schema.use-apitomy`
+| None. The property has no effect because {registry} always checks JSON Schema compatibility with Apitomy Data Models.
+| 3.4.0
+| 4.0.0
+
+| `apicurio.usage.dead-threshold-days`
+| None. The property has no effect. {registry} classifies a version whose last fetch is older than `apicurio.usage.stale-threshold-days` as `DEAD`.
+| 3.4.0
+| 4.0.0
+
+| `apicurio.kafkasql.ssl.truststore.password`
+| `apicurio.kafkasql.security.ssl.truststore.password`
+| 3.1.0
+| 4.0.0
+
+| `apicurio.kafkasql.ssl.keystore.location`
+| `apicurio.kafkasql.security.ssl.keystore.location`
+| 3.1.0
+| 4.0.0
+
+| `apicurio.kafkasql.ssl.keystore.type`
+| `apicurio.kafkasql.security.ssl.keystore.type`
+| 3.1.0
+| 4.0.0
+
+| `apicurio.kafkasql.ssl.keystore.password`
+| `apicurio.kafkasql.security.ssl.keystore.password`
+| 3.1.0
+| 4.0.0
+
+| `apicurio.kafkasql.ssl.key.password`
+| `apicurio.kafkasql.security.ssl.key.password`
+| 3.1.0
+| 4.0.0
+|===
+
+[role="_additional-resources"]
+.Additional resources
+* xref:getting-started/assembly-config-reference.adoc[]
+
+
 [id="patch-upgrades_{context}"]
 == Performing patch upgrades
 

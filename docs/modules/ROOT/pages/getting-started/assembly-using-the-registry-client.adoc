@@ -45,8 +45,12 @@ file (assumes a node.js application).
 
 **Python**
 
-You can access the {registry} Python SDK by adding the correct dependency to your python project (assumes you
-are using pypi).
+The {registry} Python SDK requires Python 3.10 or later. Install the `apicurioregistrysdk` package from PyPI:
+
+[source,bash]
+----
+$ pip install apicurioregistrysdk
+----
 
 **Golang**
 

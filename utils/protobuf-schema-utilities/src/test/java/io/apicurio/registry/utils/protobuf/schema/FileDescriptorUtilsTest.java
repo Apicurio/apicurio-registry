@@ -821,4 +821,29 @@ public class FileDescriptorUtilsTest {
         Descriptors.FieldDescriptor dKind = dReason.findFieldByName("kind");
         assertEquals("test.transitive.E", dKind.getEnumType().getContainingType().getFullName());
     }
+
+    /**
+     * EnumDescriptorProto.EnumReservedRange has an inclusive end, unlike DescriptorProto.ReservedRange.
+     * Reserving 5 to 8 must come back as the range 5 to 8, and a single value as a plain tag.
+     */
+    @Test
+    public void testEnumReservedRangesKeepTheirInclusiveEnd() {
+        DescriptorProtos.EnumDescriptorProto enumProto = DescriptorProtos.EnumDescriptorProto.newBuilder()
+                .setName("Status")
+                .addValue(DescriptorProtos.EnumValueDescriptorProto.newBuilder().setName("UNKNOWN")
+                        .setNumber(0))
+                .addReservedRange(DescriptorProtos.EnumDescriptorProto.EnumReservedRange.newBuilder()
+                        .setStart(5).setEnd(8))
+                .addReservedRange(DescriptorProtos.EnumDescriptorProto.EnumReservedRange.newBuilder()
+                        .setStart(12).setEnd(12))
+                .build();
+        DescriptorProtos.FileDescriptorProto file = DescriptorProtos.FileDescriptorProto.newBuilder()
+                .setName("status.proto").setSyntax("proto3").addEnumType(enumProto).build();
+
+        ProtoFileElement element = FileDescriptorUtils.fileDescriptorToProtoFile(file);
+
+        String text = element.toSchema();
+        assertTrue(text.contains("reserved 5 to 8;"), text);
+        assertTrue(text.contains("reserved 12;"), text);
+    }
 }

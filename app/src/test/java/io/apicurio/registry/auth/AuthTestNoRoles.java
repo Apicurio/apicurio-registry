@@ -2,7 +2,6 @@ package io.apicurio.registry.auth;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.client.RegistryClientFactory;
-import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
@@ -40,17 +39,13 @@ public class AuthTestNoRoles extends AbstractResourceTestBase {
 
     @Override
     protected RegistryClient createRestClientV3(Vertx vertx) {
-        return RegistryClientFactory.create(RegistryClientOptions.create()
-                .registryUrl(registryV3ApiUrl)
-                .vertx(vertx)
+        return RegistryClientFactory.create(boundedClientOptions(registryV3ApiUrl, vertx)
                 .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1"));
     }
 
     @Test
     public void testWrongCreds() throws Exception {
-        RegistryClient client = RegistryClientFactory.create(RegistryClientOptions.create()
-                .registryUrl(registryV3ApiUrl)
-                .vertx(vertx)
+        RegistryClient client = RegistryClientFactory.create(boundedClientOptions(registryV3ApiUrl, vertx)
                 .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.WRONG_CREDS_CLIENT_ID, "test55"));
         var exception = Assertions.assertThrows(Exception.class, () -> {
             client.groups().byGroupId(groupId).artifacts().get();
@@ -60,9 +55,7 @@ public class AuthTestNoRoles extends AbstractResourceTestBase {
 
     @Test
     public void testAdminRole() throws Exception {
-        RegistryClient client = RegistryClientFactory.create(RegistryClientOptions.create()
-                .registryUrl(registryV3ApiUrl)
-                .vertx(vertx)
+        RegistryClient client = RegistryClientFactory.create(boundedClientOptions(registryV3ApiUrl, vertx)
                 .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1"));
         String artifactId = TestUtils.generateArtifactId();
         try {

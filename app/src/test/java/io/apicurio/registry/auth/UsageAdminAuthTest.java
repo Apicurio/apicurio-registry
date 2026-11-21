@@ -2,7 +2,6 @@ package io.apicurio.registry.auth;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.client.RegistryClientFactory;
-import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.BasicAuthWithPropertiesTestProfile;
@@ -81,7 +80,7 @@ public class UsageAdminAuthTest extends AbstractResourceTestBase {
     }
 
     private RegistryClient clientFor(String user, String password) {
-        return RegistryClientFactory.create(RegistryClientOptions.create().registryUrl(registryV3ApiUrl)
-                .vertx(vertx).basicAuth(user, password));
+        return RegistryClientFactory.create(
+                boundedClientOptions(registryV3ApiUrl, vertx).basicAuth(user, password));
     }
 }

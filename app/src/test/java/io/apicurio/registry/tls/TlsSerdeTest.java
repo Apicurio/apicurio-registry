@@ -2,7 +2,6 @@ package io.apicurio.registry.tls;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.client.RegistryClientFactory;
-import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.resolver.config.SchemaResolverConfig;
 import io.apicurio.registry.serde.config.SerdeConfig;
 import io.apicurio.registry.serde.kafka.config.KafkaSerdeConfig;
@@ -57,10 +56,8 @@ public class TlsSerdeTest extends AbstractResourceTestBase {
         registryV2ApiUrl = registryApiBaseUrl + "/registry/v2";
         registryV3ApiUrl = registryApiBaseUrl + "/registry/v3";
 
-        clientV3 = RegistryClientFactory.create(RegistryClientOptions.create()
-                .registryUrl(registryV3ApiUrl)
-                .trustAll(true)
-                .vertx(vertx));
+        clientV3 = RegistryClientFactory.create(boundedClientOptions(registryV3ApiUrl, vertx)
+                .trustAll(true));
     }
 
     /**

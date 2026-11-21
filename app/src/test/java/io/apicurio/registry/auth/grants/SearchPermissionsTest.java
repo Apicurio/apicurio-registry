@@ -2,7 +2,6 @@ package io.apicurio.registry.auth.grants;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.client.RegistryClientFactory;
-import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateGroup;
 import io.apicurio.registry.rest.client.models.EditableArtifactMetaData;
@@ -109,9 +108,8 @@ public class SearchPermissionsTest extends AbstractResourceTestBase {
 
     @Override
     protected RegistryClient createRestClientV3(Vertx vertx) {
-        return RegistryClientFactory.create(RegistryClientOptions.create()
-                .registryUrl(registryV3ApiUrl).vertx(vertx).basicAuth("alice", "alice")
-                .requestTimeout(CLIENT_CONNECT_TIMEOUT_MS, CLIENT_READ_IDLE_TIMEOUT_MS));
+        return RegistryClientFactory.create(
+                boundedClientOptions(registryV3ApiUrl, vertx).basicAuth("alice", "alice"));
     }
 
     @BeforeAll

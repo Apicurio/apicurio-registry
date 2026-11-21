@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
     extractTemplateVariableNames,
+    extractTemplateVariableReferences,
     reconcileTemplateVariables,
     VariableSchema
 } from "./promptTemplateVariables";
@@ -19,16 +20,20 @@ describe("extractTemplateVariableNames", () => {
         expect(extractTemplateVariableNames("{{a}} then {{b}} then {{a}}")).toEqual(["a", "b"]);
     });
 
-    it("extracts block variables and excludes block keywords", () => {
+    it("extracts the subjects of {{#if}} and {{#unless}}, the blocks the backend renders", () => {
         expect(extractTemplateVariableNames("{{#if x}}yes{{/if}}")).toEqual(["x"]);
-        expect(extractTemplateVariableNames("{{#each y}}item{{/each}}")).toEqual(["y"]);
         expect(extractTemplateVariableNames("{{#unless formal}}hi{{/unless}}")).toEqual(["formal"]);
-        expect(extractTemplateVariableNames("{{#with ctx}}body{{/with}}")).toEqual(["ctx"]);
+        expect(extractTemplateVariableNames("{{#if  x}}yes{{/if}}")).toEqual(["x"]);
+    });
+
+    it("names no variable in unsupported {{#each}} and {{#with}} blocks", () => {
+        expect(extractTemplateVariableNames("{{#each y}}item{{/each}}")).toEqual([]);
+        expect(extractTemplateVariableNames("{{#with ctx}}body{{/with}}")).toEqual([]);
     });
 
     it("handles a mix of plain and block variables", () => {
         const template = "Hello {{name}}{{#if formal}}, sir{{/if}}. Items: {{#each items}}{{item}}{{/each}}";
-        expect(extractTemplateVariableNames(template)).toEqual(["name", "formal", "items", "item"]);
+        expect(extractTemplateVariableNames(template)).toEqual(["name", "formal", "item"]);
     });
 
     it("tolerates whitespace inside braces for plain variables", () => {
@@ -37,9 +42,22 @@ describe("extractTemplateVariableNames", () => {
         expect(extractTemplateVariableNames("{{name }} and {{ name}}")).toEqual(["name"]);
     });
 
-    it("tolerates whitespace inside braces for block variables", () => {
-        expect(extractTemplateVariableNames("{{ #if x }}yes{{/if}}")).toEqual(["x"]);
-        expect(extractTemplateVariableNames("{{#if  x  }}yes{{/if}}")).toEqual(["x"]);
+    it("does not recognize spaced conditional tags as blocks", () => {
+        expect(extractTemplateVariableNames("{{ #if x }}yes{{/if}}")).toEqual([]);
+        expect(extractTemplateVariableNames("{{ #if x}}yes{{/if}}")).toEqual([]);
+        expect(extractTemplateVariableNames("{{#if x }}yes{{/if}}")).toEqual([]);
+        expect(extractTemplateVariableNames("{{ #unless x }}yes{{/unless}}")).toEqual([]);
+    });
+
+    it("treats bare {{lookup}}, {{log}} and {{if}} as variables, as the backend does", () => {
+        expect(extractTemplateVariableNames("{{lookup}} {{log}} {{if}}")).toEqual(["lookup", "log", "if"]);
+        expect(extractTemplateVariableNames("{{ lookup }}")).toEqual(["lookup"]);
+    });
+
+    it("does not mistake helper expressions for bare names", () => {
+        expect(extractTemplateVariableNames("{{lookup obj key}} {{log \"hi\"}} {{if flag}}")).toEqual([]);
+        expect(extractTemplateVariableNames("{{#if (gt x 5)}}big{{/if}}")).toEqual([]);
+        expect(extractTemplateVariableNames("{{lookup items 0}} then {{lookup}}")).toEqual(["lookup"]);
     });
 
     it("deduplicates the same name across spaced and unspaced spellings", () => {
@@ -48,11 +66,11 @@ describe("extractTemplateVariableNames", () => {
 
     it("excludes else and this when they appear as bare tag names", () => {
         expect(extractTemplateVariableNames("{{#if x}}a{{else}}b{{/if}}")).toEqual(["x"]);
-        expect(extractTemplateVariableNames("{{#each items}}{{this}}{{/each}}")).toEqual(["items"]);
+        expect(extractTemplateVariableNames("{{this}} {{ else }} {{ this }}")).toEqual([]);
     });
 
     it("extracts variables from nested blocks", () => {
-        expect(extractTemplateVariableNames("{{#if a}}{{#each b}}{{item}}{{/each}}{{/if}}"))
+        expect(extractTemplateVariableNames("{{#if a}}{{#unless b}}{{item}}{{/unless}}{{/if}}"))
             .toEqual(["a", "b", "item"]);
     });
 
@@ -81,7 +99,29 @@ describe("extractTemplateVariableNames", () => {
     it("does not capture @index-style tokens (matches backend scope)", () => {
         // @index/@key/@first start with @ and fall outside \\w+. Backend does
         // not support them either; if that changes, update this frontend too.
-        expect(extractTemplateVariableNames("{{#each items}}{{@index}}{{/each}}")).toEqual(["items"]);
+        expect(extractTemplateVariableNames("{{@index}} {{@key}}")).toEqual([]);
+    });
+});
+
+describe("extractTemplateVariableReferences", () => {
+    it("keeps condition subjects separate from substitution placeholders", () => {
+        expect(extractTemplateVariableReferences("{{#if urgent}}Escalate.{{/if}} Hi {{name}}")).toEqual([
+            { name: "urgent", placeholder: false, condition: true },
+            { name: "name", placeholder: true, condition: false }
+        ]);
+        expect(extractTemplateVariableReferences("{{#unless premium}}Upgrade{{/unless}}")).toEqual([
+            { name: "premium", placeholder: false, condition: true }
+        ]);
+    });
+
+    it("marks a name used both as a condition and as a placeholder once, with both flags", () => {
+        expect(extractTemplateVariableReferences("{{#if urgent}}Urgent: {{urgent}}{{/if}} {{ urgent }}")).toEqual([
+            { name: "urgent", placeholder: true, condition: true }
+        ]);
+    });
+
+    it("does not report the subject of a spaced conditional tag as a condition", () => {
+        expect(extractTemplateVariableReferences("{{ #if urgent }}x{{/if}}")).toEqual([]);
     });
 });
 

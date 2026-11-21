@@ -45,6 +45,9 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
                 try {
                     final Descriptors.Descriptor fileDescriptor = FileDescriptorUtils.toDescriptor(
                             firstMessage.getName(), fileElem, dependencies);
+                    if (fileDescriptor == null) {
+                        return getFileDescriptorFromElement(fileElem);
+                    }
                     return new ProtobufSchema(fileDescriptor.getFile(), fileElem);
                 } catch (IllegalStateException ise) {
                     //If we fail to init the dynamic schema, try to get the descriptor from the proto element

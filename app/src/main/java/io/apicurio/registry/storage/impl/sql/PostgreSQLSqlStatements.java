@@ -81,9 +81,11 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
     public String acquireInitLock() {
         // Use PostgreSQL advisory locks with a fixed key derived from "apicurio-init"
         // Key: 1886352239 (hash of "apicurio-init")
-        // This is a session-level lock that blocks until acquired
-        // Note: pg_advisory_lock() returns void, so we wrap it to return 1 for consistency
-        return "SELECT pg_advisory_lock(1886352239), 1";
+        // This is a transaction-level lock that blocks until acquired and is released automatically
+        // when the initialization transaction commits or rolls back, so another replica cannot
+        // acquire it while the DDL is still uncommitted.
+        // Note: pg_advisory_xact_lock() returns void, so we wrap it to return 1 for consistency
+        return "SELECT pg_advisory_xact_lock(1886352239), 1";
     }
 
     /**
@@ -91,8 +93,8 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
      */
     @Override
     public String releaseInitLock() {
-        // Note: pg_advisory_unlock() returns boolean, where true = successfully unlocked
-        return "SELECT CASE WHEN pg_advisory_unlock(1886352239) THEN 1 ELSE 0 END";
+        // No-op: the transaction-level lock taken in acquireInitLock() is released on commit/rollback.
+        return "SELECT 1";
     }
 
 

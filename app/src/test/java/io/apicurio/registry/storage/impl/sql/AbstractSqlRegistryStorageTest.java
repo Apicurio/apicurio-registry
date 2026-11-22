@@ -1,5 +1,6 @@
 package io.apicurio.registry.storage.impl.sql;
 
+import io.apicurio.registry.storage.error.RegistryStorageException;
 import io.apicurio.registry.storage.impl.sql.jdb.Handle;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -67,6 +68,23 @@ public class AbstractSqlRegistryStorageTest {
         Assertions.assertTrue(ex.getMessage().contains(String.valueOf(newerVersion)));
         Assertions.assertTrue(ex.getMessage().contains(String.valueOf(AbstractSqlRegistryStorage.getDbVersion())));
         Assertions.assertTrue(ex.getMessage().contains("Starting an older version of the registry against a newer database schema is not supported"));
+    }
+
+    @Test
+    void testVerifyInitLockAcquiredAcceptsSuccessResult() {
+        // sp_getapplock returns 0 (granted immediately) or 1 (granted after waiting); other dialects return 1
+        Assertions.assertDoesNotThrow(() -> AbstractSqlRegistryStorage.verifyInitLockAcquired(0));
+        Assertions.assertDoesNotThrow(() -> AbstractSqlRegistryStorage.verifyInitLockAcquired(1));
+    }
+
+    @Test
+    void testVerifyInitLockAcquiredRejectsFailedLock() {
+        // Timeout (-1) and error (-999), as returned by sp_getapplock and the normalized MySQL query
+        for (Integer result : new Integer[] { -1, -999, null }) {
+            RegistryStorageException ex = Assertions.assertThrows(RegistryStorageException.class,
+                    () -> AbstractSqlRegistryStorage.verifyInitLockAcquired(result));
+            Assertions.assertTrue(ex.getMessage().contains("initialization lock"));
+        }
     }
 
     private static class TestSqlRegistryStorage extends AbstractSqlRegistryStorage {

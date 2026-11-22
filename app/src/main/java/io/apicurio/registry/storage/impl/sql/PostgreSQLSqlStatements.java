@@ -84,8 +84,8 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
         // This is a transaction-level lock that blocks until acquired and is released automatically
         // when the initialization transaction commits or rolls back, so another replica cannot
         // acquire it while the DDL is still uncommitted.
-        // Note: pg_advisory_xact_lock() returns void, so we wrap it to return 1 for consistency
-        return "SELECT pg_advisory_xact_lock(1886352239), 1";
+        // Note: pg_advisory_xact_lock() returns void, so select 1 from it to get a positive result
+        return "SELECT 1 FROM pg_advisory_xact_lock(1886352239)";
     }
 
     /**

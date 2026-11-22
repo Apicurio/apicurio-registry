@@ -31,6 +31,7 @@ import {
     ArtifactSortBy,
     ArtifactSortByObject,
     GroupMetaData,
+    ResourcePermissions,
     SearchedVersion,
     SortOrder,
     SortOrderObject
@@ -48,6 +49,7 @@ import { ResizableOverviewDrawer } from "@app/components/common/ResizableOvervie
  */
 export type GroupOverviewTabContentProps = {
     group: GroupMetaData;
+    permissions?: ResourcePermissions;
     onEditMetaData: () => void;
     onChangeOwner: () => void;
     onCreateArtifact: () => void;
@@ -144,7 +146,7 @@ export const GroupOverviewTabContent: FunctionComponent<GroupOverviewTabContentP
             </EmptyStateBody>
             <EmptyStateFooter>
                 <EmptyStateActions>
-                    <IfAuth isDeveloper={true}>
+                    <IfAuth isDeveloper={true} permissions={props.permissions}>
                         <IfFeature feature="readOnly" isNot={true}>
                             <Button className="empty-btn-create" variant="primary"
                                 data-testid="empty-btn-create" onClick={props.onCreateArtifact}>Create artifact</Button>
@@ -165,7 +167,7 @@ export const GroupOverviewTabContent: FunctionComponent<GroupOverviewTabContentP
                             <FlexItem className="title">Group metadata</FlexItem>
                             <FlexItem className="actions" align={{ default: "alignRight" }}>
                                 <If condition={props.group.groupId !== "default"}>
-                                    <IfAuth isDeveloper={true}>
+                                    <IfAuth isDeveloper={true} permissions={props.permissions}>
                                         <IfFeature feature="readOnly" isNot={true}>
                                             <Button icon={<PencilAltIcon />} id="edit-action"
                                                 data-testid="group-btn-edit"
@@ -254,7 +256,7 @@ export const GroupOverviewTabContent: FunctionComponent<GroupOverviewTabContentP
                 <Flex>
                     <FlexItem className="title">Artifacts in group</FlexItem>
                     <FlexItem className="actions" align={{ default: "alignRight" }}>
-                        <IfAuth isDeveloper={true}>
+                        <IfAuth isDeveloper={true} permissions={props.permissions}>
                             <IfFeature feature="readOnly" isNot={true}>
                                 <Button className="btn-header-create-artifact" size="sm" data-testid="btn-create-artifact"
                                     variant="primary" onClick={props.onCreateArtifact}>Create artifact</Button>

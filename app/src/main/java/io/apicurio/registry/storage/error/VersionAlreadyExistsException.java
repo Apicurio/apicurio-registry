@@ -1,5 +1,6 @@
 package io.apicurio.registry.storage.error;
 
+import io.apicurio.registry.model.GroupId;
 import lombok.Getter;
 
 public class VersionAlreadyExistsException extends AlreadyExistsException {
@@ -35,7 +36,7 @@ public class VersionAlreadyExistsException extends AlreadyExistsException {
             return "An artifact with global ID '" + globalId + "' already exists.";
         } else {
             return "An artifact version '" + version + "' for artifact ID '" + artifactId + "' "
-                    + "in group '" + groupId + "' already exists.";
+                    + "in group '" + GroupId.displayName(groupId) + "' already exists.";
         }
     }
 }

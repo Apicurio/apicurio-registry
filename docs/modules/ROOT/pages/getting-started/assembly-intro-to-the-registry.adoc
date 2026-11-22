@@ -422,7 +422,7 @@ endif::[]
 ifdef::apicurio-registry[]
 * link:https://debezium.io/documentation/reference/stable/configuration/avro.html[Configuring Debezium to use Avro serialization and {registry}]
 endif::[]
-* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/event-driven-architecture[Example of using Debezium to monitor the PostgreSQL database used by Apicurio Registry]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/registry-events[Example of consuming registry events, with Debezium and the outbox table on PostgreSQL, and with KafkaSQL]
 * link:https://kafka.apache.org/documentation/#connect[Apache Kafka Connect documentation]
 
 // Metadata created by nebel

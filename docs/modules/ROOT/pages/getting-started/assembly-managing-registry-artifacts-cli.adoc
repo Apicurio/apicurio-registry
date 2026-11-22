@@ -1114,4 +1114,5 @@ You can adjust the behavior of the CLI itself with the `acr config set` command.
 * {rest-client}
 ifndef::service-registry-downstream[]
 * link:https://github.com/Apicurio/apicurio-registry/tree/main/cli[CLI README]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/registry-clients[Registry clients example]: the CLI and the SDKs running the same scenario
 endif::[]

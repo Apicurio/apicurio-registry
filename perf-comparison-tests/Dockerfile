@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi10/openjdk-21-runtime@sha256:4ddb8f6fcace87e82d369cdf2dce4fcb9172f2c2e5c81be1a97ddc56d6fd6c15
+FROM registry.access.redhat.com/ubi10/openjdk-21-runtime@sha256:23fb65c7e4cbb94bc59d72fcfb8e78f2fdb865e0d1bc2a1e3d45a692a9e7d6ea
 USER root
 COPY target/apicurio-registry-perf-comparison-tests-*-jar-with-dependencies.jar /opt/benchmark/benchmark.jar
 RUN mkdir -p /results && chmod -R g+rwX /results /opt/benchmark

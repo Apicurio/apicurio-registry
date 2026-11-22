@@ -4,6 +4,7 @@ import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
+import io.apicurio.registry.storage.dto.VersionWithArtifactMetaDataDto;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.GroupNotFoundException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
@@ -13,14 +14,17 @@ import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -113,11 +117,9 @@ public class AuthorizationLookupsTest {
     @Test
     void coordinatesAreResolvedAgainInEveryRequestSoARebindIsSeen() {
         RegistryStorage storage = mock(RegistryStorage.class);
-        when(storage.getArtifactVersionMetaData(42L))
-                .thenReturn(ArtifactVersionMetaDataDto.builder().groupId("team-a").artifactId("before").version("1")
-                        .build())
-                .thenReturn(ArtifactVersionMetaDataDto.builder().groupId("team-b").artifactId("after").version("1")
-                        .build());
+        when(storage.getArtifactVersionWithArtifactMetaData(42L))
+                .thenReturn(versionOf("team-a", "before"))
+                .thenReturn(versionOf("team-b", "after"));
 
         inRequest(() -> {
             assertEquals(new GlobalIdCoordinates("team-a", "before", "1"),
@@ -129,19 +131,86 @@ public class AuthorizationLookupsTest {
         inRequest(() -> assertEquals(new GlobalIdCoordinates("team-b", "after", "1"),
                 lookups.coordinates(storage, 42L).orElseThrow()));
 
-        verify(storage, times(2)).getArtifactVersionMetaData(42L);
+        verify(storage, times(2)).getArtifactVersionWithArtifactMetaData(42L);
     }
 
     /** A global ID that does not resolve resolves as missing, and is checked again by the next request. */
     @Test
     void anUnresolvedGlobalIdIsCheckedAgainInTheNextRequest() {
         RegistryStorage storage = mock(RegistryStorage.class);
-        when(storage.getArtifactVersionMetaData(7L)).thenThrow(new VersionNotFoundException(7L));
+        when(storage.getArtifactVersionWithArtifactMetaData(7L)).thenThrow(new VersionNotFoundException(7L));
 
         inRequest(() -> assertEquals(Optional.empty(), lookups.coordinates(storage, 7L)));
         inRequest(() -> assertEquals(Optional.empty(), lookups.coordinates(storage, 7L)));
 
-        verify(storage, times(2)).getArtifactVersionMetaData(7L);
+        verify(storage, times(2)).getArtifactVersionWithArtifactMetaData(7L);
+    }
+
+    private static VersionWithArtifactMetaDataDto versionOf(String groupId, String artifactId) {
+        return new VersionWithArtifactMetaDataDto(
+                ArtifactVersionMetaDataDto.builder().groupId(groupId).artifactId(artifactId).version("1").build(),
+                ArtifactMetaDataDto.builder().groupId(groupId).artifactId(artifactId).owner("owner-of-" + artifactId)
+                        .build());
+    }
+
+    /**
+     * Resolving a global ID reads its version and artifact together, once: the coordinates, the
+     * version (which the endpoint reuses) and the artifact's owner all come from that read.
+     */
+    @Test
+    void aGlobalIdIsResolvedWithItsArtifactInOneRead() {
+        RegistryStorage storage = mock(RegistryStorage.class);
+        when(storage.getArtifactVersionWithArtifactMetaData(42L)).thenReturn(versionOf("team-a", "orders"));
+        inRequest(() -> {
+            assertEquals(new GlobalIdCoordinates("team-a", "orders", "1"),
+                    lookups.coordinates(storage, 42L).orElseThrow());
+            assertEquals("orders", lookups.version(storage, 42L).orElseThrow().getArtifactId());
+            assertEquals("owner-of-orders", lookups.artifact(storage, "team-a", "orders")
+                    .map(ArtifactMetaDataDto::getOwner).orElseThrow());
+        });
+        verify(storage, times(1)).getArtifactVersionWithArtifactMetaData(42L);
+        verify(storage, never()).getArtifactVersionMetaData(42L);
+        verify(storage, never()).getArtifactMetaData("team-a", "orders");
+    }
+
+    /**
+     * Prefetched artifacts, found or missing, need no read each. An artifact the database matched
+     * under another spelling is left to its own lookup, which reads it as storage matches it.
+     */
+    @Test
+    void prefetchedArtifactsAreReadTogether() {
+        RegistryStorage storage = mock(RegistryStorage.class);
+        when(storage.getArtifactsMetaData(anyCollection())).thenReturn(List.of(
+                ArtifactMetaDataDto.builder().groupId("g").artifactId("a").owner("alice").build(),
+                ArtifactMetaDataDto.builder().groupId("g").artifactId("stored-case").owner("bob").build()));
+        doReturn(ArtifactMetaDataDto.builder().groupId("g").artifactId("stored-case").owner("bob").build())
+                .when(storage).getArtifactMetaData("g", "STORED-CASE");
+        inRequest(() -> {
+            lookups.prefetchArtifacts(storage, List.of(AuthorizedResource.artifact("g", "a"),
+                    AuthorizedResource.artifact("g", "missing"), AuthorizedResource.artifact("g", "STORED-CASE"),
+                    AuthorizedResource.group("g")));
+            assertEquals("alice", lookups.artifact(storage, "g", "a").map(ArtifactMetaDataDto::getOwner)
+                    .orElseThrow());
+            assertEquals(Optional.empty(), lookups.artifact(storage, "g", "missing"));
+            assertEquals("bob", lookups.artifact(storage, "g", "STORED-CASE").map(ArtifactMetaDataDto::getOwner)
+                    .orElseThrow());
+        });
+        verify(storage, times(1)).getArtifactsMetaData(anyCollection());
+        verify(storage, never()).getArtifactMetaData("g", "a");
+        verify(storage, never()).getArtifactMetaData("g", "missing");
+        verify(storage, times(1)).getArtifactMetaData("g", "STORED-CASE");
+    }
+
+    @Test
+    void prefetchSkipsLookupsAlreadyMadeAndSingleArtifacts() {
+        RegistryStorage storage = storageWithArtifact();
+        inRequest(() -> {
+            lookups.artifact(storage, "g", "a");
+            // Only one artifact not looked up yet: its own lookup costs the same single read
+            lookups.prefetchArtifacts(storage, List.of(AuthorizedResource.artifact("g", "a"),
+                    AuthorizedResource.artifact("g", "missing")));
+        });
+        verify(storage, never()).getArtifactsMetaData(anyCollection());
     }
 
     @Test

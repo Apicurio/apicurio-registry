@@ -12,8 +12,8 @@ import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_MCP
 @Singleton
 public class McpRegistryConfig {
 
-    @ConfigProperty(name = "apicurio.mcp-registry.enabled", defaultValue = "false")
-    @Info(category = CATEGORY_MCP, description = "Enable the MCP Registry API (Developer Preview)", availableSince = "3.4.0", experimental = true)
+    @ConfigProperty(name = "apicurio.mcp-registry.enabled")
+    @Info(category = CATEGORY_MCP, description = "Enable the MCP Registry API (Developer Preview). Defaults to apicurio.agents.enabled", dependsOn = "apicurio.agents.enabled", availableSince = "3.4.0", experimental = true)
     boolean enabled;
 
     @ConfigProperty(name = "apicurio.mcp-registry.max-page-size", defaultValue = "100")

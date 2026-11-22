@@ -31,18 +31,11 @@
   </licenses>
 
   <modules>
-    <module>confluent-serdes</module>
-    <module>rest-client</module>
-    <module>docker-compose</module>
-    <module>openshift-template</module>
-    <module>mtls-minikube/client</module>
-    <module>maven-plugin-tls-credentials</module>
+    <module>registry-clients/java-sdk</module>
+    <module>tls/clients</module>
     <module>tools/kafkasql-topic-import</module>
     <module>otel-tracing</module>
-    <module>debezium-otel-tracing</module>
-    <module>kafka-order-processing</module>
     <module>camel-quarkus-kafka</module>
-    <module>a2a-real-world-integration</module>
     <module>odcs-data-contracts</module>
     <module>custom-artifact-types</module>
     <module>rules-and-compatibility/validation-client</module>

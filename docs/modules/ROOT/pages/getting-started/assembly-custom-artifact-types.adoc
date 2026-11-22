@@ -120,7 +120,7 @@ The class must have a public no-argument constructor and must be available on th
 
 |`{"type": "webhook", "url": "...", "headers": {...}}`
 |An HTTP endpoint that {registry} calls with a JSON request that describes the operation, including the content, resolved references, and rule level. The endpoint returns a JSON response.
-{registry} sends the optional `headers` with every request, for example, for authentication.
+The optional `headers` are intended to be sent with every request, for example, for authentication, but the current version does not send them: protect the endpoint at the network level.
 Webhooks work with the standard container image but add a network round trip to every operation.
 |===
 
@@ -128,6 +128,7 @@ Webhooks work with the standard container image but add a network round trip to 
 .Additional resources
 * xref:custom-artifact-types-mutable-image_{context}[]
 * xref:getting-started/assembly-artifact-reference.adoc[]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/custom-artifact-types[Custom artifact types example]: a Java-provider type and a webhook type, with self-checks.
 
 // ref-custom-artifact-types-container-images
 [id="custom-artifact-types-container-images_{context}"]

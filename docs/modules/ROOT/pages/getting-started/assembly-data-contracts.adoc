@@ -117,7 +117,7 @@ ODCS accuracy rule thresholds (default 1.0) determine the rule's `onFailure` act
 
 |0.95 to below 1.0
 |`DLQ`
-|The violation is recorded and evaluation continues. No dead letter queue routing is implemented.
+|The violation is recorded and evaluation continues. The Kafka SerDes send the record to the dead letter queue topic.
 
 |Below 0.95
 |`NONE`
@@ -235,7 +235,7 @@ Schema artifacts can reference other artifacts (for example an Avro `OrderEvent`
 
 *What happens at evaluation time*
 
-When a Kafka record is serialized, nested objects are fully materialized. An Avro `GenericRecord` contains the nested `Address` values inline, not a pointer to another registry artifact. The SerDes convert the record to a map by parsing its JSON `toString()` output:
+When a Kafka record is serialized, nested objects are fully materialized. An Avro `GenericRecord` contains the nested `Address` values inline, not a pointer to another registry artifact. The SerDes convert the record to a map with the nested record as a nested map:
 
 [source,json]
 ----
@@ -394,9 +394,9 @@ The `onFailure` action controls whether evaluation continues after a failure:
 
 `NONE`:: Evaluation continues with the next rule.
 `ERROR`:: Evaluation stops.
-`DLQ`:: Evaluation continues with the next rule. No dead letter queue routing is implemented.
+`DLQ`:: Evaluation continues with the next rule. In the Kafka SerDes, the record is sent to the dead letter queue topic.
 
-How a failed result affects Kafka clients depends on the SerDes `fail-on-error` setting, not on the `onFailure` action.
+How a failed result affects Kafka clients depends on the SerDes `fail-on-error` setting, except for `DLQ`: see xref:data-contracts-serdes_{context}[Kafka SerDes integration].
 
 [role="_additional-resources"]
 .Additional resources
@@ -486,7 +486,7 @@ The service walks the versions between `fromVersion` and `toVersion` in artifact
 {"passed": true, "transformedRecord": {...}, "violations": [], "executedRules": 1, "failedRules": 0}
 ----
 
-Compatibility groups are stored as the artifact label `contract.\{contractId}.compatibility.group`. Compatibility checks do not use them yet.
+Compatibility groups are stored as the artifact label `contract.\{contractId}.compatibility.group`. Each new version records the artifact's group in the same label on the version, and a compatibility rule compares a new version only with the versions of the artifact's current group. Versions created before a group was set belong to no group, so setting a new group starts a new compatibility line. Without a group, all versions that are not disabled are compared.
 
 [source,bash]
 ----
@@ -534,15 +534,21 @@ Enable contract rule evaluation by setting these properties on your Kafka produc
 |`apicurio.registry.serde.contract-rules.migration.target-version`
 |None
 |Target version for deserializer migration
+
+|`apicurio.registry.serde.contract-rules.dlq.topic`
+|None
+|Topic that receives the records failing a rule with `onFailure: DLQ`. The serializer or deserializer sends them with a producer created from its own client configuration (bootstrap servers, security settings), then throws `ContractRuleViolationException`. Without this property, such a failure is an error
 |===
 
 Contract rule evaluation works as follows:
 
 Rule source:: The SerDes fetch the global, artifact-level, and version-level rulesets of the schema version, merge their domain rules by name (the narrowest scope wins), cache them, and evaluate the rules locally in the client. Empty rulesets are cached too. A ruleset that cannot be fetched, for example because the registry is unreachable or refuses the request, is not cached: with `fail-on-error=true` the record is rejected, and the next record fetches the ruleset again.
-Record conversion:: Records are converted to maps by parsing the JSON output of their `toString()` method.
+Record conversion:: Avro generic records and JSON Schema records (`JsonNode` or a configured Java class) are converted to maps field by field: Avro enums and strings become strings, unions their value, bytes and fixed ISO-8859-1 strings, and logical types keep their underlying type (a `date` is an int). Protobuf messages are converted through their canonical JSON form (proto field names). Other records are converted by parsing the JSON output of their `toString()` method.
 Producer (serializer):: Runs `WRITE` rules before serialization.
 Consumer (deserializer):: Runs `READ` rules after deserialization.
-Results:: `TRANSFORM` output and deserializer migration results are not applied to the record. No dead letter queue routing is implemented; with `fail-on-error=false`, violations are only logged.
+Consumer migration:: With migration enabled and a target version set, a record written with another version is transformed by the migration rules on the path and returned as a record of the target version: an Avro `GenericRecord` built against the target version's schema (fields missing from the transformed record take their schema default, fields not in the schema are dropped), or JSON Schema data of the same type as read, validated against the target version's schema when validation is enabled. A transformed record that does not match the target schema is a migration failure. Records already at the target version, or with no migration rule on the path, are returned unchanged. Protobuf messages and Avro specific records (`apicurio.registry.use-specific-avro-reader=true`) are not migrated: the rules still run, but the record is returned as written and a warning is logged once.
+Results:: The output of `TRANSFORM` domain rules replaces the record: the serializer writes the transformed record, and the deserializer returns the output of `READ` transforms. It is converted back to the record's type, as for migration: an Avro generic record of the schema, JSON Schema data of the same type, or a Protobuf message of the same type (Protobuf `READ` transforms keep the message type, so they apply even though Protobuf migrations do not). Avro specific records are written or returned unchanged.
+Dead letter queue:: When a failed rule has `onFailure: DLQ`, the record (as serialized, or as read) is sent to the `dlq.topic` with the headers `apicurio.contract-rules.source-topic` and `apicurio.contract-rules.violations`, and a `ContractRuleViolationException` naming the topic is thrown, whatever `fail-on-error`: the record does not reach the original topic or the application. Other failures throw `ContractRuleViolationException` with `fail-on-error=true`, and are only logged with `fail-on-error=false`.
 
 .Producer with contract rules example
 [source,java]

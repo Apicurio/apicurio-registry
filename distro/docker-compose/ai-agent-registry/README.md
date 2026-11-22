@@ -22,6 +22,11 @@ what is missing, so restarting the stack changes nothing:
 - `translator-agent` and `sentiment-agent`: `AGENT_CARD`s
 - `support-reply`: a `PROMPT_TEMPLATE`
 
+`weather-mcp` is a demo MCP server (`weather-mcp/server.py`, Python standard library only) that
+the Registry can import tools from, at `http://weather-mcp:8000/mcp`. `/mcp-v2` lists the same
+tools after a breaking change. It is reachable only from inside the stack, and it is the only host
+the Registry may import from.
+
 `test/smoke-test.sh` runs the quick start steps against the running stack; CI runs it on every
 change to this directory. The full walkthrough is the "Agent registry quick start" page in the
 docs (`docs/modules/ROOT/pages/getting-started/assembly-agent-registry-quickstart.adoc`).

@@ -53,19 +53,23 @@ class ReferenceNamingResolverTest {
             configs.put(SchemaResolverConfig.REFERENCE_NAMING_STRATEGY, strategy);
         }
         resolver.configure(configs, parser);
-        resolver.setArtifactResolverStrategy(new ArtifactReferenceResolverStrategy<>() {
+        resolver.setArtifactResolverStrategy(fixedTopLevel("Order"));
+        resolver.resolveSchema(new MockRecord<>("payload", null));
+        return facade;
+    }
+
+    private static ArtifactReferenceResolverStrategy<String, String> fixedTopLevel(String artifactId) {
+        return new ArtifactReferenceResolverStrategy<>() {
             @Override
             public ArtifactReference artifactReference(Record<String> data, ParsedSchema<String> ps) {
-                return ArtifactReference.builder().groupId("orders").artifactId("Order").build();
+                return ArtifactReference.builder().groupId("orders").artifactId(artifactId).build();
             }
 
             @Override
             public boolean loadSchema() {
                 return false;
             }
-        });
-        resolver.resolveSchema(new MockRecord<>("payload", null));
-        return facade;
+        };
     }
 
     private static RegistryArtifactReference ref(String name, String group, String artifactId) {
@@ -117,6 +121,30 @@ class ReferenceNamingResolverTest {
                 "com.acme.Address default=orders ns=com.acme type=AVRO schema=address",
                 "com.acme.geo.Point default=orders ns=com.acme.geo type=AVRO schema=point"),
                 seen);
+    }
+
+    @Test
+    void sameReferencedContentUnderDifferentCoordinatesIsRegisteredForEach() {
+        // Not deterministic on purpose: the same Point content is named differently on each call (#11053).
+        int[] calls = {0};
+        ReferenceNamingStrategy alternating = ctx -> new ReferenceCoordinates("refs",
+                ctx.referenceName() + "-" + calls[0]++);
+        MockRegistryClientFacade facade = new MockRegistryClientFacade("x");
+        DefaultSchemaResolver<String, String> resolver = new DefaultSchemaResolver<>();
+        resolver.setClientFacade(facade);
+        Map<String, Object> configs = new HashMap<>();
+        configs.put(SchemaResolverConfig.AUTO_REGISTER_ARTIFACT, true);
+        configs.put(SchemaResolverConfig.REFERENCE_NAMING_STRATEGY, alternating);
+        resolver.configure(configs, new MockSchemaParser(schemas()).withArtifactType("AVRO"));
+        resolver.setArtifactResolverStrategy(fixedTopLevel("Order"));
+        resolver.resolveSchema(new MockRecord<>("payload", null));
+        resolver.setArtifactResolverStrategy(fixedTopLevel("Order2"));
+        resolver.resolveSchema(new MockRecord<>("payload", null));
+
+        // Order is deliberate: each parent is named before its references, and references are registered first.
+        assertEquals(List.of("refs/com.acme.geo.Point-1", "refs/com.acme.Address-0", "orders/Order",
+                "refs/com.acme.geo.Point-3", "refs/com.acme.Address-2", "orders/Order2"),
+                new ArrayList<>(facade.getCreated().keySet()));
     }
 
     @Test

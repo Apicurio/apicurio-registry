@@ -36,6 +36,7 @@ import jakarta.ws.rs.core.Response;
 import org.apache.kafka.clients.producer.Producer;
 import org.jboss.logging.Logger;
 
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -74,7 +75,7 @@ public class GreetingResource {
         // Create a custom span for business logic
         Greeting greeting = createGreeting(name, traceId);
 
-        String key = name.toLowerCase().replaceAll("\\s+", "-");
+        String key = name.toLowerCase(Locale.ROOT).replaceAll("\\s+", "-");
 
         Producer<String, Greeting> kafkaProducer = producer.createProducer("greeting-producer");
         try {
@@ -149,7 +150,7 @@ public class GreetingResource {
                         .setTraceId(traceId)
                         .build();
 
-                String key = name.toLowerCase().replaceAll("\\s+", "-");
+                String key = name.toLowerCase(Locale.ROOT).replaceAll("\\s+", "-");
                 producer.send(kafkaProducer, greeting, TOPIC, key);
             }
             LOG.infof("Batch of %d greetings sent successfully", count);
@@ -313,10 +314,10 @@ public class GreetingResource {
 
             Producer<String, Greeting> kafkaProducer = producer.createProducer("greeting-producer-detailed");
             try {
-                producer.send(kafkaProducer, greeting, TOPIC, name.toLowerCase());
+                producer.send(kafkaProducer, greeting, TOPIC, name.toLowerCase(Locale.ROOT));
                 processSpan.addEvent("greeting-sent", io.opentelemetry.api.common.Attributes.builder()
                         .put("kafka.topic", TOPIC)
-                        .put("kafka.key", name.toLowerCase())
+                        .put("kafka.key", name.toLowerCase(Locale.ROOT))
                         .build());
             } finally {
                 kafkaProducer.close();

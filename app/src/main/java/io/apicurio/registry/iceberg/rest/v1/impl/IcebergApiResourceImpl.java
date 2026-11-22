@@ -998,6 +998,8 @@ public class IcebergApiResourceImpl implements ApisResource {
         // The target comes from the body: the source is read and removed, the destination written
         accessGuard.requireAccess(AuthorizedLevel.Write, AuthorizedResource.artifact(sourceGroupId, sourceView));
         accessGuard.requireAccess(AuthorizedLevel.Write, AuthorizedResource.artifact(destGroupId, destView));
+        // The destination is a new artifact, so its namespace (group) must be writable too
+        accessGuard.requireGrantsAccess(AuthorizedLevel.Write, AuthorizedResource.group(destGroupId));
 
         StoredArtifactVersionDto artifact = storage.getArtifactVersionContent(sourceGroupId, sourceView,
                 storage.getBranchTip(new GA(sourceGroupId, sourceView), BranchId.LATEST,

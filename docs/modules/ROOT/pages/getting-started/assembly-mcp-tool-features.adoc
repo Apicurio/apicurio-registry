@@ -68,7 +68,7 @@ You can configure MCP tool features by using the following configuration propert
 |Property |Default |Description
 
 |`apicurio.mcp-tools.enabled`
-|`false`
+|Value of `apicurio.agents.enabled`, `false` by default
 |Enables or disables MCP tool definition support (experimental)
 
 |`apicurio.features.experimental.enabled`
@@ -83,6 +83,9 @@ To enable MCP tool support, set both properties:
 apicurio.features.experimental.enabled=true
 apicurio.mcp-tools.enabled=true
 ----
+
+TIP: To enable all the agent registry discovery features at once (A2A, MCP tools, the MCP Registry API, the AI Catalog, ARD, and the web console's *Agents* tab), set `apicurio.features.experimental.enabled=true` and `apicurio.agents.enabled=true`. A feature's own property, such as `apicurio.a2a.enabled`, still takes precedence, so you can turn a single feature off. Features that connect to other servers, such as importing tools from MCP servers, are not included and must be enabled separately.
+
 
 // ref-mcp-tool-definition-schema
 [id="mcp-tool-definition-schema_{context}"]
@@ -305,6 +308,23 @@ The `GET /.well-known/schemas/mcp-tool/v1` endpoint retrieves the JSON Schema fo
 curl "http://localhost:8080/.well-known/schemas/mcp-tool/v1"
 ----
 
+// ref-mcp-tool-visibility
+[id="mcp-tool-visibility_{context}"]
+== MCP tool visibility
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+MCP tool definitions are not subject to the `apicurio.agent.visibility` discovery filter described in xref:getting-started/assembly-a2a-features.adoc#a2a-visibility-model_{context}[Agent visibility model]. This is a deliberate design decision, not a gap: filtering `/.well-known/mcp-tools` would only imply a protection that does not exist, because tool discovery returns exactly the tools the caller can already find through the core search API.
+
+* `apicurio.agent.visibility` and its `apicurio.a2a.default-visibility` fallback apply only to Agent Card discovery (`GET /.well-known/agents`, and Agent Card entries in AI Catalog and ARD responses). They have no effect on MCP tool discovery.
+* `GET /.well-known/mcp-tools`, the compatible-tools endpoint (`/.well-known/mcp-tools/\{groupId}/\{artifactId}/compatible`), and MCP tool entries in AI Catalog and ARD responses return every MCP tool that the caller is authorized to see, unfiltered by visibility.
+* The visibility label is a discovery-only hint, not access control, for both agents and tools: callers can retrieve artifacts they are authorized to read directly through the core v3 API or find them through `/apis/registry/v3/search`, regardless of their visibility labels. Per-resource authorization, when enabled, still restricts access and search results. An MCP tool artifact can still carry an `apicurio.agent.visibility` label, but {registry} does not act on it when serving MCP tool discovery requests.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:getting-started/assembly-a2a-features.adoc#a2a-visibility-model_{context}[Agent visibility model]
+
 // proc-creating-mcp-tool-artifact
 [id="creating-mcp-tool-artifact_{context}"]
 == Creating an MCP tool artifact
@@ -488,6 +508,7 @@ curl -X POST http://localhost:8080/apis/registry/v3/groups/my-servers/artifacts/
 * `headers`: HTTP headers to send to the MCP server, for example credentials. They are sent to the MCP server only, and are never stored, returned, logged, or audited. Headers that the transport sets itself, such as `Host`, `Content-Type`, `Accept`, and `Mcp-Session-Id`, are refused.
 * `toolGroupId`: the group for the `MCP_TOOL` artifacts. Defaults to the group of the `MCP_SERVER` artifact.
 * `dryRun`: when `true`, the server is contacted and the report is returned, but nothing is written.
+* `async`: when `true`, the import runs in the background, for servers with many tools whose import can take longer than an HTTP client or gateway waits. See xref:mcp-importing-tools-async_{context}[Importing in the background]. Cannot be combined with `dryRun`.
 
 . Read the report. For example:
 +
@@ -528,35 +549,73 @@ Each tool, and the `MCP_SERVER` artifact, has one of the following statuses:
 |A stored version already matches the tool's definition. For the server, the latest version already has the same references, so no version was added.
 
 |`REJECTED`
-|A rule, such as `COMPATIBILITY`, rejected the new definition, and the causes list the violations. Nothing was written for the tool, and the new server version does not reference it, because no stored version matches what the server offers. A tool is also rejected when an artifact with its ID exists and is not an `MCP_TOOL`.
+|A rule, such as `COMPATIBILITY`, rejected the new definition, and the causes list the violations. Nothing was written for the tool, and the new server version does not reference it, because no stored version matches what the server offers. A tool is also rejected when an artifact with its ID exists and is not an `MCP_TOOL`. A tool is also rejected when its name is not 1 to 128 ASCII letters, digits, `_`, `-` or `.`, the form the MCP specification recommends, because the name becomes part of the tool's artifact ID.
 
 |`REMOVED`
 |The previous server version referenced the tool, but the server no longer lists it. The tool's artifact is not changed or deleted, and the new server version does not reference it.
 |===
 
+A tool is `UNCHANGED` only when a stored version has exactly the content that the import would store: the tool's `name`, `title`, `description`, `inputSchema`, `outputSchema`, and `annotations`, in that order, as compact JSON. Formatting is not ignored, because a canonical comparison could hide a change to a numeric bound. A version that you registered by hand with the same definition but different formatting is therefore not matched, and the first import adds a new version with the same content.
+
 Each tool is published like any other version: rules, write hooks, authorization, and auditing apply to each tool. Before any tool is written, the import checks that the server lists no tool name twice and that you can write every existing tool artifact, so these failures leave nothing imported. A rule rejecting one tool does not stop the others. Tools are otherwise not imported atomically: if another error occurs partway through, tools that were already accepted stay stored. In a dry run, the report states whether a new server version would be added, but the server version is not checked against rules, because the tools it would reference do not exist yet.
 
 The new server version references exactly the imported tools. References that you added to an earlier version by hand are not carried over.
+
+[id="mcp-importing-tools-async_{context}"]
+=== Importing in the background
+
+With `"async": true`, the request is checked as a synchronous import is (the feature, the storage, the `MCP_SERVER` artifact, write access, the headers, the URL, and the concurrent import limit), and a refused import returns the same error. The import then runs in the background, as the caller, and the response is HTTP 202 with the status of the import and a `Location` header naming its status URL:
+
+[source,bash]
+----
+curl http://localhost:8080/apis/registry/v3/groups/my-servers/artifacts/weather/mcp-import/status
+----
+
+[source,json]
+----
+{ "state": "COMPLETED", "startedOn": "2026-11-20T10:15:30Z", "finishedOn": "2026-11-20T10:16:12Z",
+  "version": "2", "counts": { "CREATED": 498, "UNCHANGED": 2 } }
+----
+
+The `state` is `RUNNING`, `COMPLETED`, or `FAILED`. A completed import reports the server version and the number of tools by status, but not the per-tool report: read the tool artifacts or the server version references for the details. A failed import reports a fixed `reason`; tools written before the failure stay stored.
+
+The status URL reports the last import into the artifact, synchronous or not; dry runs are not recorded. While the recorded import into an artifact is running, another import into it, synchronous or not, returns HTTP 409 with `An import into this MCP server is already running.`; dry runs are allowed. The check reads the labels before writing them, so two registry instances that start imports into one artifact at the same moment can both start; each then records only its own status. It needs read access to the artifact, and returns HTTP 404 when no import was recorded. The status is kept in labels of the `MCP_SERVER` artifact under `apicurio.mcp-import.`, so every registry instance reports the same status. Editing the artifact labels keeps them unless you send them. An import still `RUNNING` that has not reported progress for longer than `apicurio.mcp-import.total-timeout.seconds` plus `apicurio.mcp-import.timeout.seconds`, for example because the registry instance running it stopped, is reported as `FAILED`.
+
+A background import has no HTTP request, so it cannot read roles from a request header: with `apicurio.auth.role-source=header`, use synchronous imports.
 
 [id="mcp-importing-tools-security_{context}"]
 === Outbound connection security
 
 The registry applies the following restrictions before and while it connects to the MCP server:
 
-* The URL must use HTTPS, unless `apicurio.mcp-import.insecure-http.enabled=true`, and must not contain user information.
+* The URL must use HTTPS, unless `apicurio.mcp-import.insecure-http.enabled=true` (which defaults to `apicurio.outbound.insecure-http.enabled`, shared with federation), and must not contain user information.
 * The host must be allowed by `apicurio.mcp-import.allowed-hosts`. Each entry is a hostname (`mcp.example.com`), a domain wildcard (`*.example.com`, which does not match `example.com`), `*` for any host, an IP address, or a CIDR range (`10.0.0.0/8`). A CIDR entry allows a host when every address the host resolves to is in a listed range.
-* Every address that the host resolves to must not be a loopback, link-local, unspecified, multicast, reserved, or cloud metadata address, even when the allow-list permits the host. Loopback is allowed only with `apicurio.mcp-import.loopback.enabled=true`, for development and tests.
+* Every address that the host resolves to must not be a loopback, link-local, unspecified, multicast, reserved, or cloud metadata address, even when the allow-list permits the host. Loopback is allowed only with `apicurio.mcp-import.loopback.enabled=true` (which defaults to `apicurio.outbound.loopback.enabled`, shared with federation), for development and tests.
 * Redirects are never followed.
-* Each request times out after `apicurio.mcp-import.timeout.seconds`. Each message is limited to `apicurio.mcp-import.response.max-size` bytes, and the number of tools to `apicurio.mcp-import.tools.max-size`.
+* Each request times out after `apicurio.mcp-import.timeout.seconds`, and listing all the tools must finish within `apicurio.mcp-import.total-timeout.seconds`. Each message is limited to `apicurio.mcp-import.response.max-size` bytes, the listed tool definitions together to `apicurio.mcp-import.tools.max-total-size` bytes, and the number of tools to `apicurio.mcp-import.tools.max-size`.
 
-Every refused host gets the same error message, so the endpoint does not reveal which hosts exist or resolve. A refused URL returns HTTP 400. An MCP server that cannot be reached, times out, sends a response that is too large or invalid, or lists too many tools returns HTTP 502. Read-only storage, such as GitOps or KubernetesOps, returns HTTP 409 before any connection is made, as does an import when the feature is disabled.
+Every refused host gets the same error message, so the endpoint does not reveal which hosts exist or resolve. A refused URL returns HTTP 400. At most `apicurio.mcp-import.max-concurrent` imports (4 by default) run at the same time; an import started while that many are running returns HTTP 429 without contacting the MCP server. An MCP server that cannot be reached, times out, sends a response that is too large or invalid, or lists too many tools returns HTTP 502. Read-only storage, such as GitOps or KubernetesOps, returns HTTP 409 before any connection is made, as does an import when the feature is disabled.
+
+WARNING: Private network addresses, such as `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `100.64.0.0/10` and `fc00::/7`, are allowed when the allow-list permits the host. If you list `*`, any user who can write the MCP server artifact can make {registry} connect to services on its internal network. List the hostnames or CIDR ranges of your MCP servers instead.
+
+Each connection attempt is recorded in the audit log as the `mcpImportTarget` action, with the group, the artifact, the target host and port, the outcome and, on failure, the reason. The URL path and query and the request headers are not recorded, because they can contain credentials.
+
+By default, the import trusts the certificate authorities in the JVM default trust store. To import from an MCP server whose certificate is issued by an internal certificate authority, define a named TLS configuration in the Quarkus TLS registry and reference it with `apicurio.mcp-import.tls-configuration.name`, rather than enabling `apicurio.mcp-import.insecure-http.enabled`. It applies to MCP imports only. For example:
+
+[source,properties]
+----
+quarkus.tls.mcp-import.trust-store.pem.certs=/deployments/certs/internal-ca.pem
+apicurio.mcp-import.tls-configuration.name=mcp-import
+----
+
+When `apicurio.mcp-import.tls-configuration.name` names a TLS configuration that does not exist, the registry does not start.
 
 NOTE: The HTTP client resolves the host again when it connects, so a host whose DNS answer changes between the check and the connection (DNS rebinding) is not detected. To limit this, allow hostnames whose DNS you control, or CIDR ranges.
 
 The registry records the following Micrometer counters. They have no URL, host, or header values as tags, and dry runs are not counted in `apicurio.mcp.import.tools`.
 
 * `apicurio.mcp.import.tools`, tagged `result` (`created`, `new-version`, `unchanged`, `rejected`, `removed`).
-* `apicurio.mcp.import.failures`, tagged `reason` (`host-denied`, `timeout`, `oversize`, `too-many-tools`, `protocol`).
+* `apicurio.mcp.import.failures`, tagged `reason` (`host-denied`, `timeout`, `oversize`, `busy`, `too-many-tools`, `protocol`).
 
 // ref-mcp-automatic-label-extraction
 [id="mcp-automatic-label-extraction_{context}"]

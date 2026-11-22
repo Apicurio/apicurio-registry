@@ -3,8 +3,8 @@
 - **Status:** Accepted (documents the current implementation).
 - **Decision date:** 2026-11-09.
 - **Author:** Apicurio Registry maintainers.
-- **Tracking:** [#11018](https://github.com/Apicurio/apicurio-registry/issues/11018),
-  [#11005](https://github.com/Apicurio/apicurio-registry/issues/11005).
+- **Tracking:** [#11018](https://github.com/Apicurio/apicurio-registry/issues/11018) and
+  [#11005](https://github.com/Apicurio/apicurio-registry/issues/11005) (both fixed).
 - **Scope:** The client libraries that let Kafka producers and consumers use schemas from the
   registry: the Avro, JSON Schema and Protobuf serializers and deserializers, the schema resolver they
   share, the wire format, naming strategies, caching, and the Kafka Connect converters. Pulsar and
@@ -113,7 +113,7 @@ JSON Schema returns a `JsonNode` unless a return class is set. An optional fallb
 
 | Situation | What the client sees |
 |---|---|
-| Rule violation on auto-register | `send()` throws `RuntimeException` caused by the SDK's `RuleViolationProblemDetails` (no message of its own, [#11018](https://github.com/Apicurio/apicurio-registry/issues/11018)) |
+| Rule violation on auto-register | `send()` throws Kafka's `SerializationException`; its message gives the HTTP status, rule type and detail, and its cause is the SDK's `RuleViolationProblemDetails` |
 | JSON Schema data invalid (`validation-enabled`, default `true`) | `send()` throws an `UncheckedIOException` naming the failing field |
 | No schema found by content | `RuntimeException("Could not resolve artifact reference by content ...")` |
 | Unknown first byte | `IllegalStateException("Unknown magic byte!")` |
@@ -159,15 +159,13 @@ Main properties (prefix `apicurio.registry.`); the configuration docs list them 
 
 ## Limitations and open work
 
-1. A rule violation reaches the producer without a message
-   ([#11018](https://github.com/Apicurio/apicurio-registry/issues/11018)).
-2. Protobuf lookups by content can fail, because the schema derived from a class is not the registered
-   `.proto`; use `find-latest` or explicit coordinates (the validation library has the same issue,
-   [#11005](https://github.com/Apicurio/apicurio-registry/issues/11005)).
-3. Headers mode must be enabled on the consumer as well; a consumer without it fails with an
+1. Protobuf lookups by content can fail, because the schema derived from a class is not the registered
+   `.proto`; use `find-latest`, explicit coordinates, or `apicurio.registry.canonicalize=true` (the
+   validation library has the same constraint).
+2. Headers mode must be enabled on the consumer as well; a consumer without it fails with an
    unhelpful error.
-4. Protobuf framing is not Confluent-compatible without four extra settings.
-5. JSON Schema cannot derive a schema from data: auto-registration needs a schema location, or a schema in Kafka headers (`headers.enabled` with `use-schema-from-headers`).
+3. Protobuf framing is not Confluent-compatible without four extra settings.
+4. JSON Schema cannot derive a schema from data: auto-registration needs a schema location, or a schema in Kafka headers (`headers.enabled` with `use-schema-from-headers`).
 
 ## Alternatives
 
@@ -215,3 +213,4 @@ Main properties (prefix `apicurio.registry.`); the configuration docs list them 
 |---|---|
 | 3.0 | Content ID and 4-byte IDs by default (2.x used the global ID in 8 bytes) |
 | This ADR | First written record, with a verified example |
+| [#11174](https://github.com/Apicurio/apicurio-registry/pull/11174) | Fixed: a rule violation on auto-register surfaces as a `SerializationException` with a readable message (#11018); the Protobuf validator no longer fails with a `NullPointerException` when `find-latest` is not set, which used to be the workaround (#11005) |

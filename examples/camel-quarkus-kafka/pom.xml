@@ -65,11 +65,26 @@
             <groupId>org.apache.camel.quarkus</groupId>
             <artifactId>camel-quarkus-bean</artifactId>
         </dependency>
+        <!-- HTTP endpoints that demo.sh uses to send a greeting and read what the consumers received -->
+        <dependency>
+            <groupId>org.apache.camel.quarkus</groupId>
+            <artifactId>camel-quarkus-platform-http</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.camel.quarkus</groupId>
+            <artifactId>camel-quarkus-jackson</artifactId>
+        </dependency>
 
         <!-- Apicurio Registry Avro SerDe (Quarkus extension) -->
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-apicurio-registry-avro</artifactId>
+        </dependency>
+        <!-- The serde from this checkout, instead of the release the Quarkus BOM pins -->
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-avro-serde-kafka</artifactId>
+            <version>${project.version}</version>
         </dependency>
 
         <!-- Kafka clients (explicit version to align with Quarkus 3.33) -->

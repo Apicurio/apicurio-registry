@@ -26,12 +26,12 @@ public class McpImportConfig {
     @Info(category = CATEGORY_MCP, description = "Hosts the registry may connect to when importing from an MCP server, as a comma-separated list. Each entry is a hostname (mcp.example.com), a domain wildcard (*.example.com, which does not match example.com itself), an IP address, or a CIDR range (10.0.0.0/8) that every address the host resolves to must be in. When empty, every host is refused. Loopback, link-local, and cloud metadata addresses are refused even when listed", availableSince = "3.4.0")
     Optional<List<String>> allowedHosts;
 
-    @ConfigProperty(name = "apicurio.mcp-import.insecure-http.enabled", defaultValue = "false")
-    @Info(category = CATEGORY_MCP, description = "Allow MCP server URLs that use plain HTTP instead of HTTPS when importing", availableSince = "3.4.0")
+    @ConfigProperty(name = "apicurio.mcp-import.insecure-http.enabled")
+    @Info(category = CATEGORY_MCP, description = "Allow MCP server URLs that use plain HTTP instead of HTTPS when importing. Defaults to apicurio.outbound.insecure-http.enabled", availableSince = "3.4.0")
     boolean insecureHttpEnabled;
 
-    @ConfigProperty(name = "apicurio.mcp-import.loopback.enabled", defaultValue = "false")
-    @Info(category = CATEGORY_MCP, description = "Allow MCP server URLs that point at a loopback address or a localhost name when importing, for development and tests. The host must still be allowed by apicurio.mcp-import.allowed-hosts", availableSince = "3.4.0")
+    @ConfigProperty(name = "apicurio.mcp-import.loopback.enabled")
+    @Info(category = CATEGORY_MCP, description = "Allow MCP server URLs that point at a loopback address or a localhost name when importing, for development and tests. The host must still be allowed by apicurio.mcp-import.allowed-hosts. Defaults to apicurio.outbound.loopback.enabled", availableSince = "3.4.0")
     boolean loopbackEnabled;
 
     @ConfigProperty(name = "apicurio.mcp-import.timeout.seconds", defaultValue = "10")
@@ -45,6 +45,22 @@ public class McpImportConfig {
     @ConfigProperty(name = "apicurio.mcp-import.tools.max-size", defaultValue = "500")
     @Info(category = CATEGORY_MCP, description = "Maximum number of tools an MCP server may list for an import. An import from a server listing more is refused", availableSince = "3.4.0")
     int toolsMaxSize;
+
+    @ConfigProperty(name = "apicurio.mcp-import.total-timeout.seconds", defaultValue = "60")
+    @Info(category = CATEGORY_MCP, description = "Maximum time, in seconds, for listing the tools of an MCP server during an import, across all requests. It is checked between requests, so a listing can exceed it by at most one request timeout", availableSince = "3.4.0")
+    int totalTimeoutSeconds;
+
+    @ConfigProperty(name = "apicurio.mcp-import.tools.max-total-size", defaultValue = "10485760")
+    @Info(category = CATEGORY_MCP, description = "Maximum total size, in bytes, of the tool definitions an MCP server may list for an import, across all pages", availableSince = "3.4.0")
+    long toolsMaxTotalSize;
+
+    @ConfigProperty(name = "apicurio.mcp-import.tls-configuration.name")
+    @Info(category = CATEGORY_MCP, description = "Name of a TLS configuration in the Quarkus TLS registry (quarkus.tls.<name>.*) used for HTTPS connections to MCP servers during an import, for example to trust an internal certificate authority. When not set, the default truststore of the JVM is used", availableSince = "3.4.0")
+    Optional<String> tlsConfigurationName;
+
+    @ConfigProperty(name = "apicurio.mcp-import.max-concurrent", defaultValue = "4")
+    @Info(category = CATEGORY_MCP, description = "Maximum number of imports from MCP servers running at the same time. An import started while this many are running is refused with HTTP 429", availableSince = "3.4.0")
+    int maxConcurrent;
 
     public boolean isEnabled() {
         return enabled;
@@ -72,5 +88,21 @@ public class McpImportConfig {
 
     public int getToolsMaxSize() {
         return toolsMaxSize;
+    }
+
+    public int getMaxConcurrent() {
+        return maxConcurrent;
+    }
+
+    public int getTotalTimeoutSeconds() {
+        return totalTimeoutSeconds;
+    }
+
+    public long getToolsMaxTotalSize() {
+        return toolsMaxTotalSize;
+    }
+
+    public Optional<String> getTlsConfigurationName() {
+        return tlsConfigurationName;
     }
 }

@@ -157,6 +157,13 @@ Multiple mitigations in place: server-side dedup (60s window), retention cleanup
 
 The feature can be disabled (`apicurio.usage.telemetry.enabled=false`) with zero overhead.
 
+## Example
+
+[`examples/usage-telemetry-demo`](../examples/usage-telemetry-demo/): `./demo.sh` plays five client
+applications and checks the per-version metrics and deduplication, which fetches are recorded, the
+heatmap and drift alerts, deprecation readiness and `SUNSET`, and the summary with liveness inherited
+through references. CI runs it.
+
 ## Consequences
 
 - Operators can now identify dead schemas, stale consumers, and version drift without external tooling

@@ -57,7 +57,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up JDK 21
-        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
+        uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6
         with:
           java-version: '25'
           distribution: temurin
@@ -70,18 +70,10 @@ jobs:
             -pl app,distro/docker,operator/controller,perf-tests -am -Pprod,perf-tests -DskipTests -Dmaven.javadoc.skip \
             -Daether.syncContext.named.factory=noop
 
-      - name: Build app image
-        run: |
-          docker build -f ./distro/docker/target/docker/Dockerfile.jvm -t "$REGISTRY_APP_IMAGE" ./distro/docker/target/docker
-
-      - name: Build operator image
-        working-directory: operator
-        run: make IMAGE="$OPERATOR_IMAGE" image-build
-
-      - name: Build perf-tests runner image
-        working-directory: perf-tests
-        run: docker build -t "$PERF_TEST_IMAGE" .
-
+      # Minikube has to start before the images are built. With the none driver it rewrites
+      # /etc/docker/daemon.json with "storage-driver": "overlay2" and restarts Docker. On a runner
+      # whose Docker uses the containerd image store (ubuntu-26.04), images built before that are
+      # no longer visible, and the push below fails with "An image does not exist locally".
       - uses: apicurio/apicurio-github-actions/setup-minikube@bd19cbe33797325a571cd7ffd58f639b62e128a2 # v2
         id: minikube-setup
         continue-on-error: true
@@ -100,6 +92,18 @@ jobs:
           ingress-enable: 'false'
           olm-enable: 'false'
           olm-v1-enable: 'false'
+
+      - name: Build app image
+        run: |
+          docker build -f ./distro/docker/target/docker/Dockerfile.jvm -t "$REGISTRY_APP_IMAGE" ./distro/docker/target/docker
+
+      - name: Build operator image
+        working-directory: operator
+        run: make IMAGE="$OPERATOR_IMAGE" image-build
+
+      - name: Build perf-tests runner image
+        working-directory: perf-tests
+        run: docker build -t "$PERF_TEST_IMAGE" .
 
       - name: Start local registry and push images
         run: |
@@ -245,14 +249,14 @@ jobs:
           kubectl -n default get pods -o wide > pods.txt 2>&1 || true
           kubectl -n default get events --sort-by=.lastTimestamp > events.txt 2>&1 || true
           kubectl -n default describe deployment perf-test-app-deployment > app-deployment.txt 2>&1 || true
-          for p in $(kubectl -n default get pods -l app=perf-test-app -o name 2>/dev/null); do
+          for p in $(kubectl -n default get pods -l app.kubernetes.io/instance=perf-test,app.kubernetes.io/component=app -o name 2>/dev/null); do
             n=$(basename "$p")
             kubectl -n default describe "$p" > "describe-$n.txt" 2>&1 || true
             kubectl -n default logs "$p" --tail=-1 > "logs-$n.txt" 2>&1 || true
             # The interesting log when a pod is restarting is the one from the container that died.
             kubectl -n default logs "$p" --previous --tail=-1 > "logs-previous-$n.txt" 2>&1 || true
           done
-          RESTARTS=$(kubectl -n default get pods -l app=perf-test-app \
+          RESTARTS=$(kubectl -n default get pods -l app.kubernetes.io/instance=perf-test,app.kubernetes.io/component=app \
             -o jsonpath='{.items[*].status.containerStatuses[*].restartCount}' 2>/dev/null || echo "")
           echo "registry pod restartCount: ${RESTARTS:-unknown}" | tee restarts.txt
 
@@ -305,6 +309,80 @@ jobs:
         with:
           name: perf-test-external-results-${{ matrix.storage }}-${{ github.sha }}
           path: /tmp/external-load-results
+          retention-days: 90
+
+      # Agent registry scale baseline (#11093): discovery latency and MCP import throughput at a
+      # stated artifact count, against the same registry, after every other run, so its
+      # seeded artifacts do not affect the runs compared with a baseline. The numbers are
+      # evidence for the agent registry graduation plan (#10294), not thresholds, so a failure here
+      # is reported without failing the workflow.
+      - name: Run the agent scale baseline Job
+        id: agent-baseline
+        if: always()
+        continue-on-error: true
+        working-directory: perf-tests/k8s
+        run: |
+          # Keycloak stamps a token's issuer with the address it was requested from, and the registry
+          # accepts only its configured issuer. The external load run moves that to a NodePort
+          # address (run-external-load.sh), so request the token from wherever the registry trusts now.
+          AUTH_SERVER_URL=$(kubectl -n default get apicurioregistry3 perf-test -o jsonpath='{.spec.app.auth.authServerUrl}')
+          echo "Agent baseline tokens from: $AUTH_SERVER_URL"
+          # The operator applies the resource to the Deployment: wait until the serving pods trust
+          # this issuer, or the tokens would be refused just the same.
+          for _ in $(seq 1 36); do
+            TEMPLATE_URL=$(kubectl -n default get deployment perf-test-app-deployment \
+              -o jsonpath='{.spec.template.spec.containers[0].env[?(@.name=="QUARKUS_OIDC_AUTH_SERVER_URL")].value}')
+            [ "$TEMPLATE_URL" = "$AUTH_SERVER_URL" ] && break
+            sleep 5
+          done
+          if [ "$TEMPLATE_URL" != "$AUTH_SERVER_URL" ]; then
+            echo "::error::The registry Deployment trusts '$TEMPLATE_URL', not '$AUTH_SERVER_URL'; skipping the agent baseline."
+            exit 1
+          fi
+          kubectl -n default rollout status deployment/perf-test-app-deployment --timeout=3m
+          sed -e "s|\${PERF_TEST_IMAGE}|$PERF_TEST_IMAGE|" \
+              -e "s|http://keycloak.default.svc:8080/realms/registry/protocol/openid-connect/token|${AUTH_SERVER_URL}/protocol/openid-connect/token|" \
+              common/agent-perf-job.yaml | kubectl -n default apply -f -
+          # Same polling as the main run: wait for the exit-code marker, then copy results out.
+          for _ in $(seq 1 180); do
+            POD=$(kubectl -n default get pods -l job-name=agent-perf-test-runner -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
+            if [ -n "$POD" ] && kubectl -n default exec "$POD" -- test -f /results/exit-code 2>/dev/null; then
+              break
+            fi
+            sleep 10
+          done
+          mkdir -p /tmp/agent-perf-results
+          kubectl -n default logs job/agent-perf-test-runner --tail=-1 > /tmp/agent-perf-results/agent-perf-test-runner.log || true
+          kubectl -n default cp "$POD:/results" /tmp/agent-perf-results || true
+          # The registry's side of the run, for example why it refused a token
+          for p in $(kubectl -n default get pods -l app.kubernetes.io/instance=perf-test,app.kubernetes.io/component=app -o name 2>/dev/null); do
+            kubectl -n default logs "$p" --since=30m > "/tmp/agent-perf-results/registry-${p##*/}.log" 2>&1 || true
+          done
+          kubectl -n default delete -f common/agent-perf-job.yaml --ignore-not-found || true
+          test "$(cat /tmp/agent-perf-results/exit-code 2>/dev/null || echo 1)" = "0"
+
+      - name: Summarize the agent scale baseline
+        if: always()
+        run: |
+          STATS_FILE=$(find /tmp/agent-perf-results -path '*/js/stats.js' 2>/dev/null | head -1)
+          if [ -n "$STATS_FILE" ]; then
+            python3 perf-tests/scripts/summarize-agent-baseline.py "$STATS_FILE" "${{ matrix.storage }}"
+          else
+            {
+              echo "Agent scale baseline: no Gatling js/stats.js found under /tmp/agent-perf-results. End of the runner log:"
+              echo '```'
+              tail -n 20 /tmp/agent-perf-results/agent-perf-test-runner.log 2>/dev/null || echo "(no log)"
+              echo '```'
+            } | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload the agent scale baseline results
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: agent-perf-results-${{ matrix.storage }}-${{ github.sha }}
+          path: /tmp/agent-perf-results
+          if-no-files-found: ignore
           retention-days: 90
 
   notify:

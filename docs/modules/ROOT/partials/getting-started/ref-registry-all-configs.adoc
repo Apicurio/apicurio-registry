@@ -2011,6 +2011,16 @@ The following {registry} configuration options are available for each component 
 |`10s`
 |`3.3.0`
 |How often buffered usage events are written to storage (Quarkus scheduler expression)
+|`apicurio.usage.metrics.enabled`
+|`boolean`
+|`false`
+|`3.4.0`
+|Export a per-client schema fetch counter (apicurio.usage.schema.fetches) through OpenTelemetry. This does not store usage data in Registry and is independent of apicurio.usage.telemetry.enabled. Requires OpenTelemetry metrics to be enabled at build time (quarkus.otel.metrics.enabled=true) and the SDK enabled at runtime (quarkus.otel.sdk.disabled=false) _(experimental)_
+|`apicurio.usage.metrics.max-series`
+|`int`
+|`2000`
+|`3.4.0`
+|Threshold for the number of distinct series (client, identifier type, identifier value and operation combinations) that the OpenTelemetry SDK keeps for the schema fetch counter in each Registry process. Once it is reached, a measurement for a combination that has no series yet is added to the overflow series (otel.metric.overflow=true), which has no client or identifier series labels, so the total stays exact. Sampled OTLP exemplars can still carry those attributes. The SDK checks the threshold without locking: when requests for new combinations arrive one at a time at most this value minus one of them keep their labels, but requests that arrive at the same moment can create a few series more than the value. Must be positive
 |`apicurio.usage.retention-days`
 |`int`
 |`180`

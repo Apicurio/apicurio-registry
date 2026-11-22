@@ -93,6 +93,7 @@ then every request carries `traceparent`, and `tracestate` when the context has 
 | `apicurio.search.requests` | Counter | `operation` (search kind) | v3 `SearchResourceImpl` |
 | `apicurio.authz.decisions` | Counter | `result` (`allow`/`deny`), `entity_type`, `operation` | `GrantsAccessController` ([ADR-0005](0005-per-resource-authorization.md)) |
 | `apicurio.usage.schemas.active`, `.stale`, `.dead` | Up-down counter | none | `UsageAggregationJob` ([ADR-0003](0003-usage-telemetry.md)) |
+| `apicurio.usage.schema.fetches` | Counter | `client_id`, `identifier_type`, `identifier_value`, `operation` | `UsageTelemetryFilter`, only while `apicurio.usage.metrics.enabled` is true ([ADR-0003](0003-usage-telemetry.md)) |
 | `apicurio.iceberg.*` | Counter | `operation`, `result`, `entity_type`, `error_type` | `IcebergMetricsService` |
 
 Attribute names above are short for `apicurio.registry.<name>`. There are no OpenTelemetry

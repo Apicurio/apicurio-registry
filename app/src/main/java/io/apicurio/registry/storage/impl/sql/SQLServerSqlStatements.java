@@ -64,42 +64,6 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#getNextSequenceValue()
-     */
-    @Override
-    public String getNextSequenceValue() {
-        return """
-                MERGE INTO sequences AS target
-                USING (VALUES  (?)) AS source (seqName)
-                ON (target.seqName = source.seqName)
-                WHEN MATCHED THEN
-                UPDATE SET seqValue = target.seqValue + 1
-                WHEN NOT MATCHED THEN
-                INSERT (seqName, seqValue)
-                VALUES (source.seqName, 1)
-                OUTPUT INSERTED.seqValue;
-                """;
-    }
-
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#resetSequenceValue()
-     */
-    @Override
-    public String resetSequenceValue() {
-        return """
-                MERGE INTO sequences AS target
-                USING (VALUES (?, ?)) AS source (seqName, seqValue)
-                ON (target.seqName = source.seqName)
-                WHEN MATCHED THEN
-                UPDATE SET seqValue = ?
-                WHEN NOT MATCHED THEN
-                INSERT (seqName, seqValue)
-                VALUES (source.seqName, source.seqValue)
-                OUTPUT INSERTED.seqValue;
-                """;
-    }
-
-    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactIds()
      */
     @Override
@@ -193,4 +157,39 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
         // Wrap in DECLARE/SELECT to return result set instead of return code
         return "DECLARE @result INT; EXEC @result = sp_releaseapplock @Resource='apicurio_init_lock', @LockOwner='Session'; SELECT @result";
     }
+
+    /**
+     * Uses the native SQL Server sequence.
+     *
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#nextSequenceValue(String)
+     */
+    @Override
+    public String nextSequenceValue(String sequenceName) {
+        return "SELECT NEXT VALUE FOR " + nativeSequenceName(sequenceName);
+    }
+
+    /**
+     * Reads the last issued value, or 0 if none.
+     *
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectSequenceLastValue(String)
+     */
+    @Override
+    public String selectSequenceLastValue(String sequenceName) {
+        return "SELECT COALESCE(CAST(last_used_value AS BIGINT), 0) FROM sys.sequences "
+                + "WHERE object_id = OBJECT_ID(N'" + nativeSequenceName(sequenceName) + "')";
+    }
+
+    /**
+     * Skips the bound number of values. {@code sp_sequence_get_range} requires the
+     * {@code @range_first_value} OUTPUT parameter, so a local variable is declared to receive it.
+     *
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#advanceSequenceValue(String)
+     */
+    @Override
+    public String advanceSequenceValue(String sequenceName) {
+        return "DECLARE @range_first_value SQL_VARIANT; EXEC sp_sequence_get_range @sequence_name = N'"
+                + nativeSequenceName(sequenceName)
+                + "', @range_size = ?, @range_first_value = @range_first_value OUTPUT";
+    }
+
 }

@@ -6,6 +6,7 @@ import io.apicurio.registry.storage.impl.sql.jdb.Handle;
 import org.slf4j.Logger;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
@@ -14,8 +15,9 @@ import java.util.concurrent.atomic.AtomicLong;
  * Repository handling sequence operations in the SQL storage layer.
  * Extracted from AbstractSqlRegistryStorage to improve maintainability.
  *
- * Note: H2 uses in-memory atomic counters for sequences instead of database
- * sequences, which is why this repository maintains static counters.
+ * H2 (and as a result KafkaSQL) uses static in-memory atomic counters. All other dialects
+ * allocate IDs from native sequences (PostgreSQL, SQL Server) or AUTO_INCREMENT ticket tables
+ * (MySQL), none of which hold a lock until the allocating transaction commits.
  */
 public class SqlSequenceRepository {
 
@@ -37,10 +39,13 @@ public class SqlSequenceRepository {
 
     private final HandleFactory handles;
 
+    private final SqlSequenceOperations operations;
+
     public SqlSequenceRepository(HandleFactory handles, SqlStatements sqlStatements, Logger log) {
         this.handles = handles;
         this.sqlStatements = sqlStatements;
         this.log = log;
+        this.operations = new SqlSequenceOperations(sqlStatements);
     }
 
     /**
@@ -91,20 +96,8 @@ public class SqlSequenceRepository {
     private long nextSequenceValueRaw(Handle handle, String sequenceName) {
         if (isH2()) {
             return sequenceCounters.get(sequenceName).incrementAndGet();
-        } else if (isMysql()) {
-            handle.createUpdate(sqlStatements.getNextSequenceValue())
-                    .bind(0, sequenceName)
-                    .execute();
-            return handle.createQuery(sqlStatements.selectCurrentSequenceValue())
-                    .bind(0, sequenceName)
-                    .mapTo(Long.class)
-                    .one();
-        } else {
-            return handle.createQuery(sqlStatements.getNextSequenceValue())
-                    .bind(0, sequenceName)
-                    .mapTo(Long.class)
-                    .one();
         }
+        return operations.next(handle, sequenceName);
     }
 
     /**
@@ -135,46 +128,18 @@ public class SqlSequenceRepository {
     }
 
     private void resetSequenceRaw(Handle handle, String sequenceName, String sqlMaxIdFromTable) {
-        Optional<Long> maxIdTable = handle.createQuery(sqlMaxIdFromTable)
-                .mapTo(Long.class)
-                .findOne();
-
-        Optional<Long> current;
+        Optional<Long> maxIdTable = handle.createQuery(sqlMaxIdFromTable).mapTo(Long.class).findOne();
+        if (maxIdTable.isEmpty()) {
+            return;
+        }
+        long target = maxIdTable.orElseThrow();
+        log.info("Resetting {} sequence", sequenceName);
         if (isH2()) {
-            current = Optional.of(sequenceCounters.get(sequenceName).get());
+            sequenceCounters.get(sequenceName).accumulateAndGet(target, Math::max);
         } else {
-            current = handle.createQuery(sqlStatements.selectCurrentSequenceValue())
-                    .bind(0, sequenceName)
-                    .mapTo(Long.class)
-                    .findOne();
+            operations.advanceTo(handle, sequenceName, target);
         }
-        final Optional<Long> currentIdSeq = current;
-
-        Optional<Long> maxId = maxIdTable.map(maxIdTableValue -> {
-            if (currentIdSeq.isPresent()) {
-                if (currentIdSeq.orElseThrow() > maxIdTableValue) {
-                    return currentIdSeq.orElseThrow();
-                }
-            }
-            return maxIdTableValue;
-        });
-
-        if (maxId.isPresent()) {
-            log.info("Resetting {} sequence", sequenceName);
-            long id = maxId.orElseThrow();
-
-            if (isH2()) {
-                sequenceCounters.get(sequenceName).set(id);
-            } else {
-                handle.createUpdate(sqlStatements.resetSequenceValue())
-                        .bind(0, sequenceName)
-                        .bind(1, id)
-                        .bind(2, id)
-                        .execute();
-            }
-
-            log.info("Successfully reset {} to {}", sequenceName, id);
-        }
+        log.info("Successfully reset {} to at least {}", sequenceName, target);
     }
 
     /**
@@ -216,15 +181,22 @@ public class SqlSequenceRepository {
         return maxIdTable.orElse(1L);
     }
 
+    /**
+     * Removes consumed MySQL ticket rows, keeping the newest one per sequence. Runs in its own
+     * transaction; never call it from inside a write transaction. No-op on other databases.
+     */
+    public void pruneSequenceTickets() {
+        if (isH2()) {
+            return;
+        }
+        handles.withHandleNoException(handle -> {
+            for (String sequenceName : List.of(GLOBAL_ID_SEQUENCE, CONTENT_ID_SEQUENCE, COMMENT_ID_SEQUENCE)) {
+                operations.pruneTickets(handle, sequenceName);
+            }
+        });
+    }
+
     private boolean isH2() {
         return sqlStatements.dbType().equals("h2");
-    }
-
-    private boolean isPostgresql() {
-        return sqlStatements.dbType().equals("postgresql");
-    }
-
-    private boolean isMysql() {
-        return sqlStatements.dbType().equals("mysql");
     }
 }

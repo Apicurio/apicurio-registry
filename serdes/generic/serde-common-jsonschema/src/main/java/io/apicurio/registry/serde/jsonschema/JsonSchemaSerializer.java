@@ -1,5 +1,7 @@
 package io.apicurio.registry.serde.jsonschema;
 
+import java.io.UncheckedIOException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -124,6 +126,37 @@ public class JsonSchemaSerializer<T> extends AbstractSerializer<JsonSchema, T> {
         } else {
             // When validation is disabled, serialize directly
             mapper.writeValue(out, data);
+        }
+    }
+
+    @Override
+    protected Map<String, Object> toRuleRecord(T data) {
+        if (data == null) {
+            return Map.of();
+        }
+        return mapper.convertValue(data, new TypeReference<Map<String, Object>>() {
+        });
+    }
+
+    @Override
+    protected boolean supportsTransformResult(T data) {
+        return data != null;
+    }
+
+    /**
+     * Returns a {@link JsonNode} if the record is one, otherwise an instance of the record's class.
+     */
+    @SuppressWarnings("unchecked")
+    @Override
+    protected T fromRuleRecord(Map<String, Object> record, ParsedSchema<JsonSchema> schema, T original) {
+        JsonNode node = mapper.valueToTree(record);
+        if (original instanceof JsonNode) {
+            return (T) node;
+        }
+        try {
+            return (T) mapper.treeToValue(node, original.getClass());
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
     }
 }

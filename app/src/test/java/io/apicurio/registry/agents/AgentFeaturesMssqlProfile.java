@@ -26,6 +26,7 @@ public class AgentFeaturesMssqlProfile implements QuarkusTestProfile {
                 Map.entry("apicurio.mcp-import.loopback.enabled", "true"),
                 Map.entry("apicurio.mcp-import.insecure-http.enabled", "true"),
                 Map.entry("apicurio.mcp-import.timeout.seconds", "2"),
+                Map.entry("apicurio.mcp-import.max-concurrent", "1"),
                 Map.entry("apicurio.rest.mutability.artifact-version-content.enabled", "true"));
     }
 

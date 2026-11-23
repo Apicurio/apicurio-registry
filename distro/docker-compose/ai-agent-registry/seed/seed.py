@@ -23,6 +23,9 @@ ARTIFACTS = [
         "contentType": "application/json",
         # The rule the quickstart's rejection step runs into.
         "rules": {"COMPATIBILITY": "BACKWARD"},
+        # Stored the way an import from an MCP server stores it, so importing from the demo server
+        # (weather-mcp/server.py), which lists the same tool, matches this version exactly.
+        "compact": True,
     },
     {
         "artifactId": "weather",
@@ -97,6 +100,8 @@ def seed(artifact):
 def create(artifact):
     with open(os.path.join(HERE, artifact["file"]), encoding="utf-8") as f:
         content = f.read()
+    if artifact.get("compact"):
+        content = json.dumps(json.loads(content), separators=(",", ":"), ensure_ascii=False)
     references = [dict(ref, groupId=GROUP) for ref in artifact.get("references", [])]
     request("POST", f"/groups/{GROUP}/artifacts", {
         "artifactId": artifact["artifactId"],

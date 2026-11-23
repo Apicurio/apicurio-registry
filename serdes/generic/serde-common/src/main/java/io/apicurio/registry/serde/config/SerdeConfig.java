@@ -194,6 +194,13 @@ public class SerdeConfig extends SchemaResolverConfig {
      */
     public static final String CONTRACT_RULES_MIGRATION_TARGET_VERSION = "apicurio.registry.serde.contract-rules.migration.target-version";
 
+    /**
+     * The topic that receives the records failing a contract rule with {@code onFailure: DLQ}. The Kafka
+     * serializers and deserializers send them with a producer created from their own client configuration
+     * (bootstrap servers, security settings). Without it, such a failure is an error.
+     */
+    public static final String CONTRACT_RULES_DLQ_TOPIC = "apicurio.registry.serde.contract-rules.dlq.topic";
+
     private static final Map<String, Object> DEFAULTS = Map.ofEntries(entry(ID_HANDLER, ID_HANDLER_DEFAULT),
             entry(USE_ID, USE_ID_DEFAULT));
 

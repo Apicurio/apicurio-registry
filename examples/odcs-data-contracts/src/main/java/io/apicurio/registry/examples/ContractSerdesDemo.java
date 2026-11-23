@@ -33,6 +33,10 @@ import java.util.logging.Logger;
  * sent, while the order with a negative amount and the order without an ID are rejected before they
  * reach Kafka. A consumer then reads back what was sent.
  *
+ * <p>With the argument {@code migrate} (step 12), it only consumes, as an application on version 2 of
+ * the schema: the deserializer applies the version's migration rules (JSONata) to the version 1
+ * records, so they arrive with the new {@code currency} field.
+ *
  * <p>Requires the example to be running (docker compose up -d) and ./demo.sh to have been run.
  * Override the endpoints with the REGISTRY_URL and KAFKA_BOOTSTRAP environment variables.
  */
@@ -44,6 +48,14 @@ public class ContractSerdesDemo {
 
     public static void main(String[] args) throws IOException, InterruptedException {
         quietLogging();
+        if (args.length > 0 && "migrate".equals(args[0])) {
+            Properties config = consumerConfig();
+            // Read every record as version 2: UPGRADE rules turn version 1 records into version 2
+            config.put("apicurio.registry.serde.contract-rules.migration.enabled", "true");
+            config.put("apicurio.registry.serde.contract-rules.migration.target-version", "2");
+            consume(config);
+            return;
+        }
         Schema schema = new Schema.Parser().parse(Files.readString(Path.of("schemas/order-event-v1.avsc")));
 
         try (KafkaProducer<String, GenericRecord> producer = new KafkaProducer<>(producerConfig())) {
@@ -53,11 +65,15 @@ public class ContractSerdesDemo {
             send(producer, order(schema, "", 25.00));
         }
 
-        try (KafkaConsumer<String, GenericRecord> consumer = new KafkaConsumer<>(consumerConfig())) {
+        consume(consumerConfig());
+    }
+
+    private static void consume(Properties config) {
+        try (KafkaConsumer<String, Object> consumer = new KafkaConsumer<>(config)) {
             consumer.subscribe(List.of(TOPIC));
             int received = 0;
             for (int attempt = 0; attempt < 10 && received == 0; attempt++) {
-                for (ConsumerRecord<String, GenericRecord> record : consumer.poll(Duration.ofSeconds(1))) {
+                for (ConsumerRecord<String, Object> record : consumer.poll(Duration.ofSeconds(1))) {
                     System.out.println("consumed  " + record.value());
                     received++;
                 }
@@ -110,6 +126,10 @@ public class ContractSerdesDemo {
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, AvroKafkaDeserializer.class.getName());
         props.put("apicurio.registry.url", REGISTRY_URL);
+        // Name the artifact the records were written with, so that the deserializer can find the
+        // schema version of a record from its content ID and load that version's rules
+        props.put("apicurio.registry.artifact.group-id", "orders");
+        props.put("apicurio.registry.artifact.artifact-id", "OrderEvent");
         // Run the artifact's READ-mode contract rules after deserializing
         props.put("apicurio.registry.serde.contract-rules.enabled", "true");
         return props;

@@ -63,6 +63,7 @@ public abstract class AbstractResourceImpl {
         if (!references.isEmpty()) {
             if (referencesType == HandleReferencesType.DEREFERENCE) {
                 ArtifactTypeUtilProvider artifactTypeProvider = factory.getArtifactTypeProvider(artifactType);
+                ReferenceResolution.requireDereferenceable(references, accessGuard.referenceLoader());
 
                 if (artifactTypeProvider.supportsReferencesWithContext()) {
                     RegistryContentUtils.RewrittenContentHolder rewrittenContent = RegistryContentUtils

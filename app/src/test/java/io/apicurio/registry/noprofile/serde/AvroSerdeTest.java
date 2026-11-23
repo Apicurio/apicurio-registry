@@ -746,12 +746,58 @@ public class AvroSerdeTest extends AbstractClientFacadeTestBase {
                         NamespaceGroupReferenceNamingStrategy.class.getName());
             }
             serializer.configure(config, false);
-            GenericData.Record address = new GenericData.Record(order.getField("address").schema());
-            address.put("street", "Main");
-            GenericData.Record record = new GenericData.Record(order);
-            record.put("address", address);
-            serializer.serialize(topic, record);
+            serializer.serialize(topic, orderRecord(order));
         }
+    }
+
+    private GenericData.Record orderRecord(Schema order) {
+        GenericData.Record address = new GenericData.Record(order.getField("address").schema());
+        address.put("street", "Main");
+        GenericData.Record record = new GenericData.Record(order);
+        record.put("address", address);
+        return record;
+    }
+
+    private GenericData.Record roundTrip(String group, String topic, Schema order, boolean serializerDeref,
+            boolean deserializerDeref) {
+        RegistryClientFacade facade = new RegistryClientFacadeImpl(isolatedClientV3);
+        try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<>(facade);
+                AvroKafkaDeserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(facade)) {
+            Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
+            config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, group);
+            config.put(SerdeConfig.SERIALIZER_DEREFERENCE_SCHEMA, serializerDeref);
+            config.put(SerdeConfig.DESERIALIZER_DEREFERENCE_SCHEMA, deserializerDeref);
+            serializer.configure(config, false);
+            deserializer.configure(config, false);
+            byte[] bytes = serializer.serialize(topic, orderRecord(order));
+            return deserializer.deserialize(topic, bytes);
+        }
+    }
+
+    @Test
+    public void serializerDereferencesWhileDeserializerKeepsReferences() {
+        String ns = "com.acme.n" + UUID.randomUUID().toString().replace("-", "");
+        Schema order = orderWithAddress(ns);
+        String group = TestUtils.generateGroupId();
+
+        GenericData.Record read = roundTrip(group, "orders", order, true, false);
+
+        assertEquals("Main", ((GenericData.Record) read.get("address")).get("street").toString());
+        assertEquals(List.of(), referencesOf(group, "orders-value"));
+    }
+
+    @Test
+    public void deserializerDereferencesWhileSerializerKeepsReferences() {
+        String ns = "com.acme.n" + UUID.randomUUID().toString().replace("-", "");
+        Schema order = orderWithAddress(ns);
+        String group = TestUtils.generateGroupId();
+
+        GenericData.Record read = roundTrip(group, "orders", order, false, true);
+
+        assertEquals("Main", ((GenericData.Record) read.get("address")).get("street").toString());
+        assertEquals(List.of(ns + ".Address -> " + group + "/" + ns + ".Address@1"),
+                referencesOf(group, "orders-value"));
     }
 
     @Test

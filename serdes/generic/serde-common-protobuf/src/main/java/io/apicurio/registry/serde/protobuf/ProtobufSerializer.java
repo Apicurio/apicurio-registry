@@ -1,5 +1,8 @@
 package io.apicurio.registry.serde.protobuf;
 
+import java.io.UncheckedIOException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.protobuf.util.JsonFormat;
 import com.google.protobuf.Message;
 import io.apicurio.registry.protobuf.ProtobufDifference;
 import io.apicurio.registry.resolver.ParsedSchema;
@@ -196,5 +199,36 @@ public class ProtobufSerializer<U extends Message> extends AbstractSerializer<Pr
         ProtobufCompatibilityCheckerLibrary checker = new ProtobufCompatibilityCheckerLibrary(fileBefore,
                 fileAfter);
         return checker.findDifferences(false);
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Map<String, Object> toRuleRecord(U data) {
+        try {
+            String json = JsonFormat.printer().preservingProtoFieldNames().print(data);
+            return new ObjectMapper().readValue(json, Map.class);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    @Override
+    protected boolean supportsTransformResult(U data) {
+        return data != null;
+    }
+
+    /**
+     * A message of the same type as the original, built from the canonical JSON form of the rule record.
+     */
+    @Override
+    @SuppressWarnings("unchecked")
+    protected U fromRuleRecord(Map<String, Object> record, ParsedSchema<ProtobufSchema> schema, U original) {
+        try {
+            Message.Builder builder = original.newBuilderForType();
+            JsonFormat.parser().ignoringUnknownFields().merge(new ObjectMapper().writeValueAsString(record), builder);
+            return (U) builder.build();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 }

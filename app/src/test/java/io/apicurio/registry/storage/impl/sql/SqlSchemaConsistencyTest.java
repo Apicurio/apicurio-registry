@@ -103,6 +103,43 @@ class SqlSchemaConsistencyTest {
                 "Every CREATE TABLE in mysql.ddl must declare its PRIMARY KEY inline.");
     }
 
+    @Test
+    void testNativeSequencesUpgradeDropsLegacyTableForNonH2Dialects() {
+        for (String dialect : List.of("postgresql", "mssql", "mysql")) {
+            String base = readResource(dialect + ".ddl");
+            String upgrade = readResource("upgrades/115/" + dialect + ".upgrade.ddl");
+            Assertions.assertFalse(base.contains("CREATE TABLE sequences"), dialect);
+            for (String seq : List.of("globalid_seq", "contentid_seq", "commentid_seq")) {
+                Assertions.assertTrue(base.contains(seq), dialect + " base DDL lacks " + seq);
+                Assertions.assertTrue(upgrade.contains(seq), dialect + " upgrade lacks " + seq);
+            }
+            Assertions.assertTrue(upgrade.contains("NativeSequencesUpgrader"), dialect);
+            Assertions.assertTrue(upgrade.contains("DROP TABLE"), dialect);
+            Assertions.assertTrue(upgrade.contains("sequences;"), dialect);
+        }
+    }
+
+    /**
+     * MySQL DDL commits implicitly, so a failed 115 upgrade must be re-runnable: object creation
+     * and the legacy-table drop are guarded on every dialect.
+     */
+    @Test
+    void testNativeSequencesUpgradeIsIdempotent() {
+        String mysql = readResource("upgrades/115/mysql.upgrade.ddl");
+        String postgresql = readResource("upgrades/115/postgresql.upgrade.ddl");
+        String mssql = readResource("upgrades/115/mssql.upgrade.ddl");
+        for (String seq : List.of("globalid_seq", "contentid_seq", "commentid_seq")) {
+            Assertions.assertTrue(mysql.contains("CREATE TABLE IF NOT EXISTS " + seq), seq);
+            Assertions.assertTrue(postgresql.contains("CREATE SEQUENCE IF NOT EXISTS " + seq), seq);
+            Assertions.assertTrue(mssql.contains("IF OBJECT_ID(N'" + seq + "', N'SO') IS NULL CREATE SEQUENCE "
+                    + seq), seq);
+        }
+        Assertions.assertTrue(mysql.contains("DROP TABLE IF EXISTS sequences;"));
+        Assertions.assertTrue(postgresql.contains("DROP TABLE IF EXISTS sequences;"));
+        Assertions.assertTrue(mssql.contains(
+                "IF OBJECT_ID(N'sequences', N'U') IS NOT NULL DROP TABLE sequences;"));
+    }
+
     private static String peersColumns(String ddl) {
         Matcher columns = PEERS_COLUMNS.matcher(ddl);
         Assertions.assertTrue(columns.find(), "Could not find the peers table columns.");

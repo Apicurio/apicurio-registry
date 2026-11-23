@@ -7,13 +7,11 @@ CREATE TABLE apicurio (
     propValue VARCHAR(255),
     PRIMARY KEY (propName)
 ) DEFAULT CHARACTER SET ascii COLLATE ascii_general_ci;
-INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 115);
+INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 116);
 
-CREATE TABLE sequences (
-    seqName  VARCHAR(32) NOT NULL,
-    seqValue BIGINT      NOT NULL,
-    PRIMARY KEY (seqName)
-) DEFAULT CHARACTER SET ascii COLLATE ascii_general_ci;
+CREATE TABLE globalid_seq (id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY) ENGINE=InnoDB;
+CREATE TABLE contentid_seq (id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY) ENGINE=InnoDB;
+CREATE TABLE commentid_seq (id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY) ENGINE=InnoDB;
 
 CREATE TABLE config (
     propName   VARCHAR(255)  NOT NULL,

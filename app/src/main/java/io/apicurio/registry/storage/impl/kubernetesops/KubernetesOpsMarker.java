@@ -7,7 +7,7 @@ import java.util.Map;
 
 /**
  * Marker tracking the state of Kubernetes ConfigMap data sources.
- * Wraps the Kubernetes list resourceVersion, the source namespace, and
+ * Wraps a hash of the selected ConfigMaps' resourceVersions, the source namespace, and
  * the most recent ConfigMap timestamp.
  */
 class KubernetesOpsMarker implements SourceMarker {

@@ -26,6 +26,7 @@ import { FromNow, If, ListWithToolbar } from "@apitomy/common-ui-components";
 import { isStringEmptyOrUndefined } from "@utils/string.utils.ts";
 import {
     ArtifactMetaData,
+    ResourcePermissions,
     Rule,
     SearchedVersion,
     SortOrder,
@@ -47,6 +48,7 @@ import { UsageService, useUsageService } from "@services/useUsageService.ts";
  */
 export type ArtifactOverviewTabContentProps = {
     artifact: ArtifactMetaData;
+    permissions?: ResourcePermissions;
     rules: Rule[];
     onCreateVersion: () => void;
     onViewVersion: (version: SearchedVersion) => void;
@@ -188,7 +190,7 @@ export const ArtifactOverviewTabContent: FunctionComponent<ArtifactOverviewTabCo
             </EmptyStateBody>
             <EmptyStateFooter>
                 <EmptyStateActions>
-                    <IfAuth isDeveloper={true}>
+                    <IfAuth isDeveloper={true} permissions={props.permissions}>
                         <IfFeature feature="readOnly" isNot={true}>
                             <Button className="empty-btn-create" variant="primary"
                                 data-testid="empty-btn-create" onClick={props.onCreateVersion}>Create version</Button>
@@ -207,7 +209,7 @@ export const ArtifactOverviewTabContent: FunctionComponent<ArtifactOverviewTabCo
                         <Flex>
                             <FlexItem className="title">Artifact metadata</FlexItem>
                             <FlexItem className="actions" align={{ default: "alignRight" }}>
-                                <IfAuth isDeveloper={true} owner={props.artifact.owner}>
+                                <IfAuth isDeveloper={true} owner={props.artifact.owner} permissions={props.permissions}>
                                     <IfFeature feature="readOnly" isNot={true}>
                                         <Button icon={<PencilAltIcon />} id="edit-action"
                                             data-testid="artifact-btn-edit"
@@ -298,7 +300,7 @@ export const ArtifactOverviewTabContent: FunctionComponent<ArtifactOverviewTabCo
                 <Flex>
                     <FlexItem className="title">Versions in artifact</FlexItem>
                     <FlexItem className="actions" align={{ default: "alignRight" }}>
-                        <IfAuth isDeveloper={true}>
+                        <IfAuth isDeveloper={true} permissions={props.permissions}>
                             <IfFeature feature="readOnly" isNot={true}>
                                 <Button className="btn-header-create-version" size="sm" data-testid="btn-create-version"
                                     variant="primary" onClick={props.onCreateVersion}>Create version</Button>

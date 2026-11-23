@@ -304,6 +304,18 @@ public class SchemaResolverConfig extends AbstractConfig {
     public static final boolean DEREFERENCE_DEFAULT = false;
 
     /**
+     * Optional. Overrides {@link #DEREFERENCE_SCHEMA} for serializers: whether to register the schema
+     * dereferenced (Avro only). Falls back to {@link #DEREFERENCE_SCHEMA} when not set.
+     */
+    public static final String SERIALIZER_DEREFERENCE_SCHEMA = "apicurio.registry.serializer.dereference-schema";
+
+    /**
+     * Optional. Overrides {@link #DEREFERENCE_SCHEMA} for deserializers: whether to fetch schemas dereferenced
+     * (by global ID, content ID or content hash). Falls back to {@link #DEREFERENCE_SCHEMA} when not set.
+     */
+    public static final String DESERIALIZER_DEREFERENCE_SCHEMA = "apicurio.registry.deserializer.dereference-schema";
+
+    /**
      * Used to indicate whether the schema resolver should canonicalize content when using content
      * to lookup/search for an artifact version in the registry by content.
      */
@@ -647,6 +659,39 @@ public class SchemaResolverConfig extends AbstractConfig {
 
     public boolean resolveDereferenced() {
         return getBooleanOrFalse(DEREFERENCE_SCHEMA);
+    }
+
+    /**
+     * Whether serializers dereference schemas.
+     *
+     * @return {@link #SERIALIZER_DEREFERENCE_SCHEMA} if set to a non-null value, otherwise
+     *         {@link #resolveDereferenced()}
+     */
+    public boolean serializerDereference() {
+        return originals.get(SERIALIZER_DEREFERENCE_SCHEMA) != null
+                ? getBooleanOrFalse(SERIALIZER_DEREFERENCE_SCHEMA) : resolveDereferenced();
+    }
+
+    /**
+     * Whether deserializers fetch schemas dereferenced.
+     *
+     * @return {@link #DESERIALIZER_DEREFERENCE_SCHEMA} if set to a non-null value, otherwise
+     *         {@link #resolveDereferenced()}
+     */
+    public boolean deserializerDereference() {
+        return isDeserializerDereferenceSet()
+                ? getBooleanOrFalse(DESERIALIZER_DEREFERENCE_SCHEMA) : resolveDereferenced();
+    }
+
+    /**
+     * Whether {@link #DESERIALIZER_DEREFERENCE_SCHEMA} is set explicitly. Content-ID and content-hash lookups
+     * only dereference when it is, so the global {@link #DEREFERENCE_SCHEMA} keeps its previous behaviour for
+     * them (and keeps working against servers older than 3.4.0).
+     *
+     * @return true if the key is present with a non-null value
+     */
+    public boolean isDeserializerDereferenceSet() {
+        return originals.get(DESERIALIZER_DEREFERENCE_SCHEMA) != null;
     }
 
     public boolean isCanonicalize() {

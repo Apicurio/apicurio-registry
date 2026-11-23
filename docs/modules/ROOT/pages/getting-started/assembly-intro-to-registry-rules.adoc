@@ -31,7 +31,13 @@ The goal of these rules is to prevent invalid content from being added to {regis
 * Incompatibility, when new content includes breaking changes relative to the current artifact version.
 * Artifact reference integrity, for example, a duplicate or non-existent artifact reference mapping.
 
+The `GOVERNANCE` rule type does not check content. It checks the data contract metadata of an artifact before {registry} accepts a new version.
+
 You can enable optional content rules using the {registry} web console, REST API commands, or by using one of the SDKs.
+
+[role="_additional-resources"]
+.Additional resources
+* {registry-rule-reference}
 
 [id="registry-rules-apply_{context}"]
 == When rules are applied
@@ -127,6 +133,7 @@ The following rule names are currently supported:
 * `compatibility`
 * `validity`
 * `integrity`
+* `governance`
 
 The value of the application property must be a valid configuration option that is specific to the rule being
 configured.

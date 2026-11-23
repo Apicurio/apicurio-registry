@@ -632,7 +632,7 @@ Each KubernetesOps entity type (`registry-v0`, `group-v0`, `artifact-v0`, `conte
 
 |`ruleType`
 |string
-|Rule type: `VALIDITY`, `COMPATIBILITY`, or `INTEGRITY`.
+|Rule type: `VALIDITY`, `COMPATIBILITY`, `INTEGRITY`, or `GOVERNANCE`.
 
 |`config`
 |string

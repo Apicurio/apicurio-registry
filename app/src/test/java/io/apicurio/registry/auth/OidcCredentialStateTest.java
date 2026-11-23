@@ -37,7 +37,8 @@ class OidcCredentialStateTest {
     // Match the hash calculated by the strategy for these credentials.
     private static final String KEY = DigestUtils.sha256Hex("clientsecret");
 
-    @Test void repeatedJoinerPublicationDoesNotRestartFailureLifetime() {
+    @Test
+    void repeatedJoinerPublicationDoesNotRestartFailureLifetime() {
         OidcAuthenticationStrategy strategy = strategy(mock(AppAuthenticationMechanism.class));
         OidcAuthenticationStrategy.TokenState owner = pending();
         strategy.credentialStates.put(KEY, owner);
@@ -58,7 +59,8 @@ class OidcCredentialStateTest {
                 "A joiner must retain the original failure wrapper and its expiration");
     }
 
-    @Test void staleJoinerCannotOverwriteNewerPendingFetch() {
+    @Test
+    void staleJoinerCannotOverwriteNewerPendingFetch() {
         OidcAuthenticationStrategy strategy = strategy(mock(AppAuthenticationMechanism.class));
         OidcAuthenticationStrategy.TokenState old = pending();
         old.future().completeExceptionally(new OidcAuthException("old"));
@@ -75,7 +77,8 @@ class OidcCredentialStateTest {
         assertFalse(newer.future().isDone());
     }
 
-    @Test void staleJoinerCannotHideRecoveredToken() {
+    @Test
+    void staleJoinerCannotHideRecoveredToken() {
         AppAuthenticationMechanism parent = mock(AppAuthenticationMechanism.class);
         OidcAuthenticationStrategy strategy = strategy(parent);
 
@@ -99,7 +102,8 @@ class OidcCredentialStateTest {
         verify(parent, times(1)).getAccessToken(any(Pair.class), anyString());
     }
 
-    @Test void validTokenIsReusedAndExpiredTokenIsReplaced() {
+    @Test
+    void validTokenIsReusedAndExpiredTokenIsReplaced() {
         AppAuthenticationMechanism parent = mock(AppAuthenticationMechanism.class);
         OidcAuthenticationStrategy strategy = strategy(parent);
         when(parent.getAccessToken(any(Pair.class), anyString())).thenReturn(token("fresh"));

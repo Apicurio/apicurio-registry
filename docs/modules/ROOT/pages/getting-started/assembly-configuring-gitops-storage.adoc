@@ -260,6 +260,8 @@ APICURIO_GITOPS_REPO_URL=https://github.com/my-org/my-registry-data.git
 The sync container clones the repository and then updates it every 30 seconds. You can change the interval with the `APICURIO_GITOPS_PULL_INTERVAL` environment variable.
 +
 For a private repository, use an SSH URL and provide the keys as described in the next step. The sync container has no setting for HTTPS credentials. A private HTTPS repository requires credentials in the URL itself, for example `+https://<token>@github.com/my-org/my-registry-data.git+`. Git saves that URL, including the credentials, in the configuration of the clone on the shared volume, which the registry container also mounts.
++
+With the {operator}, you set the URL in the `ApicurioRegistry3` custom resource, and the Operator copies it unchanged into the Deployment as an environment variable of the sync container. Anyone who can read the custom resource, the Deployment, or the pod can read the token. The sync container clones a repository only if the clone does not exist, and it fetches updates from the URL that Git saved in the clone. A changed token therefore takes effect only when the sync container creates the clone again. The Operator uses an `emptyDir` volume by default, so each new pod starts without a clone. If you use a persistent volume instead, delete the clone before you restart the sync container.
 . Optional: For SSH remotes, provide the private key and the known hosts file:
 +
 [source,bash]
@@ -392,7 +394,7 @@ Each registry instance has two in-memory databases. The active database serves r
 
 A load reads all of the data from every configured repository, not only the files that changed. Because the registry is not ready until the first load succeeds, startup time also grows with the amount of data.
 
-The shared volume holds one clone of each repository. In pull mode, the clone is shallow by default and contains only the configured branch. While a dry-run validation task runs, the volume also holds a shallow clone of the reference that the task validates.
+The shared volume holds one clone of each repository. In pull mode, the clone is shallow by default and contains only the configured branch. In push mode, the repository on the volume keeps the full history that clients push to it, so the volume grows with that history. While a dry-run validation task runs, the volume also holds a shallow clone of the reference that the task validates.
 
 
 [id="gitops-storage-limitations-troubleshooting_{context}"]

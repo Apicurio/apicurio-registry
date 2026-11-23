@@ -24,6 +24,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -123,6 +124,41 @@ class PromptTemplateConverterTest {
         Assertions.assertEquals("",
                 converter.renderTemplate("{{#if premium}}Hello {{ name }}{{/if}}",
                         Map.of("premium", false, "name", "Alice")));
+    }
+
+    @Test
+    void testIfElseBlockRender() {
+        Assertions.assertEquals("Welcome admin Alice!",
+                converter.renderTemplate("{{#if admin}}Welcome admin {{name}}!{{else}}Welcome guest!{{/if}}",
+                        Map.of("admin", true, "name", "Alice")));
+        Assertions.assertEquals("Welcome guest!",
+                converter.renderTemplate("{{#if admin}}Welcome admin {{name}}!{{else}}Welcome guest!{{/if}}",
+                        Map.of("admin", false, "name", "Alice")));
+    }
+
+    @Test
+    void testUnlessBlockRender() {
+        Assertions.assertEquals("Active item: Widget",
+                converter.renderTemplate("{{#unless archived}}Active item: {{name}}{{/unless}}",
+                        Map.of("archived", false, "name", "Widget")));
+        Assertions.assertEquals("",
+                converter.renderTemplate("{{#unless archived}}Active item: {{name}}{{/unless}}",
+                        Map.of("archived", true, "name", "Widget")));
+    }
+
+    @Test
+    void testComplexVariableJsonFormatting() {
+        Assertions.assertEquals("Tags: [\"alpha\",\"beta\"], Metadata: {\"env\":\"prod\"}",
+                converter.renderTemplate("Tags: {{tags}}, Metadata: {{meta}}",
+                        Map.of("tags", List.of("alpha", "beta"),
+                                "meta", Map.of("env", "prod"))));
+    }
+
+    @Test
+    void testConditionalWithUnresolvedPlaceholderInDiscardedBranch() {
+        Assertions.assertEquals("fallback",
+                converter.renderTemplate("{{#if flag}}{{missing_var}}{{else}}fallback{{/if}}",
+                        Map.of("flag", false)));
     }
 
     @Test

@@ -1,12 +1,43 @@
-FROM registry.access.redhat.com/ubi10/openjdk-21-runtime@sha256:6e31d14913ef7655fee3c7f7060125c2e240145ff8ae8825d972842891f03ee9
+# Build a minimal root file system on top of ubi-micro, which ships no package manager. Only
+# the JRE and the few tools used by the run-java.sh launcher script (gawk, grep, sed, findutils)
+# are installed, instead of the ~120 packages of the ubi10/openjdk-21-runtime image.
+FROM registry.access.redhat.com/ubi10/openjdk-21-runtime@sha256:6e31d14913ef7655fee3c7f7060125c2e240145ff8ae8825d972842891f03ee9 AS launcher
+FROM registry.access.redhat.com/ubi10/ubi-micro@sha256:2ad0f98cb13160c4773c945ef93f88b25831c7f27cd3780d72a7e78b210ea72b AS micro
+
+FROM registry.access.redhat.com/ubi10/ubi@sha256:87ceab8634a53a36c75a8ba7282f09f11c46ab3e8906db6c6d2b3cd2a7dc4f4e AS builder
+COPY --from=micro / /mnt/rootfs
+RUN dnf install -y --installroot /mnt/rootfs --releasever 10 \
+        --setopt install_weak_deps=false --setopt tsflags=nodocs --nodocs \
+        java-21-openjdk-headless gawk grep sed findutils \
+    && dnf clean all --installroot /mnt/rootfs \
+    && rm -rf /mnt/rootfs/var/cache/* /mnt/rootfs/var/log/dnf* /mnt/rootfs/var/log/yum* \
+    && mkdir -p /mnt/rootfs/deployments /mnt/rootfs/home/default \
+    && chown -R 1001:0 /mnt/rootfs/deployments /mnt/rootfs/home/default \
+    && chmod -R "ug=rwx" /mnt/rootfs/deployments /mnt/rootfs/home/default
+COPY --from=launcher /opt/jboss/container /mnt/rootfs/opt/jboss/container
+
+FROM scratch
+COPY --from=builder /mnt/rootfs/ /
+
+ENV LANG="C.utf8" \
+    HOME="/home/default" \
+    JAVA_HOME="/usr/lib/jvm/java-21-openjdk" \
+    JAVA_VENDOR="openjdk" \
+    JAVA_VERSION="21" \
+    JAVA_DATA_DIR="/deployments/data" \
+    JBOSS_CONTAINER_JAVA_PROXY_MODULE="/opt/jboss/container/java/proxy" \
+    JBOSS_CONTAINER_JAVA_JVM_MODULE="/opt/jboss/container/java/jvm" \
+    JBOSS_CONTAINER_UTIL_LOGGING_MODULE="/opt/jboss/container/util/logging/" \
+    JBOSS_CONTAINER_UTIL_PATHFINDER_MODULE="/opt/jboss/container/util/pathfinder" \
+    JBOSS_CONTAINER_JAVA_RUN_MODULE="/opt/jboss/container/java/run"
 
 ENV APP_URL="${docker.app.file}" \
     JAVA_OPTIONS="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager"
 
 ADD "$APP_URL" /deployments
 
-USER root
-
 RUN chmod -R "ug=rwx" /deployments && chown -R 1001:0 /deployments
 
 USER 1001
+
+CMD ["/opt/jboss/container/java/run/run-java.sh"]

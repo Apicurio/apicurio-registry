@@ -1,7 +1,14 @@
-FROM registry.access.redhat.com/ubi10/ubi-minimal@sha256:d63890a635f8f19177bce1775f74f587a47f4456844f1392456c4e3673a48753
+# Build a minimal root file system on top of ubi-micro, which ships no package manager. Only
+# git, ssh, jq and the tools used by entrypoint.sh are installed.
+FROM registry.access.redhat.com/ubi10/ubi-micro@sha256:2ad0f98cb13160c4773c945ef93f88b25831c7f27cd3780d72a7e78b210ea72b AS micro
 
-RUN microdnf install -y git-core openssh-clients openssh-server shadow-utils jq && \
-    microdnf clean all
+FROM registry.access.redhat.com/ubi10/ubi@sha256:87ceab8634a53a36c75a8ba7282f09f11c46ab3e8906db6c6d2b3cd2a7dc4f4e AS builder
+COPY --from=micro / /mnt/rootfs
+RUN dnf install -y --installroot /mnt/rootfs --releasever 10 \
+        --setopt install_weak_deps=false --setopt tsflags=nodocs --nodocs \
+        git-core openssh-clients openssh-server jq grep sed findutils \
+    && dnf clean all --installroot /mnt/rootfs \
+    && rm -rf /mnt/rootfs/var/cache/* /mnt/rootfs/var/log/dnf* /mnt/rootfs/var/log/yum*
 
 # Create a dedicated 'git' user for SSH push operations.
 # The user's shell is git-shell to restrict access to git commands only.
@@ -24,17 +31,26 @@ RUN microdnf install -y git-core openssh-clients openssh-server shadow-utils jq 
 #   5. Runtime chmod calls in the entrypoint tolerate failures (2>/dev/null || true)
 #      because the arbitrary UID cannot change permission bits on files owned by
 #      UID 1000 — it can only read/write via group permissions.
-RUN useradd -m -d /home/git -s /usr/bin/git-shell git && \
-    mkdir -p /home/git/.ssh /home/git/.sshd /repos && \
-    chown -R git:git /home/git /repos && \
-    chmod 700 /home/git/.ssh && \
-    chgrp -R 0 /home/git /repos && \
-    chmod -R g=u /home/git /repos && \
-    chmod g=u /etc/passwd
+#
+# shadow-utils is only needed to create the user, so it runs from the builder (--root) and is
+# not installed in the final image.
+RUN useradd --root /mnt/rootfs -u 1000 -U -m -d /home/git -s /usr/bin/git-shell git && \
+    cd /mnt/rootfs && \
+    mkdir -p home/git/.ssh home/git/.sshd repos && \
+    chown -R 1000:1000 home/git repos && \
+    chmod 700 home/git/.ssh && \
+    chgrp -R 0 home/git repos && \
+    chmod -R g=u home/git repos && \
+    chmod g=u etc/passwd
 
-COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-COPY ssh_config.template sshd_config.template /usr/local/share/apicurio-gitops/
-RUN chmod 755 /usr/local/bin/entrypoint.sh
+COPY entrypoint.sh /mnt/rootfs/usr/local/bin/entrypoint.sh
+COPY ssh_config.template sshd_config.template /mnt/rootfs/usr/local/share/apicurio-gitops/
+RUN chmod 755 /mnt/rootfs/usr/local/bin/entrypoint.sh
+
+FROM scratch
+COPY --from=builder /mnt/rootfs/ /
+
+ENV LANG="C.utf8"
 
 USER git
 

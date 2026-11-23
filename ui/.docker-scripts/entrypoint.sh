@@ -15,4 +15,4 @@ node /usr/local/bin/update-base-href.cjs
 echo "---------------------------------------------"
 echo "Config Complete. Nginx Server Started....."
 echo "---------------------------------------------"
-source /usr/libexec/s2i/run
+exec nginx -g "daemon off;"

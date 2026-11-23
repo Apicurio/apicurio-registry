@@ -184,11 +184,16 @@ jobs:
           max-attempts: 3
           initial-delay: 30
           command: |
+            OCI_VERSION=$(sed -n '0,/<version>/s:.*<version>\(.*\)</version>.*:\1:p' pom.xml 2>/dev/null)
+            OCI_VERSION=${OCI_VERSION:-${{ inputs.snapshot-tag }}}
+            OCI_CREATED=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
             docker buildx build \
               --push \
               --file ./support-chat/src/main/docker/Dockerfile.jvm \
               --platform linux/amd64,linux/arm64 \
               --label org.opencontainers.image.revision=${{ github.sha }} \
               --label org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }} \
+              --label "org.opencontainers.image.version=$OCI_VERSION" \
+              --label "org.opencontainers.image.created=$OCI_CREATED" \
               --tag quay.io/apicurio/apicurio-registry-support-chat:${{ inputs.snapshot-tag }} \
               ./support-chat

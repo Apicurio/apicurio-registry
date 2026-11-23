@@ -116,16 +116,18 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
     public CompatibilityCheckResponse checkAllCompatibility(String subject, Boolean verbose, Boolean normalize, String groupId, RegisterSchemaRequest request) {
         final GA ga = getGA(groupId, subject);
         try {
+            String artifactType = storage.getArtifactMetaData(ga.getRawGroupIdWithNull(), ga.getRawArtifactId())
+                    .getArtifactType();
+            // Validate the candidate even when there is no published version to compare it with.
+            validateSchemaContent(request.getSchema(), artifactType);
+
             // Same baseline as the v3 rules: published versions only. The filtered query throws when
-            // nothing matches, so an artifact that only has drafts must be told apart from a missing one.
+            // nothing matches, which here means the subject has no published versions yet.
             List<String> versions;
             try {
                 versions = storage.getArtifactVersions(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(),
                         Set.of(VersionState.ENABLED, VersionState.DEPRECATED));
             } catch (ArtifactNotFoundException ex) {
-                if (!storage.isArtifactExists(ga.getRawGroupIdWithNull(), ga.getRawArtifactId())) {
-                    throw ex;
-                }
                 versions = List.of();
             }
             for (String version : versions) {
@@ -135,8 +137,6 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
                 if (artifactVersionMetaData.getArtifactType().equals(ArtifactType.PROTOBUF)) {
                     contentType = ContentTypes.APPLICATION_PROTOBUF;
                 }
-
-                validateSchemaContent(request.getSchema(), artifactVersionMetaData.getArtifactType());
 
                 TypedContent typedContent = TypedContent.create(ContentHandle.create(request.getSchema()),
                         contentType);

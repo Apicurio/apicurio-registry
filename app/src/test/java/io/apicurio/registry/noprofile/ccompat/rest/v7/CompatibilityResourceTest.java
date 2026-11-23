@@ -135,6 +135,30 @@ public class CompatibilityResourceTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testMalformedSchemaIsRejectedForDraftOnlySubject() throws Exception {
+        String subject = TestUtils.generateArtifactId();
+        String groupId = GroupId.DEFAULT.getRawGroupIdWithDefaultString();
+
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(subject, ArtifactType.AVRO,
+                AVRO_CONTENT_V1, ContentTypes.APPLICATION_JSON);
+        createArtifact.getFirstVersion().setVersion("1.0");
+        createArtifact.getFirstVersion().setIsDraft(true);
+        clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode requestBody = mapper.createObjectNode();
+        requestBody.put("schema", "{ \"type\": \"record\",");
+        requestBody.put("schemaType", "AVRO");
+
+        given().when()
+                    .contentType(CT_JSON)
+                    .body(requestBody)
+                    .post("/ccompat/v7/compatibility/subjects/{subject}/versions", subject)
+                .then()
+                    .statusCode(422);
+    }
+
+    @Test
     public void testCompatibilityCheckForUnknownSubject() {
         ObjectMapper mapper = new ObjectMapper();
         ObjectNode requestBody = mapper.createObjectNode();

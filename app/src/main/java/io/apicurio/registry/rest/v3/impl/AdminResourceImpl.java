@@ -89,6 +89,7 @@ import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -789,7 +790,11 @@ public class AdminResourceImpl implements AdminResource {
     public GitOpsValidateTask createGitOpsValidateTask(GitOpsValidateRequest data) {
         requireGitOpsStorage();
         validateRepoId(data.getRepoId());
-        return requireValidationTaskManager().createTask(data);
+        try {
+            return requireValidationTaskManager().createTask(data);
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestException(e.getMessage());
+        }
     }
 
     /**
@@ -811,23 +816,21 @@ public class AdminResourceImpl implements AdminResource {
     }
 
     @Override
-    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public List<GitOpsValidateTask> listGitOpsValidateTasks() {
-        // Reports name groups and artifacts, so only for callers not restricted by grants
         accessGuard.requireUnrestrictedRead();
         requireGitOpsStorage();
         return requireValidationTaskManager().listTasks();
     }
 
     @Override
-    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public GitOpsValidateTask getGitOpsValidateTask(String taskId) {
-        // Reports name groups and artifacts, so only for callers not restricted by grants
         accessGuard.requireUnrestrictedRead();
         requireGitOpsStorage();
         var task = requireValidationTaskManager().getTask(taskId);
         if (task == null) {
-            throw new jakarta.ws.rs.NotFoundException("Validation task not found: " + taskId);
+            throw new NotFoundException("Validation task not found: " + taskId);
         }
         return task;
     }
@@ -836,8 +839,12 @@ public class AdminResourceImpl implements AdminResource {
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public void deleteGitOpsValidateTask(String taskId) {
         requireGitOpsStorage();
-        if (!requireValidationTaskManager().deleteTask(taskId)) {
-            throw new jakarta.ws.rs.NotFoundException("Validation task not found: " + taskId);
+        try {
+            if (!requireValidationTaskManager().deleteTask(taskId)) {
+                throw new NotFoundException("Validation task not found: " + taskId);
+            }
+        } catch (IllegalStateException e) {
+            throw new ConflictException(e.getMessage());
         }
     }
 

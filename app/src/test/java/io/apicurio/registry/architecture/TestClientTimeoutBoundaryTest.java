@@ -11,6 +11,7 @@ import com.tngtech.archunit.lang.ArchRule;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.client.common.HttpAdapterType;
 import io.apicurio.registry.client.common.RegistryClientOptions;
+import io.apicurio.registry.noprofile.rest.v3.HttpResponseDeliveryTest;
 import io.apicurio.registry.noprofile.rest.v3.impexp.ExportLoader;
 import io.apicurio.registry.tls.MtlsSdkClientJdkAdapterTest;
 import io.apicurio.registry.tls.TlsSdkClientJdkAdapterTest;
@@ -57,6 +58,8 @@ class TestClientTimeoutBoundaryTest {
             // The JDK HTTP adapter ignores requestTimeout, so the helper would change nothing here.
             TlsSdkClientJdkAdapterTest.class,
             MtlsSdkClientJdkAdapterTest.class,
+            // Sets a read timeout tighter than the helper's on purpose, to detect lost responses (#10855).
+            HttpResponseDeliveryTest.class,
             // A main() load utility, not a test.
             ExportLoader.class,
             // Its nested fixtures break the rule on purpose, to prove that it fires.

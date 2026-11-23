@@ -195,7 +195,9 @@ Every table needs a primary key, declared inline in its `CREATE TABLE` in both t
 the upgrade script. MySQL servers with `sql_require_primary_key=ON`, such as managed services and
 InnoDB Cluster, reject a table created without one, even if a later `ALTER TABLE` would add it. If
 the table has no natural key, add a surrogate `BIGINT` auto-increment column. The MySQL test
-container runs with `sql_require_primary_key=ON`, and `SqlSchemaConsistencyTest` checks `mysql.ddl`.
+container runs with `sql_require_primary_key=ON`, and `SqlSchemaConsistencyTest` checks `mysql.ddl`
+and the MySQL upgrade scripts. An upgrade from an older version runs every script, so a released
+script that creates a keyless table is fixed in place (with the `db-upgrade/change-approved` label).
 
 ## Testing
 

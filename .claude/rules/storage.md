@@ -28,7 +28,8 @@ paths:
   well as the base DDL). MySQL servers with `sql_require_primary_key=ON`, such as managed services
   and InnoDB Cluster, reject a table created without one even if a later `ALTER TABLE` adds it. Use a
   surrogate `BIGINT` auto-increment key when the table has no natural one, as `schema_usage` does.
-  `SqlSchemaConsistencyTest` checks `mysql.ddl`, and the MySQL test container runs with the setting ON.
+  `SqlSchemaConsistencyTest` checks `mysql.ddl` and the MySQL upgrade scripts, and the MySQL test
+  container runs with the setting ON.
 - Never change an existing upgrade script. A database never re-runs a version it has reached, so the
   change is silently skipped. If another PR took your number, move to the next free one (#10141).
 - Maintenance branches (`3.3.x`) never get upgrade scripts or `db-version` changes: their sequence is

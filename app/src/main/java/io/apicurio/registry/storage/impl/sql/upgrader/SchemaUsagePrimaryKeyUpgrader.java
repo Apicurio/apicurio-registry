@@ -1,6 +1,7 @@
 package io.apicurio.registry.storage.impl.sql.upgrader;
 
 import io.apicurio.registry.storage.impl.sql.IDbUpgrader;
+import io.apicurio.registry.storage.impl.sql.MySQLSqlStatements;
 import io.apicurio.registry.storage.impl.sql.jdb.Handle;
 import io.apicurio.registry.storage.impl.sql.jdb.RuntimeSqlException;
 import io.quarkus.runtime.annotations.RegisterForReflection;
@@ -16,8 +17,14 @@ import java.sql.SQLException;
  * generated column is detected by selecting it: it is hidden from information_schema when
  * show_gipk_in_create_table_and_information_schema is OFF, but can always be selected by name.
  * <p>
- * A table that already has usageId is left alone. Operators who could not wait for this upgrade (for
- * example to migrate to InnoDB Cluster) add the same key by hand, and adding it again would fail.
+ * A table that already has usageId is left alone. Version 105 now creates it that way, and operators
+ * who could not wait for this upgrade (for example to migrate to InnoDB Cluster) add the same key by
+ * hand, so adding it again would fail.
+ * <p>
+ * A missing table is created from the 105 script. Before 105 declared the key, that script failed
+ * on a server with sql_require_primary_key=ON and no invisible key generation, but only after it had
+ * set db_version to 105: MySQL commits DDL implicitly. The next start then upgraded on from 105, and
+ * the database has had no schema_usage table since.
  */
 @RegisterForReflection
 public class SchemaUsagePrimaryKeyUpgrader implements IDbUpgrader {
@@ -33,10 +40,28 @@ public class SchemaUsagePrimaryKeyUpgrader implements IDbUpgrader {
 
     @Override
     public void upgrade(Handle handle) {
+        if (!hasTable(handle)) {
+            createTable(handle);
+            return;
+        }
         if (hasColumn(handle, "usageId")) {
             return;
         }
         handle.createUpdate(hasColumn(handle, "my_row_id") ? REPLACE_GENERATED_KEY : ADD_KEY).execute();
+    }
+
+    private static boolean hasTable(Handle handle) {
+        return handle.createQuery("SELECT COUNT(*) FROM information_schema.tables"
+                + " WHERE table_schema = DATABASE() AND table_name = 'schema_usage'")
+                .map(rs -> rs.getInt(1)).one() > 0;
+    }
+
+    private static void createTable(Handle handle) {
+        for (String statement : new MySQLSqlStatements().databaseUpgrade(104, 105)) {
+            if (statement.contains("schema_usage")) {
+                handle.createUpdate(statement).execute();
+            }
+        }
     }
 
     private static boolean hasColumn(Handle handle, String column) {

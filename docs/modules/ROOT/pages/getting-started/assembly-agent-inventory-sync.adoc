@@ -46,6 +46,9 @@ For an `MCPServer`, the server definition names the server `io.k8s.<namespace>/<
 
 :_mod-docs-content-type: PROCEDURE
 
+[role="_abstract"]
+Before you can sync a group with an inventory source, enable inventory sync in the {registry} configuration.
+
 .Procedure
 . Enable the feature:
 +
@@ -87,6 +90,9 @@ For clusters that run an older Kagenti operator, set `apicurio.agent-inventory.k
 == Syncing a group with an inventory source
 
 :_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+To sync a group, send a `POST` request to the `agent-inventory-sync` endpoint of the group. The request names the inventory source, and the response reports the result of the sync.
 
 .Prerequisites
 * Inventory sync is enabled.

@@ -1,9 +1,62 @@
 import { describe, expect, it } from "vitest";
 import {
+    classifyHandlebarsTag,
     extractTemplateVariableNames,
+    parseHandlebarsTagInner,
     reconcileTemplateVariables,
     VariableSchema
 } from "./promptTemplateVariables";
+
+describe("parseHandlebarsTagInner", () => {
+    it("keeps whitespace-control tildes on block tags", () => {
+        expect(parseHandlebarsTagInner("{{~#each items~}}")).toEqual({
+            inner: "~#each items~",
+            head: "~#each"
+        });
+    });
+
+    it("keeps whitespace-control tildes on plain variables", () => {
+        expect(parseHandlebarsTagInner("{{~ name ~}}")).toEqual({
+            inner: "~ name ~",
+            head: "~"
+        });
+    });
+});
+
+describe("classifyHandlebarsTag", () => {
+    it("classifies plain and triple-stash variables as variables", () => {
+        expect(classifyHandlebarsTag("{{name}}")).toBe("variable");
+        expect(classifyHandlebarsTag("{{ name }}")).toBe("variable");
+        expect(classifyHandlebarsTag("{{{raw}}}")).toBe("variable");
+    });
+
+    it("classifies block helpers as blocks", () => {
+        expect(classifyHandlebarsTag("{{#if user}}")).toBe("block");
+        expect(classifyHandlebarsTag("{{/if}}")).toBe("block");
+        expect(classifyHandlebarsTag("{{else}}")).toBe("block");
+    });
+
+    it("classifies dotted paths and @-prefixed tokens as plain", () => {
+        expect(classifyHandlebarsTag("{{user.email}}")).toBe("plain");
+        expect(classifyHandlebarsTag("{{@index}}")).toBe("plain");
+        expect(classifyHandlebarsTag("{{{user.email}}}")).toBe("plain");
+    });
+
+    it("classifies handlebars keywords as plain", () => {
+        expect(classifyHandlebarsTag("{{this}}")).toBe("plain");
+    });
+
+    it("classifies whitespace-control block tags as plain (not processed)", () => {
+        expect(classifyHandlebarsTag("{{~#each items~}}")).toBe("plain");
+        expect(classifyHandlebarsTag("{{~/if~}}")).toBe("plain");
+    });
+
+    it("classifies whitespace-control variables as plain (not substituted)", () => {
+        expect(classifyHandlebarsTag("{{~ item ~}}")).toBe("plain");
+        expect(classifyHandlebarsTag("{{~item}}")).toBe("plain");
+        expect(classifyHandlebarsTag("{{item~}}")).toBe("plain");
+    });
+});
 
 describe("extractTemplateVariableNames", () => {
     it("returns an empty array when the template has no variables", () => {
@@ -76,6 +129,12 @@ describe("extractTemplateVariableNames", () => {
         // Backend PromptTemplateVariableUtil also uses \\w+ only; {{user.name}}
         // is intentionally out of scope for both frontend and backend.
         expect(extractTemplateVariableNames("{{user.name}}")).toEqual([]);
+    });
+
+    it("does not capture whitespace-control variables (matches backend scope)", () => {
+        expect(extractTemplateVariableNames("{{~ name ~}}")).toEqual([]);
+        expect(extractTemplateVariableNames("{{~name}}")).toEqual([]);
+        expect(extractTemplateVariableNames("{{name~}}")).toEqual([]);
     });
 
     it("does not capture @index-style tokens (matches backend scope)", () => {

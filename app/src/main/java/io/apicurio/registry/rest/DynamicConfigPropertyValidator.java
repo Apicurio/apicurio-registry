@@ -6,6 +6,7 @@ import io.apicurio.registry.services.LogLevelValidator;
 import io.apicurio.registry.storage.error.InvalidPropertyValueException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.eclipse.microprofile.config.Config;
 
 /**
  * Validates a new value for a dynamic configuration property. Shared by the v2 and v3 admin APIs so that
@@ -19,6 +20,9 @@ public class DynamicConfigPropertyValidator {
 
     @Inject
     LogLevelValidator logLevelValidator;
+
+    @Inject
+    Config config;
 
     /**
      * Ensure that the value is valid for the property type (or the log level property), and that an
@@ -37,9 +41,19 @@ public class DynamicConfigPropertyValidator {
             throw new InvalidPropertyValueException(
                     "Invalid dynamic configuration property value for: " + propertyDef.getName());
         }
-        if (Boolean.parseBoolean(value) && !experimentalFeatures.canEnable(propertyDef.getName())) {
+        if (isTrue(value) && !experimentalFeatures.canEnable(propertyDef.getName())) {
             throw new ConflictException("'" + propertyDef.getName() + "' is an experimental feature. Enable "
                     + "'apicurio.features.experimental.enabled' to use it.");
         }
+    }
+
+    /**
+     * Reads the value the same way the property itself is read back, through the MicroProfile Config
+     * {@code Boolean} converter. It accepts more than the literal "true" (for example "1", "yes" and "on"), so
+     * {@link Boolean#parseBoolean(String)} would let those values past the experimental feature gate.
+     */
+    private boolean isTrue(String value) {
+        return config.getConverter(Boolean.class).map(converter -> converter.convert(value))
+                .orElseGet(() -> Boolean.parseBoolean(value));
     }
 }

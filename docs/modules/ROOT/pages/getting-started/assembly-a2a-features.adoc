@@ -110,8 +110,8 @@ TIP: To enable all the agent registry discovery features at once (A2A, MCP tools
 |Whether push notifications are supported
 
 |`apicurio.a2a.agent.protocol-version`
-|`1.0`
-|A2A protocol version reported in the Agent Card and in its supported interfaces
+|_Not set_
+|Deprecated since 3.4.0. The property has no effect. The Agent Card reports A2A protocol version `1.0`, the version that {registry} implements.
 
 |`apicurio.a2a.agent.documentation-url`
 |_not set_
@@ -225,6 +225,10 @@ Searches for registered Agent Cards with filtering support. This endpoint requir
 |`limit`
 |integer
 |Pagination limit (default: 20, maximum: 500)
+
+|`publicOnly`
+|boolean
+|When `true`, return only Agent Cards with `public` visibility, whoever the caller is, even when authentication is disabled (default: `false`)
 |===
 +
 .Example request
@@ -264,6 +268,8 @@ curl "http://localhost:8080/.well-known/agents?skill=translation&capability=stre
 ----
 +
 The `count` field is the total number of matching Agent Cards, not the number of entries in the current page. The `skills` array lists skill IDs only. To get skill names and descriptions, retrieve the full Agent Card from `/.well-known/agents/\{groupId}/\{artifactId}`.
++
+When {registry} applies `publicOnly=true`, the response contains the `publicOnly` field with the value `true`. A registry version that does not support the parameter ignores it and omits the field, so check for the field if you depend on the filter.
 
 GET /.well-known/agents/\{groupId}/\{artifactId}::
 Retrieves a specific registered Agent Card.
@@ -339,7 +345,7 @@ curl -X PUT "http://localhost:8080/apis/registry/v3/groups/my-agents/artifacts/m
 
 Visibility labels control which Agent Cards appear in `/.well-known/agents` search results and in the AI Catalog and ARD responses. When you retrieve a card by ID through `/.well-known/agents/\{groupId}/\{artifactId}` or the core REST API, only read authorization applies. {registry} does not check the visibility label.
 
-NOTE: When no authentication mechanism is configured (OIDC, basic, proxy header, Kubernetes, or form), {registry} skips visibility filtering and all agents are visible to all users.
+NOTE: When no authentication mechanism is configured (OIDC, basic, proxy header, Kubernetes, or form), {registry} skips visibility filtering and all agents are visible to all users, unless a `GET /.well-known/agents` request sets `publicOnly=true`.
 
 NOTE: This visibility model applies only to Agent Cards. MCP tool definitions are not subject to `apicurio.agent.visibility` or `apicurio.a2a.default-visibility`; see
 ifndef::service-registry-downstream[]
@@ -349,6 +355,218 @@ ifdef::service-registry-downstream[]
 xref:mcp-tool-visibility_{context}[MCP tool visibility]
 endif::[]
 for details.
+
+// ref-a2a-federated-agent-search
+[id="a2a-federated-agent-search_{context}"]
+== Federated agent search
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+With federated agent search, one request searches the Agent Cards of this registry and of its enabled peer registries. The response names the source of each agent and reports an outcome for every source, so a slow or unavailable peer does not fail the search.
+
+A peer registry is another registry that an administrator registers with this registry, for example through the `/apis/registry/v3/admin/peers` REST API. {registry} searches only the peers that are enabled.
+
+To use federated agent search, enable A2A protocol support and set `apicurio.federation.enabled=true`. The `apicurio.agents.enabled` property does not enable federation.
+
+NOTE: `apicurio.federation.enabled` is an experimental property. You must also set `apicurio.features.experimental.enabled=true` to use it.
+
+The `GET /apis/registry/v3/search/federated` endpoint requires read-level authorization. It accepts the `name`, `skill`, `capability`, `inputMode`, and `outputMode` parameters of `GET /.well-known/agents` and applies them to every source. It does not accept `offset` or `limit`. The `perSourceLimit` parameter sets the maximum number of agents that each source returns, and defaults to 20. {registry} lowers a value above `apicurio.federation.search.per-source-limit.max` to that maximum.
+
+.Example request
+[source,bash]
+----
+curl "http://localhost:8080/apis/registry/v3/search/federated?skill=translation&perSourceLimit=10"
+----
+
+.Example response: FederatedAgentSearchResults
+[source,json]
+----
+{
+  "agents": [
+    {
+      "source": "local",
+      "groupId": "ai-agents",
+      "artifactId": "translator-agent",
+      "name": "Translation Agent",
+      "skills": ["translation"],
+      "owner": "alice"
+    },
+    {
+      "source": "eu-registry",
+      "groupId": "ai-agents",
+      "artifactId": "translator-agent",
+      "name": "Translation Agent",
+      "skills": ["translation"]
+    }
+  ],
+  "sources": [
+    {
+      "source": "local",
+      "outcome": "ok",
+      "count": 1,
+      "truncated": false
+    },
+    {
+      "source": "eu-registry",
+      "outcome": "ok",
+      "count": 1,
+      "truncated": false
+    },
+    {
+      "source": "us-registry",
+      "outcome": "failed",
+      "reason": "timeout",
+      "count": 0,
+      "truncated": false
+    }
+  ]
+}
+----
+
+Each entry in `agents` has a `source` field and the agent fields that `GET /.well-known/agents` returns, which are `groupId`, `artifactId`, `name`, `description`, `supportedInterfaces`, `skills`, `capabilities`, `createdOn`, and `owner`. The example shows only some of them. The agents of this registry come first, with the source `local`, followed by the agents of each peer in peer ID order. An agent from a peer has no `owner` field. If two sources return an agent with the same group ID and artifact ID, the response contains both.
+
+The search of this registry applies the visibility rules of the caller. {registry} calls each peer at `/.well-known/agents` with `publicOnly=true` and without credentials, so a peer returns only Agent Cards with `public` visibility. An Agent Card without the `apicurio.agent.visibility` label is public only if the peer sets `apicurio.a2a.default-visibility` to `public`. A peer that keeps the default value, `entitled`, returns only the Agent Cards whose label has the value `public`, even when authentication is disabled on the peer. {registry} never sends the credentials of the caller to a peer.
+
+The `sources` array has one entry for this registry and one for each enabled peer.
+
+.Fields of a `sources` entry
+[cols="1,3",options="header"]
+|===
+|Field |Description
+
+|`source`
+|`local` for this registry, or the ID of the peer
+
+|`outcome`
+|`ok`, `deadline_exceeded`, `unsupported`, or `failed`
+
+|`reason`
+|Why {registry} could not search the peer. Present only when the outcome is `failed`.
+
+|`count`
+|Number of agents from this source in the response
+
+|`truncated`
+|`true` when the source reported more matching agents than it returned
+|===
+
+Only an administrator sees which peer is which and why a peer failed. The example response is what an administrator receives. For federated search, an administrator is a caller that has the administrator role while role-based authorization is enabled, or a caller that the admin override (`apicurio.auth.admin-override.*`) identifies as an administrator. For any other caller, the `source` of a peer is `peer-1`, `peer-2`, and so on, numbered in peer ID order within the response, and the `reason` field is absent. When authentication is disabled, every caller sees the peer IDs and the reasons.
+
+.Source outcomes
+[cols="1,3",options="header"]
+|===
+|Outcome |Description
+
+|`ok`
+|The source answered, and its agents are in the response.
+
+|`deadline_exceeded`
+|The search reached `apicurio.federation.search.deadline-ms` before the peer answered.
+
+|`unsupported`
+|The peer has no agent search endpoint, or its response did not confirm the `publicOnly` filter. {registry} discards the response.
+
+|`failed`
+|{registry} could not search the peer. The `reason` field says why.
+|===
+
+.Failure reasons
+[cols="1,3",options="header"]
+|===
+|Reason |Description
+
+|`unauthorized`
+|The peer answered with HTTP 401 or 403.
+
+|`unreachable`
+|{registry} could not connect to the peer, or the address of the peer is not allowed.
+
+|`timeout`
+|The peer did not answer within `apicurio.federation.search.peer-timeout-ms`.
+
+|`peer_error`
+|The peer answered with a server error or with a redirect. {registry} does not follow redirects.
+
+|`invalid_response`
+|The response of the peer was malformed, too large, inconsistent, or not JSON. {registry} also reports this reason when the peer answers with an HTTP status that no other reason or outcome covers, for example 400 or 429.
+
+|`circuit_open`
+|The circuit breaker of the peer is open, and {registry} did not call the peer.
+
+|`capacity_exceeded`
+|{registry} did not call the peer because a limit on peer calls was reached. The configuration properties table describes the limits that you can set.
+|===
+
+{registry} calls the peers in parallel while it searches its own Agent Cards. The endpoint returns HTTP 200 whenever the search of this registry succeeds, even if some or all peers fail, so check `sources` to see which peers answered.
+
+Each peer has its own circuit breaker, which counts connection failures, timeouts, and server error or redirect responses as failures. While the circuit breaker of a peer is open, {registry} does not call that peer.
+
+.Error responses
+[cols="1,3",options="header"]
+|===
+|Status |Cause
+
+|400
+|`perSourceLimit` is below 1, or the request carries the `X-Federation-Hop` header that {registry} adds to its calls to peers
+
+|404
+|A2A protocol support is not enabled
+
+|409
+|Federation is not enabled
+
+|503
+|The search of this registry did not finish within `apicurio.federation.search.deadline-ms`
+|===
+
+.Federated search configuration properties
+[cols="2,1,3",options="header"]
+|===
+|Property |Default |Description
+
+|`apicurio.federation.search.deadline-ms`
+|`5000`
+|Time in milliseconds that a federated search can take in total
+
+|`apicurio.federation.search.peer-timeout-ms`
+|`3000`
+|Time in milliseconds that one peer has to answer. The value must be lower than `apicurio.federation.search.deadline-ms`.
+
+|`apicurio.federation.search.per-source-limit.max`
+|`100`
+|Highest value that `perSourceLimit` can have
+
+|`apicurio.federation.search.max-peers`
+|`16`
+|Maximum number of peers that one search queries. The peer management API refuses to enable more peers. If more peers are enabled anyway, for example after you lower this value, a search queries the first ones in peer ID order and reports the others as `failed` with the reason `capacity_exceeded`.
+
+|`apicurio.federation.search.max-searches-per-caller`
+|`2`
+|Maximum number of federated searches that one caller can have in progress at once. A search beyond the limit still searches this registry, but calls no peer and reports every peer as `failed` with the reason `capacity_exceeded`. {registry} identifies an authenticated caller by principal name and an anonymous caller by network address.
+
+|`apicurio.federation.search.max-concurrent-calls`
+|`64`
+|Maximum number of calls to peers in progress at once, across all federated searches. {registry} reports a peer whose call exceeds the limit as `failed` with the reason `capacity_exceeded`.
+
+|`apicurio.federation.search.max-response-bytes`
+|`1048576`
+|Maximum size in bytes of the response that {registry} accepts from one peer
+
+|`apicurio.federation.search.breaker.request-volume-threshold`
+|`4`
+|Number of recent calls to a peer that {registry} must have made before the circuit breaker of the peer can open
+
+|`apicurio.federation.search.breaker.failure-ratio`
+|`0.5`
+|Share of the recent calls to a peer that must have failed for the circuit breaker of the peer to open
+
+|`apicurio.federation.search.breaker.delay-ms`
+|`30000`
+|Time in milliseconds that an open circuit breaker waits before it lets a call through to the peer again
+|===
+
+When federation is enabled, {registry} checks these values at startup and does not start if a value is out of range.
 
 // ref-a2a-agent-card-artifact-type
 [id="a2a-agent-card-artifact-type_{context}"]

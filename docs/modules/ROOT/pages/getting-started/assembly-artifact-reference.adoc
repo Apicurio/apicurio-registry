@@ -500,7 +500,7 @@ The setting takes effect when you restart the server.
 It changes the response representation without modifying stored artifact content.
 
 Per-request override::
-For v3 content retrieval by global ID or by group, artifact, and version, an explicit `references` query parameter overrides the configured default.
+For v3 content retrieval by global ID, content ID, or content hash, or by group, artifact, and version, an explicit `references` query parameter overrides the configured default.
 For example, this request preserves references even when the server default is `DEREFERENCE`:
 +
 [source,bash]

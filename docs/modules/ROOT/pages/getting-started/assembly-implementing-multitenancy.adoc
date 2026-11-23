@@ -576,7 +576,10 @@ With this configuration:
 * `ownerOnlyEnabled` restricts artifact modifications to the artifact's creator
 * `groupAccessEnabled` restricts group modifications to the group's creator
 
-Owner-only authorization limits writes only: every authenticated user can still read and search all groups. To hide one tenant's groups from another, including in search results and counts, also enable per-resource authorization with an access rules file that grants each tenant its own groups. See xref:getting-started/assembly-configuring-resource-authorization.adoc[].
+Owner-only authorization limits writes only: every authenticated user can still read and search all groups. To hide one tenant's groups from another, including in search results and counts, also enable per-resource authorization with an access rules file that grants each tenant its own groups.
+ifndef::service-registry-downstream[]
+See xref:getting-started/assembly-configuring-resource-authorization.adoc[].
+endif::[]
 
 The following table compares the advantages and limitations of this approach:
 
@@ -606,5 +609,7 @@ require strict data or infrastructure isolation. A first-class tenant inside one
 
 * xref:getting-started/assembly-deploying-registry-operator.adoc[]
 * xref:getting-started/assembly-configuring-registry-security.adoc[]
+ifndef::service-registry-downstream[]
 * xref:getting-started/assembly-configuring-resource-authorization.adoc[]
+endif::[]
 * xref:getting-started/assembly-operator-config-reference.adoc[]

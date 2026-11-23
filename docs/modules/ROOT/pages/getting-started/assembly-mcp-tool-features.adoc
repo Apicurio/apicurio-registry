@@ -315,7 +315,14 @@ curl "http://localhost:8080/.well-known/schemas/mcp-tool/v1"
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-MCP tool definitions are not subject to the `apicurio.agent.visibility` discovery filter described in xref:getting-started/assembly-a2a-features.adoc#a2a-visibility-model_{context}[Agent visibility model]. This is a deliberate design decision, not a gap: filtering `/.well-known/mcp-tools` would only imply a protection that does not exist, because tool discovery returns exactly the tools the caller can already find through the core search API.
+MCP tool definitions are not subject to the `apicurio.agent.visibility` discovery filter described in
+ifndef::service-registry-downstream[]
+xref:getting-started/assembly-a2a-features.adoc#a2a-visibility-model_{context}[Agent visibility model].
+endif::[]
+ifdef::service-registry-downstream[]
+xref:a2a-visibility-model_{context}[Agent visibility model].
+endif::[]
+This is a deliberate design decision, not a gap: filtering `/.well-known/mcp-tools` would only imply a protection that does not exist, because tool discovery returns exactly the tools the caller can already find through the core search API.
 
 * `apicurio.agent.visibility` and its `apicurio.a2a.default-visibility` fallback apply only to Agent Card discovery (`GET /.well-known/agents`, and Agent Card entries in AI Catalog and ARD responses). They have no effect on MCP tool discovery.
 * `GET /.well-known/mcp-tools`, the compatible-tools endpoint (`/.well-known/mcp-tools/\{groupId}/\{artifactId}/compatible`), and MCP tool entries in AI Catalog and ARD responses return every MCP tool that the caller is authorized to see, unfiltered by visibility.
@@ -323,7 +330,12 @@ MCP tool definitions are not subject to the `apicurio.agent.visibility` discover
 
 [role="_additional-resources"]
 .Additional resources
+ifndef::service-registry-downstream[]
 * xref:getting-started/assembly-a2a-features.adoc#a2a-visibility-model_{context}[Agent visibility model]
+endif::[]
+ifdef::service-registry-downstream[]
+* xref:a2a-visibility-model_{context}[Agent visibility model]
+endif::[]
 
 // proc-creating-mcp-tool-artifact
 [id="creating-mcp-tool-artifact_{context}"]
@@ -533,6 +545,9 @@ curl -X POST http://localhost:8080/apis/registry/v3/groups/my-servers/artifacts/
 [id="mcp-importing-tools-results_{context}"]
 === Import results
 
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
 Each tool, and the `MCP_SERVER` artifact, has one of the following statuses:
 
 [%header,cols="1,3"]
@@ -564,6 +579,9 @@ The new server version references exactly the imported tools. References that yo
 [id="mcp-importing-tools-async_{context}"]
 === Importing in the background
 
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
 With `"async": true`, the request is checked as a synchronous import is (the feature, the storage, the `MCP_SERVER` artifact, write access, the headers, the URL, and the concurrent import limit), and a refused import returns the same error. The import then runs in the background, as the caller, and the response is HTTP 202 with the status of the import and a `Location` header naming its status URL:
 
 [source,bash]
@@ -586,6 +604,9 @@ A background import has no HTTP request, so it cannot read roles from a request 
 [id="mcp-importing-tools-security_{context}"]
 === Outbound connection security
 
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
 The registry applies the following restrictions before and while it connects to the MCP server:
 
 * The URL must use HTTPS, unless `apicurio.mcp-import.insecure-http.enabled=true` (which defaults to `apicurio.outbound.insecure-http.enabled`, shared with federation), and must not contain user information.

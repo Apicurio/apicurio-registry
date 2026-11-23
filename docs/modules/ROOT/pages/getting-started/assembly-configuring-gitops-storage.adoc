@@ -123,9 +123,9 @@ Content files are plain schema files that metadata files reference by a path rel
 
 When `artifactType` is omitted, the registry determines the type in the following order:
 
-. *Unambiguous file extension* — extensions listed in the table below are mapped directly to a single artifact type. An explicit `artifactType` always takes precedence over the extension. A mapped extension is treated like a declared `artifactType`: the content is not checked against it, so an OpenAPI document saved as `api.avsc` is stored as AVRO unless a validity rule rejects it.
-. *Content-based detection* — for ambiguous extensions (`.json`, `.yaml`, `.yml`, `.xml`) where multiple artifact types are possible, the registry inspects the file content to determine the type.
-. *Error* — if neither the extension nor the content identifies a type, the load fails with an error listing the supported extensions.
+. *Unambiguous file extension*: extensions listed in the table below are mapped directly to a single artifact type. An explicit `artifactType` always takes precedence over the extension. A mapped extension is treated like a declared `artifactType`: the content is not checked against it, so an OpenAPI document saved as `api.avsc` is stored as AVRO unless a validity rule rejects it.
+. *Content-based detection*: for ambiguous extensions (`.json`, `.yaml`, `.yml`, `.xml`) where multiple artifact types are possible, the registry inspects the file content to determine the type.
+. *Error*: if neither the extension nor the content identifies a type, the load fails with an error listing the supported extensions.
 
 All versions of an artifact must share the same type. When `artifactType` is omitted and versions resolve to different types from their extensions, the load fails with an error asking you to set `artifactType` explicitly.
 

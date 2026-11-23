@@ -88,7 +88,7 @@ When you submit an ODCS contract, {registry} parses the YAML, stores it as an `O
 |Artifact-level CEL domain rules named `odcs:\{contractId}:\{name}` (kind `CONDITION`, mode `WRITE`)
 
 |`quality.completeness` rules
-|`contract.\{contractId}.quality.completeness.{field}` labels
+|`contract.\{contractId}.quality.completeness.\{field}` labels
 
 |`quality.freshness.maxStaleness`
 |`contract.\{contractId}.quality.freshness.maxStaleness` label
@@ -194,7 +194,7 @@ When submitted, this contract results in the following projections:
 When you update an ODCS contract with `PUT /groups/\{g}/contracts/\{contractId}`, a new contract version is added (re-submitting an existing `info.version` returns HTTP 409) and the contract is re-projected:
 
 * The `contract.\{contractId}.*` labels taken from the YAML are replaced. The stage, compatibility group, and lifecycle dates set through the API are kept.
-* The status from `info.status` is applied only if the contract lifecycle allows moving to it from the current status (see <<data-contracts-lifecycle_{context}>>). Otherwise the current status is kept, and the response contains a warning.
+* The status from `info.status` is applied only if the contract lifecycle allows moving to it from the current status (see xref:data-contracts-lifecycle_{context}[]). Otherwise the current status is kept, and the response contains a warning.
 * Rules named `odcs:\{contractId}:*` are replaced; a version without `quality.accuracy` rules removes them. Other rules, such as rules added manually through the contract ruleset API, are preserved.
 * Field tags are replaced on the target version; a version without field metadata removes them.
 * Schemas the previous version referenced and the new version does not lose the contract's labels, rules, and field tags.
@@ -277,7 +277,7 @@ Field tags provide semantic annotation of schema fields, enabling you to identif
 
 Field tags are stored as version labels. They come from two sources:
 
-Inline tags:: Declared in the schema content (see <<data-contracts-field-tags-formats_{context}>>). When a version is created through the Core Registry API v3, they are stored as `field-tag.\{fieldPath}|\{tagName}` labels with value `INLINE`. Labels submitted with the version take precedence over extracted tags with the same key. Versions created through the Confluent Schema Registry compatibility API, and draft content updates, do not get inline tags.
+Inline tags:: Declared in the schema content (see xref:data-contracts-field-tags-formats_{context}[]). When a version is created through the Core Registry API v3, they are stored as `field-tag.\{fieldPath}|\{tagName}` labels with value `INLINE`. Labels submitted with the version take precedence over extracted tags with the same key. Versions created through the Confluent Schema Registry compatibility API, and draft content updates, do not get inline tags.
 External tags:: Projected from ODCS contracts as `field-tag.\{contractId}:\{fieldPath}|\{tagName}` labels with value `EXTERNAL`, or set manually by using the version labels API.
 
 The following tag names are commonly used:

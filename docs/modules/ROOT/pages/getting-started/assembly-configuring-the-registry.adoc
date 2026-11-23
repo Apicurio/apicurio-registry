@@ -286,7 +286,7 @@ environment:
   QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT: "http://jaeger:4317"
 ----
 
-In production environments, configure trace sampling to reduce processing overhead and control the volume of trace data:
+When OpenTelemetry is enabled, {registry} samples 10% of traces by default to reduce processing overhead and control the volume of trace data. To change the sampling ratio, set the `QUARKUS_OTEL_TRACES_SAMPLER_ARG` environment variable:
 
 .Environment variables for trace sampling
 [.table-expandable,width="100%",cols="4,6",options="header"]
@@ -294,9 +294,9 @@ In production environments, configure trace sampling to reduce processing overhe
 |Environment variable
 |Description
 |`QUARKUS_OTEL_TRACES_SAMPLER`
-|The sampling strategy. Use `parentbased_traceidratio` for production.
+|The sampling strategy. This build-time property is set to `parentbased_traceidratio` in the {registry} build. You cannot change it at runtime.
 |`QUARKUS_OTEL_TRACES_SAMPLER_ARG`
-|The sampling ratio (0.0 to 1.0). A value of `0.1` samples 10% of traces.
+|The sampling ratio (0.0 to 1.0). Default is `0.1`, which samples 10% of traces.
 |===
 
 .Example: Production sampling configuration (10% of traces)

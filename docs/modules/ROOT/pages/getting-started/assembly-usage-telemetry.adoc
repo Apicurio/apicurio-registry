@@ -447,7 +447,7 @@ The counter is experimental and disabled by default. It is switched on by `apicu
 
 A request is counted only when all of the following hold:
 
-* It is a `GET` on `/apis/registry/v3/ids/globalIds/{globalId}` or `/apis/registry/v3/ids/contentIds/{contentId}` for a positive ID, with or without a trailing slash. Query parameters do not affect counting. The counter accepts ASCII decimal digits with an optional leading `+`. Requests with other ID spellings or with matrix parameters in the path (such as `;source=client`) are excluded even when the server serves them successfully. Other routes, including `/references` and the v2 API, are not counted, even where the SQL usage recording accepts them.
+* It is a `GET` on `/apis/registry/v3/ids/globalIds/\{globalId}` or `/apis/registry/v3/ids/contentIds/\{contentId}` for a positive ID, with or without a trailing slash. Query parameters do not affect counting. The counter accepts ASCII decimal digits with an optional leading `+`. Requests with other ID spellings or with matrix parameters in the path (such as `;source=client`) are excluded even when the server serves them successfully. Other routes, including `/references` and the v2 API, are not counted, even where the SQL usage recording accepts them.
 * The response status is `200`.
 * `X-Registry-Client-Id` is present, at most 256 characters, and contains only letters, digits, dots, hyphens and underscores.
 

@@ -103,6 +103,13 @@ public class CCompatV7EnhancementsTest extends AbstractResourceTestBase {
         given().when().get("/ccompat/v7/exporters").then().statusCode(200).body("$", empty());
     }
 
+    @Test
+    public void testUnsupportedExporterOperationUsesResponseStatusAsErrorCode() {
+        given().when().get("/ccompat/v7/exporters/not-supported").then().statusCode(404)
+                .body("error_code", equalTo(404))
+                .body("message", equalTo("Operation not supported."));
+    }
+
     // ========== Config DELETE Tests ==========
 
     @Test

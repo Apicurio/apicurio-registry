@@ -2,7 +2,6 @@ package io.apicurio.registry.federation;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.client.RegistryClientFactory;
-import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateVersion;
@@ -85,8 +84,7 @@ public class FederatedSearchAuthTest extends AbstractResourceTestBase {
     }
 
     private RegistryClient client(String user, String password, Vertx vertx) {
-        return RegistryClientFactory.create(RegistryClientOptions.create().registryUrl(registryV3ApiUrl)
-                .vertx(vertx).basicAuth(user, password));
+        return RegistryClientFactory.create(boundedClientOptions(registryV3ApiUrl, vertx).basicAuth(user, password));
     }
 
     private static RequestSpecification as(String user) {

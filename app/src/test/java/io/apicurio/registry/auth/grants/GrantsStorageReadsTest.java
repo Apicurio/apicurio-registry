@@ -3,7 +3,6 @@ package io.apicurio.registry.auth.grants;
 import io.agroal.api.AgroalDataSource;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.client.RegistryClientFactory;
-import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
@@ -88,8 +87,7 @@ public class GrantsStorageReadsTest extends AbstractResourceTestBase {
 
     @Override
     protected RegistryClient createRestClientV3(Vertx vertx) {
-        return RegistryClientFactory.create(RegistryClientOptions.create()
-                .registryUrl(registryV3ApiUrl).vertx(vertx).basicAuth("alice", "alice"));
+        return RegistryClientFactory.create(boundedClientOptions(registryV3ApiUrl, vertx).basicAuth("alice", "alice"));
     }
 
     private static RequestSpecification alice() {

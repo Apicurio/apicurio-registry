@@ -3,7 +3,6 @@ package io.apicurio.registry.tls;
 import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.client.RegistryClientFactory;
-import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.resolver.config.SchemaResolverConfig;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.SystemInfo;
@@ -80,11 +79,9 @@ public class TlsAuthSerdeTest extends AbstractResourceTestBase {
         registryV3ApiUrl = registryApiBaseUrl + "/registry/v3";
 
         // Create client with both TLS (trust all for test setup) and OAuth2
-        clientV3 = RegistryClientFactory.create(RegistryClientOptions.create()
-                .registryUrl(registryV3ApiUrl)
+        clientV3 = RegistryClientFactory.create(boundedClientOptions(registryV3ApiUrl, vertx)
                 .trustAll(true)
-                .oauth2(oidcTokenPath, KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1")
-                .vertx(vertx));
+                .oauth2(oidcTokenPath, KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1"));
     }
 
     /**
@@ -102,10 +99,8 @@ public class TlsAuthSerdeTest extends AbstractResourceTestBase {
         LOGGER.info("Truststore: {}", truststoreUrl.getPath());
 
         // Create a client with TLS but NO authentication
-        RegistryClient client = RegistryClientFactory.create(RegistryClientOptions.create()
-                .registryUrl(registryV3ApiUrl)
-                .trustStoreJks(truststoreUrl.getPath(), "registrytest")
-                .vertx(vertx));
+        RegistryClient client = RegistryClientFactory.create(boundedClientOptions(registryV3ApiUrl, vertx)
+                .trustStoreJks(truststoreUrl.getPath(), "registrytest"));
 
         // Call the system info endpoint (public, no auth required)
         SystemInfo systemInfo = client.system().info().get();

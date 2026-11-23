@@ -42,7 +42,7 @@ class AccessRulesTest {
             deny Role with name = "contractors" to READ Artifact with name like "team-a/internal-*";
             deny User with name like "temp-*" to WRITE Artifact with name matching /.*-locked/;
             deny Role with name in {"auditors", "guests"} to WRITE Group with name *;
-            deny anonymous User to READ Artifact with name = "public/secret";
+            deny anonymous to READ Artifact with name = "public/secret";
             allow Role with name = "team-a-dev" to WRITE Artifact with name like "team-a/*";
             allow Role with name = "contractors" to READ Artifact with name like "team-a/*";
             allow User with name like "ali*" to READ Artifact with name in {"x/1", "x/\\"quoted\\"", "team-a%2Fsub/y"};
@@ -55,7 +55,7 @@ class AccessRulesTest {
             allow Role with name = "exact-like" to READ Artifact with name like "literal";
             allow Role with name = "star" to READ Artifact with name like "lit\\*star*";
             allow ClientId with name = "svc" to {READ, WRITE} Artifact with name like "svc/*";
-            allow anonymous User to READ Artifact with name like "public/*";
+            allow anonymous to READ Artifact with name like "public/*";
             otherwise deny;
             """;
 

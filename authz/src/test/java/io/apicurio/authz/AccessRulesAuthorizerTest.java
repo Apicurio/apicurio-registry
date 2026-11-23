@@ -34,7 +34,7 @@ class AccessRulesAuthorizerTest {
             allow Role with name = "team-a-dev" to WRITE Artifact with name like "team-a/*";
             allow Role with name = "team-a-dev" to READ Group with name = "team-a";
             allow User with name = "carol" to READ Artifact with name in {"x/1", "x/2"};
-            allow anonymous User to READ Artifact with name like "public/*";
+            allow anonymous to READ Artifact with name like "public/*";
             otherwise deny;
             """;
 

@@ -76,7 +76,7 @@ on, so a Kroxylicious upgrade that changes it is noticed.
 
 - an authenticated caller: one Kroxylicious `User` containing the principal name, plus an Apicurio
   `Role` for each entry in `SecurityIdentity.getRoles()`;
-- an anonymous caller: the anonymous subject (no principals), which only `anonymous User` rules
+- an anonymous caller: the anonymous subject (no principals), which only `anonymous` rules
   match.
 
 Rules match the **exact principal class** and name: a user named `ops` is not a role named `ops`.
@@ -158,8 +158,8 @@ from io.apicurio.authz import Artifact, Group, Role;
 deny User with name = "bob" to * Artifact with name = "team-a/secret";
 allow Role with name = "team-a-dev" to WRITE Group with name = "team-a";
 allow Role with name = "team-a-dev" to WRITE Artifact with name like "team-a/*";
-allow anonymous User to READ Group with name = "public";
-allow anonymous User to READ Artifact with name like "public/*";
+allow anonymous to READ Group with name = "public";
+allow anonymous to READ Artifact with name like "public/*";
 otherwise deny;
 ```
 
@@ -467,7 +467,10 @@ rules for resource types it does not enforce, even if their classes exist. A use
 must be resolvable and assignable to the expected principal/resource API type. Other systems must
 also use compatible principal classes; matching a similarly named class is insufficient.
 
-Unauthenticated callers are selected with `anonymous User`, as in the proposal. Both `//` and
+Unauthenticated callers are selected with `anonymous`, which takes no principal type. This differs
+from proposal 009's `anonymous User`; the
+[Kroxylicious proposal for anonymous rules](https://github.com/kroxylicious/design/pull/155)
+explains why. Both `//` and
 `/* */` comments are supported. In a regex literal, `\/` is a slash and `\\` a backslash; any other
 backslash belongs to the expression, so `/a\.b/` matches only `a.b`. Avoid inferring regex
 semantics from another language's string escaping; test the exact file against the pinned parser.

@@ -275,7 +275,7 @@ public class GrantsAccessController extends AbstractAccessController {
      * Maps the current Quarkus {@link SecurityIdentity} to a Kroxylicious {@link Subject}: one
      * {@link User} principal, the Kroxylicious user class that access rules use for {@code User}
      * by default, plus one {@link Role} per role. Unauthenticated callers get the anonymous subject,
-     * which only {@code anonymous User} rules match.
+     * which only {@code anonymous} rules match.
      */
     public Subject currentSubject() {
         if (securityIdentity == null || securityIdentity.isAnonymous()) {

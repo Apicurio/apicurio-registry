@@ -152,7 +152,7 @@ public class AuthorizedInterceptor {
 
         // Anonymous users are allowed to perform read-only operations, but only if
         // apicurio.auth.anonymous-read-access.enabled is set to 'true'. Per-resource
-        // authorization still applies: only 'anonymous User' rules apply to anonymous callers.
+        // authorization still applies: only 'anonymous' rules apply to anonymous callers.
         if (authConfig.anonymousReadAccessEnabled.get()
                 && annotation.level() == AuthorizedLevel.Read) {
             if (grantsAcConfig.isEnabled() && !grantsAc.isAuthorized(context)) {

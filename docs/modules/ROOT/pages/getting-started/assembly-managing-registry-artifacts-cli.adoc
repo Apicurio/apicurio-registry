@@ -1080,6 +1080,9 @@ The rule commands accept the following rule types and configuration values:
 
 | `INTEGRITY`
 | `NONE`, `REFS_EXIST`, `ALL_REFS_MAPPED`, `NO_DUPLICATES`, `NO_CIRCULAR_REFERENCES`, `FULL`
+
+| `GOVERNANCE`
+| `NONE`, `BASIC`, `FULL`
 |===
 
 You can adjust the behavior of the CLI itself with the `acr config set` command. The following CLI configuration properties are available:

@@ -31,7 +31,13 @@ Quality rules:: ODCS accuracy rules are projected as CEL contract rules; complet
 Field tags:: PII and classification annotations, from ODCS contracts or declared in the schema content, are stored as version labels.
 Multi-contract support:: Multiple contracts can reference the same schema artifact without overwriting each other.
 
+To reject new versions of an artifact when its contract is deprecated or its contract metadata is incomplete, configure a `GOVERNANCE` rule.
+
 NOTE: Data contracts are always available. No special configuration is required: submitting a contract is an explicit opt-in action.
+
+[role="_additional-resources"]
+.Additional resources
+* {registry-rule-reference}
 
 [id="data-contracts-odcs_{context}"]
 == ODCS native format

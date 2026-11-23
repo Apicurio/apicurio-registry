@@ -339,7 +339,7 @@ Confluent Data Contracts provide the following governance features:
 
 * *Contract Metadata*: Standardized metadata (status, owner, domain, classification, stage) managed through the `contract/metadata` REST API
 * *Contract Rulesets*: Domain and migration rules at both artifact and version level, managed through the `contract/ruleset` REST API
-* *Content Rules*: Validity, compatibility, and integrity rule configuration
+* *Content Rules*: Validity, compatibility, integrity, and governance rule configuration
 * *Groups*: Artifact organization by group for governance
 
 [role="_additional-resources"]

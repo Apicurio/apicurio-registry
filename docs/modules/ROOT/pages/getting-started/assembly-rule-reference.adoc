@@ -26,7 +26,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-You can specify `VALIDITY`, `COMPATIBILITY`, and `INTEGRITY` rule types to govern content evolution in {registry}. These rule types apply to global rules, group-specific rules, and artifact-specific rules.
+You can specify `VALIDITY`, `COMPATIBILITY`, `INTEGRITY`, and `GOVERNANCE` rule types to govern content evolution in {registry}. These rule types apply to global rules, group-specific rules, and artifact-specific rules.
 
 .{registry} content rule types
 [%header,cols=2*]
@@ -60,7 +60,47 @@ a| Enforces artifact reference integrity when creating or updating artifacts. Th
 * `REFS_EXIST`: Detect if there are any references to non-existent artifacts. For `AGENT_CARD`, `MCP_SERVER`, and `MCP_TOOL` artifacts, also detect references to artifact types that they cannot reference.
 * `ALL_REFS_MAPPED`: Ensure that all artifact references are mapped.
 * `NONE`: All artifact reference integrity checks are disabled.
+
+|`GOVERNANCE`
+a| Checks the data contract metadata of an artifact when you add a version. The possible configuration values for this rule are as follows:
+
+* `FULL`: The `BASIC` checks apply. The contract must also have a data classification and a support contact. A contract in the `PROD` stage must have the `STABLE` status.
+* `BASIC`: The contract must have an owner team, and the contract status must not be `DEPRECATED`.
+* `NONE`: All contract metadata checks are disabled.
 |===
+
+// ref-registry-rule-governance
+[id="registry-rule-governance_{context}"]
+== Governance rule
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+The `GOVERNANCE` rule checks the data contract metadata of an artifact when you add a version. It does not check the content of the version.
+
+The rule reads the contract metadata from the artifact labels whose keys start with `contract.`, for any artifact type. An artifact that has no such label passes the rule at every level. If an artifact has more than one contract, the rule checks the metadata of only one contract. For more information about data contracts, see
+ifndef::service-registry-downstream[]
+xref:getting-started/assembly-data-contracts.adoc[].
+endif::[]
+ifdef::service-registry-downstream[]
+xref:data-contracts_{context}[].
+endif::[]
+
+{registry} applies the rule when you add a version to an existing artifact or publish a draft version. It does not apply the rule when you create an artifact by using the REST API, the CLI, or the web console.
+
+If the rule rejects a version, each cause in the rule violation response has the key of the checked label as its `context`, for example `contract.orders-contract.owner.team`.
+
+You can configure the rule at the global, group, or artifact level by using the REST API or the CLI. The web console does not show the `GOVERNANCE` rule. The following request sets the rule to `BASIC` for one artifact:
+
+[source,bash]
+----
+curl -X POST \
+  http://localhost:8080/apis/registry/v3/groups/my-group/artifacts/my-artifact/rules \
+  -H 'Content-Type: application/json' \
+  -d '{"ruleType": "GOVERNANCE", "config": "BASIC"}'
+----
+
+The equivalent CLI command is `acr artifact rule create GOVERNANCE --config BASIC --group my-group --artifact my-artifact`.
 
 
 

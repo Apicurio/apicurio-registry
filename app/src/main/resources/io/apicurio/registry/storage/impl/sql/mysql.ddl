@@ -7,7 +7,7 @@ CREATE TABLE apicurio (
     propValue VARCHAR(255),
     PRIMARY KEY (propName)
 ) DEFAULT CHARACTER SET ascii COLLATE ascii_general_ci;
-INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 115);
+INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 116);
 
 CREATE TABLE globalid_seq (id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY) ENGINE=InnoDB;
 CREATE TABLE contentid_seq (id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY) ENGINE=InnoDB;

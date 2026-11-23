@@ -4,7 +4,7 @@
 
 CREATE TABLE apicurio (propName NVARCHAR(255) NOT NULL, propValue NVARCHAR(255));
 ALTER TABLE apicurio ADD PRIMARY KEY (propName);
-INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 115);
+INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 116);
 
 CREATE SEQUENCE globalid_seq AS BIGINT START WITH 1 INCREMENT BY 1 NO CACHE;
 CREATE SEQUENCE contentid_seq AS BIGINT START WITH 1 INCREMENT BY 1 NO CACHE;

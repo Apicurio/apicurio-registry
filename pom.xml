@@ -286,7 +286,7 @@
          because the license scan reads the profile-less model, where Byteman (LGPL) must not appear. -->
     <byteman.version>4.0.28</byteman.version>
     <assertj.core.version>3.27.7</assertj.core.version>
-    <semver4j.version>6.0.0</semver4j.version>
+    <semver4j.version>6.1.0</semver4j.version>
     <slf4j.version>2.0.17</slf4j.version>
 
     <!-- Kafka Connect -->
@@ -316,7 +316,7 @@
     <version.resources.plugin>3.3.1</version.resources.plugin>
     <version.clean.plugin>3.4.0</version.clean.plugin>
 
-    <version.license-maven-plugin>2.9.0</version.license-maven-plugin>
+    <version.license-maven-plugin>2.10.0</version.license-maven-plugin>
     <version.exec-maven-plugin>3.7.0</version.exec-maven-plugin>
     <version.apicurio-codegen-plugin>1.2.11.Final</version.apicurio-codegen-plugin>
     <version.gmavenplus-plugin>4.3.1</version.gmavenplus-plugin>
@@ -381,7 +381,7 @@
     <!-- Test containers version, should be aligned with version used in Quarkus -->
     <pulsar.testcontainers.version>2.0.5</pulsar.testcontainers.version>
     <keycloak.testcontainers.version>4.4.1</keycloak.testcontainers.version>
-    <embedded-postgres.version>2.2.2</embedded-postgres.version>
+    <embedded-postgres.version>2.2.3</embedded-postgres.version>
     <strimzi.version>0.105.0</strimzi.version>
     <wiremock.version>3.13.2</wiremock.version>
     <strimzi-test-container.version>0.118.0</strimzi-test-container.version>

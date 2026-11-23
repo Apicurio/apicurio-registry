@@ -30,6 +30,20 @@ cc() {
     ${3:+-d "$3"} "${@:4}")
   echo "$(tail -1 <<< "$out") $(sed '$d' <<< "$out")"
 }
+# get <url>: a successful GET's body, retried when the request fails or the body is empty, so one
+# dropped response does not fail a comparison (#10992). After five attempts it prints a marker that
+# names the URL, so a comparison of two failed requests fails too.
+get() {
+  local body attempt
+  for attempt in 1 2 3 4 5; do
+    if body=$(curl -sf --max-time 30 "$1") && [ -n "$body" ]; then
+      echo "$body"
+      return 0
+    fi
+    sleep 1
+  done
+  echo "<no response from $1>"
+}
 schema() { jq -nc --arg s "$1" --arg t "${2:-AVRO}" '{schema: $s, schemaType: $t}'; }
 # err <cc output>: "<status> <error_code>"
 err() { local s b; read -r s b <<< "$1"; echo "$s $(jq -r .error_code <<< "$b")"; }
@@ -127,8 +141,10 @@ check "PUT /config/orders-value BACKWARD" '200 {"compatibility":"BACKWARD","norm
   "$(cc PUT "$V7/config/orders-value" '{"compatibility": "BACKWARD"}')"
 check "  is an Apicurio COMPATIBILITY rule" BACKWARD \
   "$(curl -s "$V3/groups/default/artifacts/orders-value/rules/COMPATIBILITY" | jq -r .config)"
-check "an incompatible schema is now rejected: 409, error_code 409" "409 409" \
-  "$(err "$(cc POST "$V7/subjects/orders-value/versions" "$(schema "$ORDER_BAD")")")"
+INCOMPATIBLE=$(cc POST "$V7/subjects/orders-value/versions" "$(schema "$ORDER_BAD")")
+check "an incompatible schema is now rejected: 409, error_code 409" "409 409" "$(err "$INCOMPATIBLE")"
+check "  with Confluent's message" 'Schema being registered is incompatible with an earlier schema for subject "orders-value"' \
+  "$(read -r _ b <<< "$INCOMPATIBLE"; jq -r .message <<< "$b" | sed 's/, details:.*//')"
 check "  and the Confluent producer fails to send" "failed" \
   "$(echo '{"id":1,"amount":1}' | produce kafka-avro-console-producer orders "$SR_V7" --property value.schema="$ORDER_BAD" && echo sent || echo failed)"
 check "a compatible schema is registered: version 2" "200 [1,2]" \
@@ -144,11 +160,10 @@ check "a soft delete of version 2" "200 2" "$(cc DELETE "$V7/subjects/orders-val
 check "  is the version's state DISABLED" DISABLED "$(curl -s "$V3/groups/default/artifacts/orders-value/versions/2" | jq -r .state)"
 check "  hidden from the versions" "200 [1]" "$(cc GET "$V7/subjects/orders-value/versions")"
 check "  unless deleted=true" "200 [1,2]" "$(cc GET "$V7/subjects/orders-value/versions?deleted=true")"
-# The status of 40405, 40406 and 40407 is 409; Confluent's is 404 (#11125)
-check "a second soft delete: error_code 40406" 40406 \
-  "$(err "$(cc DELETE "$V7/subjects/orders-value/versions/2")" | cut -d' ' -f2)"
-check "a permanent delete of a version not soft deleted first: error_code 40407" 40407 \
-  "$(err "$(cc DELETE "$V7/subjects/orders-value/versions/1?permanent=true")" | cut -d' ' -f2)"
+check "a second soft delete: 404, error_code 40406" "404 40406" \
+  "$(err "$(cc DELETE "$V7/subjects/orders-value/versions/2")")"
+check "a permanent delete of a version not soft deleted first: 404, error_code 40407" "404 40407" \
+  "$(err "$(cc DELETE "$V7/subjects/orders-value/versions/1?permanent=true")")"
 check "a permanent delete after the soft delete removes the version" "200 2 404" \
   "$(cc DELETE "$V7/subjects/orders-value/versions/2?permanent=true") $(curl -s -o /dev/null -w '%{http_code}' "$V3/groups/default/artifacts/orders-value/versions/2")"
 check "a soft-deleted subject (both its versions) is hidden, but listed with deleted=true" "200 [1,2] false true" \
@@ -168,7 +183,7 @@ check "invalid compatibility level: 422 42203" "422 42203" "$(err "$(cc PUT "$V7
 # ------------------------------------------------------------------------------ step 7
 part "Step 7: the v7 and v8 APIs"
 for p in subjects schemas/types "schemas/ids/$CID/subjects" config "subjects/orders-value/versions"; do
-  check "GET /$p: the same on v7 and v8" "$(curl -s "$V7/$p")" "$(curl -s "$V8/$p")"
+  check "GET /$p: the same on v7 and v8" "$(get "$V7/$p")" "$(get "$V8/$p")"
 done
 check "GET a schema: v8 adds an empty references list" '{"v7":null,"v8":[]}' \
   "$(jq -nc --argjson a "$(curl -s "$V7/schemas/ids/$CID")" --argjson b "$(curl -s "$V8/schemas/ids/$CID")" '{v7: $a.references, v8: $b.references}')"

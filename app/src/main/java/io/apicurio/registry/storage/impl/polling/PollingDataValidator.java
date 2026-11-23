@@ -130,7 +130,8 @@ public class PollingDataValidator {
 
             try {
                 rulesService.applyRules(storage,
-                        artifact.getGroupId(), artifact.getArtifactId(), artifact.getArtifactType(),
+                        artifact.getGroupId(), artifact.getArtifactId(), current.getVersion(),
+                        artifact.getArtifactType(),
                         currentContent, existingContent,
                         references, resolvedReferences);
             } catch (RuleViolationException e) {

@@ -13,7 +13,7 @@ public class RuleUtilTest {
 
     @Test
     public void testRenderRuleTypes() {
-        assertThat(RuleUtil.renderRuleTypes()).isEqualTo("VALIDITY, COMPATIBILITY, INTEGRITY");
+        assertThat(RuleUtil.renderRuleTypes()).isEqualTo("VALIDITY, COMPATIBILITY, INTEGRITY, GOVERNANCE");
     }
 
     @Test
@@ -21,7 +21,7 @@ public class RuleUtilTest {
         // Lines are separated by the picocli newline token '%n', one line per rule type.
         var lines = RuleUtil.renderRuleConfigs().split("%n");
 
-        assertThat(lines).hasSize(3);
+        assertThat(lines).hasSize(4);
         assertThat(lines[0]).startsWith("  VALIDITY: ")
                 .contains("NONE").contains("SYNTAX_ONLY").contains("FULL");
         assertThat(lines[1]).startsWith("  COMPATIBILITY: ")
@@ -30,5 +30,6 @@ public class RuleUtilTest {
         assertThat(lines[2]).startsWith("  INTEGRITY: ")
                 .contains("NONE").contains("REFS_EXIST").contains("ALL_REFS_MAPPED")
                 .contains("NO_DUPLICATES").contains("NO_CIRCULAR_REFERENCES").contains("FULL");
+        assertThat(lines[3]).isEqualTo("  GOVERNANCE: NONE | BASIC | FULL");
     }
 }

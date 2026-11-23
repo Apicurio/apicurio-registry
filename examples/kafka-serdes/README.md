@@ -57,9 +57,8 @@ Stop and remove everything with `docker compose --profile connect down -v`.
   code. Snapshots are not published, which is why `build.sh` builds them.
 - **Local build of the registry:** the example uses the `latest-snapshot` images; to run a locally
   built registry, start the example with `REGISTRY_IMAGE=<image> docker compose up -d`.
-- **Known issues:** a rule violation reaches the producer as a `RuntimeException` with no message
-  ([#11018](https://github.com/Apicurio/apicurio-registry/issues/11018)); the guide shows how to read
-  the reason.
+- **Rule violations:** a schema the registry rejects reaches the producer as Kafka's
+  `SerializationException`, whose message names the rule; the guide shows how to read the details.
 - **Local only:** in-memory storage, no authentication, a single-node broker without security.
 
 ## Learn more

@@ -34,12 +34,17 @@ export type ReconciledVariable = {
  *   `PromptTemplateVariableUtil.VARIABLE_PATTERN`: `{{name}}`, with optional
  *   whitespace inside the braces (`{{ name }}`).
  *
+ * The placeholder's leading `(?<!\{)` mirrors the backend: without it, `{{{name}}}`
+ * still contains `{{name}}` starting at the second character, so the UI would show
+ * a `name` input whose value the backend ignores. Like the backend, there is no
+ * trailing `(?!\})`: `{{name}}}` is a placeholder followed by a literal brace.
+ *
  * Deliberate scope limitations (matching the backend):
  * - Names are `\w+` only, so dotted paths like `{{user.name}}` are not variables.
  * - `@index`-style tokens, helper expressions such as `{{lookup obj key}}` and
  *   `{{#each}}` / `{{#with}}` blocks name no variable.
  */
-const TEMPLATE_REFERENCE_REGEX = /\{\{#(?:if|unless)\s+(\w+)\}\}|\{\{\s*(\w+)\s*\}\}/g;
+const TEMPLATE_REFERENCE_REGEX = /\{\{#(?:if|unless)\s+(\w+)\}\}|(?<!\{)\{\{\s*(\w+)\s*\}\}/g;
 
 /**
  * Bare tag names the backend never substitutes (`PromptTemplateVariableUtil`).

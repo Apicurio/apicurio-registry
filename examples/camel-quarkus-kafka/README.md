@@ -1,186 +1,92 @@
-# Camel Quarkus Kafka with Apicurio Registry Example
+# Camel Quarkus Kafka with Apicurio Registry
 
-This example demonstrates how to use Apache Camel Quarkus with the Kafka component and Apicurio Registry
-Avro SerDe for schema-managed messaging. Unlike the `kafka-order-processing` example (which uses raw Kafka
-clients), this quickstart shows the fully declarative Camel approach — serializer/deserializer configuration
-lives entirely in `application.properties`.
+A complete, local example of Apache Camel Quarkus routes that send and receive Avro records through
+Kafka with the Apicurio Registry serdes, configured only in `application.properties`:
 
-## Architecture Overview
+- **A Camel producer route** (a timer, and an HTTP endpoint) sends `Greeting` records to the
+  `greetings` topic. The Avro serializer registers the schema as `default/greetings-value` and writes
+  its content ID in front of every record.
+- **A Camel consumer route** deserializes them with the Avro deserializer, which fetches the schema
+  by that ID. A second consumer route reads the same records as raw bytes, to show the wire format.
+- **Apicurio Registry** stores the schema and enforces a compatibility rule on its evolution.
+- **Apache Kafka** (a single KRaft broker) carries the records.
 
-```
-┌─────────────────────┐
-│  Timer (5 seconds)  │
-└────────┬────────────┘
-         │
-         ▼
-┌─────────────────────┐       ┌─────────────────┐
-│  Camel Producer     │──────>│  Apache Kafka    │
-│  Route              │       │  (greetings)     │
-└─────────────────────┘       └────────┬─────────┘
-         │                             │
-         ▼                             ▼
-┌─────────────────────┐       ┌─────────────────────┐
-│  Apicurio Registry  │<──────│  Camel Consumer     │
-│  (Schema Store)     │       │  Route              │
-└─────────────────────┘       └─────────────────────┘
-```
+**New to this? Follow the [step-by-step guide](GUIDE.md).** It walks through the routes, the
+registered schema, the bytes on the wire, and a schema change, in about 20 minutes.
 
-### Components
+Unlike [`kafka-serdes`](../kafka-serdes/), which uses the Kafka client API directly, this example
+shows the serdes behind the Camel Kafka component: there is no Kafka client code at all.
 
-1. **Camel Producer Route** — A timer-triggered route that creates `Greeting` objects every 5 seconds and
-   sends them to Kafka, serialized as Avro with the schema auto-registered in Apicurio Registry.
+## Quick start
 
-2. **Camel Consumer Route** — Reads from the same Kafka topic and logs the deserialized `Greeting` objects.
-
-3. **Apicurio Registry** — Central schema registry storing and versioning the Avro schema.
-
-4. **Apicurio Registry UI** — Web interface for browsing schemas.
-
-5. **Apache Kafka** — Message broker.
-
-## Greeting Schema
-
-A simple Avro record with three fields:
-
-- `name` (string) — Name of the person being greeted
-- `message` (string) — The greeting message
-- `timestamp` (long) — When the greeting was created (epoch millis)
-
-## Prerequisites
-
-- Java 21 or later
-- Maven 3.8+
-- Docker and Docker Compose
-- At least 4GB of available RAM for Docker containers
-
-## Quick Start
-
-### 1. Start Infrastructure
-
-Start Kafka, Zookeeper, Apicurio Registry, and the Registry UI:
+Requires Docker (or Podman) with Compose v2, `curl`, `jq` and JDK 21 or later.
 
 ```bash
-cd examples/camel-quarkus-kafka
-docker-compose up -d
+./build.sh               # builds the application and the serdes from this checkout (a few minutes)
+docker compose up -d     # starts Kafka, the Registry and its UI
+./demo.sh                # starts the application, then checks the expected behaviour
 ```
 
-Wait for all services to be healthy (~30-60 seconds):
+`demo.sh` prints one line per check and ends with `All checks passed.` (it exits non-zero if a check
+fails). It starts the application on port 8090 and stops it at the end; its log is
+`target/camel-app.log`. Then open the UI at <http://localhost:8888>.
 
-```bash
-docker-compose ps
-```
+Stop and remove everything with `docker compose down -v`.
 
-Verify Apicurio Registry is running:
+## Services
 
-```bash
-curl http://localhost:8080/apis/registry/v3/groups
-```
-
-### 2. Build the Application
-
-```bash
-mvn clean package
-```
-
-This compiles the Avro schema into a Java class and builds the Quarkus application.
-
-### 3. Run the Application
-
-```bash
-mvn quarkus:dev
-```
-
-Both the producer and consumer routes run in the same application. You should see output like:
-
-```
-Sending greeting for Alice: Hello from Camel!
-Received greeting — name: Alice, message: Hello from Camel!, timestamp: 1706450000000
-```
-
-## Verifying Schema Registration
-
-### Using the Web UI
-
-Open http://localhost:8888 in your browser. You should see the `Greeting` schema listed as an artifact.
-
-### Using the REST API
-
-```bash
-# List all artifacts
-curl http://localhost:8080/apis/registry/v3/groups/default/artifacts
-
-# Get schema content
-curl http://localhost:8080/apis/registry/v3/groups/default/artifacts/greetings-value/versions/1/content
-```
+| Service               | URL                   | Purpose                                         |
+|-----------------------|-----------------------|-------------------------------------------------|
+| Apache Kafka          | localhost:9092        | The `greetings` topic                           |
+| Apicurio Registry API | http://localhost:8081 | Stores the `greetings-value` schema             |
+| Apicurio Registry UI  | http://localhost:8888 | Web console                                     |
+| Camel application     | http://localhost:8090 | Runs on the host; `/greetings/send`, `/received`, `/raw` |
 
 ## Configuration
 
-All configuration is in `src/main/resources/application.properties`:
+All the serde configuration is in
+[`src/main/resources/application.properties`](src/main/resources/application.properties):
 
-| Property | Description | Default |
-|----------|-------------|---------|
-| `camel.component.kafka.brokers` | Kafka broker address | `localhost:9092` |
-| `camel.component.kafka.value-serializer` | Avro serializer class | `AvroKafkaSerializer` |
-| `camel.component.kafka.value-deserializer` | Avro deserializer class | `AvroKafkaDeserializer` |
-| `...additional-properties[apicurio.registry.url]` | Registry API URL | `http://localhost:8080/apis/registry/v3` |
-| `...additional-properties[apicurio.registry.auto-register]` | Auto-register schemas | `true` |
-| `...additional-properties[apicurio.registry.avro-datum-provider]` | Avro datum provider | `ReflectAvroDatumProvider` |
+| Property | Value | Meaning |
+|----------|-------|---------|
+| `camel.component.kafka.value-serializer` | `io.apicurio.registry.serde.avro.AvroKafkaSerializer` | Avro serializer for every Kafka endpoint |
+| `camel.component.kafka.value-deserializer` | `io.apicurio.registry.serde.avro.AvroKafkaDeserializer` | Avro deserializer for every Kafka endpoint |
+| `camel.component.kafka.additional-properties[apicurio.registry.url]` | `http://localhost:8081/apis/registry/v3` | Registry API (`REGISTRY_URL` overrides it) |
+| `...additional-properties[apicurio.registry.auto-register]` | `true` | The serializer registers the schema if it is missing |
+| `...additional-properties[apicurio.registry.auto-register.if-exists]` | `FIND_OR_CREATE_VERSION` | If the artifact exists, reuse the version with the same content, or add one |
+| `...additional-properties[apicurio.registry.avro-datum-provider]` | `io.apicurio.registry.serde.avro.ReflectAvroDatumProvider` | How the serdes read and write the Java objects |
 
-The `additional-properties[...]` syntax passes properties through the Camel Kafka component directly to the
-underlying Kafka producer/consumer, where the Apicurio SerDe classes read them.
+`additional-properties[...]` passes each entry through the Camel Kafka component to the Kafka
+producer and consumer, where the serdes read it. Anything not set keeps the serde default: the
+artifact is named by `TopicIdStrategy` (`<topic>-value`, in group `default`), and the record carries
+a magic byte and the 4-byte **content ID** (`apicurio.registry.use-id=contentId`), not headers
+(`apicurio.registry.headers.enabled=false`). A Kafka endpoint can override a component setting; the
+raw consumer route does that with `valueDeserializer=...ByteArrayDeserializer`.
 
-## Key Features Demonstrated
+## Files
 
-1. **Declarative SerDe Configuration** — No programmatic Kafka client setup; everything is configured via
-   `application.properties` through the Camel Kafka component.
+| File | Purpose |
+|------|---------|
+| [`GUIDE.md`](GUIDE.md) | Step-by-step walkthrough and presenter notes |
+| [`docker-compose.yml`](docker-compose.yml) | Kafka, the Registry and its UI |
+| [`build.sh`](build.sh) | Builds the application and the Avro serde from this checkout |
+| [`demo.sh`](demo.sh) | Starts the application and checks the expected behaviour |
+| [`src/main/java/.../GreetingRouteBuilder.java`](src/main/java/io/apicurio/registry/examples/camelkafka/GreetingRouteBuilder.java) | The Camel routes |
+| [`src/main/resources/avro/greeting.avsc`](src/main/resources/avro/greeting.avsc) | The schema; the `Greeting` class is generated from it |
+| [`schemas/`](schemas) | Two changes to the schema: one compatible, one not |
 
-2. **Schema Auto-Registration** — The producer automatically registers the Avro schema on first use.
+## Notes
 
-3. **Avro Code Generation** — The `avro-maven-plugin` generates the `Greeting` class from the `.avsc` schema
-   at build time.
+- **Serdes from this checkout:** snapshots of the serdes are not published, so `pom.xml` depends on
+  `apicurio-registry-avro-serde-kafka` at this checkout's version, next to the
+  `quarkus-apicurio-registry-avro` extension (which would otherwise bring the release pinned by the
+  Quarkus BOM).
+- **Other ports:** see [Using other ports](GUIDE.md#using-other-ports).
+- **Local only:** no authentication and in-memory storage (data is lost on restart).
 
-4. **Camel Quarkus Integration** — Routes are discovered automatically by Camel Quarkus CDI integration.
+## Learn more
 
-5. **Quarkus Apicurio Extension** — Uses the `quarkus-apicurio-registry-avro` extension for proper Quarkus
-   integration with the Apicurio Avro SerDe.
-
-## Stopping the Demo
-
-1. Stop the application (Ctrl+C or press `q` in Quarkus dev mode)
-
-2. Stop the infrastructure:
-
-```bash
-docker-compose down
-```
-
-To remove all data and start fresh:
-
-```bash
-docker-compose down -v
-```
-
-## Troubleshooting
-
-### Kafka Connection Issues
-
-- Ensure Docker containers are running: `docker-compose ps`
-- Check Kafka logs: `docker-compose logs kafka`
-- Verify port 9092 is not in use by another process
-
-### Schema Registration Failures
-
-- Verify Apicurio Registry is accessible: `curl http://localhost:8080/apis/registry/v3/groups`
-- Check registry logs: `docker-compose logs apicurio-registry`
-
-### Consumer Not Receiving Messages
-
-- Verify the topic exists: `docker exec camel-demo-kafka bin/kafka-topics.sh --list --bootstrap-server localhost:9092`
-- The consumer route starts at the same time as the producer; messages appear after the first timer tick (5s)
-
-## Additional Resources
-
-- [Apache Camel Quarkus Kafka](https://camel.apache.org/camel-quarkus/latest/reference/extensions/kafka.html)
-- [Apicurio Registry Documentation](https://www.apicur.io/registry/docs/)
-- [Apache Avro Documentation](https://avro.apache.org/docs/)
-- [Quarkus Documentation](https://quarkus.io/guides/)
+- *Configuring Kafka serializers/deserializers* in the Registry documentation
+  ([source](../../docs/modules/ROOT/pages/getting-started/assembly-configuring-kafka-client-serdes.adoc)).
+- [ADR-0007](../../adr/0007-kafka-serdes.md): how the serdes are implemented.
+- [Camel Quarkus Kafka](https://camel.apache.org/camel-quarkus/latest/reference/extensions/kafka.html).

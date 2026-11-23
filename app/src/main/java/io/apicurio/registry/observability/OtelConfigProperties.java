@@ -56,11 +56,11 @@ public class OtelConfigProperties {
     @Info(category = CATEGORY_OBSERVABILITY, description = "BUILD-TIME property to enable distributed tracing instrumentation. When enabled, {registry} creates spans for REST API requests and storage operations. Use `quarkus.otel.sdk.disabled` to control tracing at runtime.", availableSince = "3.1.7")
     boolean otelTracesEnabled;
 
-    @ConfigProperty(name = "quarkus.otel.traces.sampler", defaultValue = "parentbased_always_on")
+    @ConfigProperty(name = "quarkus.otel.traces.sampler", defaultValue = "parentbased_traceidratio")
     @Info(category = CATEGORY_OBSERVABILITY, description = "The sampling strategy for traces. Use `parentbased_always_on` for development or `parentbased_traceidratio` for production to reduce overhead.", availableSince = "3.1.7")
     String otelTracesSampler;
 
-    @ConfigProperty(name = "quarkus.otel.traces.sampler.arg", defaultValue = "1.0")
+    @ConfigProperty(name = "quarkus.otel.traces.sampler.arg", defaultValue = "0.1")
     @Info(category = CATEGORY_OBSERVABILITY, description = "The sampling ratio when using `parentbased_traceidratio` sampler. A value of `0.1` means 10% of traces are sampled.", availableSince = "3.1.7")
     String otelTracesSamplerArg;
 

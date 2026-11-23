@@ -22,8 +22,30 @@ x-registry-health: &registry-health
 x-writable: &writable
   APICURIO_REST_DELETION_GROUP_ENABLED: "true"
   APICURIO_REST_DELETION_ARTIFACT_ENABLED: "true"
+# The Elasticsearch search index (content and structure search), in the postgresql, kafkasql and
+# gitops profiles: one index shared by the replicas of a variant
+x-search: &search
+  APICURIO_FEATURES_EXPERIMENTAL_ENABLED: "true"
+  APICURIO_SEARCH_INDEX_ENABLED: "true"
+  APICURIO_SEARCH_INDEX_ELASTICSEARCH_NUMBER_OF_REPLICAS: "0"
+  QUARKUS_ELASTICSEARCH_HOSTS: elasticsearch:9200
 
 services:
+  # --------------------------------------------------------------------------------- elasticsearch
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.2.3
+    container_name: storage-elasticsearch
+    profiles: [postgresql, kafkasql, gitops]
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health > /dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+
   # ------------------------------------------------------------------------------------ postgresql
   postgres:
     image: postgres:15
@@ -43,7 +65,7 @@ services:
     container_name: storage-registry-pg-a
     profiles: [postgresql]
     environment: &pg-env
-      <<: *writable
+      <<: [*writable, *search]
       APICURIO_STORAGE_KIND: sql
       APICURIO_STORAGE_SQL_KIND: postgresql
       APICURIO_DATASOURCE_URL: jdbc:postgresql://postgres:5432/registry
@@ -52,6 +74,7 @@ services:
     ports: ["${REGISTRY_PORT:-8081}:8080"]
     depends_on:
       postgres: {condition: service_healthy}
+      elasticsearch: {condition: service_healthy}
     healthcheck: *registry-health
 
   # A second replica on the same database: both see every write at once
@@ -148,23 +171,23 @@ services:
     container_name: storage-registry-kafkasql-a
     profiles: [kafkasql]
     environment:
-      <<: *writable
+      <<: [*writable, *search]
       # Writes go to the journal topic kafkasql-journal; each replica rebuilds its own copy from it
       APICURIO_STORAGE_KIND: kafkasql
       APICURIO_KAFKASQL_BOOTSTRAP_SERVERS: kafka:9092
     ports: ["${REGISTRY_PORT:-8081}:8080"]
     depends_on:
       kafka: {condition: service_healthy}
+      elasticsearch: {condition: service_healthy}
     healthcheck: *registry-health
 
-  # Started after the first one has created the topics: replicas creating them at the same time
-  # can fail (https://github.com/Apicurio/apicurio-registry/issues/11079)
+  # A second replica, started together with the first: both may try to create the topics
   registry-kafkasql-b:
     <<: *registry-kafkasql
     container_name: storage-registry-kafkasql-b
     ports: ["${REGISTRY_B_PORT:-8082}:8080"]
     depends_on:
-      registry-kafkasql-a: {condition: service_healthy}
+      kafka: {condition: service_healthy}
 
   # ---------------------------------------------------------------------------------------- gitops
   registry-gitops:
@@ -172,7 +195,7 @@ services:
     container_name: storage-registry-gitops
     profiles: [gitops]
     environment:
-      APICURIO_FEATURES_EXPERIMENTAL_ENABLED: "true"
+      <<: *search
       APICURIO_STORAGE_KIND: gitops
       # Loads registry files whose registryId is "demo", from the repository in /repos/default
       APICURIO_POLLING_STORAGE_ID: demo
@@ -186,6 +209,8 @@ services:
       # keeps it up to date (the registry never fetches)
       - ./work/repo:/repos/default:ro
     ports: ["${REGISTRY_PORT:-8081}:8080"]
+    depends_on:
+      elasticsearch: {condition: service_healthy}
     healthcheck: *registry-health
 
   registry-ui:
@@ -241,9 +266,6 @@ services:
       APICURIO_KUBERNETESOPS_NAMESPACE: registry
       APICURIO_POLLING_STORAGE_POLL_PERIOD: PT2S
       APICURIO_POLLING_STORAGE_DEBOUNCE_QUIET_PERIOD: PT1S
-      # Every poll sees a change on a live cluster, so updates wait for the maximum
-      # (https://github.com/Apicurio/apicurio-registry/issues/11080); keep it short for the demo
-      APICURIO_POLLING_STORAGE_DEBOUNCE_MAX_WAIT_PERIOD: PT10S
       # The API server, and a service account allowed to read ConfigMaps (written by k8s-setup)
       KUBECONFIG: /shared/kubeconfig
     volumes:

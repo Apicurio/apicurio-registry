@@ -3,7 +3,6 @@ package io.apicurio.registry.auth;
 import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.client.RegistryClientFactory;
-import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
@@ -56,9 +55,7 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
 
     @Override
     protected RegistryClient createRestClientV3(Vertx vertx) {
-        return RegistryClientFactory.create(RegistryClientOptions.create()
-                .registryUrl(registryV3ApiUrl)
-                .vertx(vertx)
+        return RegistryClientFactory.create(boundedClientOptions(registryV3ApiUrl, vertx)
                 .basicAuth(ADMIN_USERNAME, ADMIN_PASSWORD));
     }
 
@@ -78,9 +75,7 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
 
     @Test
     public void testWrongCreds() throws Exception {
-        var client = RegistryClientFactory.create(RegistryClientOptions.create()
-                .registryUrl(registryV3ApiUrl)
-                .vertx(vertx)
+        var client = RegistryClientFactory.create(boundedClientOptions(registryV3ApiUrl, vertx)
                 .basicAuth(UUID.randomUUID().toString(), UUID.randomUUID().toString()));
         var exception = Assertions.assertThrows(ApiException.class, () -> {
             client.groups().byGroupId(groupId).artifacts().get();
@@ -90,9 +85,7 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
 
     @Test
     public void testReadOnly() throws Exception {
-        var client = RegistryClientFactory.create(RegistryClientOptions.create()
-                .registryUrl(registryV3ApiUrl)
-                .vertx(vertx)
+        var client = RegistryClientFactory.create(boundedClientOptions(registryV3ApiUrl, vertx)
                 .basicAuth(READONLY_USERNAME, READONLY_PASSWORD));
         String artifactId = TestUtils.generateArtifactId();
         client.groups().byGroupId(groupId).artifacts().get();
@@ -112,9 +105,7 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
         });
         assertForbidden(exception3);
 
-        var devClient = RegistryClientFactory.create(RegistryClientOptions.create()
-                .registryUrl(registryV3ApiUrl)
-                .vertx(vertx)
+        var devClient = RegistryClientFactory.create(boundedClientOptions(registryV3ApiUrl, vertx)
                 .basicAuth(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
 
         VersionMetaData meta = devClient.groups().byGroupId(groupId).artifacts().post(createArtifact)
@@ -135,9 +126,7 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
 
     @Test
     public void testDevRole() throws Exception {
-        var client = RegistryClientFactory.create(RegistryClientOptions.create()
-                .registryUrl(registryV3ApiUrl)
-                .vertx(vertx)
+        var client = RegistryClientFactory.create(boundedClientOptions(registryV3ApiUrl, vertx)
                 .basicAuth(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
         String artifactId = TestUtils.generateArtifactId();
         try {
@@ -175,7 +164,7 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
 
     @Test
     public void testAdminRole() throws Exception {
-        var client = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+        var client = RegistryClientFactory.create(boundedClientOptions(registryV3ApiUrl, vertx)
                 .basicAuth(ADMIN_USERNAME, ADMIN_PASSWORD));
         String artifactId = TestUtils.generateArtifactId();
         try {
@@ -212,11 +201,11 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
     public void testOwnerOnlyAuthorization() throws Exception {
         CreateArtifact createArtifact = clientCreateArtifact();
 
-        var clientDev = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+        var clientDev = RegistryClientFactory.create(boundedClientOptions(registryV3ApiUrl, vertx)
                 .basicAuth(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
 
         var clientAdmin = RegistryClientFactory.create(
-                RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                boundedClientOptions(registryV3ApiUrl, vertx)
                 .basicAuth(ADMIN_USERNAME, ADMIN_PASSWORD));
 
         // Admin user will create an artifact
@@ -252,7 +241,7 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
     public void testGetArtifactOwner() throws Exception {
         CreateArtifact createArtifact = clientCreateArtifact();
 
-        var client = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+        var client = RegistryClientFactory.create(boundedClientOptions(registryV3ApiUrl, vertx)
                 .basicAuth(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
 
         // Preparation
@@ -281,7 +270,7 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
     public void testUpdateArtifactOwner() throws Exception {
         CreateArtifact createArtifact = clientCreateArtifact();
 
-        var client = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+        var client = RegistryClientFactory.create(boundedClientOptions(registryV3ApiUrl, vertx)
                 .basicAuth(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
 
         // Preparation
@@ -328,10 +317,10 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
         CreateArtifact createArtifact = clientCreateArtifact();
 
         var client_dev1 = RegistryClientFactory.create(
-                RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                boundedClientOptions(registryV3ApiUrl, vertx)
                 .basicAuth(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
         var client_dev2 = RegistryClientFactory.create(
-                RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                boundedClientOptions(registryV3ApiUrl, vertx)
                 .basicAuth(DEVELOPER_2_USERNAME, DEVELOPER_2_PASSWORD));
 
         // Preparation
@@ -382,10 +371,10 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
         CreateArtifact createArtifact = clientCreateArtifact();
 
         var client_dev1 = RegistryClientFactory.create(
-                RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                boundedClientOptions(registryV3ApiUrl, vertx)
                 .basicAuth(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
         var client_admin = RegistryClientFactory.create(
-                RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                boundedClientOptions(registryV3ApiUrl, vertx)
                 .basicAuth(ADMIN_USERNAME, ADMIN_PASSWORD));
 
         // Preparation
@@ -433,10 +422,10 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
         CreateArtifact createArtifact = clientCreateArtifact();
 
         var client_dev1 = RegistryClientFactory.create(
-                RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                boundedClientOptions(registryV3ApiUrl, vertx)
                 .basicAuth(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
         var client_dev2 = RegistryClientFactory.create(
-                RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                boundedClientOptions(registryV3ApiUrl, vertx)
                 .basicAuth(DEVELOPER_2_USERNAME, DEVELOPER_2_PASSWORD));
 
         // Preparation
@@ -494,10 +483,10 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
         CreateArtifact createArtifact = clientCreateArtifact();
 
         var client_dev1 = RegistryClientFactory.create(
-                RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                boundedClientOptions(registryV3ApiUrl, vertx)
                 .basicAuth(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
         var client_admin = RegistryClientFactory.create(
-                RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                boundedClientOptions(registryV3ApiUrl, vertx)
                 .basicAuth(ADMIN_USERNAME, ADMIN_PASSWORD));
 
         // Preparation
@@ -542,7 +531,7 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
 
     @Test
     public void testUpdateGroupOwnerByOwner() throws Exception {
-        var client = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+        var client = RegistryClientFactory.create(boundedClientOptions(registryV3ApiUrl, vertx)
                 .basicAuth(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
 
         final String groupId = "testUpdateGroupOwnerByOwner-" + UUID.randomUUID();
@@ -563,10 +552,10 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
     @Test
     public void testUpdateGroupOwnerDeniedForNonOwner() throws Exception {
         var client_dev1 = RegistryClientFactory.create(
-                RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                boundedClientOptions(registryV3ApiUrl, vertx)
                 .basicAuth(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
         var client_dev2 = RegistryClientFactory.create(
-                RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                boundedClientOptions(registryV3ApiUrl, vertx)
                 .basicAuth(DEVELOPER_2_USERNAME, DEVELOPER_2_PASSWORD));
 
         final String groupId = "testUpdateGroupOwnerDenied-" + UUID.randomUUID();
@@ -596,10 +585,10 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
     @Test
     public void testUpdateGroupOwnerByAdmin() throws Exception {
         var client_dev1 = RegistryClientFactory.create(
-                RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                boundedClientOptions(registryV3ApiUrl, vertx)
                 .basicAuth(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
         var client_admin = RegistryClientFactory.create(
-                RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                boundedClientOptions(registryV3ApiUrl, vertx)
                 .basicAuth(ADMIN_USERNAME, ADMIN_PASSWORD));
 
         final String groupId = "testUpdateGroupOwnerByAdmin-" + UUID.randomUUID();

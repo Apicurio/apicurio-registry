@@ -40,13 +40,21 @@ public class RegistryClientFacadeImpl_v2 implements RegistryClientFacade {
 
     @Override
     public String getSchemaByGlobalId(long globalId, boolean dereferenced) {
-        InputStream rawSchema = client.ids().globalIds().byGlobalId(globalId).get(config -> {
+        return IoUtil.toString(fetchSchemaByGlobalId(globalId, dereferenced));
+    }
+
+    @Override
+    public byte[] getSchemaBytesByGlobalId(long globalId, boolean dereferenced) {
+        return IoUtil.toBytes(fetchSchemaByGlobalId(globalId, dereferenced));
+    }
+
+    private InputStream fetchSchemaByGlobalId(long globalId, boolean dereferenced) {
+        return client.ids().globalIds().byGlobalId(globalId).get(config -> {
             assert config.queryParameters != null;
             if (dereferenced) {
                 config.queryParameters.dereference = true;
             }
         });
-        return IoUtil.toString(rawSchema);
     }
 
     @Override
@@ -156,6 +164,23 @@ public class RegistryClientFacadeImpl_v2 implements RegistryClientFacade {
 
         VersionMetaData vmd = client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(version).meta().get();
         return RegistryVersionCoordinates.create(vmd.getGlobalId(), vmd.getContentId(), vmd.getGroupId(), vmd.getId(), vmd.getVersion());
+    }
+
+    /**
+     * Not supported: the v2 API has no way to find a version by its global ID.
+     */
+    @Override
+    public RegistryVersionCoordinates getVersionCoordinatesByGlobalId(long globalId) {
+        return null;
+    }
+
+    /**
+     * Not supported: the v2 API has no way to find the versions of an artifact by content ID.
+     */
+    @Override
+    public RegistryVersionCoordinates getVersionCoordinatesByContentId(long contentId, String groupId,
+            String artifactId) {
+        return null;
     }
 
     private static List<io.apicurio.registry.rest.client.v2.models.ArtifactReference> toClientReferences(Set<RegistryArtifactReference> references) {

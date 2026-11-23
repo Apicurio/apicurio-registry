@@ -92,9 +92,8 @@ curl -X PUT localhost:8081/apis/registry/v3/admin/config/properties/apicurio.aut
   -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{"value": "true"}'
 ```
 
-Anonymous writes stay 401. To switch it off, set it to `false`: resetting the property with `DELETE`
-does not take effect until a restart today
-([#11044](https://github.com/Apicurio/apicurio-registry/issues/11044)).
+Anonymous writes stay 401. To switch it off, reset the property to its default with `DELETE`, or set
+it to `false`.
 `apicurio.auth.authenticated-read-access.enabled` is the same for authenticated callers with no role.
 
 ## Step 5: Users with OIDC tokens
@@ -142,8 +141,7 @@ curl -u developer-client:test1 localhost:8081/apis/registry/v3/groups
 - Tokens are **cached** per credentials until shortly before they expire: `demo.sh` counts Keycloak's
   `CLIENT_LOGIN` events, and five more calls make no new token request. Failures are cached for a
   minute.
-- A malformed header returns 500 today instead of 401
-  ([#11043](https://github.com/Apicurio/apicurio-registry/issues/11043)).
+- A malformed header (not Base64) is 401.
 
 ## Step 8: Basic against users in the registry
 
@@ -201,7 +199,7 @@ The [clients](clients/src/main/java/io/apicurio/registry/examples/authentication
 | Client | Configuration |
 |---|---|
 | Java SDK, client credentials | `RegistryClientOptions.create(url).oauth2(tokenEndpoint, clientId, secret)` |
-| Java SDK, a token you already have | `.httpAdapter(HttpAdapterType.JDK).bearerToken(token)`: the JDK adapter is required for now ([#11046](https://github.com/Apicurio/apicurio-registry/issues/11046)) |
+| Java SDK, a token you already have | `.bearerToken(token)` |
 | Java SDK, basic (`registry-basic`) | `.basicAuth(user, password)` |
 | Kafka serializer and deserializer | `apicurio.registry.auth.service.token.endpoint`, `apicurio.registry.auth.client.id`, `apicurio.registry.auth.client.secret` (or `apicurio.registry.auth.username`/`.password`) |
 

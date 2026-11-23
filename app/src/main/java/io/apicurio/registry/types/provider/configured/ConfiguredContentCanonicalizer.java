@@ -58,7 +58,7 @@ public class ConfiguredContentCanonicalizer extends AbstractConfiguredArtifactTy
                 return WebhookBeanUtil.typedContentFromWebhookBean(responseBody.getTypedContent());
             } catch (Throwable e) {
                 log.error("Error invoking webhook", e);
-                return content;
+                throw new ArtifactTypeWebhookException("Content Canonicalizer", artifactType.getArtifactType());
             }
         }
     }

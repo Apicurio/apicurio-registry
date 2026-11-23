@@ -2,6 +2,8 @@ package io.apicurio.registry.resolver.cache;
 
 import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.resolver.config.SchemaResolverConfig;
+import io.apicurio.registry.rest.client.models.ProblemDetails;
+import io.apicurio.registry.rest.client.models.RuleViolationProblemDetails;
 import io.apicurio.registry.resolver.strategy.ArtifactCoordinates;
 import io.vertx.core.VertxException;
 import io.vertx.core.http.HttpClosedException;
@@ -550,7 +552,7 @@ public class ERCache<V> {
         // apicurio.registry.retry.total-timeout-ms.
         if (attempt == retries || !isRetriableCacheLoadFailure(e, retryTransientErrors)) {
             log.error("Schema cache load failed after {} retries", attempt, e);
-            return Result.error(new RuntimeException(e));
+            return Result.error(new RuntimeException(describeFailure(e), e));
         }
         if (isDeadlineExceeded(deadline)) {
             log.error("Schema cache load exceeded total retry timeout of {}ms after {} attempts",
@@ -687,6 +689,46 @@ public class ERCache<V> {
         }
         String message = current.getMessage();
         return message != null && message.toLowerCase(Locale.ROOT).contains("timeout");
+    }
+
+    /**
+     * Builds a readable message for a failed cache load. Registry problem details (for example a
+     * rule violation on auto-register) carry their reason in the title/detail fields rather than in
+     * {@link Throwable#getMessage()}, so those are surfaced explicitly.
+     */
+    static String describeFailure(Throwable e) {
+        Throwable current = e;
+        for (int depth = 0; current != null && depth < MAX_CAUSE_DEPTH; depth++) {
+            if (current instanceof RuleViolationProblemDetails rv) {
+                String ruleType = rv.getRuleViolation() != null && rv.getRuleViolation().getRuleType() != null
+                        ? rv.getRuleViolation().getRuleType().getValue() : null;
+                return problemMessage(rv.getStatus(), rv.getTitle(), rv.getDetail(), ruleType);
+            }
+            if (current instanceof ProblemDetails pd) {
+                String ruleType = pd.getRuleViolation() != null && pd.getRuleViolation().getRuleType() != null
+                        ? pd.getRuleViolation().getRuleType().getValue() : null;
+                return problemMessage(pd.getStatus(), pd.getTitle(), pd.getDetail(), ruleType);
+            }
+            current = current.getCause();
+        }
+        return rootMessage(e);
+    }
+
+    private static String problemMessage(Integer status, String title, String detail, String ruleType) {
+        StringBuilder sb = new StringBuilder("Registry request failed");
+        if (status != null) {
+            sb.append(" (HTTP ").append(status).append(")");
+        }
+        if (ruleType != null) {
+            sb.append(" due to ").append(ruleType).append(" rule violation");
+        }
+        if (title != null) {
+            sb.append(": ").append(title);
+        }
+        if (detail != null && !detail.equals(title)) {
+            sb.append(" - ").append(detail);
+        }
+        return sb.toString();
     }
 
     private static String rootMessage(Throwable e) {

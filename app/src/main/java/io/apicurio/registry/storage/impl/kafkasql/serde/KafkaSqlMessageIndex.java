@@ -69,6 +69,8 @@ public class KafkaSqlMessageIndex {
                 MergeArtifactLabels4Message.class,
                 MergeVersionLabels5Message.class,
                 UpdateContractMetadata4Message.class,
+                UpdateContractMetadata5Message.class,
+                CompareAndSetArtifactLabels4Message.class,
                 TransitionContractStatus6Message.class,
                 RecordUsageEvent1Message.class,
                 DeleteOldUsageEvents1Message.class);

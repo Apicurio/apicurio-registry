@@ -13,6 +13,8 @@ Follow it on your own, or use it as the script for a demo.
 - GitOps: a registry that loads a git repository, picks up commits, reports a broken commit while it
   keeps serving the last good data, and refuses writes;
 - KubernetesOps: the same, from ConfigMaps;
+- content and structure search with the Elasticsearch index, shared by replicas, and where it is not
+  kept up to date;
 - which variant to choose.
 
 For the reference documentation, see *Installing Registry storage* and *Configuring GitOps storage*
@@ -110,8 +112,8 @@ reads the whole topic at startup into its own in-memory database, and keeps read
 - a restarted replica rebuilds everything from the topic. On a long journal, snapshots
   (`apicurio.kafkasql.snapshot.*`) make that faster.
 
-The second replica waits for the first one here: replicas creating the topics at the same time can
-fail ([#11079](https://github.com/Apicurio/apicurio-registry/issues/11079)).
+Both replicas start at the same time: when both try to create the topics, the one that loses the
+race finds them already created and starts normally.
 
 ## Step 6: GitOps
 
@@ -182,11 +184,39 @@ Each ConfigMap key is a file name; `content:` refers to another key of the same 
 docker compose --profile kubernetesops exec -T k3s kubectl apply -n registry -f - < configmaps/v2.yaml
 ```
 
-Writes return 409, as with GitOps. Changes currently take the full debounce maximum to apply
-([#11080](https://github.com/Apicurio/apicurio-registry/issues/11080)); the example sets it to 10
-seconds.
+Writes return 409, as with GitOps. A change is applied once the ConfigMaps have been quiet for the
+debounce quiet period (1 second here).
 
-## Step 8: Which variant?
+## Step 8: Content and structure search
+
+Metadata search (name, group, labels...) runs in the storage, on every variant. Searching **inside**
+artifacts needs the Elasticsearch index: the `postgresql`, `kafkasql` and `gitops` profiles run
+Elasticsearch and enable it (`APICURIO_SEARCH_INDEX_ENABLED`, experimental).
+
+```bash
+curl -s 'localhost:8082/apis/registry/v3/search/versions?structure=avro:field:amount' | jq '.versions[] | .version'
+curl -s 'localhost:8082/apis/registry/v3/search/versions?content=orderId' | jq '.versions[] | .version'
+```
+
+`structure` matches elements extracted from the content (`type:kind:name`, lower case: here the Avro
+field `amount`, only in version 2); `content` matches words. `demo.sh` checks, on PostgreSQL and on
+KafkaSQL:
+
+- the write goes to one replica and the search to the other: the index is shared;
+- a new artifact becomes searchable a moment later, and disappears when deleted: the index is
+  updated in the background, so it lags the write a little;
+- metadata searches do not use the index;
+- on MySQL, which runs without Elasticsearch here, a content search is refused (400): there is no
+  fallback to a metadata search.
+
+On **GitOps**, content and structure search return nothing today: the index is built at startup,
+before the repository is loaded, and repository changes do not update it
+([#11170](https://github.com/Apicurio/apicurio-registry/issues/11170)). `demo.sh` checks that, and
+that metadata search still finds both versions. KubernetesOps works the same way.
+
+How the index works, and how authorization filters it: [ADR-0015](../../adr/0015-search-and-elasticsearch.md).
+
+## Step 9: Which variant?
 
 | You want | Use |
 |---|---|
@@ -199,7 +229,7 @@ seconds.
 Events (`registry-events`) are produced by the SQL variants on PostgreSQL and SQL Server, and by
 KafkaSQL.
 
-## Step 9: Clean up
+## Step 10: Clean up
 
 `demo.sh` removes each variant and its volumes. If you used `KEEP=1`:
 
@@ -229,4 +259,3 @@ find work/repo -mindepth 1 -not -name .gitkeep -delete
 | `mssql` is skipped | The SQL Server image is amd64 only. Set `VARIANTS=mssql` on an amd64 machine. |
 | `kubernetesops` does not start | `docker logs storage-k8s-setup`; k3s needs a privileged container (on Podman, a rootful machine). |
 | GitOps never loads | `curl localhost:8081/apis/registry/v3/admin/gitops/status`: `errors` says which file is wrong; `registryId` must match `APICURIO_POLLING_STORAGE_ID`. |
-| A KafkaSQL replica exits with `TopicExistsException` | Start replicas one after another ([#11079](https://github.com/Apicurio/apicurio-registry/issues/11079)). |

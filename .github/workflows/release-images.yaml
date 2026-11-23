@@ -146,6 +146,16 @@ jobs:
           npm run build
           npm run package
 
+      - name: Compute OCI image labels
+        working-directory: registry
+        run: |
+          # Shared by every image below so a release carries one revision and timestamp.
+          OCI_LABELS="--label org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}"
+          OCI_LABELS="$OCI_LABELS --label org.opencontainers.image.revision=$(git rev-parse HEAD)"
+          OCI_LABELS="$OCI_LABELS --label org.opencontainers.image.version=$RELEASE_VERSION"
+          OCI_LABELS="$OCI_LABELS --label org.opencontainers.image.created=$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          echo "OCI_LABELS=$OCI_LABELS" >> "$GITHUB_ENV"
+
       - name: Login to DockerHub Registry
         run: echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
 
@@ -156,6 +166,7 @@ jobs:
         working-directory: registry
         run: |
           docker buildx build --push -f ./distro/gitops/Dockerfile \
+              $OCI_LABELS \
               -t quay.io/apicurio/apicurio-registry-gitops-sync:$RELEASE_VERSION \
               -t quay.io/apicurio/apicurio-registry-gitops-sync:latest \
               --platform linux/amd64,linux/arm64,linux/s390x,linux/ppc64le ./distro/gitops
@@ -169,6 +180,7 @@ jobs:
             TAGS="$TAGS -t quay.io/apicurio/apicurio-registry-mcp-server:latest"
           fi
           docker buildx build --push -f ./target/docker/Dockerfile.jvm \
+              $OCI_LABELS \
               $TAGS \
               --platform linux/amd64,linux/arm64,linux/s390x,linux/ppc64le ./target/docker
 
@@ -186,6 +198,7 @@ jobs:
             TAGS="$TAGS -t quay.io/apicurio/apicurio-registry:latest-release"
           fi
           docker buildx build --push -f ./distro/docker/target/docker/Dockerfile.jvm \
+              $OCI_LABELS \
               $TAGS \
               --platform linux/amd64,linux/arm64,linux/s390x,linux/ppc64le ./distro/docker/target/docker
 
@@ -201,6 +214,7 @@ jobs:
             TAGS="$TAGS -t quay.io/apicurio/apicurio-registry:latest-mutable"
           fi
           docker buildx build --push -f ./distro/docker/target/docker/Dockerfile.mutable.jvm \
+              $OCI_LABELS \
               $TAGS \
               --platform linux/amd64,linux/arm64,linux/s390x,linux/ppc64le ./distro/docker/target/docker
 
@@ -213,6 +227,7 @@ jobs:
             TAGS="$TAGS -t quay.io/apicurio/apicurio-registry-console-plugin:latest"
           fi
           docker buildx build --push -f ./Dockerfile.jvm \
+              $OCI_LABELS \
               $TAGS \
               --platform linux/amd64,linux/arm64 ./backend
 
@@ -230,6 +245,7 @@ jobs:
             TAGS="$TAGS -t quay.io/apicurio/apicurio-registry-ui:latest-release"
           fi
           docker buildx build --push -f ./Dockerfile \
+              $OCI_LABELS \
               $TAGS \
               --platform linux/amd64,linux/arm64,linux/s390x,linux/ppc64le .
 

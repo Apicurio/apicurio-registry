@@ -26,7 +26,7 @@ import java.util.Set;
 @ApplicationScoped
 public class SchemaFormatService {
 
-    private static final String FORMAT_RESOLVED = "resolved";
+    static final String FORMAT_RESOLVED = "resolved";
     private static final String FORMAT_IGNORE_EXTENSIONS = "ignore_extensions";
     private static final String FORMAT_SERIALIZED = "serialized";
 

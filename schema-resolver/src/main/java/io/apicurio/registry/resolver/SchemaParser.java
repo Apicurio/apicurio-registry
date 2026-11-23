@@ -65,4 +65,14 @@ public interface SchemaParser<S, U> {
     default String referenceNamespace(ParsedSchema<S> schema) {
         return null;
     }
+
+    /**
+     * Whether schemas of this type can be fetched dereferenced by content ID or content hash. Formats that
+     * return false keep fetching their references instead.
+     *
+     * @return true if dereferenced content lookups can be used for this format
+     */
+    default boolean supportsDereferencedContentLookups() {
+        return true;
+    }
 }

@@ -16,6 +16,8 @@ if [ -z "${VARIANTS:-}" ]; then
 fi
 A=${API:-http://localhost:8081/apis}/registry/v3
 B=${API_B:-http://localhost:8082/apis}/registry/v3
+# The schema version this build creates, so the check follows schema upgrades
+DB_VERSION=$(tr -d '[:space:]' < ../../app/src/main/resources/io/apicurio/registry/storage/impl/sql/db-version)
 failures=0
 current=""
 
@@ -99,13 +101,40 @@ writable_checks() {
   check "read-only off again: writes work" 200 "$(code POST "$base/groups" '{"groupId": "allowed"}')"
 }
 
+# search <base> <query>: the versions a /search/versions query returns, as group/artifact@version.
+# A failed request or an unexpected response prints a marker, never an empty result.
+search() {
+  local body
+  if ! body=$(curl -sf --max-time 30 "$1/search/versions?$2&limit=50"); then
+    echo "<search failed: $2>"
+    return 0
+  fi
+  jq -r 'if (.versions | type) == "array" then [.versions[] | "\(.groupId)/\(.artifactId)@\(.version)"] | sort | join(",")
+         else "<unexpected response>" end' <<< "$body" 2>/dev/null || echo "<unexpected response>"
+}
+
+# search_checks <write-base> <read-base>: the Elasticsearch index, kept up to date by the replica that
+# makes the change, and read by another one
+search_checks() {
+  local base=$1 read=$2
+  check "structure search (the index): the version with an Avro field named amount" "orders/order-placed@2" \
+    "$(eventually 30 "orders/order-placed@2" search "$read" "structure=avro:field:amount")"
+  check "content search: the versions that mention orderId" "orders/order-placed@1,orders/order-placed@2" \
+    "$(eventually 30 "orders/order-placed@1,orders/order-placed@2" search "$read" "content=orderId")"
+  code POST "$base/groups/orders/artifacts" "$(jq -n '{artifactId: "scratch", artifactType: "AVRO", firstVersion: {content: {content: "{\"type\": \"record\", \"name\": \"Scratch\", \"fields\": [{\"name\": \"temporaryField\", \"type\": \"string\"}]}", contentType: "application/json"}}}')" > /dev/null
+  check "a new artifact is indexed" "orders/scratch@1" "$(eventually 30 "orders/scratch@1" search "$read" "structure=avro:field:temporaryfield")"
+  code DELETE "$base/groups/orders/artifacts/scratch" > /dev/null
+  check "  and removed from the index when deleted" "" "$(eventually 30 "" search "$read" "structure=avro:field:temporaryfield")"
+}
+
 # ------------------------------------------------------------------------------------ postgresql
 run_postgresql() {
   part "PostgreSQL: two registries, one database"
   up postgresql || return 0
   writable_checks "$A"
   check "the other replica sees every write at once" "1,2" "$(versions "$B")"
-  check "the schema version is recorded in the database" 113 \
+  search_checks "$A" "$B"
+  check "the schema version is recorded in the database" "$DB_VERSION" \
     "$(compose exec -T postgres psql -U registry -d registry -tAc "select propvalue from apicurio where propname = 'db_version'")"
   restart registry-pg-a "$A"
   check "after a restart, the data is still there" "1,2" "$(eventually 60 "1,2" versions "$A")"
@@ -116,7 +145,8 @@ run_mysql() {
   part "MySQL"
   up mysql || return 0
   writable_checks "$A"
-  check "the schema version is recorded in the database" 113 \
+  check "without the search index, content search is refused" 400 "$(code GET "$A/search/versions?content=orderId")"
+  check "the schema version is recorded in the database" "$DB_VERSION" \
     "$(compose exec -T mysql mysql -uregistry -pregistry registry -sNe "select propValue from apicurio where propName = 'db_version'" 2>/dev/null)"
   restart registry-mysql "$A"
   check "after a restart, the data is still there" "1,2" "$(eventually 60 "1,2" versions "$A")"
@@ -137,6 +167,7 @@ run_kafkasql() {
   up kafkasql || return 0
   writable_checks "$A"
   check "the other replica catches up from the topic" "1,2" "$(eventually 30 "1,2" versions "$B")"
+  search_checks "$A" "$B"
   code PUT "$A/admin/config/properties/apicurio.storage.read-only.enabled" '{"value": "true"}' > /dev/null
   read_only_b() { get "$B/system/uiConfig" | jq -r .features.readOnly; }
   check "a setting changed on one replica reaches the other (read-only mode on B)" true "$(eventually 30 true read_only_b)"
@@ -175,6 +206,10 @@ run_gitops() {
   up gitops || return 0
 
   check "the repository's artifact is loaded" "1" "$(versions "$A")"
+  # The startup reindex runs before the repository is loaded, and loads bypass the index updates:
+  # content and structure search find nothing on GitOps today (#11170)
+  check "structure search finds nothing: the repository is never indexed (should find version 1, #11170)" "" \
+    "$(sleep 5; search "$A" "structure=avro:field:orderid")"
   check "global rules come from the repository" FULL "$(get "$A/admin/rules/VALIDITY" | jq -r .config)"
   local gid
   gid=$(get "$A/groups/orders/artifacts/order-placed/versions/1" | jq -r .globalId)
@@ -195,6 +230,9 @@ EOF
   git_ add . && git_commit "Version 2"
   chmod -R a+rX work/repo
   check "a commit is picked up: version 2 appears" "1,2" "$(eventually 60 "1,2" versions "$A")"
+  check "  nor version 2, from the new commit (#11170)" "" "$(sleep 5; search "$A" "structure=avro:field:amount")"
+  check "metadata search does not use the index: it finds both versions" "orders/order-placed@1,orders/order-placed@2" \
+    "$(search "$A" "groupId=orders&artifactId=order-placed")"
 
   # A broken commit: version 3 breaks the BACKWARD rule
   cp gitops-seed/order-placed-v2-incompatible.avsc work/repo/order-placed-v3.avsc

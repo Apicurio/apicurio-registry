@@ -1,5 +1,6 @@
 package io.apicurio.registry.cli.common;
 
+import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.cli.Acr;
 import io.apicurio.registry.cli.config.Config;
 import io.apicurio.registry.cli.services.Client;
@@ -72,6 +73,9 @@ public abstract class AbstractCommand implements Callable<Integer> {
                 handleProblemDetails(output, ex);
             }
             return SERVER_ERROR_RETURN_CODE;
+        } catch (ApiException ex) {
+            handleApiException(output, ex);
+            return SERVER_ERROR_RETURN_CODE;
         } catch (Exception ex) {
             log.error("Unexpected error", ex);
             output.writeStdErrChunk(out -> out.append("Unexpected error: ").append(ex.getMessage()).append("\n"));
@@ -141,6 +145,11 @@ public abstract class AbstractCommand implements Callable<Integer> {
         output.writeStdErrChunk(err -> {
             err.append(ERROR_PREFIX).append(Optional.ofNullable(ex.getDetail()).orElse(ex.getMessage())).append('\n');
         });
+    }
+
+    static void handleApiException(final OutputBuffer output, final ApiException ex) {
+        output.writeStdErrChunk(err -> err.append(ERROR_PREFIX).append("Registry returned HTTP status ")
+                .append(ex.getResponseStatusCode()).append(": ").append(ex.getMessage()).append('\n'));
     }
 
     private String getTopLevelCommandName() {

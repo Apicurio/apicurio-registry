@@ -17,7 +17,7 @@
     "@types/node": "25.9.9",
     "eslint": "9.39.5",
     "eslint-plugin-react-hooks": "7.1.1",
-    "eslint-plugin-react-refresh": "0.5.7",
-    "typescript-eslint": "8.72.2"
+    "eslint-plugin-react-refresh": "0.5.8",
+    "typescript-eslint": "8.73.0"
   }
 }

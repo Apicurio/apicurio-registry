@@ -49,8 +49,10 @@ public class UserInterfaceConfigProperties {
     @Info(category = CATEGORY_UI, description = "Enabled to show the Settings tab in the UI", availableSince = "3.0.0")
     public String featureSettings;
     @Dynamic(label = "Agents tab", description = "When enabled, the Agents tab will be visible in the UI for A2A Agent discovery.")
+    // Dynamic properties need a fixed default here; application.properties sets the effective one,
+    // which follows apicurio.agents.enabled.
     @ConfigProperty(name = "apicurio.ui.features.agents.enabled", defaultValue = "false")
-    @Info(category = CATEGORY_UI, description = "Enabled to show the Agents tab in the UI", availableSince = "3.2.0", experimental = true)
+    @Info(category = CATEGORY_UI, description = "Enabled to show the Agents tab in the UI. Defaults to apicurio.agents.enabled", dependsOn = "apicurio.agents.enabled", availableSince = "3.2.0", experimental = true)
     public Supplier<Boolean> featureAgents;
 
     @ConfigProperty(name = "apicurio.ui.features.url-import.max-content-length", defaultValue = "5242880")

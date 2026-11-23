@@ -3,8 +3,8 @@
 - **Status:** Accepted (documents the current implementation).
 - **Decision date:** 2026-11-13.
 - **Author:** Apicurio Registry maintainers.
-- **Tracking:** [#11115](https://github.com/Apicurio/apicurio-registry/issues/11115),
-  [#11116](https://github.com/Apicurio/apicurio-registry/issues/11116).
+- **Tracking:** [#11115](https://github.com/Apicurio/apicurio-registry/issues/11115) and
+  [#11116](https://github.com/Apicurio/apicurio-registry/issues/11116) (both fixed).
 - **Scope:** The export archive, the import API and its options, how a 1.x/2.x archive is upgraded to
   the v3 model, how IDs are kept, how 3.x protects itself from 2.x KafkaSQL data, and the Confluent
   Schema Registry export. Not covered: client and configuration migration (see the migration guide),
@@ -32,7 +32,8 @@ variants.
    it is imported; `3` goes through the v3 importer. Any other version is a `400`.
 4. **IDs are kept by default** (`X-Registry-Preserve-GlobalId`, `X-Registry-Preserve-ContentId`, both
    `true` unless configured otherwise), so serialized Kafka payloads keep resolving. When they are not
-   kept, new IDs are allocated and references (which are by coordinates) still resolve.
+   kept, new IDs are allocated and references (which are by coordinates) still resolve; content that
+   already exists in the target is found by hash and reused.
 5. **An import requires an empty registry** by default (`requireEmptyRegistry`, `409` otherwise), and
    never replaces data.
 6. **The same implementation for every writable storage:** SQL and KafkaSQL both run the importers
@@ -62,7 +63,7 @@ cut-over.
 | Artifact metadata | Artifact metadata taken from the latest version; each version keeps its own |
 | Labels (list) and properties (map) | Labels (map): each v2 label becomes a key with a `null` value |
 | Version order | `latest` branch, created for every artifact, with the versions in order |
-| `DISABLED`, `DEPRECATED` | Same states; `latest` resolution still skips `DISABLED` |
+| `DISABLED`, `DEPRECATED` | Same states; `latest` resolution still skips `DISABLED`, and the v2 API returns 404 for a `DISABLED` version's content by globalId, as 2.x did |
 | Content hash | Recomputed with the current algorithm; canonical hash deferred when references are not yet imported |
 | globalId, contentId | Kept, or remapped (see Decision 4) |
 
@@ -72,8 +73,9 @@ cut-over.
 |---|---|
 | IDs | Kept by default; kept IDs keep payloads resolvable |
 | Target | Empty, unless `requireEmptyRegistry=false` |
-| Atomicity | None: entities are imported one by one; a failing entity is logged and skipped |
+| Atomicity | None: entities are imported one by one; a failing entity is skipped and logged at WARN with its identifiers |
 | Startup import | `apicurio.import.url`: imported once on an empty registry; readiness waits for it |
+| Events | The events of the equivalent operations (groups, artifacts, versions, rules, contract rulesets; [ADR-0011](0011-registry-events.md)) |
 
 ## Configuration
 
@@ -103,13 +105,10 @@ cut-over.
 ## Limitations and open work
 
 1. An import is not atomic, and entities that fail are only logged: the response is still `204`.
-2. With `X-Registry-Preserve-ContentId: false`, content that already exists in the target is linked
-   to the wrong versions ([#11115](https://github.com/Apicurio/apicurio-registry/issues/11115)).
-3. The v2 API on 3.x serves a `DISABLED` version's content by globalId; 2.x did not
-   ([#11116](https://github.com/Apicurio/apicurio-registry/issues/11116)).
-4. The KafkaSQL guard scans the last 500 records of the topic only.
-5. The Confluent exporter must be built from source.
-6. Imports produce no registry events ([#11109](https://github.com/Apicurio/apicurio-registry/issues/11109)).
+2. The KafkaSQL guard scans the last 500 records of the topic only.
+3. The Confluent exporter must be built from source.
+4. Imported comments, content and branches produce no registry events: there is no event type for
+   them.
 
 ## Alternatives
 
@@ -148,3 +147,4 @@ cut-over.
 |---|---|
 | 3.0 | New storage formats; import with upgrade from 2.x archives |
 | This ADR | First written record, with a verified example |
+| [#11175](https://github.com/Apicurio/apicurio-registry/pull/11175), [#11176](https://github.com/Apicurio/apicurio-registry/pull/11176) | Fixed: with `X-Registry-Preserve-ContentId: false`, existing content is reused instead of linked to the wrong versions, and skipped entities are logged at WARN (#11115); the v2 API returns 404 for a `DISABLED` version by globalId (#11116); imports emit registry events (#11109) |

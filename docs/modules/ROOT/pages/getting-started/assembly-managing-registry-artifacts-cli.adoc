@@ -1080,6 +1080,9 @@ The rule commands accept the following rule types and configuration values:
 
 | `INTEGRITY`
 | `NONE`, `REFS_EXIST`, `ALL_REFS_MAPPED`, `NO_DUPLICATES`, `NO_CIRCULAR_REFERENCES`, `FULL`
+
+| `GOVERNANCE`
+| `NONE`, `BASIC`, `FULL`
 |===
 
 You can adjust the behavior of the CLI itself with the `acr config set` command. The following CLI configuration properties are available:
@@ -1114,4 +1117,5 @@ You can adjust the behavior of the CLI itself with the `acr config set` command.
 * {rest-client}
 ifndef::service-registry-downstream[]
 * link:https://github.com/Apicurio/apicurio-registry/tree/main/cli[CLI README]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/registry-clients[Registry clients example]: the CLI and the SDKs running the same scenario
 endif::[]

@@ -24,6 +24,8 @@ public class Debouncer<T> {
     private static final Logger log = LoggerFactory.getLogger(Debouncer.class);
 
     private final Duration quietPeriod;
+
+    private Object pendingIdentity;
     private final Duration maxWait;
 
     private Instant firstChangeAt;
@@ -40,6 +42,20 @@ public class Debouncer<T> {
      * starts tracking. Subsequent changes reset the quiet period timer.
      */
     public void onChange(T value) {
+        onChange(value, null);
+    }
+
+    /**
+     * Records a change identified by {@code identity}. A data source that keeps reporting the same
+     * pending change on every poll (it is only marked as seen once loaded) does not restart the quiet
+     * period: only a change with another identity does.
+     */
+    public void onChange(T value, Object identity) {
+        if (pending != null && identity != null && identity.equals(pendingIdentity)) {
+            pending = value;
+            return;
+        }
+        pendingIdentity = identity;
         Instant now = Instant.now();
         if (firstChangeAt == null) {
             firstChangeAt = now;
@@ -97,6 +113,7 @@ public class Debouncer<T> {
      * Resets the debouncer state. Call after the pending change has been processed.
      */
     public void reset() {
+        pendingIdentity = null;
         firstChangeAt = null;
         lastChangeAt = null;
         pending = null;

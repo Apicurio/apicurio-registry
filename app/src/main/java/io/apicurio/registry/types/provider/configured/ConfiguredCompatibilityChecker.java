@@ -69,7 +69,7 @@ public class ConfiguredCompatibilityChecker extends AbstractConfiguredArtifactTy
             } catch (Throwable e) {
                 log.error("Error invoking webhook", e);
                 return CompatibilityExecutionResult.incompatible(
-                        "Error invoking Compatibility Checker webhook for '" + this.artifactType.getArtifactType() + "': " + e.getMessage());
+                        "Error invoking Compatibility Checker webhook for '" + this.artifactType.getArtifactType() + "'.");
             }
         }
 

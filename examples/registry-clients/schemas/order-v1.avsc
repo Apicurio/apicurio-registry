@@ -1,0 +1,9 @@
+{
+  "type": "record",
+  "name": "Order",
+  "namespace": "com.example.clients",
+  "fields": [
+    {"name": "id", "type": "string"},
+    {"name": "amount", "type": "double"}
+  ]
+}

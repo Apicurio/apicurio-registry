@@ -8,6 +8,8 @@ makes each one different:
 - **GitOps**: a read-only registry loading a git repository that `demo.sh` creates and commits to,
   including a broken commit that is reported and not applied.
 - **KubernetesOps**: a read-only registry loading ConfigMaps from a k3s server.
+- **Search**: content and structure search with the Elasticsearch index (PostgreSQL, KafkaSQL,
+  GitOps), shared by replicas.
 
 **New to this? Follow the [step-by-step guide](GUIDE.md).**
 
@@ -30,11 +32,11 @@ Each Compose profile is one variant; the registry is on http://localhost:8081.
 
 | Profile | Services |
 |---|---|
-| `postgresql` | `postgres`, `registry-pg-a` (8081), `registry-pg-b` (8082) |
+| `postgresql` | `postgres`, `elasticsearch`, `registry-pg-a` (8081), `registry-pg-b` (8082) |
 | `mysql` | `mysql`, `registry-mysql` |
 | `mssql` | `mssql`, `registry-mssql` |
-| `kafkasql` | `kafka`, `registry-kafkasql-a` (8081), `registry-kafkasql-b` (8082) |
-| `gitops` | `registry-gitops`, `registry-ui` (8888) |
+| `kafkasql` | `kafka`, `elasticsearch`, `registry-kafkasql-a` (8081), `registry-kafkasql-b` (8082) |
+| `gitops` | `elasticsearch`, `registry-gitops`, `registry-ui` (8888) |
 | `kubernetesops` | `k3s`, `k8s-setup`, `registry-kubernetesops` |
 
 ## Files
@@ -52,10 +54,8 @@ Each Compose profile is one variant; the registry is on http://localhost:8081.
 
 ## Notes
 
-- **Known issues:** KafkaSQL replicas starting together can fail to create the topics
-  ([#11079](https://github.com/Apicurio/apicurio-registry/issues/11079)); KubernetesOps applies
-  changes only after the debounce maximum ([#11080](https://github.com/Apicurio/apicurio-registry/issues/11080)).
-  The example works around both.
+- **Known issue:** on GitOps and KubernetesOps the search index is never populated
+  ([#11170](https://github.com/Apicurio/apicurio-registry/issues/11170)); the demo shows it.
 - **GitOps sync:** the registry never fetches. For a sidecar that pulls a remote repository or
   accepts `git push`, see [`distro/gitops/compose`](../../distro/gitops/compose/).
 - **Local only:** default passwords, no TLS, short polling periods, k3s privileged.
@@ -64,5 +64,6 @@ Each Compose profile is one variant; the registry is on http://localhost:8081.
 
 - *Installing Registry storage*, *Configuring GitOps storage*, *Configuring KubernetesOps storage* in
   the Registry documentation ([source](../../docs/modules/ROOT/pages/getting-started/)).
-- [ADR-0010](../../adr/0010-storage-architecture.md): how storage works.
+- [ADR-0010](../../adr/0010-storage-architecture.md): how storage works;
+  [ADR-0015](../../adr/0015-search-and-elasticsearch.md): search and the Elasticsearch index.
 - The storage support matrix in [DEVELOPING.md](../../DEVELOPING.md).

@@ -2,7 +2,6 @@ package io.apicurio.registry.auth;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.client.RegistryClientFactory;
-import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.types.ArtifactType;
@@ -31,18 +30,14 @@ public class AuthTestAuthenticatedReadAccess extends AbstractResourceTestBase {
 
     @Override
     protected RegistryClient createRestClientV3(Vertx vertx) {
-        return RegistryClientFactory.create(RegistryClientOptions.create()
-                .registryUrl(registryV3ApiUrl)
-                .vertx(vertx)
+        return RegistryClientFactory.create(boundedClientOptions(registryV3ApiUrl, vertx)
                 .oauth2(authServerUrl, KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1"));
     }
 
     @Test
     public void testReadOperationWithNoRole() throws Exception {
         // Read-only operation should work with credentials but no role.
-        RegistryClient client = RegistryClientFactory.create(RegistryClientOptions.create()
-                .registryUrl(registryV3ApiUrl)
-                .vertx(vertx)
+        RegistryClient client = RegistryClientFactory.create(boundedClientOptions(registryV3ApiUrl, vertx)
                 .oauth2(authServerUrl, KeycloakTestContainerManager.NO_ROLE_CLIENT_ID, "test1"));
         var results = client.search().artifacts().get(config -> config.queryParameters.groupId = groupId);
         Assertions.assertTrue(results.getCount() >= 0);
@@ -57,5 +52,14 @@ public class AuthTestAuthenticatedReadAccess extends AbstractResourceTestBase {
             client.groups().byGroupId(groupId).artifacts().post(createArtifact);
         });
         assertForbidden(exception);
+    }
+
+    @Test
+    public void testPropertyIsExposedByConfigApi() throws Exception {
+        // @Dynamic property, settable at runtime only through its .dynamic.allow entry
+        var property = clientV3.admin().config().properties()
+                .byPropertyName("apicurio.auth.authenticated-read-access.enabled").get();
+        Assertions.assertEquals("apicurio.auth.authenticated-read-access.enabled", property.getName());
+        Assertions.assertEquals("true", property.getValue());
     }
 }

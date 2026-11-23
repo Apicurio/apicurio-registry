@@ -13,7 +13,8 @@ import java.util.Locale;
  * and the cause of a connection failure can name the address or repeat the server's response.
  * <p>
  * It is a {@link WebApplicationException}, whose status the core error mapper uses as is, so core
- * code needs no knowledge of this agent type: 400 when the target was refused, 502 otherwise.
+ * code needs no knowledge of this agent type: 400 when the target was refused, 429 when too many
+ * imports are running, 409 when one into the same artifact is, 502 otherwise.
  */
 public class McpImportException extends WebApplicationException {
 
@@ -25,6 +26,10 @@ public class McpImportException extends WebApplicationException {
     public enum Reason {
         /** The URL or its host is not allowed. Answered with HTTP 400. */
         HOST_DENIED,
+        /** As many imports as allowed are already running. Answered with HTTP 429. */
+        BUSY,
+        /** An import into the same MCP server artifact is already running. Answered with HTTP 409. */
+        ALREADY_RUNNING,
         /** The server did not answer in time. Answered with HTTP 502, as are the reasons below. */
         TIMEOUT,
         /** A message from the server was larger than allowed. */
@@ -42,8 +47,17 @@ public class McpImportException extends WebApplicationException {
     private final Reason reason;
 
     public McpImportException(Reason reason, String message) {
-        super(message, reason == Reason.HOST_DENIED ? 400 : 502);
+        super(message, status(reason));
         this.reason = reason;
+    }
+
+    private static int status(Reason reason) {
+        return switch (reason) {
+            case HOST_DENIED -> 400;
+            case BUSY -> 429;
+            case ALREADY_RUNNING -> 409;
+            default -> 502;
+        };
     }
 
     public Reason getReason() {

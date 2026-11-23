@@ -1,7 +1,6 @@
 package io.apicurio.registry;
 
 import io.apicurio.registry.client.RegistryClientFactory;
-import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.client.RegistryV2ClientFactory;
 import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.resolver.client.RegistryClientFacadeImpl;
@@ -30,12 +29,10 @@ public abstract class AbstractClientFacadeTestBase extends AbstractResourceTestB
     @BeforeAll
     @SuppressWarnings("removal")
     public void createIsolatedClients() {
-        isolatedClientV2 = RegistryV2ClientFactory.create(RegistryClientOptions.create()
-                .registryUrl(TestUtils.getRegistryV2ApiUrl(testPort))
-                .vertx(vertx));
-        isolatedClientV3 = RegistryClientFactory.create(RegistryClientOptions.create()
-                .registryUrl(TestUtils.getRegistryV3ApiUrl(testPort))
-                .vertx(vertx));
+        isolatedClientV2 = RegistryV2ClientFactory.create(
+                boundedClientOptions(TestUtils.getRegistryV2ApiUrl(testPort), vertx));
+        isolatedClientV3 = RegistryClientFactory.create(
+                boundedClientOptions(TestUtils.getRegistryV3ApiUrl(testPort), vertx));
     }
 
     public static Stream<Arguments> isolatedClientFacadeProvider() {

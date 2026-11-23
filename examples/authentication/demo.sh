@@ -93,9 +93,9 @@ check "anonymous read access switched on at runtime (admin)" 204 \
      -H "$(bearer "$ADMIN")" -H 'Content-Type: application/json' -d '{"value": "true"}')"
 check "now anonymous read: 200" 200 "$(code "$REGISTRY" GET /groups)"
 check "anonymous write: still 401" 401 "$(write_group "$REGISTRY" anonymous)"
-code "$REGISTRY" PUT /admin/config/properties/apicurio.auth.anonymous-read-access.enabled \
-  -H "$(bearer "$ADMIN")" -H 'Content-Type: application/json' -d '{"value": "false"}' > /dev/null
-check "switched off again (set to false, see #11044): 401" 401 "$(code "$REGISTRY" GET /groups)"
+check "reset to its default (admin)" 204 \
+  "$(code "$REGISTRY" DELETE /admin/config/properties/apicurio.auth.anonymous-read-access.enabled -H "$(bearer "$ADMIN")")"
+check "switched off again: 401" 401 "$(code "$REGISTRY" GET /groups)"
 
 # ------------------------------------------------------------------------------ step 5
 part "Step 5: users with OIDC tokens, and their roles"
@@ -122,7 +122,7 @@ part "Step 7: HTTP basic exchanged for a token (client credentials)"
 check "developer-client:test1 as basic credentials: write" 200 "$(write_group "$REGISTRY" basic-cc -u developer-client:test1)"
 check "a wrong secret: 401" 401 "$(code "$REGISTRY" GET /groups -u developer-client:wrong)"
 check "user:password is not a client: 401 (no password grant configured)" 401 "$(code "$REGISTRY" GET /groups -u developer:developer)"
-check "a malformed basic header: 500 today, should be 401 (#11043)" 500 \
+check "a malformed basic header: 401" 401 \
   "$(code "$REGISTRY" GET /groups -H 'Authorization: Basic !!!notbase64')"
 master=$(curl -s "$KEYCLOAK/realms/master/protocol/openid-connect/token" \
   -d 'grant_type=password&client_id=admin-cli&username=admin&password=admin' | jq -r .access_token)

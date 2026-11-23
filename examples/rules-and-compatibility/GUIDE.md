@@ -249,9 +249,7 @@ call PUT /groups/orders/artifacts/order-returned/versions/draft-1/state '{"state
   | jq -r .ruleViolation.ruleType                                                      # COMPATIBILITY: not published
 ```
 
-`order-returned` uses `BACKWARD_TRANSITIVE`. With a non-transitive rule, publishing currently
-compares the draft with itself and lets it through:
-[#11001](https://github.com/Apicurio/apicurio-registry/issues/11001).
+Publishing compares the draft with the published versions only, never with itself.
 
 **In the UI:** open **Drafts**: `draft-1` is still listed.
 
@@ -358,7 +356,7 @@ docker compose down -v
 |---|---|
 | `demo.sh` times out waiting for the Registry | Check `docker logs apicurio-registry-api-rules`. Usually a port conflict: see [Using other ports](#using-other-ports). |
 | Helper commands print nothing, or `jq: error` | Check that `curl` and `jq` are installed, and that you ran `source ./demo-env.sh` in the current shell. |
-| Every write to an artifact returns 500 after changing a rule | The rule config is not a valid level, and is not checked when saved: [#11000](https://github.com/Apicurio/apicurio-registry/issues/11000). Set a valid value. |
+| Creating or updating a rule returns 400 | The config is not a valid level for the rule type. Use one of the levels the error lists. |
 | Step 13 cannot find `apicurio-registry-schema-validation-*` | Run `./build.sh`. |
 
 ## Using other ports

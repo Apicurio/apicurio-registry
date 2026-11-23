@@ -93,7 +93,7 @@ Users of the secured Registry, from the shared example realm. Passwords equal th
 | [`demo-env.sh`](demo-env.sh) | Shell helpers to call the Registries and the MCP server as any user |
 | [`content/`](content) | The Agent Cards, tools, servers, prompt and OpenAPI document the demo publishes |
 | [`authz/access.rules`](authz/access.rules) | Access rules of the secured Registry; edits apply within seconds |
-| [`apps/Dockerfile`](apps/Dockerfile) | Builds the Quarkus applications from the Quarkus LangChain4j 1.15.0 sample |
+| [`apps/Dockerfile`](apps/Dockerfile) | Builds the Quarkus applications from the Quarkus LangChain4j sample (2.0.0.Beta4, weather server from 1.15.1) |
 | [`keycloak/`](keycloak) | Adds the `apicurio-mcp` client, used by the Registry MCP server, to the realm |
 | [`capture-screenshots.cjs`](capture-screenshots.cjs) | Refreshes the guide's screenshots in [`images/`](images) |
 
@@ -103,8 +103,11 @@ Users of the secured Registry, from the shared example realm. Passwords equal th
   (MCP tool import, the MCP Registry API, references between agent types, Agent Cards from OpenAPI)
   are not in a released version yet. Override the images with `REGISTRY_IMAGE`, `REGISTRY_UI_IMAGE` and
   `MCP_SERVER_IMAGE`.
-- **Quarkus LangChain4j:** the sample and extensions from release 1.15.0. Change `QL4J_VERSION` in
-  `apps/Dockerfile` to use another release.
+- **Quarkus LangChain4j:** the sample and extensions from release 2.0.0.Beta4 (Quarkus 4) for the
+  agents and the orchestrator. The weather MCP server is built from release 1.15.1 (Quarkus 3), because
+  the MCP server extension does not support Quarkus 4 yet
+  ([quarkiverse/quarkus-mcp-server#1149](https://github.com/quarkiverse/quarkus-mcp-server/pull/1149)).
+  Change `QL4J_VERSION` and `QL4J_MCP_SERVER_VERSION` in `apps/Dockerfile` to use other releases.
 
 ## Notes
 

@@ -181,14 +181,13 @@ services:
       elasticsearch: {condition: service_healthy}
     healthcheck: *registry-health
 
-  # Started after the first one has created the topics: replicas creating them at the same time
-  # can fail (https://github.com/Apicurio/apicurio-registry/issues/11079)
+  # A second replica, started together with the first: both may try to create the topics
   registry-kafkasql-b:
     <<: *registry-kafkasql
     container_name: storage-registry-kafkasql-b
     ports: ["${REGISTRY_B_PORT:-8082}:8080"]
     depends_on:
-      registry-kafkasql-a: {condition: service_healthy}
+      kafka: {condition: service_healthy}
 
   # ---------------------------------------------------------------------------------------- gitops
   registry-gitops:
@@ -267,9 +266,6 @@ services:
       APICURIO_KUBERNETESOPS_NAMESPACE: registry
       APICURIO_POLLING_STORAGE_POLL_PERIOD: PT2S
       APICURIO_POLLING_STORAGE_DEBOUNCE_QUIET_PERIOD: PT1S
-      # Every poll sees a change on a live cluster, so updates wait for the maximum
-      # (https://github.com/Apicurio/apicurio-registry/issues/11080); keep it short for the demo
-      APICURIO_POLLING_STORAGE_DEBOUNCE_MAX_WAIT_PERIOD: PT10S
       # The API server, and a service account allowed to read ConfigMaps (written by k8s-setup)
       KUBECONFIG: /shared/kubeconfig
     volumes:

@@ -10,10 +10,12 @@ import io.apicurio.registry.storage.impl.gitops.GitOpsRegistryStorage;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlRegistryStorage;
 import io.apicurio.registry.storage.impl.kubernetesops.KubernetesOpsRegistryStorage;
 import io.apicurio.registry.storage.impl.sql.SqlRegistryStorage;
+import io.quarkus.runtime.Startup;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Inject;
+import jakarta.interceptor.Interceptor;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
@@ -39,6 +41,10 @@ public class RegistryStorageProducer {
     private RegistryStorage cachedCurrent;
 
     private RegistryStorage cachedRaw;
+
+    // The storage whose initialize() is running: beans it touches while initializing get it back,
+    // instead of starting a second initialization.
+    private RegistryStorage initializing;
 
     // Use Instance<> for lazy lookup to avoid instantiating beans that are not needed
     // based on the configured storage type. Combined with @LookupIfProperty on each
@@ -85,24 +91,51 @@ public class RegistryStorageProducer {
     @Raw
     public RegistryStorage raw() {
         if (cachedRaw == null) {
+            if (initializing != null) {
+                return initializing;
+            }
+            RegistryStorage storage;
             if ("kafkasql".equals(registryStorageType)) {
-                cachedRaw = kafkaSqlRegistryStorage.get();
+                storage = kafkaSqlRegistryStorage.get();
             } else if ("gitops".equals(registryStorageType)) {
-                cachedRaw = gitOpsRegistryStorage.get();
+                storage = gitOpsRegistryStorage.get();
             } else if ("kubernetesops".equals(registryStorageType)) {
-                cachedRaw = kubernetesOpsRegistryStorage.get();
+                storage = kubernetesOpsRegistryStorage.get();
             } else if ("sql".equals(registryStorageType)) {
-                cachedRaw = sqlRegistryStorage.get();
+                storage = sqlRegistryStorage.get();
             } else {
                 throw new IllegalStateException(String
                         .format("No Registry storage variant defined for value %s", registryStorageType));
             }
 
-            cachedRaw.initialize();
+            // Cached only once initialized, so a failed initialization is never handed out later.
+            initializing = storage;
+            try {
+                storage.initialize();
+            } finally {
+                initializing = null;
+            }
+            cachedRaw = storage;
             log.info("Using the following RegistryStorage implementation: {}",
                     cachedRaw.getClass().getName());
         }
         return cachedRaw;
+    }
+
+    /**
+     * Initializes the storage at startup, right after the experimental features gate, so a storage
+     * that cannot be used (e.g. an unusable KafkaSQL journal topic) always stops the application,
+     * whichever bean would otherwise have touched it first.
+     */
+    @Startup(Interceptor.Priority.PLATFORM_BEFORE + 1)
+    void initializeStorage() {
+        try {
+            raw();
+        } catch (RuntimeException e) {
+            log.error("The '{}' storage could not be initialized, stopping the application: {}",
+                    registryStorageType, e.getMessage());
+            throw e;
+        }
     }
 
     @Produces

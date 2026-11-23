@@ -2,6 +2,7 @@ package io.apicurio.registry.config;
 
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.decorator.RegistryStorageProxyFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
@@ -96,6 +97,23 @@ public class RegistryStorageConfigCacheTest {
         cache.getConfigProperty("apicurio.b");
         verify(delegate, times(2)).getConfigProperty("apicurio.a");
         verify(delegate, times(2)).getConfigProperty("apicurio.b");
+    }
+
+    @Test
+    void deleteConfigPropertyInvalidatesTheCache() {
+        // Through the decorator proxy, as the REST layer calls it: methods the cache does not
+        // declare go straight to the delegate.
+        RegistryStorage storage = RegistryStorageProxyFactory.createProxy(delegate, List.of(cache));
+        DynamicConfigPropertyDto property = new DynamicConfigPropertyDto("apicurio.a", "true");
+        when(delegate.getConfigProperty("apicurio.a")).thenReturn(property);
+        assertEquals("true", storage.getConfigProperty("apicurio.a").getValue());
+
+        storage.deleteConfigProperty("apicurio.a");
+        verify(delegate).deleteConfigProperty("apicurio.a");
+
+        when(delegate.getConfigProperty("apicurio.a")).thenReturn(null);
+        assertNull(storage.getConfigProperty("apicurio.a"));
+        verify(delegate, times(2)).getConfigProperty("apicurio.a");
     }
 
     @Test

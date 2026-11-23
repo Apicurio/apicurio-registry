@@ -32,7 +32,7 @@ non-obvious line.
 - **Two commands to run it:** `docker compose up -d` then `./demo.sh`. Success is the literal line
   `All checks passed.`
 - **`demo.sh` checks behaviour, not just reachability.** Assert exact status codes and exact values,
-  including the failure cases (409 on a rule violation, 403 on a denial). Each check prints one
+  including the failure cases (400 on a rule violation, 403 on a denial). Each check prints one
   `ok`/`FAIL` line. It must be safe to run twice. CI runs it, so it must not need a browser or input.
 - **One idea per guide step.** Show the API command, its expected output, then the same thing in the
   UI when the UI shows it. End with Clean up, Presenter notes, Troubleshooting and Using other ports.
@@ -75,14 +75,17 @@ saying why:
 | `CI_MATRIX` | none | Space-separated values: one job per value, for an example too long for one job. Each job sets `CI_VARIANT` and `COMPOSE_PROFILES` to its value, so put each variant's services in a Compose profile of that name |
 | `CI_NEEDS_MUTABLE_IMAGE` | `false` | `true` loads this commit's re-augmentable registry image as `REGISTRY_MUTABLE_IMAGE`, for an example that builds an image with its own Java providers from it |
 | `CI_RELEASED_IMAGES` | none | Space-separated `image:tag` values: released Apicurio Registry images the example runs on purpose besides this commit's (for example, the source of a migration). They are exempt from the check that every Apicurio Registry image is this commit's |
-| `CI_SELF_MANAGED` | `false` | `true`: `demo.sh` starts and stops its own containers, for an example that must prepare something first; the runner skips its start step |
+| `CI_SELF_MANAGED` | `false` | `true`: `demo.sh` starts and stops its own containers, for an example that must prepare something first; the runner skips its start step. A self-managed example may have no Compose file at all (for example one that creates a kind cluster): the runner then skips every Compose step, and `demo.sh` must deploy `REGISTRY_IMAGE` and `REGISTRY_UI_IMAGE` |
+| `CI_TOOLCHAINS` | none | Space-separated values of `go`, `node` and `python`: sets up those toolchains before `build.sh`, for an example with clients in other languages. See [`registry-clients`](registry-clients/) |
 | any other key | | Exported to `docker compose` and `demo.sh`, for example `SKIP_LLM=1` |
 
 **Java clients.** Snapshots of the client libraries (SDK, serdes, validation library) are not
 published, so an example with Java code builds it from the checkout. Give it a `build.sh` that runs
 `./mvnw install -Pexamples -pl examples/<name>/<module> -am -DskipTests` from the repository root,
 call it from `demo.sh` when the classes are missing, and set `CI_NEEDS_BUILD=true`. See
-[`rules-and-compatibility`](rules-and-compatibility/) and [`kafka-serdes`](kafka-serdes/).
+[`rules-and-compatibility`](rules-and-compatibility/) and [`kafka-serdes`](kafka-serdes/). The Go,
+Python and TypeScript SDKs are built from the checkout the same way; set `CI_TOOLCHAINS` too, as
+[`registry-clients`](registry-clients/) does.
 
 To run the same check locally against a local build:
 

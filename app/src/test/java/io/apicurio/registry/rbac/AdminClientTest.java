@@ -33,7 +33,7 @@ public class AdminClientTest extends AbstractResourceTestBase {
     @Test
     public void smokeGlobalRules() throws Exception {
         createGlobalRule(RuleType.COMPATIBILITY, "BACKWARD");
-        createGlobalRule(RuleType.VALIDITY, "FORWARD");
+        createGlobalRule(RuleType.VALIDITY, "FULL");
 
         {
             final List<RuleType> globalRules = clientV3.admin().rules().get();

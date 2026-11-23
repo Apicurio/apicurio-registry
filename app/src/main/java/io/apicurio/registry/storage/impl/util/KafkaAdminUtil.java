@@ -17,6 +17,7 @@ import org.apache.kafka.clients.admin.DescribeConfigsOptions;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.common.config.ConfigResource;
 import org.apache.kafka.common.config.TopicConfig;
+import org.apache.kafka.common.errors.TopicExistsException;
 import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
 import org.eclipse.microprofile.faulttolerance.Retry;
 import org.slf4j.Logger;
@@ -110,9 +111,22 @@ public class KafkaAdminUtil {
 
                                 })
                                 .thenCompose(newTopic -> toJavaFuture(adminClient.get().get().createTopics(List.of(newTopic)).all()))
-                                .thenApply(_ignored -> true);
+                                .thenApply(_ignored -> true)
+                                // Another replica may have created the topic after we listed the topics.
+                                .exceptionallyCompose(ex -> isTopicExists(ex)
+                                        ? CompletableFuture.completedFuture(false)
+                                        : CompletableFuture.failedFuture(ex));
                     }
                 });
+    }
+
+    private static boolean isTopicExists(Throwable ex) {
+        for (var cause = ex; cause != null; cause = cause.getCause()) {
+            if (cause instanceof TopicExistsException) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

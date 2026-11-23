@@ -12,8 +12,8 @@ import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_MCP
 @Singleton
 public class McpToolsConfig {
 
-    @ConfigProperty(name = "apicurio.mcp-tools.enabled", defaultValue = "false")
-    @Info(category = CATEGORY_MCP, description = "Enable MCP tool definition discovery endpoints", availableSince = "3.0.0", experimental = true)
+    @ConfigProperty(name = "apicurio.mcp-tools.enabled")
+    @Info(category = CATEGORY_MCP, description = "Enable MCP tool definition discovery endpoints. Defaults to apicurio.agents.enabled", dependsOn = "apicurio.agents.enabled", availableSince = "3.0.0", experimental = true)
     boolean enabled;
 
     public boolean isEnabled() {

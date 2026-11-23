@@ -3,8 +3,8 @@
 - **Status:** Accepted (documents the current implementation).
 - **Decision date:** 2026-11-09.
 - **Author:** Apicurio Registry maintainers.
-- **Tracking:** [#11000](https://github.com/Apicurio/apicurio-registry/issues/11000),
-  [#11001](https://github.com/Apicurio/apicurio-registry/issues/11001).
+- **Tracking:** [#11000](https://github.com/Apicurio/apicurio-registry/issues/11000) and
+  [#11001](https://github.com/Apicurio/apicurio-registry/issues/11001) (both fixed).
 - **Scope:** The content rules (validity, compatibility, integrity) that the registry applies when
   content is written: rule types and levels, which rule applies, when rules run, which versions are
   compared, and the error contract. Not covered: contract rulesets (CEL/JSONata, see
@@ -80,6 +80,10 @@ iterates over the rule types and, for each, takes the first configuration found:
 | 3 | Global rule | Stored, managed through `/admin/rules` |
 | 4 | Default global rule | `apicurio.rules.global.<type>`; listed by `GET /admin/rules` and overridable there, but cannot be deleted through the API (409) |
 
+Creating or updating a global, group or artifact rule through the v2 or v3 API checks the config against
+the levels of the rule type and returns 400 if it is not one of them
+(`ParameterValidationUtils.validateRuleConfig`).
+
 The rule is then executed by the executor for its type
 ([`RuleExecutorFactory`](../app/src/main/java/io/apicurio/registry/rules/RuleExecutorFactory.java)).
 
@@ -112,7 +116,11 @@ which most types extend, defines the levels once:
 - no existing content always passes.
 
 The existing contents come from `getEnabledArtifactContentIds`: every version **except `DISABLED`**,
-ordered by version order, so `DEPRECATED` and `DRAFT` versions are included (see limitation 2).
+ordered by version order, so `DEPRECATED` and `DRAFT` versions are included. When a new version
+is created in a data contract compatibility group ([ADR-0002](0002-odcs-native-data-contracts.md)),
+only the versions created in that group are compared. Publishing a draft excludes only the draft's
+own content, so it is never compared with itself, but it is compared with every other enabled version
+of the artifact: other drafts, and versions of other compatibility groups, can make it fail.
 
 Checkers are registered per type in
 [`StandardArtifactTypeProviderRegistry`](../schema-util/util-provider/src/main/java/io/apicurio/registry/types/provider/StandardArtifactTypeProviderRegistry.java):
@@ -178,20 +186,14 @@ API writes; they apply rules when they load data, with different version selecti
 
 ## Limitations and open work
 
-1. **Rule configs are not validated when saved** in the core API: an invalid level is stored, and
-   every later write to the affected artifacts fails with 500
-   ([#11000](https://github.com/Apicurio/apicurio-registry/issues/11000)).
-2. **Publishing a draft compares it with itself** under non-transitive levels, because drafts are
-   included in the compared versions; transitive levels catch the problem
-   ([#11001](https://github.com/Apicurio/apicurio-registry/issues/11001)).
-3. **No effective-rules view:** the API returns the rules of one scope; clients compute the
+1. **No effective-rules view:** the API returns the rules of one scope; clients compute the
    effective set themselves.
-4. **Imported data is not checked**, and changing a rule never revalidates stored versions.
-5. **GitOps and KubernetesOps select versions differently** from API writes: all preceding versions
+2. **Imported data is not checked**, and changing a rule never revalidates stored versions.
+3. **GitOps and KubernetesOps select versions differently** from API writes: all preceding versions
    regardless of state, and by default only the last version is checked.
-6. **Types without a compatibility checker** accept any change under every compatibility level,
+4. **Types without a compatibility checker** accept any change under every compatibility level,
    without telling the client.
-7. **The OpenAPI description still documents 409** in some shared examples, although 400 is the
+5. **The OpenAPI description still documents 409** in some shared examples, although 400 is the
    default since 3.3.0.
 
 ## Alternatives
@@ -209,7 +211,7 @@ API writes; they apply rules when they load data, with different version selecti
 - **Benefits:** one engine for every artifact type and API; scoped, independent overrides; a
   structured, machine-readable error; rules that cost nothing on reads.
 - **Costs:** the effective rule set is spread over up to four places; per-type semantics live in many
-  checkers of uneven depth; the two open issues above.
+  checkers of uneven depth.
 
 ## Example and verification
 
@@ -243,3 +245,5 @@ API writes; they apply rules when they load data, with different version selecti
 |---|---|
 | 3.3.0 | Rule violations return 400 instead of 409 by default (`apicurio.rest.legacy-error-codes.enabled` restores 409) |
 | This ADR | First written record of the rules engine, with a verified example |
+| [#11175](https://github.com/Apicurio/apicurio-registry/pull/11175), [#11176](https://github.com/Apicurio/apicurio-registry/pull/11176) | Fixed: publishing a draft no longer compares it with itself (#11001); the v3 API rejects an invalid rule config with 400 instead of storing it (#11000); compatibility rules honour data contract compatibility groups (#10969) |
+| [#11319](https://github.com/Apicurio/apicurio-registry/pull/11319) | Fixed: the v2 API rejects invalid rule configs with 400, like v3 (#11307) |

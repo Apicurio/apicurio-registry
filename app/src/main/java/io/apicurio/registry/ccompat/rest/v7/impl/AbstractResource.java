@@ -98,6 +98,27 @@ public abstract class AbstractResource {
         return toSubjectWithGroupConcat(dto.getGroupId(), dto.getArtifactId());
     }
 
+    /**
+     * Returns the format to apply to a schema. If the client did not provide a format and
+     * {@code apicurio.rest.artifact.references.default-handling} is set to DEREFERENCE, Avro and
+     * JSON Schema default to the "resolved" format so that references are inlined. Protobuf has no
+     * "resolved" format, so it is returned as stored rather than failing on a format the client
+     * never asked for.
+     */
+    protected String resolveEffectiveFormat(String format, String artifactType) {
+        if (format != null && !format.isBlank()) {
+            return format;
+        }
+        boolean dereference = restConfig.getDefaultReferenceHandling()
+                .map(String::trim)
+                .filter("DEREFERENCE"::equalsIgnoreCase)
+                .isPresent();
+        if (dereference && (ArtifactType.AVRO.equals(artifactType) || ArtifactType.JSON.equals(artifactType))) {
+            return SchemaFormatService.FORMAT_RESOLVED;
+        }
+        return format;
+    }
+
     private Pair<String, String> toGAFromGroupConcatSubject(String subject) {
         int sepIdx = subject.indexOf(cconfig.groupConcatSeparator);
         if (sepIdx < 1) {
@@ -168,8 +189,8 @@ public abstract class AbstractResource {
                 // Registering a new subject creates an artifact: as with the core API, this needs
                 // write access to the group as well as to the artifact (checked by the interceptor)
                 accessGuard.requireGrantsAccess(AuthorizedLevel.Write, AuthorizedResource.group(groupId));
-                // Apply rules using the potentially converted text content
-                rulesService.applyRules(groupId, artifactId, artifactType, contentForRules,
+                // Apply rules using the potentially converted text content; the first version is stored as "1"
+                rulesService.applyRulesForNewVersion(groupId, artifactId, "1", artifactType, contentForRules,
                         RuleApplicationType.CREATE, artifactReferences, resolvedReferences);
 
                 EditableArtifactMetaDataDto artifactMetaData = EditableArtifactMetaDataDto.builder().build();

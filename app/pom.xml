@@ -880,6 +880,11 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-resources-plugin</artifactId>
+        <configuration>
+          <!-- Lets filtered resources keep an expression for runtime: \${java.io.tmpdir} is copied
+               as ${java.io.tmpdir} instead of the build machine's value. -->
+          <escapeString>\</escapeString>
+        </configuration>
         <executions>
             <!-- Copy the v3 OpenAPI spec from common module to output directory.
                  This replaces the maven-dependency-plugin unpack execution which fails during the build

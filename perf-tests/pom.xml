@@ -63,6 +63,11 @@
       <version>${kafka-clients.version}</version>
     </dependency>
     <dependency>
+      <!-- JSON for the MCP server stub the agent scale baseline imports from (#11093) -->
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
       <version>${slf4j.version}</version>

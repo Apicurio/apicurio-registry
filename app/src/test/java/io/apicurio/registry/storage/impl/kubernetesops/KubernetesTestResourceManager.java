@@ -39,6 +39,15 @@ public class KubernetesTestResourceManager implements QuarkusTestResourceLifecyc
     @Getter
     private static KubernetesClient client;
 
+    private String quietPeriod = "PT0S";
+    private String maxWaitPeriod = "PT0S";
+
+    @Override
+    public void init(Map<String, String> initArgs) {
+        quietPeriod = initArgs.getOrDefault("quiet-period", quietPeriod);
+        maxWaitPeriod = initArgs.getOrDefault("max-wait-period", maxWaitPeriod);
+    }
+
     @Override
     public Map<String, String> start() {
         kubernetesServerTestResource = new KubernetesServerTestResource();
@@ -48,8 +57,8 @@ public class KubernetesTestResourceManager implements QuarkusTestResourceLifecyc
         result.put("apicurio.polling-storage.id", REGISTRY_ID);
         result.put("apicurio.kubernetesops.namespace", NAMESPACE);
         result.put("apicurio.polling-storage.poll-period", "PT1S");
-        result.put("apicurio.polling-storage.debounce.quiet-period", "PT0S");
-        result.put("apicurio.polling-storage.debounce.max-wait-period", "PT0S");
+        result.put("apicurio.polling-storage.debounce.quiet-period", quietPeriod);
+        result.put("apicurio.polling-storage.debounce.max-wait-period", maxWaitPeriod);
 
         return result;
     }

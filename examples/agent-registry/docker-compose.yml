@@ -52,14 +52,11 @@ services:
     image: ${REGISTRY_IMAGE:-quay.io/apicurio/apicurio-registry:latest-snapshot}
     environment: &agent-features
       APICURIO_FEATURES_EXPERIMENTAL_ENABLED: "true"
-      APICURIO_A2A_ENABLED: "true"
-      APICURIO_A2A_AGENT_NAME: "Apicurio Registry (agent registry demo)"
+      # All the agent discovery features: A2A, MCP tools, the MCP Registry API, the AI Catalog,
+      # ARD and the web console's Agents tab
+      APICURIO_AGENTS_ENABLED: "true"
+      APICURIO_INSTANCE_NAME: "Apicurio Registry (agent registry demo)"
       APICURIO_A2A_OPENAPI_INTEGRATION_ENABLED: "true"
-      APICURIO_AI_CATALOG_ENABLED: "true"
-      APICURIO_ARD_ENABLED: "true"
-      APICURIO_MCP_TOOLS_ENABLED: "true"
-      APICURIO_MCP_REGISTRY_ENABLED: "true"
-      APICURIO_UI_FEATURES_AGENTS_ENABLED: "true"
       # Importing tools from a live MCP server: only the demo's weather server may be reached,
       # over plain HTTP inside the compose network. localhost and the cloud metadata address are
       # listed only to show that they are refused anyway (loopback, link-local, metadata)
@@ -169,7 +166,7 @@ services:
         condition: service_healthy
 
   # ---------------------------------------------------------------- Quarkus LangChain4j apps
-  # Built from the Quarkus LangChain4j 1.15.0 sample (see apps/Dockerfile). They use the open
+  # Built from the Quarkus LangChain4j sample (see apps/Dockerfile). They use the open
   # Registry, and Ollama on the host.
   weather-server:
     image: agent-registry-demo-apps:dev

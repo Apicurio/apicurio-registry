@@ -45,6 +45,13 @@ jobs:
         working-directory: python-sdk
         run: make lint-check
 
+      # PyPI rejects platform-tagged wheels; check the release build produces a pure one
+      - name: Build and verify the wheel
+        working-directory: python-sdk
+        run: |
+          make build
+          make verify-wheel
+
       - uses: apicurio/apicurio-github-actions/load-docker-image@bd19cbe33797325a571cd7ffd58f639b62e128a2 # v2
         with:
           artifact-name: 'apicurio-registry-${{ inputs.image-tag }}.tar'
@@ -78,7 +85,7 @@ jobs:
           cache: 'maven'
 
       - name: Go - Setup Go
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7
         with:
           go-version: '1.27.4'
 

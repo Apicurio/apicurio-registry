@@ -6,7 +6,7 @@
 - **Tracking:** [#6086](https://github.com/Apicurio/apicurio-registry/pull/6086),
   [#7910](https://github.com/Apicurio/apicurio-registry/pull/7910),
   [#11151](https://github.com/Apicurio/apicurio-registry/issues/11151),
-  [#11152](https://github.com/Apicurio/apicurio-registry/issues/11152).
+  [#11152](https://github.com/Apicurio/apicurio-registry/issues/11152) (fixed).
 - **Scope:** How the set of artifact types is configured, and how a type's behaviour (detection,
   validation, compatibility, canonicalization, references, dereferencing) is provided: Java classes
   or webhooks. Not covered: the rules engine that calls the providers
@@ -95,7 +95,7 @@ Providers can be mixed within a type.
 |---|---|
 | Configuration file malformed | Logged; the registry starts with the built-in types only |
 | Java class not found or not instantiable | Providers are created when an operation needs them, so the registry starts, and the first request that uses the provider fails |
-| Webhook unreachable or failing | Logged; the validator, accepter, canonicalizer and dereferencer fall back silently (no violations, not accepted, content unchanged); the compatibility checker reports an incompatibility; the reference finder fails the request ([#11152](https://github.com/Apicurio/apicurio-registry/issues/11152)) |
+| Webhook unreachable or failing | Fails closed; the cause is logged, not sent to the client. The validator rejects the change (`VALIDITY` violation); the compatibility checker reports an incompatibility with a generic message; the canonicalizer, reference finder and dereferencer fail the request with 502 (`ArtifactTypeWebhookException`); the accepter does not accept the content |
 
 ## Configuration
 
@@ -103,7 +103,12 @@ Providers can be mixed within a type.
 |---|---|---|
 | `apicurio.artifact-types.config-file` | `/tmp/apicurio-registry-artifact-types.json` | The artifact types configuration |
 
-Webhook calls use the registry's HTTP client (`HttpClientService`), with a 10-second timeout.
+| `apicurio.artifact-types.webhooks.connect-timeout.seconds` | `5` | Connect timeout of a webhook call |
+| `apicurio.artifact-types.webhooks.read-timeout.seconds` | `10` | Read timeout of a webhook call |
+
+Webhook calls use their own web client (`HttpClientService`, `WebClientProducer`). Failed calls are
+retried, up to 10 seconds per call (`@Timeout`), so an unreachable webhook fails a request after
+about 10 seconds.
 
 ## Source map
 
@@ -120,13 +125,10 @@ Webhook calls use the registry's HTTP client (`HttpClientService`), with a 10-se
 
 1. Webhook `headers` are not sent, and the ContentAccepter webhook reads a bare boolean instead of
    the contract's `{"accepted": ...}` ([#11151](https://github.com/Apicurio/apicurio-registry/issues/11151)).
-2. An unreachable webhook lets invalid content through the `VALIDITY` rule, the compatibility error
-   exposes the exception, and each request waits about a minute
-   ([#11152](https://github.com/Apicurio/apicurio-registry/issues/11152)).
-3. A malformed configuration file is only logged, and the custom types are silently missing.
-4. A provider jar must be compiled against the same registry minor version, and the derived image
+2. A malformed configuration file is only logged, and the custom types are silently missing.
+3. A provider jar must be compiled against the same registry minor version, and the derived image
    rebuilt for each registry upgrade.
-5. Custom types have no UI-specific support (icon, editor).
+4. Custom types have no UI-specific support (icon, editor).
 
 ## Alternatives
 
@@ -167,3 +169,4 @@ Webhook calls use the registry's HTTP client (`HttpClientService`), with a 10-se
 | 3.1 ([#6086](https://github.com/Apicurio/apicurio-registry/pull/6086)) | Configured artifact types: Java, webhook and script providers |
 | [#7910](https://github.com/Apicurio/apicurio-registry/pull/7910) | Script providers removed |
 | This ADR | First written record, with a verified example |
+| [#11176](https://github.com/Apicurio/apicurio-registry/pull/11176) | Fixed: an unreachable webhook fails closed with a generic message after about 10 seconds, instead of letting content through `VALIDITY` or exposing exception text; webhook connect and read timeouts are configurable (#11152) |

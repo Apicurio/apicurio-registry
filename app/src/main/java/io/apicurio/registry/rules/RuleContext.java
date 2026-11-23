@@ -34,4 +34,17 @@ public class RuleContext {
      * When null, rule executors fall back to their injected default storage.
      */
     private final RegistryStorage storage;
+
+    /**
+     * The version being created, if its id is known before the rules run (it may still be generated
+     * by the storage, in which case this is null).
+     */
+    private final String version;
+
+    public RuleContext(String groupId, String artifactId, String artifactType, String configuration,
+            List<TypedContent> currentContent, TypedContent updatedContent, List<ArtifactReference> references,
+            Map<String, TypedContent> resolvedReferences, RegistryStorage storage) {
+        this(groupId, artifactId, artifactType, configuration, currentContent, updatedContent, references,
+                resolvedReferences, storage, null);
+    }
 }

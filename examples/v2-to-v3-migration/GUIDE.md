@@ -105,8 +105,9 @@ is imported as is.
 - but **no globalId matches 2.6's**: a Kafka message serialized against 2.6 would now resolve to the
   wrong schema, or none. Renumber only to merge registries whose messages you do not need to read.
 
-Known issue: if the target already holds the same content as the export, the renumbered import links
-versions to the wrong content ([#11115](https://github.com/Apicurio/apicurio-registry/issues/11115)).
+If the target already holds the same content as the export, the renumbered import reuses it. An
+entity that cannot be imported is skipped and logged at WARN with its identifiers; the import still
+returns 204, so check the log.
 
 ## Step 6: Backup and restore within 3.x
 

@@ -66,4 +66,9 @@ public class VertXAuthFactory {
                 "Basic " + usernameAndPassword);
     }
 
+    public static WebClient buildBearerAuthWebClient(Vertx vertx, WebClientOptions options, String accessToken) {
+        WebClient webClient = options != null ? WebClient.create(vertx, options) : WebClient.create(vertx);
+        return WebClientSession.create(webClient).addHeader("Authorization", "Bearer " + accessToken);
+    }
+
 }

@@ -10,7 +10,6 @@ import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.auth.ResourceAccessGuard;
 import io.apicurio.registry.auth.RoleBasedAccessApiOperation;
-import io.apicurio.registry.config.ExperimentalFeaturesConfig;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.federation.FederationConfig;
 import io.apicurio.registry.federation.PeerAddressPolicy;
@@ -19,6 +18,7 @@ import io.apicurio.registry.logging.audit.Audited;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.ConflictException;
+import io.apicurio.registry.rest.DynamicConfigPropertyValidator;
 import io.apicurio.registry.rest.MethodMetadata;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.ParameterValidationUtils;
@@ -67,7 +67,6 @@ import io.apicurio.registry.storage.dto.DeprecationReadinessDto;
 import io.apicurio.registry.storage.dto.SchemaUsageSummaryDto;
 import io.apicurio.registry.storage.dto.UsageSummaryCountsDto;
 import io.apicurio.registry.storage.error.ConfigPropertyNotFoundException;
-import io.apicurio.registry.storage.error.InvalidPropertyValueException;
 import io.apicurio.registry.storage.error.RuleNotFoundException;
 import io.apicurio.registry.storage.impl.gitops.GitOpsConfig;
 import io.apicurio.registry.storage.impl.gitops.GitOpsRegistryStorage;
@@ -136,7 +135,6 @@ import static io.apicurio.registry.utils.DtoUtil.registryAuthPropertyToApp;
 public class AdminResourceImpl implements AdminResource {
 
     private static final String TELEMETRY_NOT_ENABLED = "Usage telemetry is not enabled on this registry instance.";
-    private static final String FEDERATION_NOT_ENABLED = "Federation is not enabled on this registry instance.";
     private static final String PARAM_GROUP_ID = "groupId";
     private static final String PARAM_ARTIFACT_ID = "artifactId";
 
@@ -157,9 +155,6 @@ public class AdminResourceImpl implements AdminResource {
     DynamicConfigPropertyIndex dynamicPropertyIndex;
 
     @Inject
-    ExperimentalFeaturesConfig experimentalFeatures;
-
-    @Inject
     ArtifactTypeUtilProviderFactory factory;
 
     @Inject
@@ -172,7 +167,7 @@ public class AdminResourceImpl implements AdminResource {
     ImportExportConfigProperties importExportProps;
 
     @Inject
-    io.apicurio.registry.services.LogLevelValidator logLevelValidator;
+    DynamicConfigPropertyValidator configPropertyValidator;
 
     @Inject
     Instance<GitOpsRegistryStorage> gitOpsStorage;
@@ -251,6 +246,7 @@ public class AdminResourceImpl implements AdminResource {
         if (data.getConfig() == null || data.getConfig().trim().isEmpty()) {
             throw new MissingRequiredParameterException("config");
         }
+        ParameterValidationUtils.validateRuleConfig(data.getRuleType(), data.getConfig());
 
         RuleConfigurationDto configDto = new RuleConfigurationDto();
         configDto.setConfiguration(data.getConfig());
@@ -301,6 +297,7 @@ public class AdminResourceImpl implements AdminResource {
         if (data.getConfig() == null || data.getConfig().trim().isEmpty()) {
             throw new MissingRequiredParameterException("config");
         }
+        ParameterValidationUtils.validateRuleConfig(ruleType, data.getConfig());
 
         RuleConfigurationDto configDto = new RuleConfigurationDto();
         configDto.setConfiguration(data.getConfig());
@@ -556,7 +553,7 @@ public class AdminResourceImpl implements AdminResource {
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public PeerSearchResults listPeers(BigInteger limit, BigInteger offset) {
-        requireFederationEnabled();
+        federationConfig.requireEnabled();
         return V3ApiUtil.dtoToPeerSearchResults(storage.searchPeers(
                 ParameterValidationUtils.normalizeOffset(offset), ParameterValidationUtils.normalizeLimit(limit)));
     }
@@ -569,7 +566,7 @@ public class AdminResourceImpl implements AdminResource {
     @Audited
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public void createPeer(NewPeer data) {
-        requireFederationEnabled();
+        federationConfig.requireEnabled();
         PeerDto peer = PeerDto.builder().peerId(data.getPeerId()).url(data.getUrl()).name(data.getName())
                 .description(data.getDescription()).enabled(data.getEnabled() == null || data.getEnabled())
                 .credentialSecretRef(data.getCredentialSecretRef()).build();
@@ -583,7 +580,7 @@ public class AdminResourceImpl implements AdminResource {
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public Peer getPeer(String peerId) {
-        requireFederationEnabled();
+        federationConfig.requireEnabled();
         PeerValidator.validatePeerId(peerId);
         return V3ApiUtil.dtoToPeer(storage.getPeer(peerId));
     }
@@ -597,7 +594,7 @@ public class AdminResourceImpl implements AdminResource {
     @Audited
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public void updatePeer(String peerId, UpdatePeer data) {
-        requireFederationEnabled();
+        federationConfig.requireEnabled();
         ParameterValidationUtils.requireParameter("enabled", data.getEnabled());
         PeerDto peer = PeerDto.builder().peerId(peerId).url(data.getUrl()).name(data.getName())
                 .description(data.getDescription()).enabled(data.getEnabled())
@@ -614,15 +611,9 @@ public class AdminResourceImpl implements AdminResource {
     @Audited
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public void deletePeer(String peerId) {
-        requireFederationEnabled();
+        federationConfig.requireEnabled();
         PeerValidator.validatePeerId(peerId);
         storage.deletePeer(peerId);
-    }
-
-    private void requireFederationEnabled() {
-        if (!federationConfig.isEnabled()) {
-            throw new ConflictException(FEDERATION_NOT_ENABLED);
-        }
     }
 
     /**
@@ -632,6 +623,26 @@ public class AdminResourceImpl implements AdminResource {
     private void validatePeer(PeerDto peer) {
         PeerValidator.validate(peer);
         peerAddressPolicy.validateUrl(peer.getUrl());
+        requireRoomToEnable(peer);
+    }
+
+    /**
+     * A federated search queries at most max-peers peers, so enabling more is refused here. This is
+     * a check for the administrator's sake and not a guarantee: two concurrent writes can both pass
+     * it, and a lowered setting or peers loaded declaratively are not checked here at all. A search
+     * copes with more enabled peers than it queries by searching the first ones in peer id order
+     * and reporting the rest.
+     */
+    private void requireRoomToEnable(PeerDto peer) {
+        if (!peer.isEnabled()) {
+            return;
+        }
+        long otherEnabled = storage.getPeers().stream()
+                .filter(other -> other.isEnabled() && !other.getPeerId().equals(peer.getPeerId())).count();
+        if (otherEnabled >= federationConfig.getSearchMaxPeers()) {
+            throw new ConflictException("At most " + federationConfig.getSearchMaxPeers()
+                    + " peers can be enabled. Disable or delete a peer first.");
+        }
     }
 
     /**
@@ -685,11 +696,7 @@ public class AdminResourceImpl implements AdminResource {
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public void updateConfigProperty(String propertyName, UpdateConfigurationProperty data) {
         DynamicConfigPropertyDef propertyDef = resolveConfigProperty(propertyName);
-        validateConfigPropertyValue(propertyDef, data.getValue());
-        if (Boolean.parseBoolean(data.getValue()) && !experimentalFeatures.canEnable(propertyDef.getName())) {
-            throw new ConflictException("'" + propertyDef.getName() + "' is an experimental feature. Enable "
-                    + "'apicurio.features.experimental.enabled' to use it.");
-        }
+        configPropertyValidator.validate(propertyDef, data.getValue());
 
         DynamicConfigPropertyDto dto = new DynamicConfigPropertyDto();
         dto.setName(propertyName);
@@ -752,30 +759,6 @@ public class AdminResourceImpl implements AdminResource {
             throw new ConfigPropertyNotFoundException(propertyName);
         }
         return property;
-    }
-
-    /**
-     * Ensure that the value being set on the given property is value for the property type. For example, this
-     * should fail
-     *
-     * @param propertyDef the dynamic config property definition
-     * @param value the config property value
-     */
-    private void validateConfigPropertyValue(DynamicConfigPropertyDef propertyDef, String value) {
-        // Custom validation for log level property
-        if ("apicurio.log.level".equals(propertyDef.getName())) {
-            if (!logLevelValidator.isValidLogLevel(value)) {
-                throw new InvalidPropertyValueException(
-                        "Invalid log level value: " + value + ". Must be one of: TRACE, DEBUG, INFO, WARN, ERROR, OFF, ALL");
-            }
-            return;
-        }
-
-        // Default validation for other properties
-        if (!propertyDef.isValidValue(value)) {
-            throw new InvalidPropertyValueException(
-                    "Invalid dynamic configuration property value for: " + propertyDef.getName());
-        }
     }
 
     /**
@@ -998,6 +981,7 @@ public class AdminResourceImpl implements AdminResource {
                 .toList();
 
         Map<String, ConsumerVersionEntry> consumerMap = new HashMap<>();
+        Map<String, Integer> maxVersionOrderByClient = new HashMap<>();
         for (ConsumerVersionEntryDto dto : entries) {
             ConsumerVersionEntry entry = consumerMap.computeIfAbsent(dto.getClientId(), k -> {
                 ConsumerVersionEntry e = new ConsumerVersionEntry();
@@ -1006,13 +990,11 @@ public class AdminResourceImpl implements AdminResource {
                 return e;
             });
             entry.getVersions().setAdditionalProperty(dto.getVersion(), dto.getFetchCount());
+            maxVersionOrderByClient.merge(dto.getClientId(), dto.getVersionOrder(), Math::max);
         }
 
         for (ConsumerVersionEntry entry : consumerMap.values()) {
-            int clientMaxOrder = entries.stream()
-                    .filter(e -> e.getClientId().equals(entry.getClientId()))
-                    .mapToInt(ConsumerVersionEntryDto::getVersionOrder)
-                    .max().orElse(0);
+            int clientMaxOrder = maxVersionOrderByClient.get(entry.getClientId());
             int behind = maxVersionOrder - clientMaxOrder;
             entry.setVersionsBehind(behind);
             entry.setDriftAlert(behind >= usageTelemetryConfig.getDriftAlertThreshold());

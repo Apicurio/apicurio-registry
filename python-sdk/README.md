@@ -28,6 +28,14 @@ This package is built with [Poetry](https://python-poetry.org/) make sure it's a
 make install
 ```
 
+`make install` (and `make build`) first runs `make generate`, which runs `kiota-gen.py` to generate the
+client into `apicurioregistrysdk/client`. Generation is skipped when the client already exists;
+run `make clean` to regenerate it. To build the wheel and sdist into `dist/`:
+
+```
+make build
+```
+
 ## Test
 
 ```

@@ -1,6 +1,8 @@
 package io.apicurio.registry.agents.aicatalog;
 
 import io.apicurio.common.apps.config.Info;
+import io.apicurio.registry.config.InstanceConfig;
+import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
@@ -14,21 +16,24 @@ import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_AIC
 @Singleton
 public class AiCatalogConfig {
 
-    @ConfigProperty(name = "apicurio.ai-catalog.enabled", defaultValue = "false")
-    @Info(category = CATEGORY_AICATALOG, description = "Enable the AI Catalog well-known discovery endpoint", availableSince = "3.3.3", experimental = true)
+    /** The AI Catalog specification version the catalog document implements. */
+    public static final String SPEC_VERSION = "1.0";
+
+    @ConfigProperty(name = "apicurio.ai-catalog.enabled")
+    @Info(category = CATEGORY_AICATALOG, description = "Enable the AI Catalog well-known discovery endpoint. Defaults to apicurio.agents.enabled", dependsOn = "apicurio.agents.enabled", availableSince = "3.3.3", experimental = true)
     boolean enabled;
 
     @ConfigProperty(name = "apicurio.ai-catalog.publisher-domain")
     @Info(category = CATEGORY_AICATALOG, description = "The publisher domain segment used when building 'urn:air:' identifiers for AI Catalog entries. When not configured, the domain is derived from the incoming request's host and port.", availableSince = "3.3.3")
     Optional<String> publisherDomain;
 
-    @ConfigProperty(name = "apicurio.ai-catalog.host-name", defaultValue = "Apicurio Registry")
-    @Info(category = CATEGORY_AICATALOG, description = "Display name for this registry instance, reported as the AI Catalog host", availableSince = "3.3.3")
-    String hostName;
+    @ConfigProperty(name = "apicurio.ai-catalog.host-name")
+    @Info(category = CATEGORY_AICATALOG, description = "Deprecated since 3.4.0, use apicurio.instance.name, which takes precedence. Display name for this registry instance, reported as the AI Catalog host", availableSince = "3.3.3")
+    Optional<String> hostName;
 
-    @ConfigProperty(name = "apicurio.ai-catalog.spec-version", defaultValue = "1.0")
-    @Info(category = CATEGORY_AICATALOG, description = "The AI Catalog specification version reported in the catalog document", availableSince = "3.3.3")
-    String specVersion;
+    @Inject
+    InstanceConfig instance;
+
 
     public boolean isEnabled() {
         return enabled;
@@ -39,10 +44,7 @@ public class AiCatalogConfig {
     }
 
     public String getHostName() {
-        return hostName;
+        return instance.nameOr(hostName);
     }
 
-    public String getSpecVersion() {
-        return specVersion;
-    }
 }

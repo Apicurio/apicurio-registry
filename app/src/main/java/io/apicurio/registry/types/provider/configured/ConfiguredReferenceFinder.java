@@ -5,7 +5,6 @@ import io.apicurio.registry.config.artifactTypes.JavaClassProvider;
 import io.apicurio.registry.config.artifactTypes.WebhookProvider;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.refs.ExternalReference;
-import io.apicurio.registry.content.refs.ReferenceFinderException;
 import io.apicurio.registry.content.refs.ReferenceFinder;
 import io.apicurio.registry.http.HttpClientService;
 import io.apicurio.registry.types.webhooks.beans.ReferenceFinderRequest;
@@ -59,7 +58,8 @@ public class ConfiguredReferenceFinder extends AbstractConfiguredArtifactTypeUti
                 ReferenceFinderResponse responseBody = invokeHook(requestBody, ReferenceFinderResponse.class);
                 return WebhookBeanUtil.externalReferencesFromWebhookBean(responseBody.getExternalReferences());
             } catch (Throwable e) {
-                throw new ReferenceFinderException("Error invoking webhook for reference finder.", e);
+                log.error("Error invoking webhook", e);
+                throw new ArtifactTypeWebhookException("Reference Finder", artifactType.getArtifactType());
             }
         }
     }

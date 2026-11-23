@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBase {
 
@@ -146,6 +147,53 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         List<String> versions = storage().getArtifactVersions(GROUP_ID, artifactId);
         Assertions.assertNotNull(versions);
         Assertions.assertEquals("1", versions.iterator().next());
+    }
+
+    /**
+     * The version and artifact read together for authorization match what each read returns on its
+     * own, and the batch read returns the artifacts that exist.
+     */
+    @Test
+    public void testVersionWithArtifactMetaDataAndBatchArtifactMetaData() throws Exception {
+        String artifactId = "testVersionWithArtifactMetaData-1";
+        ContentWrapperDto content = ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON)
+                .content(ContentHandle.create(OPENAPI_CONTENT)).build();
+        ArtifactVersionMetaDataDto created = storage().createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI,
+                EditableArtifactMetaDataDto.builder().name("The artifact").description("Artifact description")
+                        .labels(Map.of("team", "a")).build(),
+                null, content, EditableVersionMetaDataDto.builder().name("The version").build(),
+                Collections.emptyList(), false, false, null).getValue();
+        storage().createArtifact(GROUP_ID, artifactId + "-other", ArtifactType.OPENAPI, null, null, content, null,
+                Collections.emptyList(), false, false, null);
+
+        VersionWithArtifactMetaDataDto read = storage().getArtifactVersionWithArtifactMetaData(created.getGlobalId());
+        ArtifactVersionMetaDataDto version = storage().getArtifactVersionMetaData(created.getGlobalId());
+        ArtifactMetaDataDto artifact = storage().getArtifactMetaData(GROUP_ID, artifactId);
+        Assertions.assertEquals(version, read.version());
+        Assertions.assertEquals(artifact, read.artifact());
+        Assertions.assertEquals("The version", read.version().getName());
+        Assertions.assertEquals("The artifact", read.artifact().getName());
+        Assertions.assertEquals(Map.of("team", "a"), read.artifact().getLabels());
+        Assertions.assertThrows(VersionNotFoundException.class,
+                () -> storage().getArtifactVersionWithArtifactMetaData(Long.MAX_VALUE));
+
+        List<ArtifactMetaDataDto> batch = storage().getArtifactsMetaData(List.of(new GA(GROUP_ID, artifactId),
+                new GA(GROUP_ID, artifactId + "-other"), new GA(GROUP_ID, artifactId + "-missing"),
+                new GA(GROUP_ID, artifactId)));
+        Assertions.assertEquals(Set.of(artifactId, artifactId + "-other"),
+                batch.stream().map(ArtifactMetaDataDto::getArtifactId).collect(Collectors.toSet()));
+        Assertions.assertEquals(2, batch.size());
+        Assertions.assertTrue(batch.contains(artifact));
+        Assertions.assertEquals(List.of(), storage().getArtifactsMetaData(List.of()));
+
+        // More artifacts than one query binds: read in several queries
+        List<GA> many = new ArrayList<>();
+        for (int i = 0; i < 450; i++) {
+            many.add(new GA(GROUP_ID, artifactId + "-missing-" + i));
+        }
+        many.add(new GA(GROUP_ID, artifactId + "-other"));
+        Assertions.assertEquals(List.of(artifactId + "-other"),
+                storage().getArtifactsMetaData(many).stream().map(ArtifactMetaDataDto::getArtifactId).toList());
     }
 
     @Test

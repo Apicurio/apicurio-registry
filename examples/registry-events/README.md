@@ -42,8 +42,6 @@ ends with `All checks passed.`.
 
 ## Notes
 
-- **Known issue:** on SQL storage, `ARTIFACT_VERSION_CREATED` comes before `ARTIFACT_CREATED` when an
-  artifact is created with its first version ([#11097](https://github.com/Apicurio/apicurio-registry/issues/11097)).
 - Events are produced by PostgreSQL and SQL Server (SQL storage) and by KafkaSQL; not by H2, MySQL,
   GitOps or KubernetesOps.
 - **Local only:** default passwords, no TLS, single-node Kafka.

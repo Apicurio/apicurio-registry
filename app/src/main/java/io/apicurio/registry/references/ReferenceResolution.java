@@ -51,6 +51,7 @@ public final class ReferenceResolution {
     public static Map<String, TypedContent> recursivelyResolveReferences(List<ArtifactReferenceDto> references,
             Function<ArtifactReferenceDto, ContentWrapperDto> loader) {
         ReferenceLoader batchLoader = coordinates -> {
+            // The whole level at once, before loading any of it: one authorizer call per level
             AuthorizingReferenceLoader.authorizeAll(loader,
                     coordinates.stream().map(ReferenceResolution::toReference).toList());
             Map<GAV, ReferenceNode> loaded = new LinkedHashMap<>();
@@ -59,6 +60,7 @@ public final class ReferenceResolution {
                 if (content != null) {
                     loaded.put(coordinate,
                             ReferenceNode.builder().coordinates(coordinate)
+                                    // Content type, not artifact type: regression test for #10428.
                                     .content(TypedContent.create(content.getContent(), content.getContentType()))
                                     .artifactType(content.getArtifactType())
                                     .references(content.getReferences()).build());

@@ -121,8 +121,7 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
                         .entityId(globalId)
                         .references(references)
                         .referenceTreeContentIds(() -> recursivelyResolveReferenceContentIds(artifactCell.get(),
-                                ref -> storage.getArtifactVersionContent(ref.getGroupId(), ref.getArtifactId(), ref.getVersion())
-                        ))
+                                this::loadReferencedVersion))
                         .returnArtifactType(returnArtifactType)
                         .build()
         ).prepare();
@@ -196,8 +195,7 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
                 // PRESERVE (explicit or by default) returns the same bytes, so it keeps the ETag it always had.
                 .references(preserve ? null : references)
                 .referenceTreeContentIds(() -> recursivelyResolveReferenceContentIds(dto.getReferences(),
-                        ref -> storage.getArtifactVersionContent(ref.getGroupId(), ref.getArtifactId(),
-                                ref.getVersion())))
+                        this::loadReferencedVersion))
                 .build()).prepare();
 
         String filename = fileBaseName + ContentTypes.getFileExtension(content.getContentType());

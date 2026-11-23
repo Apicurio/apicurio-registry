@@ -1099,8 +1099,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                         .contentId(metaData.getContentId())
                         .references(references)
                         .referenceTreeContentIds(() -> recursivelyResolveReferenceContentIds(artifactCell.get(),
-                                ref -> storage.getArtifactVersionContent(ref.getGroupId(), ref.getArtifactId(), ref.getVersion())
-                        ))
+                                this::loadReferencedVersion))
                         .versionExpression(versionExpression)
                         .versionState(metaData.getState())
                         .build()

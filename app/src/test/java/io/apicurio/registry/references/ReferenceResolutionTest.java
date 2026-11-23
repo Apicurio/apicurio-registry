@@ -1,5 +1,6 @@
 package io.apicurio.registry.references;
 
+import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
@@ -111,6 +112,32 @@ public class ReferenceResolutionTest {
         RuntimeException thrown = Assertions.assertThrows(RuntimeException.class,
                 () -> ReferenceResolution.recursivelyResolveReferences(List.of(rootRef), loader));
         Assertions.assertSame(storageError, thrown);
+    }
+
+    @Test
+    void requireDereferenceableLetsALoaderExceptionPropagate() {
+        RuntimeException storageError = new RuntimeException("simulated storage failure");
+        Function<ArtifactReferenceDto, ContentWrapperDto> failingLoader = ref -> {
+            throw storageError;
+        };
+        ArtifactReferenceDto reference = ArtifactReferenceDto.builder().groupId("default")
+                .artifactId("broken").version("1").name("broken").build();
+
+        // Not reported as a missing reference (422): the real failure reaches the caller
+        RuntimeException thrown = Assertions.assertThrows(RuntimeException.class,
+                () -> ReferenceResolution.requireDereferenceable(List.of(reference), failingLoader));
+        Assertions.assertSame(storageError, thrown);
+    }
+
+    @Test
+    void requireDereferenceableReportsAMissingReference() {
+        ArtifactReferenceDto reference = ArtifactReferenceDto.builder().groupId("default")
+                .artifactId("gone").version("1").name("gone.json").build();
+
+        UnprocessableEntityException thrown = Assertions.assertThrows(UnprocessableEntityException.class,
+                () -> ReferenceResolution.requireDereferenceable(List.of(reference), ref -> null));
+        Assertions.assertEquals("Cannot dereference the content: these references point to versions that do "
+                + "not exist: 'gone.json' (default/gone@1)", thrown.getMessage());
     }
 
     @Test

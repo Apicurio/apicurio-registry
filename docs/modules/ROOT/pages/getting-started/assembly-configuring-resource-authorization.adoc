@@ -307,7 +307,9 @@ This field is included in artifact, group, version, content-based, and contract 
 
 The flags are advisory. They do not replace filtering or authorize a subsequent request. Ownership transfers, rules, state, mutability settings, referenced/generated artifacts, and bulk operations can impose additional checks. For example, `write: true` on a group does not guarantee permission to delete every artifact in it. Policy or ownership can also change after a result is returned. Clients must handle failed operations even when a flag is `true`.
 
-An owning developer with RBAC enabled can receive `read: true`, `write: true`, and `admin: false`. With RBAC disabled, an eligible owner bypass can permit admin-level access too. Do not infer permission flags from a role name alone. The presence of the API field does not by itself imply that a particular UI version uses it to hide actions.
+An owning developer with RBAC enabled can receive `read: true`, `write: true`, and `admin: false`. With RBAC disabled, an eligible owner bypass can permit admin-level access too. Do not infer permission flags from a role name alone.
+
+When the `write` flag is `false` for a group, an artifact, or a version, the {registry} web console hides actions on that resource such as *Edit*, *Create artifact*, *Create version*, and *Delete version*. When a result has no `permissions` object, the web console does not hide actions on this basis. {registry} decides whether to allow an action when you perform it.
 
 // ref-resource-authorization-use-cases
 [id="resource-authorization-use-cases_{context}"]

@@ -116,8 +116,11 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
             if (migEnabled != null) {
                 migrationEnabled = Boolean.parseBoolean(migEnabled.toString());
             }
-            migrationTargetVersion = (String) config.originals().get(
+            Object targetVersion = config.originals().get(
                     SerdeConfig.CONTRACT_RULES_MIGRATION_TARGET_VERSION);
+            if (targetVersion != null) {
+                migrationTargetVersion = targetVersion.toString();
+            }
         }
     }
 

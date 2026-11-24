@@ -213,4 +213,16 @@ class ConsumerMigrationResultTest {
 
         assertSame(ORDER, deserializer("2", true, false).deserializeData(TOPIC, payload()));
     }
+
+    @Test
+    void testConfigureMigrationTargetVersionAsInteger() {
+        TaggingDeserializer deserializer = deserializer("2", true, true);
+        Map<String, Object> config = new HashMap<>();
+        config.put(SerdeConfig.REGISTRY_URL, "http://localhost:1/apis/registry/v3");
+        config.put(SerdeConfig.USE_ID, "globalId");
+        config.put(SerdeConfig.CONTRACT_RULES_ENABLED, "true");
+        config.put(SerdeConfig.CONTRACT_RULES_MIGRATION_ENABLED, "true");
+        config.put(SerdeConfig.CONTRACT_RULES_MIGRATION_TARGET_VERSION, Integer.valueOf(2));
+        deserializer.configure(new SerdeConfig(config), false);
+    }
 }

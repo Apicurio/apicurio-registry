@@ -139,7 +139,7 @@ public class WebhookSchemaMigrationTest {
             assertTableExists(conn, "webhook_events");
             assertTableExists(conn, "webhook_delivery_logs");
 
-            // Version marker must be 114.
+            // Version marker must be 116.
             assertDbVersion(conn, VERSION_AFTER);
 
             // Unrelated apicurio property must be unchanged.
@@ -172,7 +172,7 @@ public class WebhookSchemaMigrationTest {
             assertDbVersion(conn, VERSION_PEERS);
             assertTableExists(conn, "peers");
 
-            // Seed a peer row that must survive the 114 (webhook) upgrade unchanged.
+            // Seed a peer row that must survive the 116 (webhook) upgrade unchanged.
             try (PreparedStatement ps = conn.prepareStatement(
                     "INSERT INTO peers (peerId, url, name, description, enabled) VALUES (?, ?, ?, ?, ?)")) {
                 ps.setString(1, "test-peer-1");
@@ -194,7 +194,7 @@ public class WebhookSchemaMigrationTest {
             try (PreparedStatement ps = conn.prepareStatement(
                     "SELECT url, name, enabled FROM peers WHERE peerId = 'test-peer-1'")) {
                 try (ResultSet rs = ps.executeQuery()) {
-                    assertTrue(rs.next(), "Peer row must survive the 114 upgrade");
+                    assertTrue(rs.next(), "Peer row must survive the 116 upgrade");
                     assertEquals("https://peer.example.com/apis/registry/v3", rs.getString("url"));
                     assertEquals("Test Peer", rs.getString("name"));
                     assertTrue(rs.getBoolean("enabled"));
@@ -452,9 +452,9 @@ public class WebhookSchemaMigrationTest {
      * All structural invariants (unique constraints, FK protection, check constraints) must hold
      * on both a fresh install and a fully upgraded database.
      *
-     * <p>"fresh" = full version-114 initialization DDL on an empty DB.</p>
-     * <p>"upgraded" = real v110 schema + v111 upgrade + seed rows + v112, v113, and v114 upgrades, with
-     * verification that seeded rows are preserved and db_version = 114.</p>
+     * <p>"fresh" = full version-116 initialization DDL on an empty DB.</p>
+     * <p>"upgraded" = real v110 schema + v111 upgrade + seed rows + v112 through v116 upgrades, with
+     * verification that seeded rows are preserved and db_version = 116.</p>
      */
     @ParameterizedTest(name = "constraintInvariants on {0} database")
     @ValueSource(strings = {"fresh", "upgraded"})
@@ -512,7 +512,7 @@ public class WebhookSchemaMigrationTest {
     }
 
     // ------------------------------------------------------------
-    // Real 113 → 114 upgrade test
+    // Real 113 → 116 upgrade test
     // ------------------------------------------------------------
 
     /**
@@ -526,7 +526,7 @@ public class WebhookSchemaMigrationTest {
             executeDdlResource(conn, "pre-webhook-schema-113/h2.ddl");
             assertDbVersion(conn, 113);
 
-            // Seed rows that must survive the 113→114 upgrade.
+            // Seed rows that must survive the 113→116 upgrade.
             try (Statement st = conn.createStatement()) {
                 st.execute("INSERT INTO apicurio (propName, propValue) VALUES ('v113_key', 'v113_value')");
             }
@@ -557,7 +557,7 @@ public class WebhookSchemaMigrationTest {
                 try (ResultSet rs = ps.executeQuery()) {
                     rs.next();
                     assertEquals(1, rs.getInt(1),
-                            "UQ_versions_3 must still be present after the 113→114 upgrade");
+                            "UQ_versions_3 must still be present after the 113→116 upgrade");
                 }
             }
 
@@ -565,14 +565,14 @@ public class WebhookSchemaMigrationTest {
             try (PreparedStatement ps = conn.prepareStatement(
                     "SELECT propValue FROM apicurio WHERE propName = 'v113_key'")) {
                 try (ResultSet rs = ps.executeQuery()) {
-                    assertTrue(rs.next(), "Seeded apicurio property must survive the 113→114 upgrade");
+                    assertTrue(rs.next(), "Seeded apicurio property must survive the 113→116 upgrade");
                     assertEquals("v113_value", rs.getString(1));
                 }
             }
             try (PreparedStatement ps = conn.prepareStatement(
                     "SELECT name FROM peers WHERE peerId = 'v113-peer-1'")) {
                 try (ResultSet rs = ps.executeQuery()) {
-                    assertTrue(rs.next(), "Seeded peer row must survive the 113→114 upgrade");
+                    assertTrue(rs.next(), "Seeded peer row must survive the 113→116 upgrade");
                     assertEquals("V113 Peer", rs.getString(1));
                 }
             }

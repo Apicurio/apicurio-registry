@@ -127,7 +127,7 @@ class WebhookSchemaPostgresqlMigrationTest {
     }
 
     // ------------------------------------------------------------
-    // Real 113 → 114 upgrade test
+    // Real 113 → 116 upgrade test
     // ------------------------------------------------------------
 
     /**
@@ -772,16 +772,32 @@ class WebhookSchemaPostgresqlMigrationTest {
         return DriverManager.getConnection(pg.getJdbcUrl("postgres", "postgres"), "postgres", "");
     }
 
+    /**
+     * Applies the statements in a single transaction, as the registry does (its handle factory
+     * disables auto-commit). PostgreSQLNativeSequencesUpgrader (115) issues LOCK TABLE, which
+     * PostgreSQL only accepts inside a transaction block.
+     */
     private static void applyStatements(Connection conn, List<String> statements) throws Exception {
-        for (String sql : statements) {
-            if (sql.startsWith("UPGRADER:")) {
-                String className = sql.substring("UPGRADER:".length()).trim();
-                ((IDbUpgrader) Class.forName(className).getConstructor().newInstance()).upgrade(new HandleImpl(conn));
-            } else {
-                try (Statement st = conn.createStatement()) {
-                    st.execute(sql);
+        boolean autoCommit = conn.getAutoCommit();
+        conn.setAutoCommit(false);
+        try {
+            for (String sql : statements) {
+                if (sql.startsWith("UPGRADER:")) {
+                    String className = sql.substring("UPGRADER:".length()).trim();
+                    ((IDbUpgrader) Class.forName(className).getConstructor().newInstance())
+                            .upgrade(new HandleImpl(conn));
+                } else {
+                    try (Statement st = conn.createStatement()) {
+                        st.execute(sql);
+                    }
                 }
             }
+            conn.commit();
+        } catch (Exception e) {
+            conn.rollback();
+            throw e;
+        } finally {
+            conn.setAutoCommit(autoCommit);
         }
     }
 

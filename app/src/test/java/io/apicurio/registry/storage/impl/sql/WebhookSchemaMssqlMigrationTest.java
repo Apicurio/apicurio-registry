@@ -89,6 +89,13 @@ class WebhookSchemaMssqlMigrationTest {
                     + "FROM INFORMATION_SCHEMA.TABLES "
                     + "WHERE TABLE_TYPE = 'BASE TABLE'; "
                     + "EXEC(@sql2)");
+            // Fresh installs (and the 115 upgrade) create native ID sequences; drop them too,
+            // otherwise the next initialization fails with "already an object named 'globalid_seq'".
+            st.execute(
+                    "DECLARE @sql3 NVARCHAR(MAX) = ''; "
+                    + "SELECT @sql3 = @sql3 + 'DROP SEQUENCE [' + SCHEMA_NAME(schema_id) + '].[' + name + ']; ' "
+                    + "FROM sys.sequences; "
+                    + "EXEC(@sql3)");
         }
     }
 
@@ -108,18 +115,17 @@ class WebhookSchemaMssqlMigrationTest {
     }
 
     // ------------------------------------------------------------
-    // Upgrade: 113 → 116 from a minimal v113 state with representative rows
+    // Upgrade: 113 → 116 from the pinned v113 schema with representative rows
     // ------------------------------------------------------------
 
     @Test
     void upgrade_fromV113State_createsWebhookTablesAndPreservesRows() throws Exception {
         try (Connection conn = openConnection()) {
-            // Create a minimal v113 state: just the apicurio table and an extra property.
-            // (Using the minimal apicurio table is sufficient to verify that the upgrade
-            // preserves existing rows.)
+            // Start from the pinned v113 schema: the 115 upgrade (native sequences) reads the
+            // legacy sequences table and the versions/content/comments tables, so a minimal
+            // apicurio-only state is not a valid v113 database.
+            executeDdlResource(conn, "pre-webhook-schema-113/mssql.ddl");
             try (Statement st = conn.createStatement()) {
-                st.execute("CREATE TABLE apicurio (propName NVARCHAR(255) NOT NULL PRIMARY KEY, propValue NVARCHAR(512))");
-                st.execute("INSERT INTO apicurio VALUES ('db_version', '113')");
                 st.execute("INSERT INTO apicurio VALUES ('extra_key', 'extra_value')");
             }
             assertDbVersion(conn, 113);
@@ -314,7 +320,7 @@ class WebhookSchemaMssqlMigrationTest {
     }
 
     // ------------------------------------------------------------
-    // Real v111 baseline upgrade test
+    // Real v111 / v113 baseline and minimal v115 upgrade tests
     // ------------------------------------------------------------
 
     /**
@@ -379,7 +385,8 @@ class WebhookSchemaMssqlMigrationTest {
             insertRealArtifact(conn, "test-group-v111", "test-artifact-v111");
             insertRealPeer(conn, "peer-v111-1");
 
-            // Apply 111 → 112 (drafts cleanup) → 113 (DuplicateVersionOrder + UQ_versions_3) → 116 (webhooks).
+            // Apply 111 → 112 (drafts cleanup) → 113 (DuplicateVersionOrder + UQ_versions_3) → 114 → 115 (native sequences)
+            // → 116 (webhooks).
             applyStatements(conn, new SQLServerSqlStatements().databaseUpgrade(111, 116));
             assertDbVersion(conn, 116);
 
@@ -461,7 +468,7 @@ class WebhookSchemaMssqlMigrationTest {
             insertRealGroup(conn, "test-group-v113");
             insertRealArtifact(conn, "test-group-v113", "test-artifact-v113");
 
-            // Apply 113 → 116 (webhooks; UQ_versions_3 already exists in the v113 DDL).
+            // Apply 113 → 114 → 115 (native sequences) → 116 (webhooks; UQ_versions_3 already exists in the v113 DDL).
             applyStatements(conn, new SQLServerSqlStatements().databaseUpgrade(113, 116));
             assertDbVersion(conn, 116);
 
@@ -1017,16 +1024,32 @@ class WebhookSchemaMssqlMigrationTest {
         }
     }
 
+    /**
+     * Applies the statements in a single transaction, as the registry does (its handle factory
+     * disables auto-commit), so SQLServerNativeSequencesUpgrader's TABLOCKX/HOLDLOCK read holds
+     * its lock until the upgrade commits.
+     */
     private static void applyStatements(Connection conn, List<String> statements) throws Exception {
-        for (String sql : statements) {
-            if (sql.startsWith("UPGRADER:")) {
-                String className = sql.substring("UPGRADER:".length()).trim();
-                ((IDbUpgrader) Class.forName(className).getConstructor().newInstance()).upgrade(new HandleImpl(conn));
-            } else {
-                try (Statement st = conn.createStatement()) {
-                    st.execute(sql);
+        boolean autoCommit = conn.getAutoCommit();
+        conn.setAutoCommit(false);
+        try {
+            for (String sql : statements) {
+                if (sql.startsWith("UPGRADER:")) {
+                    String className = sql.substring("UPGRADER:".length()).trim();
+                    ((IDbUpgrader) Class.forName(className).getConstructor().newInstance())
+                            .upgrade(new HandleImpl(conn));
+                } else {
+                    try (Statement st = conn.createStatement()) {
+                        st.execute(sql);
+                    }
                 }
             }
+            conn.commit();
+        } catch (Exception e) {
+            conn.rollback();
+            throw e;
+        } finally {
+            conn.setAutoCommit(autoCommit);
         }
     }
 

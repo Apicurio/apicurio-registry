@@ -475,7 +475,7 @@ also use compatible principal classes; matching a similarly named class is insuf
 
 Unauthenticated callers are selected with `anonymous`, which takes no principal type. This differs
 from proposal 009's `anonymous User`; the
-[Kroxylicious proposal for anonymous rules](https://github.com/kroxylicious/design/pull/155)
+[Kroxylicious proposal for anonymous rules](https://github.com/kroxylicious/design/blob/main/proposals/155-acl-anonymous-subjects.md)
 explains why. Both `//` and
 `/* */` comments are supported. In a regex literal, `\/` is a slash and `\\` a backslash; any other
 backslash belongs to the expression, so `/a\.b/` matches only `a.b`. Avoid inferring regex

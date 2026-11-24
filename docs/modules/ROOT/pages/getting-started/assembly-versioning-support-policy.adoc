@@ -164,9 +164,15 @@ Property 'apicurio.kafkasql.ssl.keystore.location' is deprecated since 3.1.0 and
 +
 A deprecated property that has a replacement still takes effect when you do not set the replacement. If you set both, the replacement takes precedence. In that case, the warning says which property takes precedence and does not name the removal version.
 Removed::
-{registry} logs an error for each removed property that you set, and startup fails with an `IllegalStateException` that lists them. Remove or replace the property before you upgrade to the release that removes it.
+{registry} logs an error for each removed property that you set, and startup fails with an `IllegalStateException` that lists them. The error names the version that removed the property and the replacement, if one exists:
++
+----
+Property 'apicurio.gitops.id' was removed in 3.2.1. Use 'apicurio.polling-storage.id' instead.
+----
++
+Before you upgrade, remove or replace every removed property in your configuration.
 
-The following table lists the deprecated properties. No property has reached the removed phase.
+The following table lists the deprecated properties.
 
 .Deprecated configuration properties
 [cols="3,3,1,1", options="header"]
@@ -235,6 +241,44 @@ The following table lists the deprecated properties. No property has reached the
 | `apicurio.kafkasql.security.ssl.key.password`
 | 3.1.0
 | 4.0.0
+|===
+
+The following table lists the removed properties. {registry} 3.2.1 removed these GitOps and KubernetesOps storage properties without a deprecation phase, while both storage variants were experimental. Versions 3.2.1 to 3.3 ignore the properties. From version 3.4, {registry} does not start when you set one of them.
+
+.Removed configuration properties
+[cols="3,4,1", options="header"]
+|===
+| Removed property
+| Replacement
+| Removed in
+
+| `apicurio.gitops.id`
+| `apicurio.polling-storage.id`
+| 3.2.1
+
+| `apicurio.kubernetesops.id`
+| `apicurio.polling-storage.id`
+| 3.2.1
+
+| `apicurio.gitops.repo.origin.branch`
+| `apicurio.gitops.repo.branch`. Set the same branch in the `APICURIO_GITOPS_REPO_BRANCH` variable of the GitOps sync container.
+| 3.2.1
+
+| `apicurio.gitops.refresh.every`
+| `apicurio.polling-storage.poll-period`
+| 3.2.1
+
+| `apicurio.kubernetesops.refresh.every`
+| `apicurio.polling-storage.poll-period`
+| 3.2.1
+
+| `apicurio.gitops.repo.origin.uri`
+| None. {registry} does not clone the repository. Run the GitOps sync container and set its `APICURIO_GITOPS_REPO_URL` variable.
+| 3.2.1
+
+| `apicurio.gitops.workdir`
+| None. {registry} reads the repositories from the `apicurio.gitops.workspace` directory, where the GitOps sync container keeps them.
+| 3.2.1
 |===
 
 [role="_additional-resources"]

@@ -620,6 +620,8 @@ spec:
 ----
 +
 In push mode, the {operator} creates a Service named `<cr-name>-gitops-ssh-service` for the SSH server of the sync container on port `2222`. The {operator} also allows that port in the NetworkPolicy of the app component. Clients push to `ssh://git@<host>:2222/repos/default`, where `<host>` is an address that routes to the Service.
++
+While `mode` is `push`, the {operator} runs the app component with one replica and the `Recreate` deployment strategy, without a HorizontalPodAutoscaler or a PodDisruptionBudget. If `spec.app.replicas` is greater than 1 or `spec.app.autoscaling.enabled` is `true`, the {operator} keeps one replica and reports a `ValidationError` condition. When you set `mode` back to `pull`, the {operator} applies `spec.app.replicas` and `spec.app.autoscaling` again.
 
 . Optional: To load data from several repositories, list them in `repos` and give each one a distinct `dir`:
 +

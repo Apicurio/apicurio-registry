@@ -747,7 +747,7 @@ Configure GitOps storage (read-only, experimental). Loads registry data from Git
 |Default
 
 |`mode`
-|Sync mode. With `pull`, the sync container periodically fetches from the remote repositories. With `push`, the sync container runs an SSH server that accepts `git push`. In push mode, the operator creates a Service named `<cr-name>-gitops-ssh-service` on port `2222` and allows that port in the NetworkPolicy of the app component.
+|Sync mode. With `pull`, the sync container periodically fetches from the remote repositories. With `push`, the sync container runs an SSH server that accepts `git push`. In push mode, the operator creates a Service named `<cr-name>-gitops-ssh-service` on port `2222` and allows that port in the NetworkPolicy of the app component. The operator also runs the app component with one replica and the `Recreate` deployment strategy, without a HorizontalPodAutoscaler or a PodDisruptionBudget, and ignores `spec.app.replicas` and `spec.app.autoscaling`.
 |String (`pull`, `push`)
 |`pull`
 
@@ -1310,7 +1310,7 @@ The {operator} reports the state of each `ApicurioRegistry3` resource in `status
 |Always reported. `True` with reason `ActiveDeploymentsAvailable` when all active Deployments of the instance are available. `False` with reason `ActiveDeploymentUnavailable` when at least one Deployment is not available. The message names the unavailable Deployments.
 
 |`ValidationError`
-|Reported only while it is `True`, with reason `Error`. The custom resource contains an invalid combination of fields. For example, the custom resource sets both `replicas` and `autoscaling` on one component, has a container without a name in `podTemplateSpec`, or sets environment variables on the component container in `podTemplateSpec` instead of in `env`. The message lists the validation errors.
+|Reported only while it is `True`, with reason `Error`. The custom resource contains an invalid combination of fields. For example, the custom resource sets both `replicas` and `autoscaling` on one component, has a container without a name in `podTemplateSpec`, or sets environment variables on the component container in `podTemplateSpec` instead of in `env`. With GitOps storage in push mode, the {operator} also reports this condition when `spec.app.replicas` is greater than 1 or `spec.app.autoscaling.enabled` is `true`, and still deploys the app component with one replica. The message lists the validation errors.
 
 |`OperatorError`
 |Reported only while it is `True`. The {operator} encountered an unexpected error while reconciling the resource. The reason is the name of the exception class, or `AggregatedOperatorException` when there is more than one error. The message contains the error details.

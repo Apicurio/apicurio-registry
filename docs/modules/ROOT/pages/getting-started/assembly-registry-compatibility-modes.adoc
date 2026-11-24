@@ -388,8 +388,10 @@ The earlier checker compared `oneOf` like `anyOf`, and accepted such a change.
 * Adding a `type` inside `then` or `else` that an enclosing schema already requires is reported as incompatible, where the earlier checker accepted it.
 See *Known over-strict verdicts* in "What the JSON Schema compatibility check reports".
 
-* The `apicurio.compat.json-schema.use-apitomy` configuration property, which selected the new checker in version 3.3, no longer has any effect, and is deprecated.
+* The `apicurio.compat.json-schema.use-apitomy` configuration property, which selected the new checker in version 3.3, no longer has any effect, and is deprecated since version 3.4.
+Setting it to `false` does not restore the earlier checker.
 If it is set, {registry} logs a warning at startup.
+The property is scheduled for removal in version 4.0. After the removal, {registry} does not start if the property is still set. Remove it before you upgrade.
 
 
 // ref-registry-compatibility-protobuf

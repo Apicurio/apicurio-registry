@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { createEndpoint, unwrapErrorData } from "./rest.utils";
+import { describe, expect, it, vi } from "vitest";
+import { createAuthOptions, createEndpoint, httpGet, unwrapErrorData } from "./rest.utils";
 
 describe("unwrapErrorData", () => {
     it("should correctly unwrap and spread JSON object response data", () => {
@@ -154,5 +154,54 @@ describe("createEndpoint", () => {
             { limit: 5, offset: 0 }
         );
         expect(url).toBe(`${baseHref}/groups/group-1/artifacts?limit=5&offset=0`);
+    });
+});
+
+describe("axios OIDC token refresh", () => {
+    const authorization = (config: any): string | undefined => {
+        const headers = config?.headers;
+        return typeof headers?.get === "function" ? headers.get("Authorization") : headers?.["Authorization"];
+    };
+
+    it("refreshes the token and retries an unauthorized request once with the new token", async () => {
+        const auth = {
+            isOidcAuthEnabled: () => true,
+            getToken: vi.fn()
+                .mockResolvedValueOnce("expired-token")
+                .mockResolvedValueOnce("fresh-token"),
+            refresh: vi.fn().mockResolvedValue(undefined)
+        } as any;
+
+        const requests: any[] = [];
+        // A custom adapter stands in for the built-in adapter, which rejects a
+        // non-2xx response through axios settle() before response interceptors run.
+        const adapter = vi.fn(async (config: any) => {
+            requests.push(config);
+            const unauthorized = requests.length === 1;
+            const response = {
+                data: unauthorized ? "unauthorized" : { message: "ok" },
+                status: unauthorized ? 401 : 200,
+                statusText: unauthorized ? "Unauthorized" : "OK",
+                headers: {},
+                config
+            };
+            if (unauthorized) {
+                return Promise.reject({
+                    message: "Request failed with status code 401",
+                    config,
+                    response
+                });
+            }
+            return response;
+        });
+
+        const options = await createAuthOptions(auth);
+        const result = await httpGet<any>("/api/test", { ...options, adapter });
+
+        expect(adapter).toHaveBeenCalledTimes(2);
+        expect(auth.refresh).toHaveBeenCalledTimes(1);
+        expect(authorization(requests[0])).toBe("Bearer expired-token");
+        expect(authorization(requests[1])).toBe("Bearer fresh-token");
+        expect(result).toEqual({ message: "ok" });
     });
 });

@@ -13,6 +13,8 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -147,7 +149,14 @@ public class DeprecatedPropertiesCheckTest {
                 "apicurio.kafkasql.ssl.keystore.location",
                 "apicurio.kafkasql.ssl.keystore.type",
                 "apicurio.kafkasql.ssl.keystore.password",
-                "apicurio.kafkasql.ssl.key.password"), oldNames);
+                "apicurio.kafkasql.ssl.key.password",
+                "apicurio.gitops.id",
+                "apicurio.kubernetesops.id",
+                "apicurio.gitops.repo.origin.branch",
+                "apicurio.gitops.refresh.every",
+                "apicurio.kubernetesops.refresh.every",
+                "apicurio.gitops.repo.origin.uri",
+                "apicurio.gitops.workdir"), oldNames);
         List<String> replacementNames = defaultCheck.getRegistry().stream()
                 .map(DeprecatedPropertiesCheck.DeprecatedPropertyDef::getReplacementName).toList();
         // The JSON Schema checker, dead-threshold and advertised-version properties have no
@@ -164,7 +173,71 @@ public class DeprecatedPropertiesCheckTest {
                 "apicurio.kafkasql.security.ssl.keystore.location",
                 "apicurio.kafkasql.security.ssl.keystore.type",
                 "apicurio.kafkasql.security.ssl.keystore.password",
-                "apicurio.kafkasql.security.ssl.key.password"), replacementNames);
+                "apicurio.kafkasql.security.ssl.key.password",
+                "apicurio.polling-storage.id",
+                "apicurio.polling-storage.id",
+                "apicurio.gitops.repo.branch",
+                "apicurio.polling-storage.poll-period",
+                "apicurio.polling-storage.poll-period",
+                null,
+                null), replacementNames);
+    }
+
+    /**
+     * The GitOps and KubernetesOps properties that 3.2.1 removed are reported as removed, so a 3.2.0
+     * configuration fails at startup with the replacement, instead of starting without its settings.
+     */
+    @Test
+    void testGitOpsPropertiesRemovedIn321FailStartup() {
+        DeprecatedPropertiesCheck defaultCheck = new DeprecatedPropertiesCheck();
+        defaultCheck.config = config;
+        defaultCheck.log = log;
+        when(config.getOptionalValue(anyString(), eq(String.class)))
+                .thenReturn(Optional.empty());
+        when(config.getOptionalValue("apicurio.gitops.id", String.class)).thenReturn(Optional.of("prod"));
+        when(config.getOptionalValue("apicurio.kubernetesops.id", String.class)).thenReturn(Optional.of("prod"));
+        when(config.getOptionalValue("apicurio.gitops.repo.origin.uri", String.class))
+                .thenReturn(Optional.of("https://github.com/example/repo.git"));
+        when(config.getOptionalValue("apicurio.gitops.refresh.every", String.class)).thenReturn(Optional.of("30s"));
+        when(config.getOptionalValue("apicurio.kubernetesops.refresh.every", String.class)).thenReturn(Optional.of("30s"));
+        when(config.getOptionalValue("apicurio.gitops.repo.origin.branch", String.class)).thenReturn(Optional.of("main"));
+        when(config.getOptionalValue("apicurio.gitops.workdir", String.class)).thenReturn(Optional.of("/data"));
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> defaultCheck.validate());
+
+        assertTrue(ex.getMessage().contains(
+                "Property 'apicurio.gitops.id' was removed in 3.2.1. Use 'apicurio.polling-storage.id' instead."),
+                ex.getMessage());
+        assertTrue(ex.getMessage().contains("Property 'apicurio.kubernetesops.id' was removed in 3.2.1."
+                + " Use 'apicurio.polling-storage.id' instead."), ex.getMessage());
+        assertTrue(ex.getMessage().contains("Property 'apicurio.gitops.repo.origin.uri' was removed in 3.2.1."
+                + " The registry no longer clones the repository: run the GitOps sync container and set its"
+                + " APICURIO_GITOPS_REPO_URL variable."), ex.getMessage());
+        assertTrue(ex.getMessage().contains("Property 'apicurio.gitops.refresh.every' was removed in 3.2.1."
+                + " Use 'apicurio.polling-storage.poll-period' instead."), ex.getMessage());
+        assertTrue(ex.getMessage().contains("Property 'apicurio.kubernetesops.refresh.every' was removed in 3.2.1."
+                + " Use 'apicurio.polling-storage.poll-period' instead."), ex.getMessage());
+        assertTrue(ex.getMessage().contains("Property 'apicurio.gitops.repo.origin.branch' was removed in 3.2.1."
+                + " Use 'apicurio.gitops.repo.branch' instead. Set the same branch in the GitOps sync container's"
+                + " APICURIO_GITOPS_REPO_BRANCH variable."), ex.getMessage());
+        assertTrue(ex.getMessage().contains("Property 'apicurio.gitops.workdir' was removed in 3.2.1."
+                + " The registry reads repositories from apicurio.gitops.workspace, where the GitOps sync"
+                + " container keeps them."), ex.getMessage());
+        verify(log).error("Property '{}' was removed in {}. Use '{}' instead.",
+                "apicurio.gitops.refresh.every", "3.2.1", "apicurio.polling-storage.poll-period");
+    }
+
+    @Test
+    void testCurrentGitOpsPropertiesPass() {
+        DeprecatedPropertiesCheck defaultCheck = new DeprecatedPropertiesCheck();
+        defaultCheck.config = config;
+        defaultCheck.log = log;
+        when(config.getOptionalValue(anyString(), eq(String.class)))
+                .thenReturn(Optional.empty());
+        when(config.getOptionalValue("apicurio.polling-storage.id", String.class)).thenReturn(Optional.of("prod"));
+        when(config.getOptionalValue("apicurio.gitops.repo.branch", String.class)).thenReturn(Optional.of("main"));
+
+        assertDoesNotThrow(() -> defaultCheck.validate());
     }
 
     /**

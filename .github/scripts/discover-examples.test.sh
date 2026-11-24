@@ -171,6 +171,38 @@ done
 printf 'CI_TOOLCHAINS=node\nCI_PLAYWRIGHT_DIR=tests/ui\n' > "$d/checked/ci.env"
 bash "$script" "$d" > /dev/null 2>&1
 assert "CI_PLAYWRIGHT_DIR without CI_SUITE exits 1" 1 "$?"
+# links and other entries that lead out of the example or are not regular files
+printf '#!/usr/bin/env bash\n' > "$work/outside.sh"; chmod +x "$work/outside.sh"
+mkdir -p "$work/outside-ui"; touch "$work/outside-ui/package.json" "$work/outside-ui/package-lock.json"
+ln -s "$work/outside.sh" "$d/checked/tests/linked-suite.sh"
+printf 'CI_SUITE=tests/linked-suite.sh\n' > "$d/checked/ci.env"
+bash "$script" "$d" > /dev/null 2>&1
+assert "CI_SUITE that is a link to a file outside the example exits 1" 1 "$?"
+ln -s "$d/checked/tests/ci-suite.sh" "$d/checked/tests/inner-link.sh"
+printf 'CI_SUITE=tests/inner-link.sh\n' > "$d/checked/ci.env"
+bash "$script" "$d" > /dev/null 2>&1
+assert "CI_SUITE that is a link, even to a file inside the example, exits 1" 1 "$?"
+ln -s "$work" "$d/checked/escape"
+mkdir -p "$d/checked/tests2"; ln -s "$work/outside.sh" "$d/checked/tests2/run.sh"
+printf 'CI_SUITE=escape/outside.sh\n' > "$d/checked/ci.env"
+bash "$script" "$d" > /dev/null 2>&1
+assert "CI_SUITE below a linked directory exits 1" 1 "$?"
+mkfifo "$d/checked/tests/fifo-suite.sh"; chmod +x "$d/checked/tests/fifo-suite.sh"
+printf 'CI_SUITE=tests/fifo-suite.sh\n' > "$d/checked/ci.env"
+bash "$script" "$d" > /dev/null 2>&1
+assert "CI_SUITE that is a named pipe exits 1" 1 "$?"
+ln -s "$work/outside-ui" "$d/checked/tests/ui-link"
+printf 'CI_TOOLCHAINS=node\nCI_SUITE=tests/ci-suite.sh\nCI_PLAYWRIGHT_DIR=tests/ui-link\n' > "$d/checked/ci.env"
+bash "$script" "$d" > /dev/null 2>&1
+assert "CI_PLAYWRIGHT_DIR that is a link to a directory outside the example exits 1" 1 "$?"
+mv "$d/checked/tests/ui/package.json" "$d/checked/tests/ui/package.json.real"
+ln -s "$work/outside-ui/package.json" "$d/checked/tests/ui/package.json"
+printf 'CI_TOOLCHAINS=node\nCI_SUITE=tests/ci-suite.sh\nCI_PLAYWRIGHT_DIR=tests/ui\n' > "$d/checked/ci.env"
+bash "$script" "$d" > /dev/null 2>&1
+assert "a package.json that is a link exits 1" 1 "$?"
+rm "$d/checked/tests/ui/package.json"; mv "$d/checked/tests/ui/package.json.real" "$d/checked/tests/ui/package.json"
+bash "$script" "$d" > /dev/null 2>&1
+assert "the same configuration with regular files is accepted again" 0 "$?"
 rm "$d/checked/tests/ui/package-lock.json"
 printf 'CI_TOOLCHAINS=node\nCI_PLAYWRIGHT_DIR=tests/ui\n' > "$d/checked/ci.env"
 bash "$script" "$d" > /dev/null 2>&1

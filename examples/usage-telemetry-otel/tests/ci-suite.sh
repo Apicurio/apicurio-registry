@@ -17,7 +17,12 @@
 # stop containers while they run. The example's own stack is only read.
 #
 # Environment: REGISTRY_IMAGE (required: the image built from this checkout), CONTAINER_RUNTIME (CI sets docker), CI_ARTIFACT_DIR
-# (absolute, new or empty; default a new temporary directory). Everything this run produces goes below CI_ARTIFACT_DIR: work/ holds
+# (absolute, new or empty; default a new temporary directory), CI_CLEANUP_SECONDS (default 5) and CI_COLLECT_SECONDS (default 300).
+# A cancelled job gets SIGINT, about 7.5 seconds later SIGTERM and 2.5 seconds after that it is killed (GitHub's documentation on
+# cancelling a workflow), so the cleanup after a signal is BEST EFFORT: it collects the evidence first (without container logs, whose
+# runtime calls can hang), then removes the kept stack, each step limited to CI_CLEANUP_SECONDS, and a second signal ends it at once.
+# An upload after a cancellation is therefore not guaranteed. What is guaranteed is that publish/ never holds a partial collection:
+# the collector builds it beside publish/ and renames it into place, and a publish/ without a MANIFEST.json is set aside. Everything this run produces goes below CI_ARTIFACT_DIR: work/ holds
 # the full logs and stays on the machine, publish/ holds what the collector accepted and is the only part meant to leave it.
 # Prerequisites: bash 3.2 or later, curl, jq, od, python3, node and npm (the locked browser tooling), a container runtime with Compose v2.
 # Exit status: 0 only when every phase passed; 1 otherwise; 2 for a missing prerequisite.
@@ -39,6 +44,10 @@ SUMMARY=""
 LOG_DIR=""
 COMPONENT_DIR=""
 PUBLISH=""
+PRIVATE_REPORT=""
+# What each step of the cleanup after a signal or a failed removal may take, and what the normal collection may take (seconds)
+CLEANUP_SECONDS=${CI_CLEANUP_SECONDS:-5}
+COLLECT_SECONDS=${CI_COLLECT_SECONDS:-300}
 
 # --- phases -----------------------------------------------------------------------------------------------------------------------
 
@@ -49,10 +58,8 @@ run_phase() {
   shift 2
   printf '==> %s: starting (deadline %ss)\n' "$name" "$limit"
   run_bounded "$limit" "$@" > "$LOG_DIR/$name.log" 2>&1 || rc=$?
-  # A failed phase prints its whole log; a passed one only its end (the full log stays in work/logs and in the published tail)
-  printf '::group::%s output\n' "$name"
-  if [ "$rc" -eq 0 ]; then tail -n 80 "$LOG_DIR/$name.log"; else cat "$LOG_DIR/$name.log"; fi
-  printf '::endgroup::\n'
+  # The log is not echoed: it can hold anything the phase's tools printed, and the job console is not covered by the artifact
+  # allowlist. It stays in work/logs and its checked tail is published by the collector.
   case $rc in
     0) status=pass ;;
     124) status="timeout" ;;
@@ -103,29 +110,36 @@ choose_runtime() {
   fi
 }
 
-# the logs of every container of the kept project, bounded, before it is removed
-save_scenario_container_logs() {
-  local name dir=$COMPONENT_DIR/$SCN_PROJECT
+# save_container_logs <compose project>: the logs of every container of the project, each runtime call under a deadline. They are
+# collected by the allowlist like any other file; the workflow's own raw `docker compose logs` step is not used for this example
+save_container_logs() {
+  local name dir=$COMPONENT_DIR/$1 names
   mkdir -p "$dir"
   choose_runtime
-  "$RUNTIME" ps -a --filter "label=com.docker.compose.project=$SCN_PROJECT" --format '{{.Names}}' 2> /dev/null | while read -r name; do
+  rtq ps -a --filter "label=com.docker.compose.project=$1" --format '{{.Names}}' 2> /dev/null || return 0
+  names=$BCAP_OUT
+  while read -r name; do
     case $name in *[!A-Za-z0-9._-]* | "") continue ;; esac
-    "$RUNTIME" logs --tail 3000 "$name" > "$dir/$name.log" 2>&1 || true
-  done
+    run_bounded "$PROBE_TIMEOUT" "$RUNTIME" logs --tail 3000 "$name" > "$dir/$name.log" 2>&1 || true
+  done <<EOT
+$names
+EOT
 }
 
 # The kept project removed by its compose label, for the case where the runner died before it printed where its state is (the
 # teardown script needs that directory): containers, networks and volumes of the project and nothing else
 remove_scenario_project_by_label() {
-  local kind ids filter="label=com.docker.compose.project=$SCN_PROJECT"
+  local kind filter="label=com.docker.compose.project=$SCN_PROJECT"
   choose_runtime
-  ids=$("$RUNTIME" ps -aq --filter "$filter" 2> /dev/null) || ids=""
-  # shellcheck disable=SC2086  # ids are whitespace separated container ids
-  [ -z "$ids" ] || "$RUNTIME" rm -f -v $ids > /dev/null 2>&1 || true
+  if rtq ps -aq --filter "$filter" 2> /dev/null && [ -n "$BCAP_OUT" ]; then
+    # shellcheck disable=SC2086  # whitespace separated container ids
+    rt rm -f -v $BCAP_OUT > /dev/null 2>&1 || true
+  fi
   for kind in network volume; do
-    ids=$("$RUNTIME" "$kind" ls -q --filter "$filter" 2> /dev/null) || ids=""
-    # shellcheck disable=SC2086
-    [ -z "$ids" ] || "$RUNTIME" "$kind" rm -f $ids > /dev/null 2>&1 || true
+    if rtq "$kind" ls -q --filter "$filter" 2> /dev/null && [ -n "$BCAP_OUT" ]; then
+      # shellcheck disable=SC2086
+      rt "$kind" rm -f $BCAP_OUT > /dev/null 2>&1 || true
+    fi
   done
 }
 
@@ -135,7 +149,7 @@ teardown_scenario_stack() {
     printf '==> scenarios-teardown: fail, the kept project %s could not be located; it is removed by label when the suite ends\n' "$SCN_PROJECT"
     return 0
   fi
-  save_scenario_container_logs
+  save_container_logs "$SCN_PROJECT"
   run_phase scenarios-teardown 900 env "COMPOSE_PROJECT_NAME=$SCN_PROJECT" "LOCAL_DIR=$SCN_LOCAL" ./teardown.sh --purge
   if phase_passed scenarios-teardown; then SCN_PENDING=false; fi
 }
@@ -160,8 +174,9 @@ printed_directories() { # printed_directories <label>
   sed -n "s#^$1 directory: \\(/[^ ]*\\)\$#\\1#p" "$LOG_DIR"/*.log 2> /dev/null | sort -u
 }
 
+# collect_artifacts <seconds>: the collector under a deadline of its own
 collect_artifacts() {
-  local line rc=0
+  local line rc=0 limit=$1
   set -- --out "$PUBLISH" --start "$START_EPOCH" --ui-dir "$EXAMPLE_DIR/tests/ui" --logs "$LOG_DIR" --components "$COMPONENT_DIR" --summary "$SUMMARY"
   while IFS= read -r line; do
     [ -z "$line" ] || set -- "$@" --run-dir "$line"
@@ -173,25 +188,42 @@ EOF
   done <<EOF
 $(printed_directories report)
 EOF
-  python3 -I "$EXAMPLE_DIR/tests/ci-artifacts.py" "$@" || rc=$?
+  run_bounded "$limit" python3 -I "$EXAMPLE_DIR/tests/ci-artifacts.py" --private-report "$PRIVATE_REPORT" "$@" || rc=$?
   return "$rc"
 }
 
 # --- the end -------------------------------------------------------------------------------------------------------------------------
 
-# whatever ended the run (a signal included): the kept stack is removed and the evidence collected, once
+# publish/ is either a complete collection (it has its MANIFEST.json) or absent: the collector renames a finished staging directory
+# into place, and a directory that is there without a manifest (a collector that died some other way) is set aside, never uploaded
+drop_incomplete_publish() {
+  if [ -d "$PUBLISH" ] && [ ! -f "$PUBLISH/MANIFEST.json" ]; then
+    mv "$PUBLISH" "$(dirname "$PUBLISH")/work/incomplete-publish.$$" || true
+  fi
+}
+
+# Whatever ended the run (a signal included), best effort within what a cancelled job is given (see the header). The evidence is
+# collected FIRST, from what is on disk and without runtime calls, so a removal that hangs cannot take the snapshot with it; then the
+# kept stack is removed, every step under CI_CLEANUP_SECONDS. A second signal ends the hook at once, and what it leaves is either a
+# complete publish/ or none.
 finish_hook() {
+  local PROBE_TIMEOUT=$CLEANUP_SECONDS
   $FINISHED && return 0
   FINISHED=true
+  drop_incomplete_publish
+  if [ ! -f "${PUBLISH:-/nonexistent}/MANIFEST.json" ]; then
+    printf 'suite\tinterrupted\t0\n' >> "$SUMMARY"
+    if $SCN_PENDING; then [ -n "$SCN_LOCAL" ] || locate_scenario_stack || true; fi
+    collect_artifacts "$CLEANUP_SECONDS" > /dev/null 2>&1 || true
+    drop_incomplete_publish
+  fi
   if $SCN_PENDING; then
-    [ -n "$SCN_LOCAL" ] || locate_scenario_stack || true
     if [ -n "$SCN_LOCAL" ]; then
-      COMPOSE_PROJECT_NAME=$SCN_PROJECT LOCAL_DIR=$SCN_LOCAL ./teardown.sh --purge > "$LOG_DIR/scenarios-teardown-on-exit.log" 2>&1 || true
+      run_bounded "$CLEANUP_SECONDS" env "COMPOSE_PROJECT_NAME=$SCN_PROJECT" "LOCAL_DIR=$SCN_LOCAL" ./teardown.sh --purge > "$LOG_DIR/scenarios-teardown-on-exit.log" 2>&1 || true
     else
       remove_scenario_project_by_label
     fi
   fi
-  [ -d "${PUBLISH:-}" ] || collect_artifacts > /dev/null 2>&1 || true
 }
 
 main() {
@@ -211,10 +243,12 @@ main() {
   COMPONENT_DIR=$artifact_dir/work/components
   PUBLISH=$artifact_dir/publish
   SUMMARY=$artifact_dir/work/summary.tsv
+  PRIVATE_REPORT=$artifact_dir/work/artifact-report.json
   : > "$SUMMARY"
   RB_EXIT_HOOK=finish_hook
   trap finish_hook EXIT
-  printf 'example CI suite: image %s, artifacts below %s\n' "$REGISTRY_IMAGE" "$artifact_dir"
+  # The image name is not printed: a registry address can carry credentials, and the job console is not covered by the allowlist
+  printf 'example CI suite: artifacts below %s\n' "$artifact_dir"
 
   run_phase unit 1500 ./tests/unit-test.sh
   run_phase dashboard-unit 900 ./tests/dashboard-unit-test.sh
@@ -249,9 +283,11 @@ main() {
   fi
   teardown_scenario_stack
 
+  save_container_logs "$PROJECT"
   # the table is final before the collector reads it; the collector's own status is added after it
   summarize
-  collect_artifacts || rc=$?
+  collect_artifacts "$COLLECT_SECONDS" || rc=$?
+  drop_incomplete_publish
   if [ "$rc" -eq 0 ]; then printf 'artifacts\tpass\t0\n' >> "$SUMMARY"; else printf 'artifacts\tfail(%s)\t0\n' "$rc" >> "$SUMMARY"; fi
   summarize
   if awk -F'\t' '$2 != "pass" { bad = 1 } END { exit bad }' "$SUMMARY"; then

@@ -123,6 +123,12 @@ class ExampleSuiteWiringTest(unittest.TestCase):
         pins = {re.search(r"upload-artifact@(\S+)", t).group(1) for t in uploads}
         self.assertEqual(1, len(pins), "both uploads use the same pinned version")
 
+    def test_raw_compose_logs_are_not_replayed_or_uploaded_for_an_example_with_a_suite(self):
+        for name in ("Stack logs", "Upload stack logs"):
+            text = step(self.examples, name)
+            self.assertIn("matrix.example.suite == ''", text, name + " is for examples without a suite")
+            self.assertIn("matrix.example.compose", text, name + " still covers the other examples")
+
     def test_the_privileged_installation_is_in_the_workflow_and_not_in_the_examples_scripts(self):
         text = step(self.examples, "Install the browser's system packages")
         self.assertIn("if: matrix.example.playwrightDir != ''", text)

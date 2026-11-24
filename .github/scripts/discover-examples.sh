@@ -39,6 +39,21 @@ set -euo pipefail
 dir=${1:-examples}
 entries=()
 
+# contained_regular <example> <relative path>: the path names a regular file (not a link) whose every directory is a real directory
+# of the example, so the file cannot lead out of it through a link; contained_dir <example> <relative path> is the same for a directory
+contained_dir() {
+  local root physical
+  root=$(cd -P "$1" && pwd -P) || return 1
+  [ ! -L "$1/$2" ] || return 1
+  physical=$(cd -P "$1/$2" 2> /dev/null && pwd -P) || return 1
+  [ "$physical" = "$root/$2" ]
+}
+contained_regular() {
+  local parent=${2%/*}
+  [ -f "$1/$2" ] && [ ! -L "$1/$2" ] || return 1
+  case $2 in */*) contained_dir "$1" "$parent" ;; *) return 0 ;; esac
+}
+
 for demo in "$dir"/*/demo.sh; do
   [ -e "$demo" ] || continue
   example=$(dirname "$demo")
@@ -107,16 +122,16 @@ for demo in "$dir"/*/demo.sh; do
       exit 1
     fi
   done
-  if [ -n "$suite" ] && [ ! -x "$example/$suite" ]; then
-    echo "::error::$name: CI_SUITE must name an executable file of the example, got '$suite'" >&2
+  if [ -n "$suite" ] && { ! contained_regular "$example" "$suite" || [ ! -x "$example/$suite" ]; }; then
+    echo "::error::$name: CI_SUITE must name an executable regular file inside the example (no link), got '$suite'" >&2
     exit 1
   fi
   if [ -n "$suite" ] && [ -n "$matrix" ]; then
     echo "::error::$name: CI_SUITE cannot be combined with CI_MATRIX (the suite would run once per variant)" >&2
     exit 1
   fi
-  if [ -n "$playwright_dir" ] && { [ ! -f "$example/$playwright_dir/package.json" ] || [ ! -f "$example/$playwright_dir/package-lock.json" ]; }; then
-    echo "::error::$name: CI_PLAYWRIGHT_DIR needs a package.json and a package-lock.json, got '$playwright_dir'" >&2
+  if [ -n "$playwright_dir" ] && { ! contained_dir "$example" "$playwright_dir" || ! contained_regular "$example" "$playwright_dir/package.json" || ! contained_regular "$example" "$playwright_dir/package-lock.json"; }; then
+    echo "::error::$name: CI_PLAYWRIGHT_DIR must be a real directory inside the example with a package.json and a package-lock.json that are regular files, got '$playwright_dir'" >&2
     exit 1
   fi
   if [ -n "$playwright_dir" ] && ! [[ " $toolchains " == *" node "* ]]; then

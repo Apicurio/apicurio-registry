@@ -3,12 +3,12 @@
 
 Only files this invocation produced and that an explicit allowlist names are copied into the output directory, and each is
 verified first (freshness, size, file type, a safe trace's shape, secret patterns). A file that is not on the allowlist is
-excluded and listed; a file that is on it but fails verification, a symbolic link, a directory outside its root or a stale
+excluded and counted; a file that is on it but fails verification, a symbolic link, a directory outside its root or a stale
 file is a violation: it is not published and the exit status is 1. Nothing is read from anywhere the caller did not name,
 and the browser tools' own report trees are never copied wholesale.
 
 Usage: ci-artifacts.py --out DIR --start EPOCH --ui-dir DIR [--run-dir DIR ...] [--report-dir DIR ...]
-                       [--logs DIR] [--components DIR] [--summary FILE]
+                       [--logs DIR] [--components DIR] [--summary FILE] [--private-report FILE]
   --out         new or empty directory that receives the published files and MANIFEST.json
   --start       epoch seconds at which the suite started; nothing older than that is accepted
   --ui-dir      the example's browser tests directory: run directories must be below its test-results, report
@@ -16,15 +16,20 @@ Usage: ci-artifacts.py --out DIR --start EPOCH --ui-dir DIR [--run-dir DIR ...] 
   --run-dir     one run directory this invocation printed (results.json, screenshots/, pw/*/test-failed-N.png, trace.zip)
   --report-dir  one report directory this invocation printed (index.html and data/<sha1>.png|md|txt|zip)
   --logs        directory of the phase logs (<phase>.log), --components the container logs (<project>/<container>.log)
-  --summary     the suite's own summary file
+  --summary     the suite's own summary file; it is published with the collector's own row for this collection
+  --private-report  a new file outside --out that receives the names and reasons of what was excluded or rejected; the published
+                MANIFEST.json and the output of this program carry only counts
 Exit status: 0 when there is no violation, 1 on a violation, 2 on a usage error. Python 3.8 or later, standard library only.
 """
 import argparse
 import hashlib
+import io
 import json
 import os
 import re
+import stat
 import sys
+import tempfile
 import zipfile
 from calendar import timegm
 from time import strptime
@@ -40,7 +45,8 @@ SLOT = r"[A-Za-z0-9][A-Za-z0-9._-]{0,200}"
 
 # What must never leave the runner, wherever it appears in an allowlisted file
 SECRET_PATTERNS = [
-    ("an Authorization, Cookie or Set-Cookie header", re.compile(rb"(?i)\b(authorization|set-cookie|cookie)\s*:\s*\S")),
+    # a header line, and the same header as a JSON or quoted key ("authorization": "...")
+    ("an Authorization, Cookie or Set-Cookie header", re.compile(rb"(?i)\b(authorization|set-cookie|cookie)[\"']?\s*:\s*[\"']?\S")),
     ("a Grafana session cookie", re.compile(rb"(?i)grafana_session")),
     ("a bearer token", re.compile(rb"(?i)\bbearer\s+[A-Za-z0-9._~+/=-]{16,}")),
     ("a JSON web token", re.compile(rb"\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{5,}")),
@@ -102,23 +108,45 @@ class Collector:
     def secrets_in(self, data):
         return [name for name, pattern in SECRET_PATTERNS if pattern.search(data)]
 
-    def fresh(self, path):
-        return os.lstat(path).st_mtime >= self.start
+    def read_regular(self, path, label, limit, tail=False):
+        """The bytes of a regular, fresh file read through one descriptor, or None after recording why not.
 
-    def read_checked(self, path, label, limit):
-        """The bytes of a regular, fresh, small-enough file, or None after recording why not."""
-        info = os.lstat(path)
-        if not os.path.isfile(path) or os.path.islink(path):
+        The type is checked before anything is opened (a named pipe would block the open), the open never follows a link
+        and does not wait for a writer, and the descriptor is checked to be the entry that was inspected. With tail, a
+        file larger than the limit gives its last limit bytes; without it, a larger file is a violation."""
+        try:
+            info = os.lstat(path)
+        except OSError:
+            self.violation(label, "unreadable")
+            return None
+        if not stat.S_ISREG(info.st_mode):
             self.violation(label, "not a regular file (a symbolic link or another kind of entry)")
             return None
         if info.st_mtime < self.start:
             self.violation(label, "older than this invocation (stale)")
             return None
-        if info.st_size > limit:
+        if info.st_size > limit and not tail:
             self.violation(label, "larger than the %d byte limit" % limit)
             return None
-        with open(path, "rb") as handle:
-            return handle.read()
+        flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
+        try:
+            descriptor = os.open(path, flags)
+        except OSError:
+            self.violation(label, "could not be opened without following a link")
+            return None
+        with os.fdopen(descriptor, "rb") as handle:
+            opened = os.fstat(handle.fileno())
+            if not stat.S_ISREG(opened.st_mode) or (opened.st_dev, opened.st_ino) != (info.st_dev, info.st_ino):
+                self.violation(label, "changed while it was being opened")
+                return None
+            if tail and opened.st_size > limit:
+                handle.seek(-limit, os.SEEK_END)
+                return ("[truncated: the last %d of %d bytes]\n" % (limit, opened.st_size)).encode() + handle.read(limit)
+            data = handle.read(limit + 1)
+        if len(data) > limit:
+            self.violation(label, "larger than the %d byte limit" % limit)
+            return None
+        return data
 
     def check_content(self, kind, data, label):
         if kind in ("json",):
@@ -144,40 +172,55 @@ class Collector:
             return False
         return True
 
-    def check_trace(self, path, label):
-        """A trace archive of the safe mode: only its known entries, no network, no secret in its text."""
-        info = os.lstat(path)
-        if info.st_size > MAX_TRACE:
-            self.violation(label, "trace larger than the %d byte limit" % MAX_TRACE)
-            return False
+    def check_trace(self, data, label):
+        """A trace archive of the safe mode, checked from the bytes that will be published: no duplicate member, only
+        its known entries, every member read through its own ZipInfo and as long as it says, no network, no secret."""
         try:
-            archive = zipfile.ZipFile(path)
+            archive = zipfile.ZipFile(io.BytesIO(data))
         except (zipfile.BadZipFile, OSError):
             self.violation(label, "not a readable zip archive")
             return False
         with archive:
-            if sum(entry.file_size for entry in archive.infolist()) > MAX_TRACE_UNPACKED:
+            entries = archive.infolist()
+            names = [entry.filename for entry in entries]
+            if len(set(names)) != len(names):
+                self.violation(label, "the archive has a member name more than once")
+                return False
+            if sum(entry.file_size for entry in entries) > MAX_TRACE_UNPACKED:
                 self.violation(label, "trace unpacks to more than %d bytes" % MAX_TRACE_UNPACKED)
                 return False
-            for entry in archive.infolist():
+            unpacked = 0
+            for entry in entries:
                 name = entry.filename
+                if entry.flag_bits & 0x1 or name.endswith("/"):
+                    self.violation(label, "an encrypted member or a directory entry")
+                    return False
                 if not any(pattern.match(name) for pattern in TRACE_ENTRIES):
-                    self.violation(label, "an entry outside the safe trace shape: " + name)
+                    self.violation(label, "an entry outside the safe trace shape")
                     return False
                 if name == "trace.network" and entry.file_size != 0:
                     self.violation(label, "the trace records network activity")
                     return False
-                content = archive.read(name)
+                try:
+                    with archive.open(entry) as member:
+                        content = member.read(entry.file_size + 1)
+                except (zipfile.BadZipFile, NotImplementedError, RuntimeError, OSError):
+                    self.violation(label, "a member that cannot be read")
+                    return False
+                unpacked += len(content)
+                if len(content) != entry.file_size or unpacked > MAX_TRACE_UNPACKED:
+                    self.violation(label, "a member whose size is not what the archive says")
+                    return False
                 if name.endswith(".png") and not content.startswith(PNG):
-                    self.violation(label, "trace entry %s is not a PNG image" % name)
+                    self.violation(label, "a trace image that is not a PNG")
                     return False
                 if name.endswith(".jpeg") and not content.startswith(JPEG):
-                    self.violation(label, "trace entry %s is not a JPEG image" % name)
+                    self.violation(label, "a trace image that is not a JPEG")
                     return False
                 if TRACE_TEXT.match(name):
                     found = self.secrets_in(content)
                     if found:
-                        self.violation(label, "trace entry %s contains %s" % (name, ", ".join(found)))
+                        self.violation(label, "a trace text that contains " + ", ".join(found))
                         return False
         return True
 
@@ -193,7 +236,12 @@ class Collector:
             self.violation(label, "its name is not a run directory name")
             return None
         if match:
-            if timegm(strptime(match.group(1), "%Y%m%dT%H%M%SZ")) + 1 < self.start:
+            try:
+                started = timegm(strptime(match.group(1), "%Y%m%dT%H%M%SZ"))
+            except ValueError:
+                self.violation(label, "its name carries a date that does not exist")
+                return None
+            if started + 1 < self.start:
                 self.violation(label, "a run that started before this invocation (stale)")
                 return None
         return real
@@ -222,13 +270,11 @@ class Collector:
                 self.exclude(shown, reason)
                 continue
             if kind == "trace":
-                if not self.fresh(path):
-                    self.violation(shown, "older than this invocation (stale)")
-                elif self.check_trace(path, shown):
-                    with open(path, "rb") as handle:
-                        self.publish(os.path.join(prefix, rel), handle.read(), "trace", shown)
+                data = self.read_regular(path, shown, MAX_TRACE)
+                if data is not None and self.check_trace(data, shown):
+                    self.publish(os.path.join(prefix, rel), data, "trace", shown)
                 continue
-            data = self.read_checked(path, shown, MAX_FILE if kind in ("json", "png", "html") else MAX_TEXT)
+            data = self.read_regular(path, shown, MAX_FILE if kind in ("json", "png", "html") else MAX_TEXT)
             if data is not None and self.check_content(kind, data, shown):
                 self.publish(os.path.join(prefix, rel), data, kind, shown)
 
@@ -241,19 +287,9 @@ class Collector:
             if not pattern.match(rel):
                 self.exclude(shown, "not on the allowlist")
                 continue
-            if os.path.islink(path):
-                self.violation(shown, "a symbolic link")
+            data = self.read_regular(path, shown, LOG_TAIL, tail=True)
+            if data is None:
                 continue
-            info = os.lstat(path)
-            if info.st_mtime < self.start:
-                self.violation(shown, "older than this invocation (stale)")
-                continue
-            with open(path, "rb") as handle:
-                if info.st_size > LOG_TAIL:
-                    handle.seek(-LOG_TAIL, os.SEEK_END)
-                    data = ("[truncated: the last %d of %d bytes]\n" % (LOG_TAIL, info.st_size)).encode() + handle.read()
-                else:
-                    data = handle.read()
             found = self.secrets_in(data)
             if found:
                 self.violation(shown, "contains " + ", ".join(found))
@@ -271,6 +307,7 @@ def main():
     parser.add_argument("--logs")
     parser.add_argument("--components")
     parser.add_argument("--summary")
+    parser.add_argument("--private-report", help="absolute path, outside --out, of a new file that receives the names and reasons")
     args = parser.parse_args()
 
     if os.path.lexists(args.out) and (not os.path.isdir(args.out) or os.listdir(args.out)):
@@ -279,8 +316,17 @@ def main():
     if not os.path.isabs(args.out) or not os.path.isabs(args.ui_dir):
         print("error: --out and --ui-dir must be absolute paths", file=sys.stderr)
         return 2
-    os.makedirs(args.out, exist_ok=True)
-    collector = Collector(args.out, args.start)
+    if args.private_report is not None:
+        parent = os.path.realpath(os.path.dirname(args.private_report))
+        out_real = os.path.realpath(args.out)
+        if not os.path.isabs(args.private_report) or os.path.lexists(args.private_report) or parent == out_real or parent.startswith(out_real + os.sep):
+            print("error: --private-report must be a new absolute path outside --out", file=sys.stderr)
+            return 2
+    # The collection is built in a staging directory beside --out and renamed into place when it is complete, so a collector that is
+    # interrupted at any point leaves --out absent, never half filled
+    os.makedirs(os.path.dirname(os.path.normpath(args.out)), exist_ok=True)
+    staging = tempfile.mkdtemp(prefix="." + os.path.basename(os.path.normpath(args.out)) + ".staging.", dir=os.path.dirname(os.path.normpath(args.out)))
+    collector = Collector(staging, args.start)
 
     results_root = os.path.join(args.ui_dir, "test-results")
     report_root = os.path.join(args.ui_dir, "playwright-report")
@@ -295,22 +341,37 @@ def main():
     collector.collect_logs(args.logs, re.compile(r"^[a-z0-9][a-z0-9-]{0,60}\.log$"), "logs", "logs")
     collector.collect_logs(args.components, re.compile(r"^[a-z0-9][a-z0-9._-]{0,100}/[A-Za-z0-9][A-Za-z0-9._-]{0,100}\.log$"), "components", "components")
     if args.summary is not None and os.path.lexists(args.summary):
-        data = collector.read_checked(args.summary, "summary", MAX_TEXT)
+        data = collector.read_regular(args.summary, "summary", MAX_TEXT)
         if data is not None and collector.check_content("text", data, "summary"):
-            collector.publish("summary.tsv", data, "text", "summary")
+            # The suite's own table cannot know how this collection ends; the row for it is the collector's, so the published
+            # table and the exit status agree (a violation anywhere above is a fail here, whatever the caller recorded)
+            rows = [row for row in data.decode("utf-8").splitlines() if not row.startswith("artifacts\t")]
+            rows.append("artifacts\t%s\t0" % ("pass" if not collector.violations else "fail(1)"))
+            collector.publish("summary.tsv", ("\n".join(rows) + "\n").encode("utf-8"), "text", "summary")
 
+    # The published manifest names only what was published (names the allowlist's own patterns produced). What was excluded or
+    # rejected is a count here: a raw name or reason would carry text from the files being judged out of the artifact.
     manifest = {
         "published": sorted(collector.published, key=lambda entry: entry["path"]),
-        "excluded": sorted(collector.excluded, key=lambda entry: entry["path"]),
-        "violations": sorted(collector.violations, key=lambda entry: (entry["path"], entry["reason"])),
+        "excluded_count": len(collector.excluded),
+        "violation_count": len(collector.violations),
     }
-    with open(os.path.join(args.out, "MANIFEST.json"), "w", encoding="utf-8") as handle:
+    with open(os.path.join(staging, "MANIFEST.json"), "w", encoding="utf-8") as handle:
         json.dump(manifest, handle, indent=2, sort_keys=True)
         handle.write("\n")
-    print("artifacts: %d published, %d excluded, %d violation(s)" % (len(manifest["published"]), len(manifest["excluded"]), len(manifest["violations"])))
-    for entry in manifest["violations"]:
-        print("VIOLATION %s: %s" % (entry["path"], entry["reason"]), file=sys.stderr)
-    return 1 if manifest["violations"] else 0
+    if args.private_report is not None:
+        detail = {
+            "excluded": sorted(collector.excluded, key=lambda entry: entry["path"]),
+            "violations": sorted(collector.violations, key=lambda entry: (entry["path"], entry["reason"])),
+        }
+        with open(args.private_report, "w", encoding="utf-8") as handle:
+            json.dump(detail, handle, indent=2, sort_keys=True)
+            handle.write("\n")
+    if os.path.isdir(args.out):
+        os.rmdir(args.out)
+    os.rename(staging, args.out)
+    print("artifacts: %d published, %d excluded, %d violation(s)" % (len(manifest["published"]), manifest["excluded_count"], manifest["violation_count"]))
+    return 1 if collector.violations else 0
 
 
 if __name__ == "__main__":

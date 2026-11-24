@@ -121,12 +121,13 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
             // Validate the candidate even when there is no published version to compare it with.
             validateSchemaContent(request.getSchema(), artifactType);
 
-            // Same baseline as the v3 rules: published versions only. The filtered query throws when
-            // nothing matches, which here means the subject has no published versions yet.
+            // Same baseline as the v3 rules: every version except DRAFT and DISABLED, so SUNSET
+            // versions are included. The filtered query throws when nothing matches, which here means
+            // the subject has no such versions yet.
             List<String> versions;
             try {
                 versions = storage.getArtifactVersions(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(),
-                        Set.of(VersionState.ENABLED, VersionState.DEPRECATED));
+                        Set.of(VersionState.ENABLED, VersionState.DEPRECATED, VersionState.SUNSET));
             } catch (ArtifactNotFoundException ex) {
                 versions = List.of();
             }

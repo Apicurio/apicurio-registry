@@ -8,6 +8,8 @@ import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.RuleType;
+import io.apicurio.registry.rest.client.models.VersionState;
+import io.apicurio.registry.rest.client.models.WrappedVersionState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.TestUtils;
@@ -156,6 +158,41 @@ public class CompatibilityResourceTest extends AbstractResourceTestBase {
                     .post("/ccompat/v7/compatibility/subjects/{subject}/versions", subject)
                 .then()
                     .statusCode(422);
+    }
+
+    @Test
+    public void testSunsetVersionIsUsedForCompatibilityCheck() throws Exception {
+        String subject = TestUtils.generateArtifactId();
+        String groupId = GroupId.DEFAULT.getRawGroupIdWithDefaultString();
+
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(subject, ArtifactType.AVRO,
+                AVRO_CONTENT_V1, ContentTypes.APPLICATION_JSON);
+        createArtifact.getFirstVersion().setVersion("1.0");
+        clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.COMPATIBILITY);
+        createRule.setConfig("BACKWARD");
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(subject).rules().post(createRule);
+
+        WrappedVersionState sunset = new WrappedVersionState();
+        sunset.setState(VersionState.SUNSET);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(subject).versions()
+                .byVersionExpression("1.0").state().put(sunset);
+
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode requestBody = mapper.createObjectNode();
+        requestBody.put("schema", AVRO_CONTENT_V2);
+        requestBody.put("schemaType", "AVRO");
+
+        // The v3 baseline includes SUNSET versions, so the candidate must be checked against this one.
+        given().when()
+                    .contentType(CT_JSON)
+                    .body(requestBody)
+                    .post("/ccompat/v7/compatibility/subjects/{subject}/versions", subject)
+                .then()
+                    .statusCode(200)
+                    .body("is_compatible", is(false));
     }
 
     @Test

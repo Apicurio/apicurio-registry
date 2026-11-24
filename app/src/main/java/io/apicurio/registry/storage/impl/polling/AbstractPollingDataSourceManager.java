@@ -31,6 +31,7 @@ import io.apicurio.registry.utils.impexp.v3.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity;
 import io.apicurio.registry.utils.impexp.v3.BranchEntity;
 import io.apicurio.registry.model.BranchId;
+import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.utils.impexp.v3.ContentEntity;
 import io.apicurio.registry.utils.impexp.v3.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.GroupEntity;
@@ -54,6 +55,8 @@ import java.util.stream.Collectors;
  * commitChange, getPreviousMarker) and provide the registry ID and commit time.
  */
 public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMarker> implements PollingDataSourceManager<MARKER> {
+
+    private static final String DEFAULT_GROUP_ID = "default";
 
     @Inject
     Logger log;
@@ -158,6 +161,10 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
                     continue;
                 }
 
+                if (artifact.getGroupId() == null || artifact.getGroupId().isBlank()) {
+                    artifact.setGroupId(DEFAULT_GROUP_ID);
+                }
+
                 if (state.checkArtifactConflict(artifact.getGroupId(), artifact.getArtifactId(), file.getSourceId())) {
                     state.recordError(file, "Artifact '%s:%s' is defined in multiple sources: '%s' and '%s'. "
                             + "Each artifact must be defined in exactly one source.",
@@ -258,8 +265,31 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
         if (group != null) {
             List<Version> versions = artifact.getVersions();
             if (versions == null || versions.isEmpty()) {
-                log.debug("Artifact {} has no versions, skipping", artifact.getArtifactId());
-                artifactFile.setProcessed(true);
+                if (artifact.getArtifactType() == null || artifact.getArtifactType().isBlank()) {
+                    state.recordError(artifactFile,
+                            "Artifact '%s' has no versions and no explicit artifactType: artifactType is required when there are no versions.",
+                            artifact.getArtifactId());
+                    return;
+                }
+                ArtifactEntity artifactEntity = new ArtifactEntity();
+                artifactEntity.groupId = artifact.getGroupId();
+                artifactEntity.artifactId = artifact.getArtifactId();
+                artifactEntity.artifactType = artifact.getArtifactType();
+                artifactEntity.name = artifact.getName();
+                artifactEntity.description = artifact.getDescription();
+                artifactEntity.labels = withSourceLabel(artifact.getLabels(), artifactFile.getSourceId());
+                artifactEntity.owner = artifact.getOwner();
+                artifactEntity.createdOn = TimestampParser.parse(artifact.getCreatedOn(), state.getCommitTime());
+                artifactEntity.modifiedOn = TimestampParser.parse(artifact.getModifiedOn(), state.getCommitTime());
+                try {
+                    state.getStorage().importArtifact(artifactEntity);
+                    state.incrementArtifactCount();
+                    processArtifactRules(state, artifact);
+                    artifactFile.setProcessed(true);
+                } catch (Exception ex) {
+                    state.recordError(artifactFile, "Could not import artifact '%s': %s",
+                            artifact.getArtifactId(), ex.getMessage());
+                }
                 return;
             }
 
@@ -297,7 +327,7 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
     private void importVersion(ProcessingState state, PollingDataFile artifactFile, Artifact artifact,
             Version version, int i, String yamlArtifactType, AtomicBoolean artifactImported,
             List<String> publishedVersions) {
-        final VersionContentResult result = processVersionContent(state, artifactFile, version,
+        final VersionContentResult result = processVersionContent(state, artifactFile, artifact, version,
                 yamlArtifactType);
         if (result == null) {
             state.recordError(artifactFile, "Could not import content for artifact version %s.",
@@ -409,12 +439,22 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
     }
 
     private Group processGroupRef(ProcessingState state, String groupName) {
+        final boolean isDefault = groupName == null || new GroupId(groupName).isDefaultGroup();
         var groupFiles = state.fromTypeIndex(Type.GROUP).stream().filter(f -> {
             Group group = f.getEntityUnchecked();
-            return matchesRegistryId(group.getRegistryIds()) && groupName.equals(group.getGroupId());
+            return matchesRegistryId(group.getRegistryIds()) && (
+                    (groupName != null && groupName.equals(group.getGroupId()))
+                    || (isDefault && (group.getGroupId() == null || new GroupId(group.getGroupId()).isDefaultGroup()))
+            );
         }).collect(Collectors.toList());
 
         if (groupFiles.isEmpty()) {
+            if (isDefault) {
+                // The default group is implicit; no physical group metadata file is required.
+                Group defaultGroup = new Group();
+                defaultGroup.setGroupId(DEFAULT_GROUP_ID);
+                return defaultGroup;
+            }
             state.recordError("Could not find group with ID %s for registry %s", groupName,
                     pollingConfig.getRegistryId());
             return null;
@@ -427,6 +467,10 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
             Group group = groupFile.getEntityUnchecked();
             if (groupFile.isProcessed()) {
                 return group;
+            }
+            if (isDefault && group.getRules() != null && !group.getRules().isEmpty()) {
+                state.recordError(groupFile, "Group rules are not allowed on the default group.");
+                return null;
             }
             try {
                 var e = new GroupEntity();
@@ -465,7 +509,7 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
      * @return the content result with contentId and resolved artifact type, or null on failure
      */
     private VersionContentResult processVersionContent(ProcessingState state, PollingDataFile artifactFile,
-                                                       Version version, String artifactType) {
+                                                       Artifact artifact, Version version, String artifactType) {
         String contentPath = version.getContent();
         String contentMetadataPath = version.getContentMetadata();
 
@@ -490,6 +534,12 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
         var data = dataFile.getData();
         if (data == null) {
             state.recordError(dataFile, "Content data is null");
+            return null;
+        }
+
+        if (data.bytes().length == 0) {
+            state.recordError(dataFile, "Empty content is not allowed for artifact version '%s'",
+                    artifact.getGroupId() + ":" + artifact.getArtifactId() + ":" + version.getVersion());
             return null;
         }
 

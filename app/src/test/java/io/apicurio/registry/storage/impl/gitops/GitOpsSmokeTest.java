@@ -396,7 +396,7 @@ public class GitOpsSmokeTest {
     }
 
     @Test
-    void defaultGroupWithRulesIsRejected() throws Exception {
+    void defaultGroupFileIsRejected() throws Exception {
         final var testRepository = GitTestRepositoryManager.getTestRepository();
 
         // First load valid data so we can verify no swap occurs on failure
@@ -405,7 +405,7 @@ public class GitOpsSmokeTest {
             assertEquals(Set.of("petstore"), withContext(() -> storage.getArtifactIds(10)));
         });
 
-        // Group rules on default group must be rejected (matching REST 403 NotAllowedException)
+        // Any group file for default group must be rejected (the default group is implicit and can't be configured)
         testRepository.commitFiles(Map.of(
                 "registry.registry.yaml", """
                         $type: registry-v0
@@ -414,14 +414,12 @@ public class GitOpsSmokeTest {
                 "group-default.registry.yaml", """
                         $type: group-v0
                         groupId: default
-                        rules:
-                          - ruleType: VALIDITY
-                            config: FULL
+                        description: An invalid default group file
                         """,
                 "artifact-default.registry.yaml", """
                         $type: artifact-v0
                         groupId: default
-                        artifactId: art-with-rule
+                        artifactId: art-with-group-file
                         artifactType: JSON
                         """
         ));
@@ -436,7 +434,8 @@ public class GitOpsSmokeTest {
                     .then()
                     .statusCode(200)
                     .body("syncState", equalTo("ERROR"))
-                    .body("errors[0].detail", containsString("Group rules are not allowed on the default group"));
+                    .body("errors[0].detail", containsString(
+                            "The default group is implicit and can't be configured; remove this file, and use global rules in the registry file for rules that apply to it."));
         });
     }
 
@@ -501,6 +500,43 @@ public class GitOpsSmokeTest {
                     .statusCode(200)
                     .body("syncState", equalTo("ERROR"))
                     .body("errors[0].detail", containsString("artifactType is required when there are no versions"));
+        });
+    }
+
+    @Test
+    void metadataOnlyArtifactWithInvalidTypeIsRejected() throws Exception {
+        final var testRepository = GitTestRepositoryManager.getTestRepository();
+
+        // First load valid data
+        testRepository.load("git/smoke01");
+        await().atMost(Duration.ofSeconds(60)).untilAsserted(() -> {
+            assertEquals(Set.of("petstore"), withContext(() -> storage.getArtifactIds(10)));
+        });
+
+        testRepository.commitFiles(Map.of(
+                "registry.registry.yaml", """
+                        $type: registry-v0
+                        registryId: test
+                        """,
+                "artifact-invalid-type.registry.yaml", """
+                        $type: artifact-v0
+                        groupId: default
+                        artifactId: invalid-type-art
+                        artifactType: NOT_A_REAL_TYPE
+                        """
+        ));
+
+        await().pollDelay(Duration.ofSeconds(3)).untilAsserted(() -> {
+            // Previous data should still be served
+            assertEquals(Set.of("petstore"), withContext(() -> storage.getArtifactIds(10)));
+        });
+
+        await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
+            get("/apis/registry/v3/admin/gitops/status")
+                    .then()
+                    .statusCode(200)
+                    .body("syncState", equalTo("ERROR"))
+                    .body("errors[0].detail", containsString("invalid artifactType 'NOT_A_REAL_TYPE'"));
         });
     }
 

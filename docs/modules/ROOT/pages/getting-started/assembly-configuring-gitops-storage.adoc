@@ -79,7 +79,7 @@ Each metadata file declares its kind with a `$type` discriminator:
 | Registry configuration. Fields: `registryId`, `globalRules` (list of `ruleType` and `config` pairs), `properties`, and `peers` (list of peer registries; see below). The `registryId` value must match the `apicurio.polling-storage.id` property of the registry instance.
 
 | `group-v0`
-| An artifact group. Fields: `registryIds` (list), `groupId`, `description`, `labels`, `owner`, `artifactsType`, `rules`, `createdOn`, and `modifiedOn`. Non-default groups referenced by an artifact must be declared by a `group-v0` file; the default group is implicit and does not require a `group-v0` file.
+| An artifact group. Fields: `registryIds` (list), `groupId`, `description`, `labels`, `owner`, `artifactsType`, `rules`, `createdOn`, and `modifiedOn`. Non-default groups referenced by an artifact must be declared in a `group-v0` file; no group file is allowed for the default group (rules that apply to the default group must be configured as global rules in the registry configuration file).
 
 | `artifact-v0`
 | An artifact with its versions declared inline. Fields: `registryIds`, `groupId` (optional; defaults to `default`), `artifactId`, `artifactType` (required when `versions` is omitted or empty), `name`, `description`, `labels`, `owner`, `createdOn`, `modifiedOn`, `rules`, `validatedUpTo`, and `versions` (optional). Each version has `version`, `state`, and `content`, where `content` is a relative path to a schema file. A version can also have `name`, `description`, `labels`, `owner`, `globalId`, `createdOn`, `modifiedOn`, and `contentMetadata`, which is a relative path to a `content-v0` file.
@@ -90,7 +90,7 @@ Each metadata file declares its kind with a `$type` discriminator:
 
 GitOps storage and KubernetesOps storage share one data format. The KubernetesOps field reference lists the type and description of each field except `createdOn`, `modifiedOn`, and `validatedUpTo`. The rules later in this section describe those three fields.
 
-The following example declares a registry configuration, a group, and an artifact. Non-default groups must be declared before artifacts reference them: a load that references an undeclared non-default group fails, and the registry does not become ready. (Artifacts belonging to the implicit `default` group do not require a group file.)
+The following example declares a registry configuration, a group, and an artifact. Non-default groups must be declared in a `group-v0` file: a load that references an undeclared non-default group fails, and the registry does not become ready. (No group file is allowed for the default group.)
 
 [source,yaml]
 ----
@@ -207,10 +207,10 @@ When the registry rejects a repository state:
 The following rules define which repository states the GitOps loader accepts or rejects:
 
 Default group::
-The `default` group in {registry} is implicit. Artifacts that omit `groupId` or specify `groupId: default` belong to the default group.
-* Artifacts in the default group do *not* require a `group-v0` metadata file.
-* If a `group-v0` file for `groupId: default` is provided, it cannot define group rules (`rules`), because group rules are not allowed on the default group (matching REST API semantics). If group rules are configured on the default group, the load fails.
-* Non-default groups must be explicitly defined in a `group-v0` file before artifacts can reference them. A reference to an undeclared non-default group fails the load.
+The `default` group in {registry} is implicit and cannot be configured. Artifacts that omit `groupId` or specify `groupId: default` belong to the default group.
+* No `group-v0` file is allowed for the default group. If a `group-v0` file whose `groupId` is `default` (or empty) is present in the repository, the load fails with an error stating that the default group is implicit and cannot be configured.
+* Rules that apply to the default group must be configured as global rules in the registry configuration file (`registry-v0`).
+* Non-default groups must be declared in a `group-v0` file. A reference to an undeclared non-default group fails the load.
 
 Artifacts without versions::
 An artifact can be defined with zero versions (for example, metadata-only artifacts):
@@ -220,7 +220,7 @@ An artifact can be defined with zero versions (for example, metadata-only artifa
 
 Content validation and empty content::
 Content files referenced by version definitions must exist, be readable, and contain valid content:
-* Empty (zero-byte) content files are rejected (matching the REST API rule `Empty content is not allowed`), unless using an empty content type explicitly supported by the registry.
+* Empty (zero-byte) content files are rejected (matching the REST API rule `Empty content is not allowed`).
 * Versions pointing to missing or unreadable content files fail the load.
 
 Metadata file validity::
@@ -235,8 +235,8 @@ Allowed version states are `ENABLED`, `DISABLED`, `DEPRECATED`, and `DRAFT`.
 Artifact references and integrity::
 Artifact versions can reference schemas in other artifacts (using `content-v0` or references in content):
 * References are validated according to the registry rules in effect.
-* If an `INTEGRITY` rule is enabled (globally, at the group level, or at the artifact level), references must resolve to valid target artifacts and versions.
-* If no `INTEGRITY` rule applies, references to non-existent artifacts are permitted (matching REST API semantics).
+* For versions selected for validation, an `INTEGRITY` rule configured with `REFS_EXIST` or `FULL` (globally, at the group level, or at the artifact level) requires references to resolve to valid target artifacts and versions.
+* If no `INTEGRITY` rule applies (or if configured with levels that permit dangling references, such as `NO_DUPLICATES`), references to non-existent artifacts are permitted (matching REST API semantics).
 
 Custom branches::
 The `v0` repository data format does not support custom branch declarations.

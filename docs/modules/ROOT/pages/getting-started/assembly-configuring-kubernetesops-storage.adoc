@@ -439,7 +439,7 @@ KubernetesOps storage follows the same acceptance rule and data format as GitOps
 The KubernetesOps loader accepts a ConfigMap repository state if a user could produce the same registry state deliberately through the REST API. It rejects anything that the REST API would not allow a user to produce:
 
 * When a state is rejected, the entire load fails, no blue-green database swap occurs, and the registry continues serving the last known-good state.
-* The `default` group is implicit and does not require a `group-v0` ConfigMap. Group rules are not allowed on the default group.
+* The `default` group is implicit and cannot be configured. No `group-v0` ConfigMap is allowed for the default group. Rules that apply to the default group must be configured as global rules in the registry configuration (`registry-v0`).
 * Artifacts without versions are accepted if `artifactType` is explicitly provided, and rejected if `artifactType` is omitted.
 * Empty (zero-byte) content files are rejected.
 * For full details on accepted repository states, validation rules, and error handling, see xref:getting-started/assembly-configuring-gitops-storage.adoc#gitops-accepted-repository-states_{context}[Accepted repository states and validation rules].

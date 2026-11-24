@@ -152,6 +152,14 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
             processGlobalRules(state);
             processPeers(state);
 
+            for (PollingDataFile groupFile : state.fromTypeIndex(Type.GROUP)) {
+                Group group = groupFile.getEntityUnchecked();
+                if (group.getGroupId() == null || new GroupId(group.getGroupId()).isDefaultGroup()) {
+                    state.recordError(groupFile,
+                            "The default group is implicit and can't be configured; remove this file, and use global rules in the registry file for rules that apply to it.");
+                }
+            }
+
             for (PollingDataFile file : state.fromTypeIndex(Type.ARTIFACT)) {
                 Artifact artifact = file.getEntityUnchecked();
 
@@ -271,10 +279,18 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
                             artifact.getArtifactId());
                     return;
                 }
+                String validatedType;
+                try {
+                    validatedType = utils.determineArtifactType(null, artifact.getArtifactType());
+                } catch (Exception ex) {
+                    state.recordError(artifactFile, "Artifact '%s' has invalid artifactType '%s': %s",
+                            artifact.getArtifactId(), artifact.getArtifactType(), ex.getMessage());
+                    return;
+                }
                 ArtifactEntity artifactEntity = new ArtifactEntity();
                 artifactEntity.groupId = artifact.getGroupId();
                 artifactEntity.artifactId = artifact.getArtifactId();
-                artifactEntity.artifactType = artifact.getArtifactType();
+                artifactEntity.artifactType = validatedType;
                 artifactEntity.name = artifact.getName();
                 artifactEntity.description = artifact.getDescription();
                 artifactEntity.labels = withSourceLabel(artifact.getLabels(), artifactFile.getSourceId());
@@ -440,21 +456,19 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
 
     private Group processGroupRef(ProcessingState state, String groupName) {
         final boolean isDefault = groupName == null || new GroupId(groupName).isDefaultGroup();
+        if (isDefault) {
+            // The default group is implicit; no physical group metadata file is allowed.
+            Group defaultGroup = new Group();
+            defaultGroup.setGroupId(DEFAULT_GROUP_ID);
+            return defaultGroup;
+        }
+
         var groupFiles = state.fromTypeIndex(Type.GROUP).stream().filter(f -> {
             Group group = f.getEntityUnchecked();
-            return matchesRegistryId(group.getRegistryIds()) && (
-                    (groupName != null && groupName.equals(group.getGroupId()))
-                    || (isDefault && (group.getGroupId() == null || new GroupId(group.getGroupId()).isDefaultGroup()))
-            );
+            return matchesRegistryId(group.getRegistryIds()) && groupName.equals(group.getGroupId());
         }).collect(Collectors.toList());
 
         if (groupFiles.isEmpty()) {
-            if (isDefault) {
-                // The default group is implicit; no physical group metadata file is required.
-                Group defaultGroup = new Group();
-                defaultGroup.setGroupId(DEFAULT_GROUP_ID);
-                return defaultGroup;
-            }
             state.recordError("Could not find group with ID %s for registry %s", groupName,
                     pollingConfig.getRegistryId());
             return null;
@@ -467,10 +481,6 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
             Group group = groupFile.getEntityUnchecked();
             if (groupFile.isProcessed()) {
                 return group;
-            }
-            if (isDefault && group.getRules() != null && !group.getRules().isEmpty()) {
-                state.recordError(groupFile, "Group rules are not allowed on the default group.");
-                return null;
             }
             try {
                 var e = new GroupEntity();

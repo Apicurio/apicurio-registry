@@ -2,6 +2,7 @@ package io.apicurio.registry.config;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.eclipse.microprofile.config.Config;
@@ -35,5 +36,14 @@ class DeprecatedPropertiesDefaultSilenceTest {
                 config.getOptionalValue("apicurio.compat.json-schema.use-apitomy", String.class),
                 "DeprecatedPropertiesCheck.isConfigured reads exactly this lookup, so a non-empty value"
                         + " would log a deprecation WARN on every start");
+    }
+
+    @Test
+    void deprecatedAgentPropertiesAreNotConfiguredByDefault() {
+        for (String name : List.of("apicurio.a2a.agent.protocol-version", "apicurio.ai-catalog.spec-version",
+                "apicurio.ard.federation.default", "apicurio.a2a.agent.name", "apicurio.ai-catalog.host-name")) {
+            assertEquals(Optional.empty(), config.getOptionalValue(name, String.class),
+                    name + " must not be set by default, or every start would log a deprecation WARN");
+        }
     }
 }

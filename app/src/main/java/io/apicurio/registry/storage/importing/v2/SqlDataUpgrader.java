@@ -37,6 +37,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import static io.apicurio.registry.types.ArtifactType.ASYNCAPI;
@@ -90,7 +91,8 @@ public class SqlDataUpgrader extends AbstractDataImporter {
             storage.importArtifactRule(newEntity);
             log.debug("Artifact rule imported successfully: {}", entity);
         } catch (Exception ex) {
-            log.warn("Failed to import artifact rule {}: {}", entity, ex.getMessage());
+            log.warn("Dropped artifact rule {} of artifact {}/{} from the import: {}", entity.type, entity.groupId,
+                    entity.artifactId, ex.getMessage());
         }
     }
 
@@ -98,10 +100,15 @@ public class SqlDataUpgrader extends AbstractDataImporter {
     public void importArtifactVersion(ArtifactVersionEntity entity) {
         try {
 
-            if (contentIdMapping.containsKey(entity.contentId)) {
-                // If the contentId is already mapped, we need to use the new one.
-                entity.contentId = contentIdMapping.get(entity.contentId);
+            if (!contentIdMapping.containsKey(entity.contentId)) {
+                // The content of this version was not imported: linking the version to the old contentId
+                // would point it at unrelated content in this registry.
+                log.warn("Dropped artifact version {}/{} version {} (globalId {}) from the import: its content "
+                        + "(contentId {}) was not imported", entity.groupId, entity.artifactId, entity.version,
+                        entity.globalId, entity.contentId);
+                return;
             }
+            entity.contentId = contentIdMapping.get(entity.contentId);
 
             var oldGlobalId = entity.globalId;
             if (!preserveGlobalId) {
@@ -166,13 +173,15 @@ public class SqlDataUpgrader extends AbstractDataImporter {
                     new VersionId(entityVersion));
         } catch (VersionAlreadyExistsException ex) {
             if (ex.getGlobalId() != null) {
-                log.warn("Duplicate globalId {} detected, skipping import of artifact version: {}",
-                        ex.getGlobalId(), entity);
+                log.warn("Dropped artifact version {}/{} version {} from the import: duplicate globalId {}",
+                        entity.groupId, entity.artifactId, entity.version, ex.getGlobalId());
             } else {
-                log.warn("Failed to import artifact version {}: {}", entity, ex.getMessage());
+                log.warn("Dropped artifact version {}/{} version {} (globalId {}) from the import: {}",
+                        entity.groupId, entity.artifactId, entity.version, entity.globalId, ex.getMessage());
             }
         } catch (Exception ex) {
-            log.warn("Failed to import artifact version {}: {}", entity, ex.getMessage(), ex);
+            log.warn("Dropped artifact version {}/{} version {} (globalId {}) from the import: {}",
+                    entity.groupId, entity.artifactId, entity.version, entity.globalId, ex.getMessage(), ex);
         }
     }
 
@@ -181,9 +190,6 @@ public class SqlDataUpgrader extends AbstractDataImporter {
         try {
             // Based on the configuration, a new id is requested or the old one is used.
             var oldContentId = entity.contentId;
-            if (!preserveContentId) {
-                entity.contentId = storage.nextContentId();
-            }
 
             List<ArtifactReferenceDto> references = RegistryContentUtils
                     .deserializeReferences(entity.serializedReferences);
@@ -191,6 +197,18 @@ public class SqlDataUpgrader extends AbstractDataImporter {
             // Recalculate the hash using the current algorithm
             TypedContent typedContent = TypedContent.create(ContentHandle.create(entity.contentBytes), null);
             entity.contentHash = utils.getContentHash(typedContent, references);
+
+            if (!preserveContentId) {
+                // Content is deduplicated by hash: reuse the existing content instead of failing the insert
+                Optional<Long> existingContentId = storage.contentIdFromHash(entity.contentHash);
+                if (existingContentId.isPresent()) {
+                    contentIdMapping.put(oldContentId, existingContentId.get());
+                    log.debug("Content already exists with id {}, reusing it: {}", existingContentId.get(),
+                            entity);
+                    return;
+                }
+                entity.contentId = storage.nextContentId();
+            }
 
             // Try to recalculate the canonical hash - this may fail if the content has references
             try {
@@ -234,7 +252,7 @@ public class SqlDataUpgrader extends AbstractDataImporter {
 
             contentIdMapping.put(oldContentId, entity.contentId);
         } catch (Exception ex) {
-            log.warn("Failed to import content {}: {}", entity, ex.getMessage());
+            log.warn("Dropped content (contentId {}) from the import: {}", entity.contentId, ex.getMessage());
         }
     }
 
@@ -245,7 +263,7 @@ public class SqlDataUpgrader extends AbstractDataImporter {
                     .configuration(entity.configuration).ruleType(entity.ruleType).build());
             log.debug("Global rule imported successfully: {}", entity);
         } catch (Exception ex) {
-            log.warn("Failed to import global rule {}: {}", entity, ex.getMessage());
+            log.warn("Dropped global rule {} from the import: {}", entity.ruleType, ex.getMessage());
         }
     }
 
@@ -260,14 +278,20 @@ public class SqlDataUpgrader extends AbstractDataImporter {
             storage.importGroup(newEntity);
             log.debug("Group imported successfully: {}", entity);
         } catch (Exception ex) {
-            log.warn("Failed to import group {}: {}", entity, ex.getMessage());
+            log.warn("Dropped group {} from the import: {}", entity.groupId, ex.getMessage());
         }
     }
 
     @Override
     public void importComment(CommentEntity entity) {
         try {
-            entity.globalId = globalIdMapping.get(entity.globalId);
+            Long newGlobalId = globalIdMapping.get(entity.globalId);
+            if (newGlobalId == null) {
+                log.warn("Dropped comment {} from the import: its version (globalId {}) was not imported",
+                        entity.commentId, entity.globalId);
+                return;
+            }
+            entity.globalId = newGlobalId;
 
             io.apicurio.registry.utils.impexp.v3.CommentEntity newEntity = io.apicurio.registry.utils.impexp.v3.CommentEntity
                     .builder().commentId(entity.commentId).createdOn(entity.createdOn)
@@ -276,7 +300,8 @@ public class SqlDataUpgrader extends AbstractDataImporter {
             storage.importComment(newEntity);
             log.debug("Comment imported successfully: {}", entity);
         } catch (Exception ex) {
-            log.warn("Failed to import comment {}: {}", entity, ex.getMessage());
+            log.warn("Dropped comment {} (globalId {}) from the import: {}", entity.commentId, entity.globalId,
+                    ex.getMessage());
         }
     }
 

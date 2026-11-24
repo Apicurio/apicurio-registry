@@ -3,7 +3,8 @@
 - **Status:** Accepted (documents the current implementation).
 - **Decision date:** 2026-11-12.
 - **Author:** Apicurio Registry maintainers.
-- **Tracking:** [#11097](https://github.com/Apicurio/apicurio-registry/issues/11097),
+- **Tracking:** [#11097](https://github.com/Apicurio/apicurio-registry/issues/11097) and
+  [#11109](https://github.com/Apicurio/apicurio-registry/issues/11109) (both fixed),
   [#9324](https://github.com/Apicurio/apicurio-registry/issues/9324),
   [#8426](https://github.com/Apicurio/apicurio-registry/issues/8426).
 - **Scope:** The events the registry publishes when its data changes: the event model, how they reach
@@ -26,15 +27,19 @@ none: the guarantees must be explicit for each.
    `eventType` and the change's fields, keyed by the changed coordinates (`group`, `group-artifact`,
    `group-artifact-version`, or the rule type).
 2. **Events come from storage, not from REST:** the storage implementation fires them where the change
-   is made, so the API used does not matter, and dry runs and rejected changes produce none. It is
-   **not a complete change feed**: bulk artifact deletion (`DELETE /groups/{g}/artifacts`) and
-   imports produce no events ([#11109](https://github.com/Apicurio/apicurio-registry/issues/11109)).
+   is made, so the API used does not matter, and dry runs and rejected changes produce none. Bulk
+   artifact deletion (`DELETE /groups/{g}/artifacts`) emits one `ARTIFACT_DELETED` per artifact.
+   Imports (`/admin/import`, and the v2-to-v3 upgrade) emit the events of the equivalent operations:
+   groups, artifacts, versions, rules and contract rulesets. It is **not a complete change feed**:
+   imported comments, content and branches have no event type, and deleting an artifact emits no
+   per-version events.
 3. **SQL storage uses the transactional outbox:** each event is inserted into the `outbox` table in the
-   same transaction as the change (except contract rulesets, see below), and deleted again; an external CDC connector (Debezium's outbox
+   same transaction as the change, and deleted again; an external CDC connector (Debezium's outbox
    event router) publishes it from the database log. PostgreSQL and SQL Server only.
 4. **KafkaSQL publishes directly** to `apicurio.events.kafka.topic` (`registry-events`, one partition),
    from the replica that handled the request, after the change is applied.
-5. **GitOps and KubernetesOps produce no events.**
+5. **GitOps and KubernetesOps produce no events,** although they load their data through the same
+   imports into an internal SQL database: only the `sql` storage variant writes to the outbox.
 6. **Kafka is the only transport;** there are no HTTP webhooks.
 
 ### Why an outbox on SQL storage
@@ -56,7 +61,7 @@ it.
 
 | | SQL (PostgreSQL, SQL Server) | KafkaSQL | GitOps, KubernetesOps, H2, MySQL |
 |---|---|---|---|
-| Published | If and only if the change commits; contract-ruleset events are written after the change's transaction, so a failure in between loses them ([#11109](https://github.com/Apicurio/apicurio-registry/issues/11109)) | After the change is applied; lost if publishing fails | Never |
+| Published | If and only if the change commits | After the change is applied; lost if publishing fails | Never |
 | Delivery | At least once (CDC resumes from the log) | At most once | |
 | Order | Commit order | One partition: total order | |
 | Topic | `outbox.event.registry-events` (Debezium's default for the outbox router) | `registry-events` | |
@@ -92,15 +97,13 @@ Events cannot be switched off: on SQL storage, simply do not run the connector.
 
 ## Limitations and open work
 
-1. On SQL storage, `ARTIFACT_VERSION_CREATED` precedes `ARTIFACT_CREATED` for an artifact created with
-   its first version ([#11097](https://github.com/Apicurio/apicurio-registry/issues/11097)).
-2. KafkaSQL events are not transactional: a failed publish loses the event.
-3. No CloudEvents, no HTTP delivery ([#8426](https://github.com/Apicurio/apicurio-registry/issues/8426), [#9324](https://github.com/Apicurio/apicurio-registry/issues/9324)).
-4. MySQL has an outbox table that is never written; H2, MySQL, GitOps and KubernetesOps produce no
+1. KafkaSQL events are not transactional: a failed publish loses the event.
+2. No CloudEvents, no HTTP delivery ([#8426](https://github.com/Apicurio/apicurio-registry/issues/8426), [#9324](https://github.com/Apicurio/apicurio-registry/issues/9324)).
+3. MySQL has an outbox table that is never written; H2, MySQL, GitOps and KubernetesOps produce no
    events.
-5. Events carry coordinates and metadata, not content; consumers fetch content from the registry.
-6. Not every change produces an event: bulk artifact deletion and imports do not, and on SQL storage
-   contract-ruleset events are not transactional ([#11109](https://github.com/Apicurio/apicurio-registry/issues/11109)).
+4. Events carry coordinates and metadata, not content; consumers fetch content from the registry.
+5. Not every change produces an event: imported comments, content and branches, and the versions
+   removed with a deleted artifact, have none.
 
 ## Alternatives
 
@@ -138,3 +141,4 @@ Events cannot be switched off: on SQL storage, simply do not run the connector.
 |---|---|
 | DB version 101 | `outbox` table |
 | This ADR | First written record, with a verified example |
+| [#11175](https://github.com/Apicurio/apicurio-registry/pull/11175) | Fixed: on SQL storage `ARTIFACT_CREATED` precedes the first `ARTIFACT_VERSION_CREATED`, as on KafkaSQL (#11097); bulk artifact deletion and imports emit events, and contract-ruleset events are transactional on SQL storage (#11109) |

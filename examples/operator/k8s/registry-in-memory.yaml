@@ -1,0 +1,6 @@
+# The smallest ApicurioRegistry3: the registry and its console, with in-memory storage.
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: registry
+spec: {}

@@ -90,7 +90,7 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
 
     @Override
     public ParsedSchema<ProtobufSchema> getSchemaFromData(Record<U> record, boolean dereference) {
-        return null;
+        return getSchemaFromData(record);
     }
 
     private List<ParsedSchema<ProtobufSchema>> handleDependencies(Descriptors.FileDescriptor fileDescriptor) {

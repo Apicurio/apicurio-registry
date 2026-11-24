@@ -3,10 +3,19 @@ package io.apicurio.registry.storage.impl.kafkasql;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlFactory.KafkaSqlVerificationJournalConsumer;
 import io.apicurio.registry.storage.impl.util.KafkaAdminUtil;
 import jakarta.enterprise.inject.Instance;
+import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlFactory.KafkaAdminClient;
+import org.apache.kafka.clients.admin.Admin;
+import org.apache.kafka.clients.admin.CreateTopicsResult;
+import org.apache.kafka.clients.admin.DescribeClusterResult;
+import org.apache.kafka.clients.admin.ListTopicsResult;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.KafkaFuture;
+import org.apache.kafka.common.Node;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.errors.TopicExistsException;
+import org.apache.kafka.common.internals.KafkaFutureImpl;
 import org.apache.kafka.common.utils.Bytes;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,6 +31,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -163,6 +173,30 @@ public class KafkaAdminUtilTest {
                     new Bytes(new byte[]{1}), new Bytes(new byte[]{2})));
         }
         return new ConsumerRecords<>(Map.of(TP0, records));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    void testCreateTopicTreatsConcurrentCreationAsAlreadyExists() throws Exception {
+        Admin admin = mock(Admin.class);
+        ListTopicsResult listTopics = mock(ListTopicsResult.class);
+        when(listTopics.names()).thenReturn(KafkaFuture.completedFuture(Set.of()));
+        when(admin.listTopics()).thenReturn(listTopics);
+        DescribeClusterResult cluster = mock(DescribeClusterResult.class);
+        when(cluster.nodes()).thenReturn(KafkaFuture.completedFuture(List.of(new Node(1, "localhost", 9092))));
+        when(admin.describeCluster()).thenReturn(cluster);
+        KafkaFutureImpl<Void> failed = new KafkaFutureImpl<>();
+        failed.completeExceptionally(new TopicExistsException("Topic '" + TEST_TOPIC + "' already exists."));
+        CreateTopicsResult createTopics = mock(CreateTopicsResult.class);
+        when(createTopics.all()).thenReturn(failed);
+        when(admin.createTopics(any())).thenReturn(createTopics);
+
+        Instance<KafkaAdminClient> adminInstance = mock(Instance.class);
+        when(adminInstance.get()).thenReturn(new KafkaAdminClient(() -> admin));
+        setField("adminClient", adminInstance);
+
+        assertEquals(false, kafkaAdminUtil.createTopicIfDoesNotExistAsync(TEST_TOPIC, Map.of()).get(5, TimeUnit.SECONDS));
+        verify(admin, times(1)).createTopics(any());
     }
 
     private void setField(String fieldName, Object value) throws Exception {

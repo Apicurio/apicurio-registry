@@ -43,7 +43,7 @@ jobs:
       - name: Start the quickstart stack
         run: |
           start=$(date +%s)
-          docker compose up -d --wait apicurio-registry apicurio-registry-ui
+          docker compose up -d --wait apicurio-registry apicurio-registry-ui weather-mcp
           echo "Registry and web console ready after $(( $(date +%s) - start ))s"
 
       # docker compose run is synchronous and returns the seed container's exit code.

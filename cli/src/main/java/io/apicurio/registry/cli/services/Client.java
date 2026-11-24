@@ -38,6 +38,11 @@ public class Client {
     private static final int IDLE_TIMEOUT_SECONDS = 120;
     private static final int MAX_REDIRECTS = 5;
 
+    // Registry calls: without a read timeout, a request whose connection stalls (no bytes, no error)
+    // waits forever. A long-running request (an import) gets a longer one.
+    static final long REGISTRY_READ_IDLE_TIMEOUT_MILLIS = 120_000;
+    static final long REGISTRY_LONG_REQUEST_READ_IDLE_TIMEOUT_MILLIS = 3_600_000;
+
     private RegistryClient registryClient;
 
     private HttpClient httpClient;
@@ -53,7 +58,7 @@ public class Client {
     public RegistryClient getRegistryClient() {
         requireCurrentContext();
         if (registryClient == null) {
-            registryClient = createRegistryClient(httpLoggingEnabled);
+            registryClient = createRegistryClient(httpLoggingEnabled, true);
         }
         return registryClient;
     }
@@ -65,7 +70,15 @@ public class Client {
      * by an earlier command in the same JVM.
      */
     public RegistryClient getRegistryClientWithoutHttpLogging() {
-        return createRegistryClient(false);
+        return createRegistryClient(false, true);
+    }
+
+    /**
+     * A Registry client for a request the server may take long to answer without sending anything,
+     * such as an import: its read timeout is an hour rather than two minutes.
+     */
+    public RegistryClient getRegistryClientForLongRequests() {
+        return createRegistryClient(httpLoggingEnabled, false);
     }
 
     private void requireCurrentContext() {
@@ -76,7 +89,23 @@ public class Client {
         }
     }
 
-    private RegistryClient createRegistryClient(final boolean logHttp) {
+    /**
+     * The options of a Registry client, before authentication is configured.
+     */
+    static RegistryClientOptions registryClientOptions(final String url, final Vertx vertx, final boolean logHttp,
+            final boolean shortReadTimeout) {
+        final var options = RegistryClientOptions.create(url, vertx);
+        // Cookies stay in memory and acr runs one command per process, so they never outlive the command.
+        options.enableCookies();
+        options.requestTimeout(CONNECT_TIMEOUT_MILLIS,
+                shortReadTimeout ? REGISTRY_READ_IDLE_TIMEOUT_MILLIS : REGISTRY_LONG_REQUEST_READ_IDLE_TIMEOUT_MILLIS);
+        if (logHttp) {
+            options.enableHttpLogging();
+        }
+        return options;
+    }
+
+    private RegistryClient createRegistryClient(final boolean logHttp, final boolean shortReadTimeout) {
         requireCurrentContext();
         var currentContext = config.read();
         try {
@@ -84,12 +113,7 @@ public class Client {
             if (uri.getPath() == null) {
                 uri = uri.resolve("/apis/registry/v3");
             }
-            final var options = RegistryClientOptions.create(uri.toString(), vertx);
-            // Cookies stay in memory and acr runs one command per process, so they never outlive the command.
-            options.enableCookies();
-            if (logHttp) {
-                options.enableHttpLogging();
-            }
+            final var options = registryClientOptions(uri.toString(), vertx, logHttp, shortReadTimeout);
             final var context = currentContext.getContext().get(currentContext.getCurrentContext());
             configureAuth(options, context, currentContext.getCurrentContext());
             return RegistryClientFactory.create(options);

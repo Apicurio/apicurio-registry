@@ -1,6 +1,7 @@
 package io.apicurio.registry.rules;
 
 import io.apicurio.registry.rules.app.compatibility.CompatibilityRuleExecutor;
+import io.apicurio.registry.rules.app.governance.GovernanceRuleExecutor;
 import io.apicurio.registry.rules.app.integrity.IntegrityRuleExecutor;
 import io.apicurio.registry.rules.app.validity.ValidityRuleExecutor;
 import io.apicurio.registry.types.RuleType;
@@ -19,6 +20,8 @@ public class RuleExecutorFactory {
     ValidityRuleExecutor validity;
     @Inject
     IntegrityRuleExecutor integrity;
+    @Inject
+    GovernanceRuleExecutor governance;
 
     public RuleExecutor createExecutor(RuleType ruleType) {
         switch (ruleType) {
@@ -28,6 +31,8 @@ public class RuleExecutorFactory {
                 return validity;
             case INTEGRITY:
                 return integrity;
+            case GOVERNANCE:
+                return governance;
             default:
                 throw new RuntimeException("Rule type not supported");
         }

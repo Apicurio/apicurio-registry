@@ -8,6 +8,9 @@ import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.v3.beans.HandleReferencesType;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
+import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
+import io.apicurio.registry.storage.error.ArtifactNotFoundException;
+import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.references.ReferenceResolution;
 import io.apicurio.registry.auth.ResourceAccessGuard;
@@ -63,6 +66,7 @@ public abstract class AbstractResourceImpl {
         if (!references.isEmpty()) {
             if (referencesType == HandleReferencesType.DEREFERENCE) {
                 ArtifactTypeUtilProvider artifactTypeProvider = factory.getArtifactTypeProvider(artifactType);
+                ReferenceResolution.requireDereferenceable(references, accessGuard.referenceLoader());
 
                 if (artifactTypeProvider.supportsReferencesWithContext()) {
                     RegistryContentUtils.RewrittenContentHolder rewrittenContent = RegistryContentUtils
@@ -84,6 +88,21 @@ public abstract class AbstractResourceImpl {
             }
         }
         return content;
+    }
+
+    /**
+     * Loads a referenced artifact version for the reference-tree ETag. A reference to a version that does not
+     * exist yields {@code null}, which the walk records as missing and skips, as
+     * {@link RegistryStorage#getContentByReference} does for the other reference walks. Any other failure
+     * propagates.
+     */
+    protected StoredArtifactVersionDto loadReferencedVersion(ArtifactReferenceDto reference) {
+        try {
+            return storage.getArtifactVersionContent(reference.getGroupId(), reference.getArtifactId(),
+                    reference.getVersion());
+        } catch (ArtifactNotFoundException | VersionNotFoundException ex) {
+            return null;
+        }
     }
 
     /**

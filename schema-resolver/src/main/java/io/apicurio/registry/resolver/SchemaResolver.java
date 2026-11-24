@@ -47,6 +47,16 @@ public interface SchemaResolver<SCHEMA, DATA> extends Closeable {
     public SchemaLookupResult<SCHEMA> resolveSchemaByArtifactReference(ArtifactReference reference);
 
     /**
+     * Names the artifact of a record the way {@link #resolveSchema(Record)} would: with the configured
+     * artifact resolver strategy and any explicitly configured coordinates. Does not call the registry.
+     *
+     * @return the artifact reference, or null if this resolver cannot name the artifact
+     */
+    default ArtifactReference resolveArtifactReference(Record<DATA> data, ParsedSchema<SCHEMA> parsedSchema) {
+        return null;
+    }
+
+    /**
      * Hard reset cache
      */
     public void reset();

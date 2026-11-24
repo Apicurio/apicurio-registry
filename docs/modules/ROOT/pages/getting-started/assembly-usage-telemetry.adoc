@@ -114,7 +114,7 @@ The registry server exposes the following properties to configure usage telemetr
 |`apicurio.usage.drift-alert-threshold`
 |int
 |`2`
-|Number of versions behind latest before a consumer is flagged with a drift alert.
+|Number of versions behind the newest fetched version before a consumer is flagged with a drift alert.
 
 |`apicurio.usage.retention-days`
 |int
@@ -426,29 +426,36 @@ Zero overhead when disabled:: No headers are sent, no events are recorded, and n
 Automatic cleanup:: Events older than the retention period are deleted automatically.
 
 [id="proc-usage-telemetry-demo-script_{context}"]
-== Running the usage telemetry demo script
+== Running the usage telemetry example
 
 :_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
-A demo script is provided to populate realistic usage data for testing.
+The usage telemetry example starts {registry} with telemetry enabled, plays several client applications fetching schema versions, and checks what the usage endpoints report.
+
+.Prerequisites
+* Docker or Podman with Compose v2, `curl`, and `jq`.
 
 .Procedure
-. Start the registry with telemetry enabled:
+. Start the example:
 +
 [source,bash]
 ----
-./mvnw quarkus:dev -pl :apicurio-registry-app \
-  -Dapicurio.features.experimental.enabled=true \
-  -Dapicurio.usage.telemetry.enabled=true
+cd examples/usage-telemetry-demo
+docker compose up -d
 ----
 
-. In another terminal, run the demo script:
+. Run the demo script:
 +
 [source,bash]
 ----
-./examples/usage-telemetry-demo/populate-usage-data.sh
+./demo.sh
 ----
 
-.Results
-The script creates three artifacts (UserEvent, OrderEvent, PaymentEvent) with multiple versions and simulates usage from five different client applications by fetching schemas with `X-Registry-Client-Id` headers.
+.Verification
+* The script ends with `All checks passed.`
+* The web console at `http://localhost:8888` shows the usage badges and the *Usage* tab for the artifacts the script created.
+
+[role="_additional-resources"]
+.Additional resources
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/usage-telemetry-demo[Usage telemetry example]

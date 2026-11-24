@@ -78,6 +78,7 @@ jobs:
           mvn -s ${{ github.workspace }}/registry/.github/ci-settings.xml versions:set -DnewVersion=${{ github.event.inputs.release-version}} -DgenerateBackupPoms=false -DprocessAllModules=true
 
           sed -i  "s/version\:\s.*/version: \'${{ env.RELEASE_DOCS_VERSION }}\'/g" docs/antora.yml
+          sed -i  "/^prerelease:/d" docs/antora.yml
           sed -i  "5s/\"version\"\:\s\".*\"/\"version\": \"${{ env.RELEASE_DOCS_VERSION }}\"/g" common/src/main/resources/META-INF/openapi.json
 
           # TODO: Operator docs
@@ -236,7 +237,7 @@ jobs:
           ref: ${{ needs.release-prepare.outputs.release-sha }}
 
       - name: Set up GraalVM
-        uses: graalvm/setup-graalvm@d6eca2595046623d69d636041513c80abf745406 # v1
+        uses: graalvm/setup-graalvm@60e76998d25690099182b796e99b8804da582d90 # v1
         with:
           java-version: '25'
           distribution: 'graalvm-community'

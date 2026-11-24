@@ -41,6 +41,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
@@ -211,7 +212,7 @@ public class ConsumerResource {
     @WithSpan("transform-greeting")
     protected String transformGreeting(Greeting greeting) {
         String original = greeting.getMessage().toString();
-        String transformed = original.toUpperCase() + " [Processed at " +
+        String transformed = original.toUpperCase(Locale.ROOT) + " [Processed at " +
                 FORMATTER.format(Instant.now()) + "]";
         Span.current().setAttribute("transformed.length", transformed.length());
         return transformed;

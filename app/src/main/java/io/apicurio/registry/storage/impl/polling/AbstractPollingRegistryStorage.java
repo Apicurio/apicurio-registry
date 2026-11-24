@@ -21,6 +21,7 @@ import org.slf4j.Logger;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -237,7 +238,7 @@ public abstract class AbstractPollingRegistryStorage<MARKER extends SourceMarker
                 }
             }
             if (pollResult.isHasChanges()) {
-                debouncer.onChange(pollResult);
+                debouncer.onChange(pollResult, pollResult.getMarker().toSources());
             }
             if (debouncer.isReady()) {
                 loadInactive(debouncer.pending());
@@ -583,6 +584,17 @@ public abstract class AbstractPollingRegistryStorage<MARKER extends SourceMarker
     public ArtifactVersionMetaDataDto getArtifactVersionMetaData(Long globalId)
             throws VersionNotFoundException, RegistryStorageException {
         return proxy(storage -> storage.getArtifactVersionMetaData(globalId));
+    }
+
+    @Override
+    public VersionWithArtifactMetaDataDto getArtifactVersionWithArtifactMetaData(Long globalId)
+            throws VersionNotFoundException, RegistryStorageException {
+        return proxy(storage -> storage.getArtifactVersionWithArtifactMetaData(globalId));
+    }
+
+    @Override
+    public List<ArtifactMetaDataDto> getArtifactsMetaData(Collection<GA> artifacts) throws RegistryStorageException {
+        return proxy(storage -> storage.getArtifactsMetaData(artifacts));
     }
 
     @Override

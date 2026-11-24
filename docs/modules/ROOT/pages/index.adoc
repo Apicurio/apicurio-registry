@@ -22,3 +22,4 @@ See the link:https://github.com/Apicurio/apicurio-registry[{registry}] and https
 
 ifdef::apicurio-registry[]
 link:https://github.com/Apicurio/apicurio-registry/issues/new[Create an issue] on GitHub if you find any problems.
+endif::[]

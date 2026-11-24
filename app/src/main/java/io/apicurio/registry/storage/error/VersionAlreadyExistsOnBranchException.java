@@ -1,5 +1,6 @@
 package io.apicurio.registry.storage.error;
 
+import io.apicurio.registry.model.GroupId;
 import lombok.Getter;
 
 @Getter
@@ -22,7 +23,7 @@ public class VersionAlreadyExistsOnBranchException extends AlreadyExistsExceptio
     }
 
     private static String message(String groupId, String artifactId, String version, String branchId) {
-        return "Version '" + version + "' (for artifact ID '" + artifactId + "' " + "in group '" + groupId
+        return "Version '" + version + "' (for artifact ID '" + artifactId + "' " + "in group '" + GroupId.displayName(groupId)
                 + "') already exists in branch '" + branchId + "'.";
     }
 }

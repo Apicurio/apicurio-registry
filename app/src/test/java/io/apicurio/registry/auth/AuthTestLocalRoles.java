@@ -2,7 +2,6 @@ package io.apicurio.registry.auth;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.client.RegistryClientFactory;
-import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
@@ -45,9 +44,7 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
 
     @Override
     protected RegistryClient createRestClientV3(Vertx vertx) {
-        return RegistryClientFactory.create(RegistryClientOptions.create()
-                .registryUrl(registryV3ApiUrl)
-                .vertx(vertx)
+        return RegistryClientFactory.create(boundedClientOptions(registryV3ApiUrl, vertx)
                 .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1"));
     }
 
@@ -63,14 +60,10 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
 
     @Test
     public void testLocalRoles() throws Exception {
-        RegistryClient clientAdmin = RegistryClientFactory.create(RegistryClientOptions.create()
-                .registryUrl(registryV3ApiUrl)
-                .vertx(vertx)
+        RegistryClient clientAdmin = RegistryClientFactory.create(boundedClientOptions(registryV3ApiUrl, vertx)
                 .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1"));
 
-        RegistryClient client = RegistryClientFactory.create(RegistryClientOptions.create()
-                .registryUrl(registryV3ApiUrl)
-                .vertx(vertx)
+        RegistryClient client = RegistryClientFactory.create(boundedClientOptions(registryV3ApiUrl, vertx)
                 .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.NO_ROLE_CLIENT_ID, "test1"));
 
         // User is authenticated but no roles assigned yet - operations should fail.

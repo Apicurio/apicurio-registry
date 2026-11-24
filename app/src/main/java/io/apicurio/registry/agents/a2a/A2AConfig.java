@@ -1,7 +1,9 @@
 package io.apicurio.registry.agents.a2a;
 
 import io.apicurio.common.apps.config.Info;
+import io.apicurio.registry.config.InstanceConfig;
 import jakarta.annotation.PostConstruct;
+import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
@@ -17,6 +19,9 @@ import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_A2A
 @Singleton
 public class A2AConfig {
 
+    /** The A2A protocol version the registry's own Agent Card implements. */
+    public static final String PROTOCOL_VERSION = "1.0";
+
     private static final Set<String> VALID_VISIBILITIES = Set.of("public", "entitled", "private");
 
     @PostConstruct
@@ -28,13 +33,16 @@ public class A2AConfig {
         }
     }
 
-    @ConfigProperty(name = "apicurio.a2a.enabled", defaultValue = "false")
-    @Info(category = CATEGORY_A2A, description = "Enable A2A protocol support", availableSince = "3.0.0", experimental = true)
+    @ConfigProperty(name = "apicurio.a2a.enabled")
+    @Info(category = CATEGORY_A2A, description = "Enable A2A protocol support. Defaults to apicurio.agents.enabled", dependsOn = "apicurio.agents.enabled", availableSince = "3.0.0", experimental = true)
     boolean enabled;
 
-    @ConfigProperty(name = "apicurio.a2a.agent.name", defaultValue = "Apicurio Registry")
-    @Info(category = CATEGORY_A2A, description = "Name of the registry agent for A2A discovery", availableSince = "3.0.0")
-    String agentName;
+    @ConfigProperty(name = "apicurio.a2a.agent.name")
+    @Info(category = CATEGORY_A2A, description = "Deprecated since 3.4.0, use apicurio.instance.name, which takes precedence. Name of the registry agent for A2A discovery", availableSince = "3.0.0")
+    Optional<String> agentName;
+
+    @Inject
+    InstanceConfig instance;
 
     @ConfigProperty(name = "apicurio.a2a.agent.description", defaultValue = "API and Schema Registry with A2A Agent support")
     @Info(category = CATEGORY_A2A, description = "Description of the registry agent", availableSince = "3.0.0")
@@ -72,9 +80,6 @@ public class A2AConfig {
     @Info(category = CATEGORY_A2A, description = "Advertise API key authentication in the agent card security schemes", availableSince = "3.3.1")
     boolean apiKeyAuthEnabled;
 
-    @ConfigProperty(name = "apicurio.a2a.agent.protocol-version", defaultValue = "1.0")
-    @Info(category = CATEGORY_A2A, description = "A2A protocol version supported by the registry agent", availableSince = "3.0.0")
-    String protocolVersion;
 
     @ConfigProperty(name = "apicurio.a2a.agent.documentation-url")
     @Info(category = CATEGORY_A2A, description = "URL to the registry agent documentation", availableSince = "3.0.0")
@@ -89,7 +94,7 @@ public class A2AConfig {
     }
 
     public String getAgentName() {
-        return agentName;
+        return instance.nameOr(agentName);
     }
 
     public String getAgentDescription() {
@@ -120,9 +125,6 @@ public class A2AConfig {
         return capabilitiesPushNotifications;
     }
 
-    public String getProtocolVersion() {
-        return protocolVersion;
-    }
 
     public Optional<String> getDocumentationUrl() {
         return documentationUrl;

@@ -1,5 +1,5 @@
-# OpenTelemetry Collector Configuration
-# This configuration receives traces from all services and exports them to Jaeger
+# OpenTelemetry Collector: receives OTLP from every service, forwards traces to Jaeger and exposes
+# the metrics it receives (for example the Registry's HTTP server metrics) in Prometheus format.
 
 receivers:
   otlp:
@@ -11,10 +11,10 @@ receivers:
 
 processors:
   batch:
+    # Short timeout so that demo.sh finds the spans in Jaeger quickly
     timeout: 1s
     send_batch_size: 1024
-
-  # Add resource attributes to all telemetry
+  # Tag all telemetry with the environment it came from
   resource:
     attributes:
       - key: deployment.environment
@@ -22,35 +22,28 @@ processors:
         action: upsert
 
 exporters:
-  # Export traces to Jaeger
   otlp/jaeger:
     endpoint: jaeger:4317
     tls:
       insecure: true
-
-  # Debug exporter for troubleshooting (logs to console)
-  debug:
-    verbosity: detailed
-    sampling_initial: 5
-    sampling_thereafter: 200
-
-  # Prometheus exporter for metrics
   prometheus:
     endpoint: 0.0.0.0:8889
     namespace: otel
-
-extensions:
-  health_check:
-    endpoint: 0.0.0.0:13133
+  # The Registry also exports its logs (with trace and span IDs); count them, don't print them
+  debug:
+    verbosity: basic
 
 service:
-  extensions: [health_check]
   pipelines:
     traces:
       receivers: [otlp]
       processors: [batch, resource]
-      exporters: [otlp/jaeger, debug]
+      exporters: [otlp/jaeger]
     metrics:
       receivers: [otlp]
-      processors: [batch]
+      processors: [batch, resource]
       exporters: [prometheus]
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [debug]

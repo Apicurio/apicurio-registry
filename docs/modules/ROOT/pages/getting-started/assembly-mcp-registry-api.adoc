@@ -38,6 +38,8 @@ The MCP Registry API is an experimental feature, so you must enable experimental
 apicurio.features.experimental.enabled=true
 apicurio.mcp-registry.enabled=true
 ----
++
+Setting `apicurio.agents.enabled=true` instead also enables the MCP Registry API, with the other agent discovery features.
 
 // ref-mcp-registry-api-operations
 [id="mcp-registry-api-operations_{context}"]

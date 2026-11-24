@@ -18,7 +18,7 @@ import {
 } from "@patternfly/react-core";
 import { PencilAltIcon } from "@patternfly/react-icons";
 import { FromNow, If } from "@apitomy/common-ui-components";
-import { ArtifactMetaData, VersionMetaData } from "@sdk/lib/generated-client/models";
+import { ArtifactMetaData, ResourcePermissions, VersionMetaData } from "@sdk/lib/generated-client/models";
 import { labelsToAny } from "@utils/rest.utils.ts";
 import { VersionComments } from "@app/pages";
 import { ResizableOverviewDrawer } from "@app/components/common/ResizableOverviewDrawer";
@@ -28,6 +28,7 @@ import { ResizableOverviewDrawer } from "@app/components/common/ResizableOvervie
  */
 export type VersionOverviewTabContentProps = {
     artifact: ArtifactMetaData;
+    permissions?: ResourcePermissions;
     version: VersionMetaData;
     onEditMetaData: () => void;
     onChangeState: () => void;
@@ -59,7 +60,7 @@ export const VersionOverviewTabContent: FunctionComponent<VersionOverviewTabCont
                         <Flex>
                             <FlexItem className="title">Version metadata</FlexItem>
                             <FlexItem className="actions" align={{ default: "alignRight" }}>
-                                <IfAuth isDeveloper={true} owner={props.artifact.owner}>
+                                <IfAuth isDeveloper={true} owner={props.artifact.owner} permissions={props.permissions}>
                                     <IfFeature feature="readOnly" isNot={true}>
                                         <Button icon={<PencilAltIcon/>} id="edit-action"
                                             data-testid="version-btn-edit"
@@ -104,7 +105,7 @@ export const VersionOverviewTabContent: FunctionComponent<VersionOverviewTabCont
                                     <FlexItem>
                                         <VersionStateBadge version={props.version} showEnabled={true} />
                                     </FlexItem>
-                                    <IfAuth isDeveloper={true} owner={props.artifact.owner}>
+                                    <IfAuth isDeveloper={true} owner={props.artifact.owner} permissions={props.permissions}>
                                         <IfFeature feature="readOnly" isNot={true}>
                                             <FlexItem>
                                                 <Button

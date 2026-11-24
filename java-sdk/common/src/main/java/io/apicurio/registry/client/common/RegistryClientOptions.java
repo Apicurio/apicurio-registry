@@ -369,8 +369,6 @@ public class RegistryClientOptions {
 
     /**
      * Configures bearer token authentication using a pre-obtained access token.
-     * <p>
-     * Currently supported with the JDK HTTP adapter only.
      *
      * @param accessToken the OAuth2/OIDC access token (without the "Bearer " prefix)
      * @return this builder

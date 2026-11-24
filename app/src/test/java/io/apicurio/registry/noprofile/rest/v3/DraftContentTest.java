@@ -346,6 +346,46 @@ public class DraftContentTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testPublishIncompatibleDraftIsRejectedByNonTransitiveRule() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = TestUtils.generateArtifactId();
+
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+                ORDER_STRING, ContentTypes.APPLICATION_JSON);
+        createArtifact.getFirstVersion().setVersion("1");
+        clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.COMPATIBILITY);
+        createRule.setConfig("BACKWARD");
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(createRule);
+
+        CreateVersion createVersion = TestUtils.clientCreateVersion(ORDER_LONG, ContentTypes.APPLICATION_JSON);
+        createVersion.setVersion("2");
+        createVersion.setIsDraft(true);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .post(createVersion);
+
+        WrappedVersionState enabled = new WrappedVersionState();
+        enabled.setState(VersionState.ENABLED);
+        ProblemDetails error = Assertions.assertThrows(ProblemDetails.class, () -> {
+            clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                    .byVersionExpression("2").state().put(enabled);
+        });
+        Assertions.assertEquals("RuleViolationException", error.getName());
+        Assertions.assertEquals(VersionState.DRAFT, clientV3.groups().byGroupId(groupId).artifacts()
+                .byArtifactId(artifactId).versions().byVersionExpression("2").get().getState());
+    }
+
+    private static final String ORDER_STRING = """
+            {"type": "record", "name": "OrderPlaced", "fields": [{"name": "orderId", "type": "string"}]}
+            """;
+
+    private static final String ORDER_LONG = """
+            {"type": "record", "name": "OrderPlaced", "fields": [{"name": "orderId", "type": "long"}]}
+            """;
+
+    @Test
     public void testDraftVersionsWithBranches() throws Exception {
         String content = resourceToString("openapi-empty.json");
         String groupId = TestUtils.generateGroupId();

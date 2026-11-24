@@ -57,6 +57,10 @@ public final class VertxAdapterFactory {
                 webClient = createVertxOAuth2(options.getTokenEndpoint(), options.getClientId(),
                         options.getClientSecret(), options.getScope(), vertxToUse, webClientOptions);
                 break;
+            case BEARER:
+                webClient = VertXAuthFactory.buildBearerAuthWebClient(vertxToUse, webClientOptions,
+                        options.getBearerToken());
+                break;
             case CUSTOM_WEBCLIENT:
                 webClient = createVertxCustomWebClient(options);
                 break;

@@ -7,6 +7,7 @@ import {
     ArtifactSortBy,
     GroupSearchResults,
     GroupSortBy,
+    ResourcePermissions,
     SortOrder,
     VersionSearchResults,
     VersionSortBy
@@ -125,10 +126,45 @@ const searchVersions = async (config: ConfigService, auth: AuthService, filters:
 };
 
 
+/**
+ * The permissions the server reports for one group, from a search for that group. Undefined when
+ * the server reports none (per-resource authorization disabled) or the search fails: the UI then
+ * lets the server decide.
+ */
+const groupPermissions = async (config: ConfigService, auth: AuthService, groupId: string): Promise<ResourcePermissions | undefined> => {
+    try {
+        const results = await getRegistryClient(config, auth).search.groups.get({
+            queryParameters: { groupId, limit: 1 }
+        });
+        return results?.groups?.find(group => group.groupId === groupId)?.permissions ?? undefined;
+    } catch (error) {
+        console.debug("[SearchService] Could not load the permissions of group ", groupId, error);
+        return undefined;
+    }
+};
+
+/**
+ * The permissions the server reports for one artifact, from a search for that artifact. Undefined
+ * when the server reports none or the search fails.
+ */
+const artifactPermissions = async (config: ConfigService, auth: AuthService, groupId: string, artifactId: string): Promise<ResourcePermissions | undefined> => {
+    try {
+        const results = await getRegistryClient(config, auth).search.artifacts.get({
+            queryParameters: { groupId, artifactId, limit: 1 }
+        });
+        return results?.artifacts?.find(artifact => artifact.artifactId === artifactId)?.permissions ?? undefined;
+    } catch (error) {
+        console.debug("[SearchService] Could not load the permissions of artifact ", groupId, artifactId, error);
+        return undefined;
+    }
+};
+
 export interface SearchService {
     searchGroups(filters: SearchFilter[], sortBy: GroupSortBy, sortOrder: SortOrder, paging: Paging): Promise<GroupSearchResults>;
     searchArtifacts(filters: SearchFilter[], sortBy: ArtifactSortBy, sortOrder: SortOrder, paging: Paging): Promise<ArtifactSearchResults>;
     searchVersions(filters: SearchFilter[], sortBy: VersionSortBy, sortOrder: SortOrder, paging: Paging): Promise<VersionSearchResults>;
+    groupPermissions(groupId: string): Promise<ResourcePermissions | undefined>;
+    artifactPermissions(groupId: string, artifactId: string): Promise<ResourcePermissions | undefined>;
 }
 
 
@@ -145,6 +181,12 @@ export const useSearchService: () => SearchService = (): SearchService => {
         },
         searchVersions(filters: SearchFilter[], sortBy: VersionSortBy, sortOrder: SortOrder, paging: Paging): Promise<ArtifactSearchResults> {
             return searchVersions(config, auth, filters, sortBy, sortOrder, paging);
+        },
+        groupPermissions(groupId: string): Promise<ResourcePermissions | undefined> {
+            return groupPermissions(config, auth, groupId);
+        },
+        artifactPermissions(groupId: string, artifactId: string): Promise<ResourcePermissions | undefined> {
+            return artifactPermissions(config, auth, groupId, artifactId);
         },
     };
 };

@@ -1,0 +1,22 @@
+{
+    "name": "usage-telemetry-otel-ui-tests",
+    "version": "0.0.0",
+    "description": "Optional Playwright tests for the schema usage Grafana dashboard (the usage-telemetry-otel example); not part of the Registry build or runtime",
+    "license": "Apache-2.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "test": "../../test-ui.sh",
+        "screenshots": "../../screenshots.sh",
+        "typecheck": "tsc --noEmit -p tsconfig.json",
+        "static": "node scripts/static-check.mjs",
+        "unit": "node --test test/*.test.mjs",
+        "runner-test": "bash test/runner-test.sh",
+        "tooling-test": "bash test/real-tooling-test.sh"
+    },
+    "devDependencies": {
+        "@playwright/test": "1.65.1",
+        "@types/node": "25.9.9",
+        "typescript": "5.9.3"
+    }
+}

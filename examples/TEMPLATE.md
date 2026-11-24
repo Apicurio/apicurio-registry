@@ -60,7 +60,8 @@ request that changes an example, the server or the UI, and on every push to `mai
    the images built for the pull request. The job fails first if the stack would run any other
    Apicurio Registry image. Other images (Keycloak, Kafka, ...) are pulled, with retries.
 2. `./demo.sh`, then `./demo.sh` again. Both must exit 0.
-3. `docker compose down -v`. On failure, the Compose logs are uploaded as an artifact.
+3. Optional, with `CI_SUITE`: the example's own suite, once, after both runs and with the stack still up (see below).
+4. `docker compose down -v`. On failure, the Compose logs are uploaded as an artifact.
 
 There is nothing to register: adding the example is enough. A failure blocks the merge.
 
@@ -77,6 +78,8 @@ saying why:
 | `CI_RELEASED_IMAGES` | none | Space-separated `image:tag` values: released Apicurio Registry images the example runs on purpose besides this commit's (for example, the source of a migration). They are exempt from the check that every Apicurio Registry image is this commit's |
 | `CI_SELF_MANAGED` | `false` | `true`: `demo.sh` starts and stops its own containers, for an example that must prepare something first; the runner skips its start step. A self-managed example may have no Compose file at all (for example one that creates a kind cluster): the runner then skips every Compose step, and `demo.sh` must deploy `REGISTRY_IMAGE` and `REGISTRY_UI_IMAGE` |
 | `CI_TOOLCHAINS` | none | Space-separated values of `go`, `node` and `python`: sets up those toolchains before `build.sh`, for an example with clients in other languages. See [`registry-clients`](registry-clients/) |
+| `CI_SUITE` | none | A relative path to an executable script of the example (no `..`): its own checks beyond the demo (unit, lifecycle, browser suites). The workflow runs it ONCE per job, as its own step after both `demo.sh` runs, with the stack still up, `REGISTRY_IMAGE` and the other image variables set to this commit's images and `CI_ARTIFACT_DIR` set to a new directory; the script's exit status is the step's, and nothing it writes can make a later run skip anything. Everything below `$CI_ARTIFACT_DIR/publish` is uploaded as `example-ci-<name>` (also on failure), so the script must put there only what is safe to publish. Not combinable with `CI_MATRIX`. See [`usage-telemetry-otel`](usage-telemetry-otel/) |
+| `CI_PLAYWRIGHT_DIR` | none | A relative directory of the example with a locked Playwright package (`package.json` and `package-lock.json`); needs `CI_TOOLCHAINS` to include `node`. The workflow runs `npm ci` there and installs the operating system packages Chromium needs (`playwright install-deps chromium`, with the runner's `sudo`). Privileged installation lives in the workflow only: the example's scripts must not run `sudo` or `install-deps`, and download the browser itself without privileges |
 | any other key | | Exported to `docker compose` and `demo.sh`, for example `SKIP_LLM=1` |
 
 **Java clients.** Snapshots of the client libraries (SDK, serdes, validation library) are not

@@ -1,0 +1,7 @@
+.local/
+# the optional browser tests: locked npm packages, the Chromium they download, and the output of every invocation
+tests/ui/node_modules/
+tests/ui/.browsers/
+tests/ui/test-results/
+tests/ui/playwright-report/
+tests/ui/.invocation-claim

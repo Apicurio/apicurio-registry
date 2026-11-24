@@ -1,0 +1,804 @@
+{
+  "uid": "apicurio-schema-usage",
+  "title": "Apicurio Registry schema fetch usage",
+  "description": "Successful schema fetches observed by one Apicurio Registry process, from the OpenTelemetry counter apicurio.usage.schema.fetches as exposed to Prometheus. Optional integration; see the README next to this dashboard.",
+  "tags": [
+    "apicurio",
+    "apicurio-registry",
+    "usage-telemetry"
+  ],
+  "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 1,
+  "schemaVersion": 42,
+  "version": 1,
+  "refresh": "",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "fiscalYearStartMonth": 0,
+  "weekStart": "",
+  "links": [],
+  "templating": {
+    "list": [
+      {
+        "type": "datasource",
+        "name": "datasource",
+        "label": "Prometheus datasource",
+        "description": "The Prometheus compatible datasource that holds the Registry usage metric",
+        "query": "prometheus",
+        "refresh": 1,
+        "regex": "",
+        "hide": 0,
+        "multi": false,
+        "includeAll": false,
+        "skipUrlSync": false,
+        "current": {},
+        "options": []
+      },
+      {
+        "type": "query",
+        "name": "instance",
+        "label": "Registry process",
+        "description": "service_instance_id: one Registry process. The Registry generates the ID only when none is configured; a configured ID must be unique for every process start and every installation, or the counters of two processes merge. The candidates are the values of that label on the usage metric and on the generic JVM heartbeat jvm_cpu_count, so a process that has exported only the heartbeat can be chosen, and so can another JVM service that exports the heartbeat into the same Prometheus: use a Registry-scoped datasource or pipeline if that can happen. Processes are never combined.",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "query": {
+          "qryType": 1,
+          "query": "label_values({__name__=~\"apicurio_usage_schema_fetches_total|jvm_cpu_count\"},service_instance_id)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "definition": "label_values({__name__=~\"apicurio_usage_schema_fetches_total|jvm_cpu_count\"},service_instance_id)",
+        "refresh": 2,
+        "sort": 1,
+        "multi": false,
+        "includeAll": false,
+        "hide": 0,
+        "regex": "",
+        "skipUrlSync": false,
+        "current": {},
+        "options": []
+      },
+      {
+        "type": "query",
+        "name": "client",
+        "label": "Client ID (self-reported)",
+        "description": "The X-Registry-Client-Id header value sent by the client; not an authenticated identity",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "query": {
+          "qryType": 1,
+          "query": "label_values(apicurio_usage_schema_fetches_total{service_instance_id=\"$instance\"},apicurio_registry_client_id)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "definition": "label_values(apicurio_usage_schema_fetches_total{service_instance_id=\"$instance\"},apicurio_registry_client_id)",
+        "refresh": 2,
+        "sort": 1,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "hide": 0,
+        "regex": "",
+        "skipUrlSync": false,
+        "current": {},
+        "options": []
+      },
+      {
+        "type": "custom",
+        "name": "type",
+        "label": "Identifier type",
+        "description": "global_id is one schema version; content_id can be shared by several versions",
+        "query": "global_id,content_id",
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "hide": 0,
+        "skipUrlSync": false,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "options": [
+          {
+            "selected": true,
+            "text": "All",
+            "value": "$__all"
+          },
+          {
+            "selected": false,
+            "text": "global_id",
+            "value": "global_id"
+          },
+          {
+            "selected": false,
+            "text": "content_id",
+            "value": "content_id"
+          }
+        ]
+      },
+      {
+        "type": "custom",
+        "name": "operation",
+        "label": "Operation",
+        "description": "From the X-Registry-Operation header",
+        "query": "SERIALIZE,DESERIALIZE,UNKNOWN",
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "hide": 0,
+        "skipUrlSync": false,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "options": [
+          {
+            "selected": true,
+            "text": "All",
+            "value": "$__all"
+          },
+          {
+            "selected": false,
+            "text": "SERIALIZE",
+            "value": "SERIALIZE"
+          },
+          {
+            "selected": false,
+            "text": "DESERIALIZE",
+            "value": "DESERIALIZE"
+          },
+          {
+            "selected": false,
+            "text": "UNKNOWN",
+            "value": "UNKNOWN"
+          }
+        ]
+      },
+      {
+        "type": "query",
+        "name": "global_id",
+        "label": "Global ID (one schema version)",
+        "description": "Applies only to the global_id series",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "query": {
+          "qryType": 1,
+          "query": "label_values(apicurio_usage_schema_fetches_total{service_instance_id=\"$instance\",apicurio_registry_identifier_type=\"global_id\"},apicurio_registry_identifier_value)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "definition": "label_values(apicurio_usage_schema_fetches_total{service_instance_id=\"$instance\",apicurio_registry_identifier_type=\"global_id\"},apicurio_registry_identifier_value)",
+        "refresh": 2,
+        "sort": 3,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "hide": 0,
+        "regex": "",
+        "skipUrlSync": false,
+        "current": {},
+        "options": []
+      },
+      {
+        "type": "query",
+        "name": "content_id",
+        "label": "Content ID (may be shared by versions)",
+        "description": "Applies only to the content_id series",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "query": {
+          "qryType": 1,
+          "query": "label_values(apicurio_usage_schema_fetches_total{service_instance_id=\"$instance\",apicurio_registry_identifier_type=\"content_id\"},apicurio_registry_identifier_value)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "definition": "label_values(apicurio_usage_schema_fetches_total{service_instance_id=\"$instance\",apicurio_registry_identifier_type=\"content_id\"},apicurio_registry_identifier_value)",
+        "refresh": 2,
+        "sort": 3,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "hide": 0,
+        "regex": "",
+        "skipUrlSync": false,
+        "current": {},
+        "options": []
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Cumulative fetches (selected series)",
+      "description": "Sum of the last cumulative count each selected stream exported within the selected time range, for the selected process, each stream counted once even when several Collector scrape routes report it. It is a count since the process started, not a total over the selected range. Series that stopped exporting before the range began are not included. A failed query shows a red mark in the panel title instead of a value.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 0,
+        "y": 0
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "sum(max by (apicurio_registry_client_id, apicurio_registry_identifier_type, apicurio_registry_identifier_value, apicurio_registry_operation) (last_over_time(apicurio_usage_schema_fetches_total{service_instance_id=\"$instance\",apicurio_registry_client_id=~\"$client\",apicurio_registry_operation=~\"$operation\",apicurio_registry_identifier_type=\"global_id\",apicurio_registry_identifier_type=~\"$type\",apicurio_registry_identifier_value=~\"$global_id\"}[${__range_ms}ms]) or last_over_time(apicurio_usage_schema_fetches_total{service_instance_id=\"$instance\",apicurio_registry_client_id=~\"$client\",apicurio_registry_operation=~\"$operation\",apicurio_registry_identifier_type=\"content_id\",apicurio_registry_identifier_type=~\"$type\",apicurio_registry_identifier_value=~\"$content_id\"}[${__range_ms}ms])))",
+          "format": "time_series",
+          "instant": true,
+          "range": false,
+          "legendFormat": "__auto",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "noValue": "No observations, or query failed",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "text"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "value",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Overflow (detail dropped)",
+      "description": "The overflow series of the selected process carries fetches whose client, identifier and operation were collapsed once the per-process series limit was reached. It is not filtered by client, identifier or operation because it keeps none of those labels. No overflow series in the range means none was observed, not that the count is zero. A failed query shows a red mark in the panel title instead of a value.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 8,
+        "y": 0
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "sum(max by (service_instance_id) (last_over_time(apicurio_usage_schema_fetches_total{service_instance_id=\"$instance\",otel_metric_overflow=\"true\"}[${__range_ms}ms])))",
+          "format": "time_series",
+          "instant": true,
+          "range": false,
+          "legendFormat": "__auto",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "noValue": "No overflow seen, or query failed",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "text"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "value",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Export age at the range end",
+      "description": "time() minus the time the Registry measured the newest jvm_cpu_count heartbeat, evaluated at the end of the selected time range, so for an absolute historical range it is the age at that moment, not the age now. The heartbeat is looked up within the five minutes before the range end. A missing value is UNKNOWN: the process may have stopped, the Collector may be down, or the heartbeat is not exported. It is not zero use and not proof that the process is running. A failed query shows a red mark in the panel title instead of a value.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 16,
+        "y": 0
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "time() - max(timestamp(jvm_cpu_count{service_instance_id=\"$instance\"}))",
+          "format": "time_series",
+          "instant": true,
+          "range": false,
+          "legendFormat": "__auto",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 0,
+          "noValue": "UNKNOWN (no export, or query failed)",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "text"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "value",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      }
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Estimated fetch rate by operation (selected process and filters)",
+      "description": "rate() of the cumulative counter, once per stream (the highest rate over the Collector scrape routes), summed by operation. It is an estimate from sampled counters: activity before a series' first sample is not visible and a series seen in a single sample has no rate. Rates are successful schema fetches per second, not Kafka messages. Gaps mean no samples, not zero. The table below shows the exact cumulative counts per client and identifier.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "sum by (apicurio_registry_operation) (max by (apicurio_registry_client_id, apicurio_registry_identifier_type, apicurio_registry_identifier_value, apicurio_registry_operation) (rate(apicurio_usage_schema_fetches_total{service_instance_id=\"$instance\",apicurio_registry_client_id=~\"$client\",apicurio_registry_operation=~\"$operation\",apicurio_registry_identifier_type=\"global_id\",apicurio_registry_identifier_type=~\"$type\",apicurio_registry_identifier_value=~\"$global_id\"}[$__rate_interval]) or rate(apicurio_usage_schema_fetches_total{service_instance_id=\"$instance\",apicurio_registry_client_id=~\"$client\",apicurio_registry_operation=~\"$operation\",apicurio_registry_identifier_type=\"content_id\",apicurio_registry_identifier_type=~\"$type\",apicurio_registry_identifier_value=~\"$content_id\"}[$__rate_interval])))",
+          "format": "time_series",
+          "instant": false,
+          "range": true,
+          "legendFormat": "{{apicurio_registry_operation}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 3,
+          "noValue": "No rate for this selection (a rate needs two samples of a series), or the query failed (a failed query shows a red mark in the panel title). Neither is evidence that the schema is unused.",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "showPoints": "always",
+            "pointSize": 6,
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "axisLabel": "fetches per second",
+            "axisSoftMin": 0,
+            "axisSoftMax": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "SERIALIZE"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#3987e5"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "DESERIALIZE"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#d95926"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "UNKNOWN"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#199e70"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 5,
+      "type": "table",
+      "title": "Cumulative fetches by client, identifier and operation (last exported count in the selected range)",
+      "description": "One row per stream of the selected process; a stream seen through several Collector scrape routes is one row with its highest cumulative value. Client ID is a self-reported header, not an authenticated identity. global_id identifies one schema version; content_id can be shared by several versions, and the two sequences are independent. The count is the last cumulative value exported within the selected range, counted since that process started.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 11,
+        "w": 24,
+        "x": 0,
+        "y": 14
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (apicurio_registry_client_id, apicurio_registry_identifier_type, apicurio_registry_identifier_value, apicurio_registry_operation) (last_over_time(apicurio_usage_schema_fetches_total{service_instance_id=\"$instance\",apicurio_registry_client_id=~\"$client\",apicurio_registry_operation=~\"$operation\",apicurio_registry_identifier_type=\"global_id\",apicurio_registry_identifier_type=~\"$type\",apicurio_registry_identifier_value=~\"$global_id\"}[${__range_ms}ms]) or last_over_time(apicurio_usage_schema_fetches_total{service_instance_id=\"$instance\",apicurio_registry_client_id=~\"$client\",apicurio_registry_operation=~\"$operation\",apicurio_registry_identifier_type=\"content_id\",apicurio_registry_identifier_type=~\"$type\",apicurio_registry_identifier_value=~\"$content_id\"}[${__range_ms}ms]))",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "legendFormat": "__auto",
+          "refId": "A"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "job": true,
+              "instance": true,
+              "service_instance_id": true
+            },
+            "indexByName": {
+              "apicurio_registry_client_id": 0,
+              "apicurio_registry_identifier_type": 1,
+              "apicurio_registry_identifier_value": 2,
+              "apicurio_registry_operation": 3,
+              "Value": 4
+            },
+            "renameByName": {
+              "apicurio_registry_client_id": "Client ID (self-reported)",
+              "apicurio_registry_identifier_type": "Identifier type",
+              "apicurio_registry_identifier_value": "Identifier value",
+              "apicurio_registry_operation": "Operation",
+              "Value": "Fetches (cumulative)"
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No observations for this selection, or the query failed (a failed query shows a red mark in the panel title). Neither is evidence that the schema is unused.",
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "decimals": 0,
+          "mappings": [],
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "text"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text"
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Fetches (cumulative)"
+            },
+            "properties": [
+              {
+                "id": "custom.align",
+                "value": "right"
+              },
+              {
+                "id": "unit",
+                "value": "none"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "sortBy": [
+          {
+            "displayName": "Fetches (cumulative)",
+            "desc": true
+          }
+        ],
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        }
+      }
+    },
+    {
+      "id": 6,
+      "type": "table",
+      "title": "Process candidates with a heartbeat sample in the range",
+      "description": "Every service_instance_id that has at least one jvm_cpu_count sample in the selected range (start excluded, end included), one row per process however many Collector scrape routes report it. It lists candidates for the Registry process filter: it says nothing about when the process last exported, whether it is running, or whether it was used. The export age panel shows the selected process's age at the range end. jvm_cpu_count is a generic JVM metric, so another JVM service that exports it with a service_instance_id into the same Prometheus is listed too; point this dashboard at a Registry-scoped datasource or pipeline if that can happen. A process that exported only the heartbeat so far is listed and can be chosen.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 24,
+        "x": 0,
+        "y": 25
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "group by (service_instance_id) (count_over_time(jvm_cpu_count[${__range_ms}ms]))",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "legendFormat": "__auto",
+          "refId": "A"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "Value": true,
+              "__name__": true,
+              "job": true,
+              "instance": true
+            },
+            "indexByName": {
+              "service_instance_id": 0
+            },
+            "renameByName": {
+              "service_instance_id": "Process candidate (service_instance_id)"
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No heartbeat sample in this range, or the query failed (a failed query shows a red mark in the panel title). This is UNKNOWN, not zero use.",
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "text"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "sortBy": [
+          {
+            "displayName": "Process candidate (service_instance_id)",
+            "desc": false
+          }
+        ],
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        }
+      }
+    },
+    {
+      "id": 7,
+      "type": "text",
+      "title": "How to read the counts",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 30
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "- **Counts** are successful schema fetches that carried a valid client ID, observed by one Registry process. They are not Kafka messages, not unique consumers and not billing totals; SerDes caches hide most message traffic.\n- **Client ID** is a header value the client chooses, not an authenticated identity.\n- **global_id** identifies one schema version. **content_id** can be shared by several versions. The two numbering sequences are independent, so the same number in each is a different identifier. Use the Global ID and Content ID filters, not one shared number.\n- **Cumulative counts** start at zero when a Registry process starts and are read for exactly one process. The table shows the last value exported within the selected time range. Rates are estimates from sampled counters.\n- **No data is not zero.** A missing series means nothing was observed for this selection, not that a schema is unused or safe to delete. Overflow and export age are shown separately, and a missing export is UNKNOWN, not a stopped process.\n"
+      }
+    }
+  ]
+}

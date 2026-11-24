@@ -122,14 +122,17 @@ keep_line_local() {
   printf '%s' "$found"
 }
 
+# The handoff is the runner's own keep line for THIS project (its name, an absolute state directory): that makes the stack owned, whether or
+# not the runner got as far as writing the scenario file. The file only decides whether the browser phase can run, so SCN_FILE stays empty
+# when it is missing and the stack is still torn down. With no such line nothing is owned and SCN_LOCAL stays empty.
 locate_scenario_stack() {
   SCN_LOCAL=$(keep_line_local "$LOG_DIR/scenarios.log" "$SCN_PROJECT") || SCN_LOCAL=""
-  if [ -n "$SCN_LOCAL" ] && [ -f "$(dirname "$SCN_LOCAL")/dashboard-scenarios/scenarios.json" ]; then
-    SCN_FILE=$(dirname "$SCN_LOCAL")/dashboard-scenarios/scenarios.json
-    return 0
-  fi
   SCN_FILE=""
-  return 1
+  [ -n "$SCN_LOCAL" ] || return 1
+  if [ -f "$(dirname "$SCN_LOCAL")/dashboard-scenarios/scenarios.json" ]; then
+    SCN_FILE=$(dirname "$SCN_LOCAL")/dashboard-scenarios/scenarios.json
+  fi
+  return 0
 }
 
 # Not lib.sh's detect_runtime: that one dies when no runtime works, which would end the suite before it removed the kept stack
@@ -161,25 +164,14 @@ teardown_scenario_stack() {
     # Nothing is removed by guessing: a project that the runner did not say it kept (it may have refused the name because something
     # else already uses it) is not this suite's to delete, so it is not selected by label or by name. It is named here for a person.
     record_row scenarios-teardown "fail(the kept stack was not located)" 0
-    printf '==> scenarios-teardown: fail, the project %s was not reported as kept by the scenario runner, so nothing was removed\n' "$SCN_PROJECT"
+    printf '==> scenarios-teardown: cleanup unavailable, the scenario runner handed over no verified kept project (%s); nothing was removed\n' "$SCN_PROJECT"
+    # said once, here: there is nothing pending for the exit hook to say again
+    SCN_PENDING=false
     return 0
   fi
   save_container_logs "$SCN_PROJECT"
   run_phase scenarios-teardown 900 env "COMPOSE_PROJECT_NAME=$SCN_PROJECT" "LOCAL_DIR=$SCN_LOCAL" ./teardown.sh --purge
   if phase_passed scenarios-teardown; then SCN_PENDING=false; fi
-}
-
-# copies the per-call logs a runner says it kept ("Logs of every script call: <dir>") as component logs of that phase
-keep_script_logs() { # keep_script_logs <phase>
-  local dir target file
-  dir=$(sed -n 's#^Logs of every script call: \(/[^ ]*\)$#\1#p' "$LOG_DIR/$1.log" | tail -1)
-  [ -n "$dir" ] && [ -d "$dir" ] || return 0
-  target=$COMPONENT_DIR/$1-script-calls
-  mkdir -p "$target"
-  for file in "$dir"/*.log; do
-    [ -f "$file" ] && [ ! -L "$file" ] || continue
-    cp "$file" "$target/$(basename "$file")"
-  done
 }
 
 # --- artifacts ---------------------------------------------------------------------------------------------------------------------
@@ -230,6 +222,11 @@ finish_hook() {
   if $SCN_PENDING; then
     if [ -n "$SCN_LOCAL" ]; then
       run_bounded "$CLEANUP_SECONDS" env "COMPOSE_PROJECT_NAME=$SCN_PROJECT" "LOCAL_DIR=$SCN_LOCAL" ./teardown.sh --purge > "$LOG_DIR/scenarios-teardown-on-exit.log" 2>&1 || true
+    else
+      # No verified handoff: say so in a fixed sentence (the project name is the suite's own generated one) and remove nothing; no label
+      # or name is selected, and none of the runner's output is repeated
+      # (to the console's own descriptor: a signal handled during a phase runs with that phase's output still redirected to its log)
+      printf '==> scenarios-teardown: cleanup unavailable, the scenario runner handed over no verified kept project (%s); nothing was removed\n' "$SCN_PROJECT" >&3 2> /dev/null || true
     fi
   fi
 }
@@ -253,6 +250,7 @@ main() {
   SUMMARY=$artifact_dir/work/summary.tsv
   PRIVATE_REPORT=$artifact_dir/work/artifact-report.json
   : > "$SUMMARY"
+  exec 3>&1
   RB_EXIT_HOOK=finish_hook
   trap finish_hook EXIT
   # The image name is not printed: a registry address can carry credentials, and the job console is not covered by the allowlist
@@ -278,11 +276,9 @@ main() {
   fi
 
   run_phase lifecycle 2700 ./tests/lifecycle-test.sh
-  keep_script_logs lifecycle
 
   SCN_PENDING=true
   run_phase scenarios 2400 ./tests/dashboard-scenarios.sh --keep --project "$SCN_PROJECT" --grafana-port "$SCN_GRAFANA_PORT"
-  keep_script_logs scenarios
   locate_scenario_stack || true
   if phase_passed scenarios && phase_passed browser-setup && [ -n "$SCN_FILE" ]; then
     run_phase ui-scenario 900 ./test-ui.sh --no-install --scenario "$SCN_FILE" --grafana-url "http://127.0.0.1:$SCN_GRAFANA_PORT"

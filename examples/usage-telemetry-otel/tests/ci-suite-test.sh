@@ -82,7 +82,9 @@ PY
 RUN=$UI/test-results/$STAMP-4242-tests
 REPORT=$UI/playwright-report/$STAMP-4242-tests
 mkdir -p "$RUN/screenshots" "$RUN/pw/case-one-usage" "$RUN/pw/.hidden" "$REPORT/data"
-echo '{"suites":[]}' > "$RUN/results.json"
+# a Playwright results file: counts, and the free text of a test (title, error) that must never be published
+RJSON='{"stats":{"startTime":"2026-11-24T10:00:00.000Z","duration":1234.6,"expected":5,"skipped":1,"unexpected":0,"flaky":0},"suites":[{"title":"SENTINEL-TITLE-77","errors":[{"message":"Cookie: sentinel-error-text"}]}]}'
+echo "$RJSON" > "$RUN/results.json"
 png "$RUN/screenshots/overview.png"
 png "$RUN/screenshots/filtered.png"
 png "$RUN/screenshots/extra.png"
@@ -109,8 +111,7 @@ logs/unit.log
 summary.tsv
 ui/$STAMP-4242-tests/pw/case-one-usage/error-context.md
 ui/$STAMP-4242-tests/pw/case-one-usage/test-failed-1.png
-ui/$STAMP-4242-tests/pw/case-one-usage/trace.zip
-ui/$STAMP-4242-tests/results.json
+ui/$STAMP-4242-tests/results-summary.json
 ui/$STAMP-4242-tests/screenshots/filtered.png
 ui/$STAMP-4242-tests/screenshots/overview.png" \
   "$(jq -r '.published[].path' "$OUT/MANIFEST.json")"
@@ -118,10 +119,14 @@ check "  the raw run input is excluded, with its reason in the private report" "
   "$(jq -r '.excluded[] | select(.path | endswith("input.sealed.json")) | .reason' "$OUT.private.json")"
 check "  so are an image and a hidden file that are not on the list" "not on the allowlist|not on the allowlist" \
   "$(jq -r '[.excluded[] | select(.path | endswith("extra.png") or endswith(".last-run.json")) | .reason] | join("|")' "$OUT.private.json")"
-check "  nothing but the manifest and those files is in the directory (file count)" "10" "$(find "$OUT" -type f | wc -l | tr -d ' ')"
+check "  nothing but the manifest and those files is in the directory (file count)" "9" "$(find "$OUT" -type f | wc -l | tr -d ' ')"
 check "  the Playwright report and its data tree stay private even though the run printed them (nothing of them is published)" "0 0" \
   "$(find "$OUT" -path '*report*' | wc -l | tr -d ' ') $(grep -rl '<html>report</html>' "$OUT" | wc -l | tr -d ' ')"
-check "  the manifest records a digest and the size of every published file" "9 9" \
+check "  the raw results.json and the trace archive stay private: the run's numbers are published as numbers only" "yes 0" \
+  "$([ "$(jq -cS . "$OUT/ui/$STAMP-4242-tests/results-summary.json")" = '{"duration":1235,"expected":5,"flaky":0,"skipped":1,"unexpected":0}' ] && echo yes || echo no) $(grep -rl -e SENTINEL-TITLE-77 -e sentinel-error-text "$OUT" | wc -l | tr -d ' ')"
+check "  the trace archive is not published (not on the allowlist, so never opened)" "0 yes" \
+  "$(find "$OUT" -name 'trace.zip' | wc -l | tr -d ' ') $(jq -r '[.excluded[] | select(.path | endswith("trace.zip")) | .reason] | join("|")' "$OUT.private.json" | grep -q 'not on the allowlist' && echo yes || echo no)"
+check "  the manifest records a digest and the size of every published file" "8 8" \
   "$(jq -r '[.published[] | select(.sha256 | test("^[0-9a-f]{64}$"))] | length' "$OUT/MANIFEST.json") $(jq -r '[.published[] | select(.bytes > 0)] | length' "$OUT/MANIFEST.json")"
 
 # spoil <name> <description> <text the violation must contain> <function>: one fresh tree, spoiled in one way by the function, collected
@@ -133,7 +138,7 @@ spoil() { # spoil <name> <description> <expected text in the violations> <functi
   REPORT2=$UI/playwright-report/$STAMP-$((5000 + SPOIL_N))-tests
   LOGS2=$TMP/logs-$name
   mkdir -p "$RUN2/screenshots" "$RUN2/pw/c-usage" "$REPORT2/data" "$LOGS2"
-  echo '{}' > "$RUN2/results.json"
+  echo "$RJSON" > "$RUN2/results.json"
   png "$RUN2/screenshots/overview.png"
   echo '<html></html>' > "$REPORT2/index.html"
   echo 'ok' > "$LOGS2/unit.log"
@@ -145,17 +150,33 @@ spoil() { # spoil <name> <description> <expected text in the violations> <functi
 }
 stale_file() { touch -t 200001010000 "$RUN2/results.json"; }
 spoil stale "a stale file inside a fresh run" "stale" stale_file
-check "  and it is not published" "0" "$(jq '[.published[] | select(.path | endswith("results.json"))] | length' "$TMP/out-stale/MANIFEST.json")"
-trace_network() { mktrace "$RUN2/pw/c-usage/trace.zip" network; }
-spoil trace-network "a trace that records network activity" "records network" trace_network
-trace_resource() { mktrace "$RUN2/pw/c-usage/trace.zip" resource; }
-spoil trace-resource "a trace with page resources (a DOM snapshot mode)" "outside the safe trace shape" trace_resource
-trace_cookie() { mktrace "$RUN2/pw/c-usage/trace.zip" cookie; }
-spoil trace-cookie "a trace whose text holds a cookie" "Cookie" trace_cookie
-trace_image() { mktrace "$RUN2/pw/c-usage/trace.zip" bad-image; }
-spoil trace-image "a trace image that is not an image" "not a PNG" trace_image
-trace_zip() { echo 'not a zip' > "$RUN2/pw/c-usage/trace.zip"; }
-spoil trace-notzip "a trace that is not an archive" "not a readable zip" trace_zip
+check "  and it is not published" "0" "$(jq '[.published[] | select(.path | endswith("results-summary.json"))] | length' "$TMP/out-stale/MANIFEST.json")"
+# Only numbers in range become part of the summary: a text, a boolean, a negative and an absurd value are left out, and a file with no usable
+# count is a violation
+NR=$UI/test-results/$STAMP-5800-tests
+mkdir -p "$NR"
+echo '{"stats":{"expected":"SENTINEL-NUMTEXT","unexpected":true,"flaky":-1,"skipped":2,"duration":1e15}}' > "$NR/results.json"
+collect --out "$TMP/out-numeric" --start "$START" --ui-dir "$UI" --run-dir "$NR" > "$TMP/numeric.out" 2>&1
+check "a results file whose stats hold a text, a boolean, a negative and an absurd number: only the valid count is published, and no text from it" "0 {\"skipped\":2} 0" \
+  "$? $(jq -cS . "$TMP/out-numeric/ui/$STAMP-5800-tests/results-summary.json") $(grep -rl SENTINEL-NUMTEXT "$TMP/out-numeric" | wc -l | tr -d ' ')"
+NR2=$UI/test-results/$STAMP-5801-tests
+mkdir -p "$NR2"
+echo '{"stats":{"expected":"only text"}}' > "$NR2/results.json"
+collect --out "$TMP/out-numeric2" --start "$START" --ui-dir "$UI" --run-dir "$NR2" > /dev/null 2>&1
+check "a results file with no usable count is a violation (status 1) and publishes no summary" "1 0" "$? $(find "$TMP/out-numeric2" -name results-summary.json | wc -l | tr -d ' ')"
+
+# Trace archives are never published and never opened, whatever they hold: one of each kind, and a named pipe, in one run
+TR=$UI/test-results/$STAMP-5900-tests
+mkdir -p "$TR/screenshots"
+echo "$RJSON" > "$TR/results.json"
+for mode in safe network resource cookie bad-image dup extra; do mkdir -p "$TR/pw/c-$mode"; mktrace "$TR/pw/c-$mode/trace.zip" "$mode"; done
+mkdir -p "$TR/pw/c-fifo" "$TR/pw/c-notzip"
+mkfifo "$TR/pw/c-fifo/trace.zip"
+echo 'not a zip' > "$TR/pw/c-notzip/trace.zip"
+python3 -I "$EXAMPLE/tests/ui/test/launch.py" --log "$TMP/traces.log" --timeout 30 -- \
+  python3 -I "$EXAMPLE/tests/ci-artifacts.py" --out "$TMP/out-traces" --start "$START" --ui-dir "$UI" --run-dir "$TR" --private-report "$TMP/traces.private.json" > "$TMP/traces.launch" 2>&1
+check "trace archives of every kind, and a named pipe called trace.zip: no hang, status 0, none published" "status=0 hung=no 0 9" \
+  "$(grep -o 'status=[0-9-]*' "$TMP/traces.launch") $(grep -o 'hung=[a-z]*' "$TMP/traces.launch") $(find "$TMP/out-traces" -name trace.zip | wc -l | tr -d ' ') $(jq '[.excluded[] | select(.path | endswith("trace.zip"))] | length' "$TMP/traces.private.json")"
 log_secret() { printf 'GET /x\nAuthorization: Bearer abcdefghijklmnopqrstuvwxyz0123\n' > "$LOGS2/unit.log"; }
 spoil log-secret "a log with an Authorization header" "Authorization" log_secret
 check "  its log is not published" "0" "$(find "$TMP/out-log-secret" -name 'unit.log' | wc -l | tr -d ' ')"
@@ -163,7 +184,7 @@ check "  its log is not published" "0" "$(find "$TMP/out-log-secret" -name 'unit
 html_jwt() { echo '<script>eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.abcdefghij</script>' > "$REPORT2/index.html"; }
 SPOIL_N=$((SPOIL_N + 1))
 RUN2=$UI/test-results/$STAMP-$((5000 + SPOIL_N))-tests; REPORT2=$UI/playwright-report/$STAMP-$((5000 + SPOIL_N))-tests
-mkdir -p "$RUN2/screenshots" "$REPORT2/data"; echo '{}' > "$RUN2/results.json"; html_jwt
+mkdir -p "$RUN2/screenshots" "$REPORT2/data"; echo "$RJSON" > "$RUN2/results.json"; html_jwt
 collect --out "$TMP/out-report-jwt" --start "$START" --ui-dir "$UI" --run-dir "$RUN2" > /dev/null 2>&1
 check "a Playwright report that holds a web token is not collected: status 0 and nothing of it published" "0 0" \
   "$? $(grep -rl eyJhbGciOiJIUzI1NiJ9 "$TMP/out-report-jwt" | wc -l | tr -d ' ')"
@@ -178,18 +199,11 @@ for form in "curl -u admin:$S_PW http://grafana" "the password is $S_PW" "Basic-
   GRAFANA_ADMIN_PASSWORD=$S_PW spoil "pw-$(printf '%s' "$form" | cksum | cut -d' ' -f1)" "a log that prints the configured Grafana password in one form" "configured credential" pw_log
 done
 check "  none of those logs, in no form, reached any output directory" "0" "$(grep -rl -e "$S_PW" -e "$S_PW_B64" -e "$S_PW_BASIC" -e "$S_PW_URL" "$TMP"/out-pw-* 2> /dev/null | wc -l | tr -d ' ')"
-# the same password in a trace's text and in an error context is withheld too
-pw_trace() { mktrace "$RUN2/pw/c-usage/trace.zip" safe; python3 -I - "$RUN2/pw/c-usage/trace.zip" "$S_PW" << 'PY'
-import sys, zipfile
-with zipfile.ZipFile(sys.argv[1], "a") as z:
-    z.writestr("aria/typed@1.json", '{"typed":"%s"}' % sys.argv[2])
-PY
-}
-GRAFANA_ADMIN_PASSWORD=$S_PW spoil pw-trace "a trace whose text holds the configured Grafana password" "configured credential" pw_trace
+# the same password in an error context is withheld too
 pw_context() { printf 'the page said %s\n' "$S_PW" > "$RUN2/pw/c-usage/error-context.md"; }
 GRAFANA_ADMIN_PASSWORD=$S_PW spoil pw-context "an error context that holds the configured Grafana password" "configured credential" pw_context
-check "  neither the trace nor the context is published, and the password is in nothing published" "0 0" \
-  "$(find "$TMP/out-pw-trace" "$TMP/out-pw-context" \( -name trace.zip -o -name error-context.md \) | wc -l | tr -d ' ') $(grep -rl -e "$S_PW" "$TMP/out-pw-trace" "$TMP/out-pw-context" | wc -l | tr -d ' ')"
+check "  the context is not published, and the password is in nothing published" "0 0" \
+  "$(find "$TMP/out-pw-context" -name error-context.md | wc -l | tr -d ' ') $(grep -rl -e "$S_PW" "$TMP/out-pw-context" | wc -l | tr -d ' ')"
 # No exemption by value: a configured secret that is short, or that is the word admin, is searched for like any other (and withholds more);
 # only an absent or empty variable is not scanned, and the demo's default password is public because nothing puts it in the environment
 S_SHORT=x9Kq
@@ -203,6 +217,19 @@ pw_case() { # pw_case <name> <log text> <env assignments...>: one collection of 
   PW_RC=$rc
   PW_PUBLISHED=$([ -f "$TMP/out-$name/logs/unit.log" ] && echo yes || echo no)
 }
+# A configured credential in a published NAME (a container name, a test slot) withholds that file as well; the name is never published
+S_PATHPW=Dummy-Path-Pw-5a1c
+mkdir -p "$TMP/comp-pw/project-x" "$TMP/logs-pathpw"
+echo ok > "$TMP/comp-pw/project-x/$S_PATHPW.log"; echo ok > "$TMP/comp-pw/project-x/fine.log"; echo ok > "$TMP/logs-pathpw/unit.log"
+PATHRUN=$UI/test-results/$STAMP-5950-tests
+mkdir -p "$PATHRUN/pw/$S_PATHPW-usage" "$PATHRUN/pw/other-usage"
+png "$PATHRUN/pw/$S_PATHPW-usage/test-failed-1.png"; png "$PATHRUN/pw/other-usage/test-failed-1.png"
+rc=0
+(export GRAFANA_ADMIN_PASSWORD=$S_PATHPW; python3 -I "$EXAMPLE/tests/ci-artifacts.py" --out "$TMP/out-pathpw" --start "$START" --ui-dir "$UI" --run-dir "$PATHRUN" --logs "$TMP/logs-pathpw" --components "$TMP/comp-pw" --private-report "$TMP/pathpw.private.json" > "$TMP/pathpw.out" 2>&1) || rc=$?
+check "a configured credential in a published name (a container log, a test directory): status 1 and those two files are not published" "1 0" \
+  "$rc $(find "$TMP/out-pathpw" -name "*$S_PATHPW*" | wc -l | tr -d ' ')"
+check "  the other files with ordinary names are still published, and the credential is in no output or manifest" "yes yes 0" \
+  "$([ -f "$TMP/out-pathpw/components/project-x/fine.log" ] && echo yes || echo no) $([ -f "$TMP/out-pathpw/ui/$STAMP-5950-tests/pw/other-usage/test-failed-1.png" ] && echo yes || echo no) $(grep -rl "$S_PATHPW" "$TMP/out-pathpw" "$TMP/pathpw.out" | wc -l | tr -d ' ')"
 pw_case pw-implicit 'login as admin with the password admin'
 check "the demo's default password, not supplied through the environment: status 0, the log is published" "0 yes" "$PW_RC $PW_PUBLISHED"
 pw_case pw-empty 'login as admin with the password admin' GRAFANA_ADMIN_PASSWORD=
@@ -222,7 +249,7 @@ check "CI_REDACT_ENV naming a variable that is absent scans nothing for it (stat
 png_bad() { echo 'not a png' > "$RUN2/screenshots/overview.png"; }
 spoil png-bad "a screenshot that is not a PNG" "not a PNG" png_bad
 json_bad() { echo '{not json' > "$RUN2/results.json"; }
-spoil json-bad "a results file that is not JSON" "not valid" json_bad
+spoil json-bad "a results file that is not JSON" "not a valid UTF-8 JSON object" json_bad
 link_dir() { ln -s "$TMP/ui" "$RUN2/pw/escape"; }
 spoil symlink-dir "a link to a directory inside a run" "symbolic link" link_dir
 # a link to a perfectly valid file outside the run: only the link itself makes it unacceptable
@@ -237,7 +264,7 @@ check "  nothing at all of that run is published from it" "0" "$(jq '[.published
 # a very long log is published truncated (with a note), not refused
 BIGRUN=$UI/test-results/$STAMP-6001-tests
 mkdir -p "$BIGRUN" "$TMP/logs-big"
-echo '{}' > "$BIGRUN/results.json"
+echo "$RJSON" > "$BIGRUN/results.json"
 head -c 3000000 /dev/zero | tr '\0' 'y' > "$TMP/logs-big/unit.log"
 collect --out "$TMP/out-big" --start "$START" --ui-dir "$UI" --run-dir "$BIGRUN" --logs "$TMP/logs-big" > /dev/null 2>&1
 check "a log of 3 MB is published truncated (status 0)" "0 yes" "$? $(head -c 40 "$TMP/out-big/logs/unit.log" | grep -q '^\[truncated' && echo yes || echo no)"
@@ -275,17 +302,10 @@ collect --out "$TMP/out-none" --start "$START" --ui-dir "$UI" > /dev/null 2>&1
 check "an invocation with nothing to publish is not a violation (status 0)" "0 0" "$? $(jq '.published | length' "$TMP/out-none/MANIFEST.json")"
 
 # archives and files built to defeat the checks: a repeated member name, a member name that is a sentinel, named pipes
-trace_dup() { mktrace "$RUN2/pw/c-usage/trace.zip" dup; }
-spoil trace-dup "a trace with a member name more than once (the second copy hides a cookie from a reader by name)" "more than once" trace_dup
-check "  and the trace is not published" "0" "$(find "$TMP/out-trace-dup" -name trace.zip | wc -l | tr -d ' ')"
-trace_extra() { mktrace "$RUN2/pw/c-usage/trace.zip" extra; }
-spoil trace-extra "a trace with a member outside the safe shape" "outside the safe trace shape" trace_extra
-check "  the member's own name is in neither the console output, the manifest nor the upload directory" "0 0" \
-  "$(cat "$TMP/spoil-trace-extra.out" | grep -c SENTINEL-MEMBER) $(grep -rl SENTINEL-MEMBER "$TMP/out-trace-extra" | wc -l | tr -d ' ')"
 extra_named() { : > "$RUN2/screenshots/SENTINEL-EXCLUDED-8e21.png"; }
 RUN2=$UI/test-results/$STAMP-6001-tests; REPORT2=$UI/playwright-report/$STAMP-6001-tests; LOGS2=$TMP/logs-excl
 mkdir -p "$RUN2/screenshots" "$LOGS2"
-echo '{}' > "$RUN2/results.json"; png "$RUN2/screenshots/overview.png"; extra_named; echo ok > "$LOGS2/unit.log"
+echo "$RJSON" > "$RUN2/results.json"; png "$RUN2/screenshots/overview.png"; extra_named; echo ok > "$LOGS2/unit.log"
 collect --out "$TMP/out-excl" --start "$START" --ui-dir "$UI" --run-dir "$RUN2" --logs "$LOGS2" > "$TMP/excl.out" 2> "$TMP/excl.err"
 check "an excluded file with a sentinel name: status 0, and the name is not in the console output, the manifest or the upload" "0 0 0" \
   "$? $(grep -c SENTINEL-EXCLUDED "$TMP/excl.out" "$TMP/excl.err" | awk -F: '{ s += $2 } END { print s }') $(grep -rl SENTINEL-EXCLUDED "$TMP/out-excl" | wc -l | tr -d ' ')"
@@ -293,20 +313,20 @@ check "  the manifest keeps only a count of what was excluded" "1" "$(jq '.exclu
 check "  and the private report has the name for the person on the runner" "yes" "$(grep -q SENTINEL-EXCLUDED "$TMP/out-excl.private.json" && echo yes || echo no)"
 # a named pipe must be refused without being opened (an open would wait for a writer for ever). Each variant has its own run directory
 # and its own logs, so one pipe cannot be mistaken for the other; each must be the ONLY violation, with the exact reason, at its own path
-fifo_run() { mkfifo "$RUN2/pw/c-usage/trace.zip"; }
+fifo_run() { rm -f "$RUN2/screenshots/overview.png"; mkfifo "$RUN2/screenshots/overview.png"; }
 fifo_log() { mkfifo "$LOGS2/pipe.log"; }
 FIFO_N=0
 for variant in fifo_run fifo_log; do
   FIFO_N=$((FIFO_N + 1))
   RUN2=$UI/test-results/$STAMP-$((7000 + FIFO_N))-tests; REPORT2=$UI/playwright-report/$STAMP-$((7000 + FIFO_N))-tests; LOGS2=$TMP/logs-$variant
   mkdir -p "$RUN2/screenshots" "$RUN2/pw/c-usage" "$LOGS2"
-  echo '{}' > "$RUN2/results.json"; png "$RUN2/screenshots/overview.png"; echo ok > "$LOGS2/unit.log"
+  echo "$RJSON" > "$RUN2/results.json"; png "$RUN2/screenshots/overview.png"; echo ok > "$LOGS2/unit.log"
   "$variant"
   python3 -I "$EXAMPLE/tests/ui/test/launch.py" --log "$TMP/$variant.log" --timeout 30 -- \
     python3 -I "$EXAMPLE/tests/ci-artifacts.py" --out "$TMP/out-$variant" --start "$START" --ui-dir "$UI" --run-dir "$RUN2" --logs "$LOGS2" --private-report "$TMP/$variant.private.json" > "$TMP/$variant.launch" 2>&1
   check "a named pipe ($variant) is a violation, not a hang: status 1 and no timeout" "status=1 hung=no" "$(grep -o 'status=[0-9-]*' "$TMP/$variant.launch") $(grep -o 'hung=[a-z]*' "$TMP/$variant.launch")"
   case $variant in
-    fifo_run) want_path="run $STAMP-$((7000 + FIFO_N))-tests/pw/c-usage/trace.zip" ;;
+    fifo_run) want_path="run $STAMP-$((7000 + FIFO_N))-tests/screenshots/overview.png" ;;
     *) want_path="logs/pipe.log" ;;
   esac
   check "  it is the only violation, at its own path, with the exact reason (private report)" "1|$want_path|not a regular file (a symbolic link or another kind of entry)" \
@@ -505,7 +525,7 @@ case " ${STUB_FAIL:-} " in *" $label "*) echo "injected failure of $label" >&2; 
 if [ "$label" != test-ui-setup ]; then
   run="$PWD/tests/ui/test-results/$(date -u +%Y%m%dT%H%M%SZ)-$$-tests"
   mkdir -p "$run"
-  echo '{"stats":{}}' > "$run/results.json"
+  echo '{"stats":{"duration":10,"expected":3,"skipped":0,"unexpected":0,"flaky":0}}' > "$run/results.json"
   printf 'run directory: %s\n' "$run"
   report="$PWD/tests/ui/playwright-report/$(date -u +%Y%m%dT%H%M%SZ)-$$-tests"
   mkdir -p "$report/data"
@@ -533,8 +553,12 @@ while [ $# -gt 0 ]; do case "$1" in --project) project=$2; shift 2 ;; *) shift ;
 root=$STUB_ROOT/scn
 mkdir -p "$root/local" "$root/dashboard-scenarios" "$root/logs"
 echo '{"scenarios":[]}' > "$root/dashboard-scenarios/scenarios.json"
+# a runner that owns its project but ended before it wrote the scenario file (lifecycle-test.sh writes it late)
+[ -z "${STUB_NO_SCENARIO_FILE:-}" ] || rm -f "$root/dashboard-scenarios/scenarios.json"
 echo "call log" > "$root/logs/01-call.log"
 case " ${STUB_FAIL:-} " in *" scenarios-early "*) echo "injected early failure of scenarios" >&2; exit 1 ;; esac
+# a runner that is ended before it ever says what it kept, and has printed something that must not be repeated
+[ -z "${STUB_NO_HANDOFF:-}" ] || { echo "RUNNER-OUTPUT-SENTINEL-31bd"; : > "$STUB_SIGNAL_FILE"; sleep 30; }
 printf -- '--keep: nothing was cleaned up. Project %s now has 4 container(s) and 2 volume(s). Stop it with: COMPOSE_PROJECT_NAME=%s LOCAL_DIR=%s/local ./teardown.sh --purge\n' "$project" "$project" "$root"
 printf 'Logs of every script call: %s/logs\n' "$root"
 [ -z "${STUB_SIGNAL_FILE:-}" ] || { : > "$STUB_SIGNAL_FILE"; sleep 30; }
@@ -575,7 +599,7 @@ check "  the browser phases never download (every call after the setup says --no
   "$(grep -E '^(test-ui|screenshots|test-ui-selftest|test-ui-scenario) ' "$TMP/stub-green/calls.log" | grep -vc -- '--no-install')"
 check "  the uploaded directory holds the summary, the logs and the run outputs, and no violation" "yes yes yes 0" \
   "$([ -f "$TMP/stub-green/artifacts/publish/summary.tsv" ] && echo yes || echo no) $([ -f "$TMP/stub-green/artifacts/publish/logs/lifecycle.log" ] && echo yes || echo no) $([ "$(find "$TMP/stub-green/artifacts/publish/ui" -name overview.png | wc -l | tr -d ' ')" -ge 1 ] && echo yes || echo no) $(jq '.violation_count' "$TMP/stub-green/artifacts/publish/MANIFEST.json")"
-check "  the container-level logs of the runners are kept as component logs" "yes" "$([ -f "$TMP/stub-green/artifacts/publish/components/lifecycle-script-calls/01-call.log" ] || [ -f "$TMP/stub-green/artifacts/publish/components/scenarios-script-calls/01-call.log" ] && echo yes || echo no)"
+check "  the per-call logs a runner printed a path for are not copied (no component logs are taken from paths in a runner's output)" "0" "$(find "$TMP/stub-green/artifacts/publish/components" -name '*script-calls*' -o -name '01-call.log' | wc -l | tr -d ' ')"
 
 run_suite failing STUB_FAIL=test-ui
 check "an injected failure of the seeded browser run fails the suite (status 1)" "1 yes" "$SUITE_RC $(grep -q '^The suite FAILED: .*ui-seeded=fail(1)' "$TMP/failing.out" && echo yes || echo no)"
@@ -598,8 +622,20 @@ run_suite early STUB_FAIL=scenarios-early
 # as containers of that project) and never said it kept anything. The suite must not delete what it did not claim.
 check "a scenario runner that refused the project: the suite fails, and nothing was deleted by label or by name" "1 0 0 fail(the kept stack was not located)" \
   "$SUITE_RC $(grep -c '^stubrt \(rm\|network rm\|volume rm\) ' "$TMP/stub-early/calls.log") $(calls early teardown) $(phase_status early scenarios-teardown)"
-check "  it says so and names the project for a person" "yes" "$(grep -q '^==> scenarios-teardown: fail, the project ci-scn-[0-9a-f]* was not reported as kept by the scenario runner, so nothing was removed' "$TMP/early.out" && echo yes || echo no)"
+check "  it says so and names the project for a person" "1" "$(grep -c '^==> scenarios-teardown: cleanup unavailable, the scenario runner handed over no verified kept project (ci-scn-[0-9a-f]*); nothing was removed' "$TMP/early.out" )"
 check "  the runtime was only asked to list (for the container logs), never to remove" "0" "$(grep '^stubrt' "$TMP/stub-early/calls.log" | grep -c ' rm ')"
+
+# An OWNED stack without scenario JSON: the runner printed its keep line for this project but never wrote the scenario file. The stack is
+# still torn down (the keep line is the proof of ownership), and the browser phase does not run on data that is not there.
+run_suite noscenario STUB_NO_SCENARIO_FILE=1
+check "a kept stack the runner owns but without scenario JSON: it is torn down once, for this project and the directory the runner reported" "1 yes" \
+  "$(calls noscenario teardown) $(grep -q "^teardown --purge project=ci-scn-[0-9a-f]* local=$TMP/stub-noscenario/scn/local " "$TMP/stub-noscenario/calls.log" && echo yes || echo no)"
+check "  the teardown phase passed, and nothing was pending afterwards (no second teardown at exit, no unavailable sentence)" "pass 0" \
+  "$(phase_status noscenario scenarios-teardown) $(grep -c 'cleanup unavailable' "$TMP/noscenario.out")"
+check "  the browser phase did not run (no scenario browser call) and is recorded as skipped, and the suite fails" "0 yes 1" \
+  "$(calls noscenario test-ui-scenario) $(skipped noscenario ui-scenario) $SUITE_RC"
+check "  the scenario runner's own phase still passed and the stack's container logs were still collected" "pass yes" \
+  "$(phase_status noscenario scenarios) $([ -d "$TMP/stub-noscenario/artifacts/publish/components" ] && echo yes || echo no)"
 
 run_suite npmfail STUB_FAIL=npm-typecheck
 check "a failing static check of the browser tooling fails the suite" "1 fail(1)" "$SUITE_RC $(phase_status npmfail ui-tooling)"
@@ -696,6 +732,24 @@ has_aside() {
   for entry in "$1"/incomplete-publish.*; do [ -e "$entry" ] && return 0; done
   return 1
 }
+# A signal while the scenario runner is going, before it ever handed over a kept project: cleanup is reported unavailable in a fixed sentence,
+# nothing is deleted by label or by name, and nothing the runner printed is repeated
+rm -rf "$TMP/stub-nohandoff"
+mkdir -p "$TMP/stub-nohandoff"
+: > "$TMP/stub-nohandoff/calls.log"
+(cd "$EX" && python3 -I "$EXAMPLE/tests/ui/test/launch.py" --log "$TMP/nohandoff.out" --timeout 90 --signal TERM --when-exists "$TMP/stub-nohandoff/signal" -- \
+  env PATH="$BIN:$PATH" STUB_LOG="$TMP/stub-nohandoff/calls.log" STUB_ROOT="$TMP/stub-nohandoff" STUB_SIGNAL_FILE="$TMP/stub-nohandoff/signal" STUB_NO_HANDOFF=1 \
+  CI_CLEANUP_SECONDS=4 REGISTRY_IMAGE=x CONTAINER_RUNTIME=stubrt CI_ARTIFACT_DIR="$TMP/stub-nohandoff/artifacts" ./tests/ci-suite.sh) > "$TMP/nohandoff.launch" 2>&1
+check "TERM while the runner has handed over nothing: status 143 and no hang" "status=143 hung=no" "$(grep -o 'status=[0-9-]*' "$TMP/nohandoff.launch") $(grep -o 'hung=[a-z]*' "$TMP/nohandoff.launch")"
+check "  the console says cleanup is unavailable, once, in the fixed sentence, naming only the suite's own project" "1" \
+  "$(grep -c '^==> scenarios-teardown: cleanup unavailable, the scenario runner handed over no verified kept project (ci-scn-[0-9a-f]*); nothing was removed$' "$TMP/nohandoff.out")"
+# The sentinel matches no secret pattern, so the collector publishes the runner's log (tail) as it does for every phase: it is in the
+# upload on purpose, which proves the collection ran, and it must still not be repeated on the console by the suite
+check "  nothing the runner printed is repeated on the console, while its log is collected (the sentinel is in the published scenarios.log)" "0 1" \
+  "$(grep -c RUNNER-OUTPUT-SENTINEL-31bd "$TMP/nohandoff.out") $(grep -c RUNNER-OUTPUT-SENTINEL-31bd "$TMP/stub-nohandoff/artifacts/publish/logs/scenarios.log" 2> /dev/null)"
+check "  and nothing was deleted: no teardown call and no remove call of the runtime" "0 0" \
+  "$(calls nohandoff teardown) $(grep -c '^stubrt .* rm \|^stubrt rm ' "$TMP/stub-nohandoff/calls.log")"
+
 # A signal while the collection itself is running (stand-in collectors that hang): publish/ is a complete collection or absent
 for variant in hang-once two-signal; do
   rm -rf "$TMP/stub-$variant"

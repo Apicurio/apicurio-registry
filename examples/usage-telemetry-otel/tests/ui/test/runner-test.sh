@@ -44,6 +44,22 @@ check() { # check <description> <expected> <actual>
 }
 part() { printf '\n%s\n' "$1"; }
 
+# octal_mode <file>...: the permission bits of each file, with GNU stat (-c) or BSD stat (-f). A probe that fails is discarded whole: GNU
+# stat -f is "file system status", which prints a block of text for the file and then fails on the format, so the output of a probe is
+# taken only when the probe succeeded.
+octal_mode() {
+  local file out
+  for file in "$@"; do
+    if out=$(stat -c '%a' "$file" 2> /dev/null); then
+      printf '%s\n' "$out"
+    elif out=$(stat -f '%Lp' "$file" 2> /dev/null); then
+      printf '%s\n' "$out"
+    else
+      return 1
+    fi
+  done
+}
+
 # --- the disposable tree -----------------------------------------------------------------------------------------------
 
 STATE_JSON='{"schemaVersion":2,"runId":"20261120T161252Z-85dcbd","source":{"label":"service_instance_id","instanceId":"3fdf1298-d99b-4832-9232-e4b5e3b118f0"},"timeRange":{"fromMs":1795191142000,"toMs":1795191212000},"evaluationTime":"1795191182.943","evaluationTimeSeconds":1795191182.943,"endpoints":{"registryApi":"http://127.0.0.1:8081/apis/registry/v3","prometheus":"http://127.0.0.1:9090","grafana":"http://127.0.0.1:13000","grafanaDatasourceUid":"apicurio-usage-prometheus"},"clients":{"probe":"probe-1"},"schemas":[{"globalId":46,"contentId":46},{"globalId":47,"contentId":47},{"globalId":48,"contentId":46}],"expectedSeries":[{"clientId":"billing-service","identifierType":"global_id","identifierValue":"46","operation":"DESERIALIZE","count":1},{"clientId":"billing-service","identifierType":"global_id","identifierValue":"47","operation":"UNKNOWN","count":2},{"clientId":"orders-service","identifierType":"content_id","identifierValue":"46","operation":"DESERIALIZE","count":2},{"clientId":"orders-service","identifierType":"global_id","identifierValue":"46","operation":"SERIALIZE","count":3},{"clientId":"orders-service","identifierType":"global_id","identifierValue":"48","operation":"SERIALIZE","count":1},{"clientId":"probe-1","identifierType":"global_id","identifierValue":"46","operation":"UNKNOWN","count":1}]}'
@@ -743,12 +759,51 @@ runx "$T" ./test-ui.sh --setup-only
 check "a legitimate layout (a real install directory whose own contents hold a link) is not rejected" "0 1" "$RC $(grep -c '^INSTALL-REAL' "$T/stubs/log")"
 check "  and the installer is told not to delete other browser revisions of that directory" 1 "$(grep -c '^INSTALL-REAL gc=1$' "$T/stubs/log")"
 
+part "the permission probe works with GNU and with BSD stat"
+MODE_FILE=$TMP/mode-probe
+: > "$MODE_FILE"
+chmod 444 "$MODE_FILE"
+mkdir -p "$TMP/stat-gnu" "$TMP/stat-bsd" "$TMP/stat-gnu-noisy" "$TMP/stat-none"
+# GNU branch: the real GNU coreutils stat when the machine has it (gstat, or a stat that says it is GNU), otherwise a stand-in that
+# behaves like it (marked in the check name)
+GNU_KIND="a stand-in with GNU behavior"
+if command -v gstat > /dev/null 2>&1 && gstat --version 2> /dev/null | grep -q 'GNU coreutils'; then
+  ln -s "$(command -v gstat)" "$TMP/stat-gnu/stat"
+  GNU_KIND="real GNU coreutils stat"
+elif stat --version 2> /dev/null | grep -q 'GNU coreutils'; then
+  ln -s "$(command -v stat)" "$TMP/stat-gnu/stat"
+  GNU_KIND="real GNU coreutils stat"
+else
+  printf '#!/bin/sh\ncase "$1" in\n  -c) shift; [ "$1" = "%%a" ] && { shift; for f in "$@"; do printf "444\\n"; done; exit 0; } ;;\n  -f) echo "  File: $3"; echo "    ID: 1 Namelen: ?       Type: ext2/ext3"; echo "stat: cannot read file system information for %%Lp" >&2; exit 1 ;;\nesac\nexit 1\n' > "$TMP/stat-gnu/stat"
+fi
+chmod +x "$TMP/stat-gnu/stat" 2> /dev/null || true
+# BSD branch: the real BSD stat when this is a BSD (macOS), otherwise a stand-in: -c is an illegal option, -f '%Lp' answers
+if /usr/bin/stat -f '%Lp' "$MODE_FILE" > /dev/null 2>&1; then
+  ln -s /usr/bin/stat "$TMP/stat-bsd/stat"
+  BSD_KIND="real BSD stat"
+else
+  printf '#!/bin/sh\ncase "$1" in\n  -f) printf "444\\n"; exit 0 ;;\nesac\necho "stat: illegal option -- c" >&2\nexit 1\n' > "$TMP/stat-bsd/stat"
+  chmod +x "$TMP/stat-bsd/stat"
+  BSD_KIND="a stand-in with BSD behavior"
+fi
+# a stat whose -c probe prints text and then fails (the case the old code mishandled): the text must not reach the answer
+printf '#!/bin/sh\ncase "$1" in\n  -c) echo "garbage from a failed probe"; exit 1 ;;\n  -f) printf "444\\n"; exit 0 ;;\nesac\nexit 1\n' > "$TMP/stat-gnu-noisy/stat"
+printf '#!/bin/sh\necho "also garbage"\nexit 1\n' > "$TMP/stat-none/stat"
+chmod +x "$TMP/stat-gnu-noisy/stat" "$TMP/stat-none/stat"
+check "the GNU branch ($GNU_KIND): the mode is exactly 444 and nothing else" "444" "$(PATH="$TMP/stat-gnu:$PATH" octal_mode "$MODE_FILE")"
+check "the BSD branch ($BSD_KIND): the mode is exactly 444 and nothing else" "444" "$(PATH="$TMP/stat-bsd:$PATH" octal_mode "$MODE_FILE")"
+check "a failed first probe that printed text: only the answer of the second probe is taken" "444" "$(PATH="$TMP/stat-gnu-noisy:$PATH" octal_mode "$MODE_FILE")"
+check "two files give two lines (both branches)" "444 444 444 444" \
+  "$({ PATH="$TMP/stat-gnu:$PATH" octal_mode "$MODE_FILE" "$MODE_FILE"; PATH="$TMP/stat-bsd:$PATH" octal_mode "$MODE_FILE" "$MODE_FILE"; } | tr '\n' ' ' | sed 's/ $//')"
+rc=0
+out=$(PATH="$TMP/stat-none:$PATH" octal_mode "$MODE_FILE") || rc=$?
+check "a stat that answers neither probe: nothing is printed and the status is 1" "1 [] " "$rc [$out] "
 part "output directories and the npm entry points"
 T=$(new_tree)
 runx "$T" ./test-ui.sh
 runx "$T" ./test-ui.sh
 check "two invocations leave two separate run and report directories" "2 2" "$(run_dirs "$T") $(ls "$T/tests/ui/playwright-report" | wc -l | tr -d ' ')"
-check "  and each run's input is sealed read-only" "444 444" "$(stat -f '%Lp' "$T"/tests/ui/test-results/*/input.sealed.json 2> /dev/null | tr '\n' ' ' | sed 's/ $//' || stat -c '%a' "$T"/tests/ui/test-results/*/input.sealed.json | tr '\n' ' ' | sed 's/ $//')"
+check "  and each run's input is sealed read-only" "444 444" "$(octal_mode "$T"/tests/ui/test-results/*/input.sealed.json | tr '\n' ' ' | sed 's/ $//')"
 SCRIPTS=$(cd "$SRC/tests/ui" && node -e 'const s = require("./package.json").scripts; console.log(["test", "screenshots"].map((n) => n + "=" + s[n]).join(" "))')
 check "npm test and npm run screenshots call the public wrappers" "test=../../test-ui.sh screenshots=../../screenshots.sh" "$SCRIPTS"
 check "  and the scripts they name exist and are executable" "yes yes" "$([ -x "$SRC/tests/ui/../../test-ui.sh" ] && echo yes || echo no) $([ -x "$SRC/tests/ui/../../screenshots.sh" ] && echo yes || echo no)"

@@ -2,19 +2,20 @@
 """Fail-closed collector of the CI artifacts of this example.
 
 Only files this invocation produced and that an explicit allowlist names are copied into the output directory, and each is
-verified first (freshness, size, file type, a safe trace's shape, secret patterns). A file that is not on the allowlist is
+verified first (freshness, size, file type, secret patterns, a configured credential in the file or in its published name). A file that is not on the allowlist is
 excluded and counted; a file that is on it but fails verification, a symbolic link, a directory outside its root or a stale
 file is a violation: it is not published and the exit status is 1. Nothing is read from anywhere the caller did not name,
-and the Playwright HTML report and its data tree are never published at all: they embed their data in encoded form (base64 or zip)
-that the checks below cannot read, so they stay on the runner. The failure screenshots and the vetted traces of the run directory carry
-what a person needs.
+and the public contract is narrow: the Playwright HTML report and its data tree, the raw Playwright results.json and the trace archives
+are never published, because each embeds data in a form (base64, zip, free text of every test) that these checks cannot vet. They
+stay on the runner. What is published from a run directory is two fixed screenshots, the failure screenshots, the error context of a
+failed test and a numeric summary (results-summary.json: the counts and the duration of the run, numbers only, made from results.json).
 
 Usage: ci-artifacts.py --out DIR --start EPOCH --ui-dir DIR [--run-dir DIR ...]
                        [--logs DIR] [--components DIR] [--summary FILE] [--private-report FILE]
   --out         new or empty directory that receives the published files and MANIFEST.json
   --start       epoch seconds at which the suite started; nothing older than that is accepted
   --ui-dir      the example's browser tests directory: run directories must be below its test-results
-  --run-dir     one run directory this invocation printed (results.json, screenshots/, pw/*/test-failed-N.png, trace.zip)
+  --run-dir     one run directory this invocation printed (results.json is read for its counts only; screenshots/, pw/*/test-failed-N.png, pw/*/error-context.md)
   --logs        directory of the phase logs (<phase>.log), --components the container logs (<project>/<container>.log)
   --summary     the suite's own summary file; it is published with the collector's own row for this collection
   --private-report  a new file outside --out that receives the names and reasons of what was excluded or rejected; the published
@@ -24,14 +25,12 @@ Exit status: 0 when there is no violation, 1 on a violation, 2 on a usage error.
 import argparse
 import base64
 import hashlib
-import io
 import json
 import os
 import re
 import stat
 import sys
 import tempfile
-import zipfile
 from calendar import timegm
 from time import strptime
 from urllib.parse import quote
@@ -39,8 +38,6 @@ from urllib.parse import quote
 MAX_FILE = 8 * 1024 * 1024
 MAX_TEXT = 1024 * 1024
 LOG_TAIL = 2 * 1024 * 1024
-MAX_TRACE = 64 * 1024 * 1024
-MAX_TRACE_UNPACKED = 256 * 1024 * 1024
 MAX_FILES = 400
 RUN_NAME = re.compile(r"^(\d{8}T\d{6}Z)-\d{1,10}-[a-z0-9-]{1,30}$")
 SLOT = r"[A-Za-z0-9][A-Za-z0-9._-]{0,200}"
@@ -81,20 +78,11 @@ PNG = b"\x89PNG\r\n\x1a\n"
 JPEG = b"\xff\xd8\xff"
 
 RUN_FILES = [
-    (re.compile(r"^results\.json$"), "json"),
+    (re.compile(r"^results\.json$"), "counts"),
     (re.compile(r"^screenshots/(overview|filtered)\.png$"), "png"),
     (re.compile(r"^pw/" + SLOT + r"/test-failed-[0-9]{1,3}\.png$"), "png"),
-    (re.compile(r"^pw/" + SLOT + r"/trace\.zip$"), "trace"),
     (re.compile(r"^pw/" + SLOT + r"/error-context\.md$"), "text"),
 ]
-TRACE_ENTRIES = [
-    re.compile(r"^trace\.(trace|stacks)$"),
-    re.compile(r"^trace\.network$"),
-    re.compile(r"^aria/[A-Za-z0-9@_.-]{1,200}\.json$"),
-    re.compile(r"^screenshots/[A-Za-z0-9@_.-]{1,200}\.png$"),
-    re.compile(r"^screencast/[A-Za-z0-9@_.-]{1,200}\.jpeg$"),
-]
-TRACE_TEXT = re.compile(r"^(trace\.(trace|stacks)|aria/.*\.json)$")
 
 
 class Collector:
@@ -116,6 +104,9 @@ class Collector:
     def publish(self, rel, data, kind, origin):
         if len(self.published) >= MAX_FILES:
             self.violation(origin, "more than %d files would be published" % MAX_FILES)
+            return
+        if any(literal in rel.encode("utf-8") for literal in self.literals):
+            self.violation(origin, "its published name holds a configured credential")
             return
         target = os.path.join(self.out, rel)
         os.makedirs(os.path.dirname(target), exist_ok=True)
@@ -170,19 +161,34 @@ class Collector:
             return None
         return data
 
+    def run_counts(self, data, label):
+        """The numbers of a Playwright results.json (the counts of tests and the duration), as the bytes of a new JSON file that
+        holds nothing else: the raw file carries the title, location and error text of every test, which cannot be vetted."""
+        try:
+            stats = json.loads(data.decode("utf-8")).get("stats")
+        except (ValueError, AttributeError):
+            self.violation(label, "not a valid UTF-8 JSON object")
+            return None
+        if not isinstance(stats, dict):
+            self.violation(label, "no stats object")
+            return None
+        counts = {}
+        for key in ("expected", "unexpected", "flaky", "skipped", "duration"):
+            value = stats.get(key)
+            if isinstance(value, (int, float)) and not isinstance(value, bool) and 0 <= value < 10 ** 12:
+                counts[key] = int(round(value))
+        if not counts:
+            self.violation(label, "no counts in the stats object")
+            return None
+        return (json.dumps(counts, sort_keys=True, indent=2) + "\n").encode("utf-8")
+
     def check_content(self, kind, data, label):
-        if kind in ("json",):
-            try:
-                json.loads(data.decode("utf-8"))
-            except ValueError:
-                self.violation(label, "not valid UTF-8 JSON")
-                return False
-        elif kind == "png":
+        if kind == "png":
             if not data.startswith(PNG):
                 self.violation(label, "not a PNG image")
                 return False
             return True
-        elif kind in ("text", "html"):
+        elif kind == "text":
             try:
                 data.decode("utf-8")
             except ValueError:
@@ -192,58 +198,6 @@ class Collector:
         if found:
             self.violation(label, "contains " + ", ".join(found))
             return False
-        return True
-
-    def check_trace(self, data, label):
-        """A trace archive of the safe mode, checked from the bytes that will be published: no duplicate member, only
-        its known entries, every member read through its own ZipInfo and as long as it says, no network, no secret."""
-        try:
-            archive = zipfile.ZipFile(io.BytesIO(data))
-        except (zipfile.BadZipFile, OSError):
-            self.violation(label, "not a readable zip archive")
-            return False
-        with archive:
-            entries = archive.infolist()
-            names = [entry.filename for entry in entries]
-            if len(set(names)) != len(names):
-                self.violation(label, "the archive has a member name more than once")
-                return False
-            if sum(entry.file_size for entry in entries) > MAX_TRACE_UNPACKED:
-                self.violation(label, "trace unpacks to more than %d bytes" % MAX_TRACE_UNPACKED)
-                return False
-            unpacked = 0
-            for entry in entries:
-                name = entry.filename
-                if entry.flag_bits & 0x1 or name.endswith("/"):
-                    self.violation(label, "an encrypted member or a directory entry")
-                    return False
-                if not any(pattern.match(name) for pattern in TRACE_ENTRIES):
-                    self.violation(label, "an entry outside the safe trace shape")
-                    return False
-                if name == "trace.network" and entry.file_size != 0:
-                    self.violation(label, "the trace records network activity")
-                    return False
-                try:
-                    with archive.open(entry) as member:
-                        content = member.read(entry.file_size + 1)
-                except (zipfile.BadZipFile, NotImplementedError, RuntimeError, OSError):
-                    self.violation(label, "a member that cannot be read")
-                    return False
-                unpacked += len(content)
-                if len(content) != entry.file_size or unpacked > MAX_TRACE_UNPACKED:
-                    self.violation(label, "a member whose size is not what the archive says")
-                    return False
-                if name.endswith(".png") and not content.startswith(PNG):
-                    self.violation(label, "a trace image that is not a PNG")
-                    return False
-                if name.endswith(".jpeg") and not content.startswith(JPEG):
-                    self.violation(label, "a trace image that is not a JPEG")
-                    return False
-                if TRACE_TEXT.match(name):
-                    found = self.secrets_in(content)
-                    if found:
-                        self.violation(label, "a trace text that contains " + ", ".join(found))
-                        return False
         return True
 
     # --- directories -----------------------------------------------------------------------------------------------
@@ -291,13 +245,15 @@ class Collector:
                 reason = "raw run input, never published" if rel.endswith("input.sealed.json") else "not on the allowlist"
                 self.exclude(shown, reason)
                 continue
-            if kind == "trace":
-                data = self.read_regular(path, shown, MAX_TRACE)
-                if data is not None and self.check_trace(data, shown):
-                    self.publish(os.path.join(prefix, rel), data, "trace", shown)
+            data = self.read_regular(path, shown, MAX_FILE if kind in ("counts", "png") else MAX_TEXT)
+            if data is None:
                 continue
-            data = self.read_regular(path, shown, MAX_FILE if kind in ("json", "png", "html") else MAX_TEXT)
-            if data is not None and self.check_content(kind, data, shown):
+            if kind == "counts":
+                summary = self.run_counts(data, shown)
+                if summary is not None:
+                    self.publish(os.path.join(prefix, "results-summary.json"), summary, "counts", shown)
+                continue
+            if self.check_content(kind, data, shown):
                 self.publish(os.path.join(prefix, rel), data, kind, shown)
 
     def collect_logs(self, base, pattern, prefix, label):

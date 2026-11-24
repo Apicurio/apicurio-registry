@@ -69,6 +69,7 @@ import io.apicurio.registry.storage.error.InvalidArtifactIdException;
 import io.apicurio.registry.storage.error.InvalidArtifactTypeException;
 import io.apicurio.registry.storage.error.InvalidContentException;
 import io.apicurio.registry.storage.error.InvalidGroupIdException;
+import io.apicurio.registry.storage.error.VersionContentNotAvailableException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.references.AuthorizingReferenceLoader;
 import io.apicurio.registry.references.ReferenceResolution;
@@ -1067,7 +1068,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         ArtifactVersionMetaDataDto metaData = storage.getArtifactVersionMetaData(gav.getRawGroupIdWithNull(),
                 gav.getRawArtifactId(), gav.getRawVersionId());
         if (VersionState.DISABLED.equals(metaData.getState())) {
-            throw new VersionNotFoundException(groupId, artifactId, versionExpression);
+            throw new VersionContentNotAvailableException(groupId, artifactId, versionExpression,
+                    metaData.getState());
         }
 
         final var artifactCell = cellWithLoader(() -> storage.getArtifactVersionContent(
@@ -2411,7 +2413,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
 
         if (versionMetaData.getState() == VersionState.DISABLED) {
-            throw new VersionNotFoundException(groupId, artifactId, versionExpression);
+            throw new VersionContentNotAvailableException(groupId, artifactId, versionExpression,
+                    versionMetaData.getState());
         }
 
         String artifactType = versionMetaData.getArtifactType();

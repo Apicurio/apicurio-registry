@@ -936,8 +936,6 @@ public class RegistryClientOptions {
      * <p>A {@link #customWebClient(WebClient) custom client} that is already a
      * {@code WebClientSession} uses its own cookie store instead.</p>
      *
-     * <p>Only the Vert.x adapter supports this; the JDK adapter ignores it.</p>
-     *
      * @return this builder
      */
     public RegistryClientOptions enableCookies() {

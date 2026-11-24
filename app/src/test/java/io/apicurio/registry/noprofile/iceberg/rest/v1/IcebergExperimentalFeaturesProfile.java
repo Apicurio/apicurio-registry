@@ -7,7 +7,7 @@ import java.util.Set;
 
 /**
  * Test profile that enables the experimental features gate and Iceberg so that Iceberg endpoints are
- * accessible. It also enables {@link IcebergBadRequestResource}, a test-only endpoint under
+ * accessible. It also enables {@link IcebergForbiddenResource}, a test-only endpoint under
  * {@code /apis/iceberg} that always throws, so a test can check how errors raised on an Iceberg path
  * are mapped without starting a separate application.
  */
@@ -23,6 +23,6 @@ public class IcebergExperimentalFeaturesProfile implements QuarkusTestProfile {
 
     @Override
     public Set<Class<?>> getEnabledAlternatives() {
-        return Set.of(IcebergBadRequestResource.class);
+        return Set.of(IcebergForbiddenResource.class);
     }
 }

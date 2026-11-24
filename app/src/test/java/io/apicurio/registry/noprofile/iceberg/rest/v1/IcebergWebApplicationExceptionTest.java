@@ -11,7 +11,7 @@ import static org.hamcrest.Matchers.equalTo;
 
 /**
  * An exception raised on an Iceberg path keeps its status instead of falling back to 500. The paths are
- * served by {@link IcebergBadRequestResource}, which the shared Iceberg profile enables.
+ * served by {@link IcebergForbiddenResource}, which the shared Iceberg profile enables.
  */
 @QuarkusTest
 @TestProfile(IcebergExperimentalFeaturesProfile.class)
@@ -19,18 +19,18 @@ public class IcebergWebApplicationExceptionTest extends AbstractResourceTestBase
 
     @Test
     public void webApplicationExceptionFromAResourceMethodKeepsItsStatus() {
-        given().when().get("/iceberg/test/bad-request")
+        given().when().get("/iceberg/test/forbidden")
                 .then()
-                .statusCode(400)
-                .body("error.code", equalTo(400))
-                .body("error.type", equalTo("BadRequestException"))
-                .body("error.message", equalTo("Intentional 400 from an Iceberg resource method."));
+                .statusCode(403)
+                .body("error.code", equalTo(403))
+                .body("error.type", equalTo("ForbiddenException"))
+                .body("error.message", equalTo("Intentional 403 from an Iceberg resource method."));
     }
 
     @Test
     public void unmatchedMethodKeepsItsStatusAndAllowHeader() {
         // The framework, not a resource method, raises this one: the path has no POST method.
-        given().when().post("/iceberg/test/bad-request")
+        given().when().post("/iceberg/test/forbidden")
                 .then()
                 .statusCode(405)
                 .header("Allow", containsString("GET"))

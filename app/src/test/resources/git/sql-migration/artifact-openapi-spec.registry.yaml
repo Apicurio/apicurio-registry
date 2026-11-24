@@ -1,0 +1,16 @@
+$type: artifact-v0
+registryIds: [test]
+groupId: sqlgroup
+artifactId: openapi-spec
+artifactType: OPENAPI
+name: Petstore API
+validatedUpTo: "1"
+rules:
+  - ruleType: VALIDITY
+    config: FULL
+versions:
+  - version: "1"
+    state: ENABLED
+    globalId: 6
+    content: ./content/petstore.json
+    contentMetadata: ./content/petstore.metadata.registry.yaml

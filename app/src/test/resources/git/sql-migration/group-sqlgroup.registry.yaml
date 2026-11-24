@@ -1,0 +1,7 @@
+$type: group-v0
+registryIds: [test]
+groupId: sqlgroup
+description: Group for SQL migration test
+rules:
+  - ruleType: COMPATIBILITY
+    config: BACKWARD

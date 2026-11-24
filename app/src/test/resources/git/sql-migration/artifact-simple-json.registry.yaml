@@ -1,0 +1,13 @@
+$type: artifact-v0
+registryIds: [test]
+groupId: default
+artifactId: simple-json
+artifactType: JSON
+name: Simple JSON Schema
+validatedUpTo: "1"
+versions:
+  - version: "1"
+    state: ENABLED
+    globalId: 1
+    content: ./content/simple.json
+    contentMetadata: ./content/simple.metadata.registry.yaml

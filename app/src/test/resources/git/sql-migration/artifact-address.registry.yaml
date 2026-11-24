@@ -1,0 +1,18 @@
+$type: artifact-v0
+registryIds: [test]
+groupId: sqlgroup
+artifactId: address
+artifactType: AVRO
+name: Address Schema
+validatedUpTo: "2"
+versions:
+  - version: "1"
+    state: ENABLED
+    globalId: 2
+    content: ./content/address.avsc
+    contentMetadata: ./content/address.metadata.registry.yaml
+  - version: "2"
+    state: ENABLED
+    globalId: 3
+    content: ./content/address-v2.avsc
+    contentMetadata: ./content/address-v2.metadata.registry.yaml

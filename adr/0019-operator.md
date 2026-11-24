@@ -79,11 +79,11 @@ hand-written cleanup.
 | CR | Creates (in the CR's namespace) |
 |---|---|
 | `spec: {}` | `registry-app-deployment`, `registry-ui-deployment`, a Service and a NetworkPolicy for each |
-| `replicas` > 1 (or autoscaling above one) | A PodDisruptionBudget for that component (app or console) |
+| `replicas` > 1 (or autoscaling above one) | A PodDisruptionBudget for that component (app or console); not in GitOps push mode |
 | `ingress.host` | An Ingress for that component |
-| `autoscaling` | A HorizontalPodAutoscaler |
+| `autoscaling` | A HorizontalPodAutoscaler; not in GitOps push mode |
 | `storage.type: kubernetesops` | A ServiceAccount, Role and RoleBinding to read ConfigMaps |
-| `storage.type: gitops` (push mode) | The SSH Service for `git push` |
+| `storage.type: gitops` (push mode) | The SSH Service for `git push`; one replica enforced, `Recreate` strategy, no HPA or PDB |
 | `ui.enabled: false` | No console |
 
 | Storage | CR | Becomes |

@@ -1,8 +1,12 @@
 package io.apicurio.registry.operator.it;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
+import io.apicurio.registry.operator.api.v1.spec.GitOpsMode;
+import io.apicurio.registry.operator.api.v1.status.ConditionStatus;
 import io.apicurio.registry.operator.feat.GitOps;
 import io.apicurio.registry.operator.resource.ResourceFactory;
+import io.fabric8.kubernetes.api.model.IntOrString;
+import io.fabric8.kubernetes.api.model.apps.DeploymentBuilder;
 import io.fabric8.kubernetes.api.model.SecretBuilder;
 import io.fabric8.kubernetes.api.model.SecretVolumeSourceBuilder;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
@@ -302,6 +306,171 @@ public class GitOpsITTest extends ITBase {
                 .then()
                 .statusCode(200)
                 .body("count", equalTo(1)));
+    }
+
+    @Test
+    @DisplayName("GitOps push mode with autoscaling enforces single replica and blocks HPA")
+    void testPushModeAutoscalingEnforcesSingleReplicaNoHpa() {
+        final var registry = ResourceFactory.deserialize(
+                "/k8s/examples/gitops/example-push-autoscaling.yaml",
+                ApicurioRegistry3.class);
+        registry.getMetadata().setNamespace(namespace);
+        client.resource(registry).create();
+
+        final var deploymentName = registry.getMetadata().getName() + "-app-deployment";
+
+        await().atMost(MEDIUM_DURATION).ignoreExceptions().untilAsserted(() -> {
+            final var deployment = client.apps().deployments()
+                    .inNamespace(namespace).withName(deploymentName).get();
+            assertThat(deployment).isNotNull();
+            assertThat(deployment.getSpec().getReplicas()).isEqualTo(1);
+            assertThat(deployment.getSpec().getStrategy().getType()).isEqualTo("Recreate");
+        });
+
+        await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
+            final var updated = client.resources(ApicurioRegistry3.class)
+                    .inNamespace(namespace).withName(registry.getMetadata().getName()).get();
+            assertThat(updated.getStatus().getConditions()).anyMatch(c ->
+                    "ValidationError".equals(c.getType())
+                            && ConditionStatus.TRUE.equals(c.getStatus()));
+        });
+
+        assertThat(client.autoscaling().v2().horizontalPodAutoscalers()
+                .inNamespace(namespace).list().getItems()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("GitOps pull→push→pull: strategy switches and HPA lifecycle")
+    void testPullToPushToPullLifecycle() {
+        final var registry = ResourceFactory.deserialize(
+                "/k8s/examples/gitops/example-push-autoscaling.yaml",
+                ApicurioRegistry3.class);
+        registry.getMetadata().setNamespace(namespace);
+        registry.getSpec().getApp().getStorage().getGitops().setMode(GitOpsMode.PULL);
+        client.resource(registry).create();
+
+        final var deploymentName = registry.getMetadata().getName() + "-app-deployment";
+        final var crName = registry.getMetadata().getName();
+
+        // Pull mode: RollingUpdate strategy, HPA created
+        await().atMost(MEDIUM_DURATION).ignoreExceptions().untilAsserted(() -> {
+            final var deployment = client.apps().deployments()
+                    .inNamespace(namespace).withName(deploymentName).get();
+            assertThat(deployment).isNotNull();
+            assertThat(deployment.getSpec().getStrategy().getType()).isEqualTo("RollingUpdate");
+        });
+        await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() ->
+                assertThat(client.autoscaling().v2().horizontalPodAutoscalers()
+                        .inNamespace(namespace).list().getItems()).isNotEmpty());
+
+        // Switch to push mode
+        client.resources(ApicurioRegistry3.class).inNamespace(namespace).withName(crName)
+                .edit(r -> {
+                    r.getSpec().getApp().getStorage().getGitops().setMode(GitOpsMode.PUSH);
+                    return r;
+                });
+
+        // Push mode: Recreate strategy, no HPA, ValidationError
+        await().atMost(MEDIUM_DURATION).ignoreExceptions().untilAsserted(() -> {
+            final var deployment = client.apps().deployments()
+                    .inNamespace(namespace).withName(deploymentName).get();
+            assertThat(deployment.getSpec().getReplicas()).isEqualTo(1);
+            assertThat(deployment.getSpec().getStrategy().getType()).isEqualTo("Recreate");
+        });
+        await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() ->
+                assertThat(client.autoscaling().v2().horizontalPodAutoscalers()
+                        .inNamespace(namespace).list().getItems()).isEmpty());
+        await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
+            final var updated = client.resources(ApicurioRegistry3.class)
+                    .inNamespace(namespace).withName(crName).get();
+            assertThat(updated.getStatus().getConditions()).anyMatch(c ->
+                    "ValidationError".equals(c.getType())
+                            && ConditionStatus.TRUE.equals(c.getStatus()));
+        });
+
+        // Switch back to pull mode
+        client.resources(ApicurioRegistry3.class).inNamespace(namespace).withName(crName)
+                .edit(r -> {
+                    r.getSpec().getApp().getStorage().getGitops().setMode(GitOpsMode.PULL);
+                    return r;
+                });
+
+        // Pull mode restored: RollingUpdate, HPA returns, no ValidationError
+        await().atMost(MEDIUM_DURATION).ignoreExceptions().untilAsserted(() -> {
+            final var deployment = client.apps().deployments()
+                    .inNamespace(namespace).withName(deploymentName).get();
+            assertThat(deployment.getSpec().getStrategy().getType()).isEqualTo("RollingUpdate");
+        });
+        await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() ->
+                assertThat(client.autoscaling().v2().horizontalPodAutoscalers()
+                        .inNamespace(namespace).list().getItems()).isNotEmpty());
+        await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
+            final var updated = client.resources(ApicurioRegistry3.class)
+                    .inNamespace(namespace).withName(crName).get();
+            assertThat(updated.getStatus().getConditions()).noneMatch(c ->
+                    "ValidationError".equals(c.getType())
+                            && ConditionStatus.TRUE.equals(c.getStatus()));
+        });
+    }
+
+    @Test
+    @DisplayName("GitOps push mode succeeds when Deployment has unowned rollingUpdate (upgrade case)")
+    void testPushModeUpgradeWithUnownedRollingUpdate() {
+        final var registry = ResourceFactory.deserialize(
+                "/k8s/examples/gitops/example-push-multi-replica.yaml",
+                ApicurioRegistry3.class);
+        registry.getMetadata().setNamespace(namespace);
+        registry.getSpec().getApp().getStorage().getGitops().setMode(GitOpsMode.PULL);
+        client.resource(registry).create();
+
+        final var deploymentName = registry.getMetadata().getName() + "-app-deployment";
+        final var crName = registry.getMetadata().getName();
+
+        await().atMost(MEDIUM_DURATION).ignoreExceptions().untilAsserted(() -> {
+            final var deployment = client.apps().deployments()
+                    .inNamespace(namespace).withName(deploymentName).get();
+            assertThat(deployment).isNotNull();
+            assertThat(deployment.getSpec().getStrategy().getType()).isEqualTo("RollingUpdate");
+        });
+
+        // Make another field manager co-own rollingUpdate by SSA-applying the strategy.
+        // When the operator later gives up its share in push mode, rollingUpdate stays
+        // because the other manager still owns it — the same failure as a Deployment
+        // whose rollingUpdate was defaulted by the API server with no owner.
+        final var other = new DeploymentBuilder()
+                .withNewMetadata()
+                    .withName(deploymentName)
+                    .withNamespace(namespace)
+                .endMetadata()
+                .withNewSpec()
+                    .withNewStrategy()
+                        .withType("RollingUpdate")
+                        .withNewRollingUpdate()
+                            .withMaxSurge(new IntOrString("25%"))
+                            .withMaxUnavailable(new IntOrString("25%"))
+                        .endRollingUpdate()
+                    .endStrategy()
+                .endSpec()
+                .build();
+        client.apps().deployments().inNamespace(namespace).resource(other)
+                .fieldManager("other-manager")
+                .forceConflicts()
+                .serverSideApply();
+
+        // Switch to push mode — the operator must clear unowned rollingUpdate via JSON patch
+        client.resources(ApicurioRegistry3.class).inNamespace(namespace).withName(crName)
+                .edit(r -> {
+                    r.getSpec().getApp().getStorage().getGitops().setMode(GitOpsMode.PUSH);
+                    return r;
+                });
+
+        await().atMost(MEDIUM_DURATION).ignoreExceptions().untilAsserted(() -> {
+            final var deployment = client.apps().deployments()
+                    .inNamespace(namespace).withName(deploymentName).get();
+            assertThat(deployment.getSpec().getReplicas()).isEqualTo(1);
+            assertThat(deployment.getSpec().getStrategy().getType()).isEqualTo("Recreate");
+            assertThat(deployment.getSpec().getStrategy().getRollingUpdate()).isNull();
+        });
     }
 
     private void applyTestDataConfigMap() {

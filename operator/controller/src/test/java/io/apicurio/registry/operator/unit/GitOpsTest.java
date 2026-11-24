@@ -3,8 +3,11 @@ package io.apicurio.registry.operator.unit;
 import io.apicurio.registry.operator.EnvironmentVariables;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.ContainerNames;
+import io.apicurio.registry.operator.api.v1.spec.GitOpsMode;
 import io.apicurio.registry.operator.feat.GitOps;
 import io.apicurio.registry.operator.resource.ResourceFactory;
+import io.apicurio.registry.operator.status.StatusManager;
+import io.apicurio.registry.operator.status.ValidationErrorConditionManager;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
@@ -12,6 +15,7 @@ import io.fabric8.kubernetes.api.model.PodSpec;
 import io.fabric8.kubernetes.api.model.PodTemplateSpec;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentSpec;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -23,6 +27,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class GitOpsTest {
 
     private static final ClassLoader CLASS_LOADER = GitOpsTest.class.getClassLoader();
+
+    private ApicurioRegistry3 lastRegistry;
+
+    @AfterEach
+    void cleanup() {
+        if (lastRegistry != null) {
+            StatusManager.clean(lastRegistry);
+            lastRegistry = null;
+        }
+    }
 
     @Test
     public void testPullHttpsConfiguration() {
@@ -136,6 +150,7 @@ public class GitOpsTest {
     @Test
     public void testPushMode() {
         var registry = deserialize("k8s/examples/gitops/example-push.yaml");
+        lastRegistry = registry;
         var envVars = new LinkedHashMap<String, EnvVar>();
         var deployment = createDeployment();
 
@@ -237,6 +252,7 @@ public class GitOpsTest {
     @Test
     public void testPushSecretRef() {
         var registry = deserialize("k8s/examples/gitops/example-push.yaml");
+        lastRegistry = registry;
         var envVars = new LinkedHashMap<String, EnvVar>();
         var deployment = createDeployment();
 
@@ -258,6 +274,155 @@ public class GitOpsTest {
         assertThat(sidecar.getEnv())
                 .anyMatch(e -> "APICURIO_GITOPS_PUSH_SSH_AUTHORIZED_KEYS".equals(e.getName())
                         && e.getValue().contains("authorized_keys"));
+    }
+
+    @Test
+    void testPushModeMultiReplicaEnforcesSingleReplica() {
+        final var registry = deserialize("k8s/examples/gitops/example-push-multi-replica.yaml");
+        lastRegistry = registry;
+        final var envVars = new LinkedHashMap<String, EnvVar>();
+        final var deployment = createDeployment();
+        deployment.getSpec().setReplicas(3);
+
+        GitOps.configureGitOps(registry, deployment, envVars);
+
+        assertThat(deployment.getSpec().getReplicas()).isEqualTo(1);
+        assertThat(deployment.getSpec().getStrategy().getType()).isEqualTo("Recreate");
+        assertThat(registry.getSpec().getApp().getReplicas()).isEqualTo(3);
+
+        final var validationManager = StatusManager.get(registry)
+                .getConditionManager(ValidationErrorConditionManager.class);
+        assertThat(validationManager.getErrors())
+                .containsExactly(GitOps.ERROR_PUSH_MODE_MULTI_REPLICA);
+    }
+
+    @Test
+    void testPushModeAutoscalingEnforcesSingleReplica() {
+        final var registry = deserialize("k8s/examples/gitops/example-push-autoscaling.yaml");
+        lastRegistry = registry;
+        final var envVars = new LinkedHashMap<String, EnvVar>();
+        final var deployment = createDeployment();
+
+        GitOps.configureGitOps(registry, deployment, envVars);
+
+        assertThat(deployment.getSpec().getReplicas()).isEqualTo(1);
+        assertThat(deployment.getSpec().getStrategy().getType()).isEqualTo("Recreate");
+        assertThat(GitOps.isPushMode(registry)).isTrue();
+
+        final var validationManager = StatusManager.get(registry)
+                .getConditionManager(ValidationErrorConditionManager.class);
+        assertThat(validationManager.getErrors())
+                .containsExactly(GitOps.ERROR_PUSH_MODE_AUTOSCALING);
+    }
+
+    @Test
+    void testPushModeReplicasAndAutoscalingRecordsBothErrors() {
+        final var registry = deserialize(
+                "k8s/examples/gitops/example-push-replicas-and-autoscaling.yaml");
+        lastRegistry = registry;
+        final var envVars = new LinkedHashMap<String, EnvVar>();
+        final var deployment = createDeployment();
+        deployment.getSpec().setReplicas(3);
+
+        GitOps.configureGitOps(registry, deployment, envVars);
+
+        assertThat(deployment.getSpec().getReplicas()).isEqualTo(1);
+
+        final var validationManager = StatusManager.get(registry)
+                .getConditionManager(ValidationErrorConditionManager.class);
+        assertThat(validationManager.getErrors())
+                .containsExactlyInAnyOrder(
+                        GitOps.ERROR_PUSH_MODE_MULTI_REPLICA,
+                        GitOps.ERROR_PUSH_MODE_AUTOSCALING);
+    }
+
+    @Test
+    void testPushModeSingleReplicaNoErrorsRecreateStrategy() {
+        final var registry = deserialize("k8s/examples/gitops/example-push.yaml");
+        lastRegistry = registry;
+        final var envVars = new LinkedHashMap<String, EnvVar>();
+        final var deployment = createDeployment();
+        deployment.getSpec().setReplicas(1);
+
+        GitOps.configureGitOps(registry, deployment, envVars);
+
+        assertThat(deployment.getSpec().getReplicas()).isEqualTo(1);
+        assertThat(deployment.getSpec().getStrategy().getType()).isEqualTo("Recreate");
+
+        final var validationManager = StatusManager.get(registry)
+                .getConditionManager(ValidationErrorConditionManager.class);
+        assertThat(validationManager.hasErrors()).isFalse();
+    }
+
+    @Test
+    void testPullModePreservesReplicasAndStrategy() {
+        final var registry = deserialize("k8s/examples/gitops/example-pull-https.yaml");
+        lastRegistry = registry;
+        registry.getSpec().getApp().setReplicas(3);
+        final var envVars = new LinkedHashMap<String, EnvVar>();
+        final var deployment = createDeployment();
+        deployment.getSpec().setReplicas(3);
+
+        GitOps.configureGitOps(registry, deployment, envVars);
+
+        assertThat(deployment.getSpec().getReplicas()).isEqualTo(3);
+        assertThat(deployment.getSpec().getStrategy()).isNull();
+
+        final var validationManager = StatusManager.get(registry)
+                .getConditionManager(ValidationErrorConditionManager.class);
+        assertThat(validationManager.hasErrors()).isFalse();
+    }
+
+    @Test
+    void testPushModeAutoscalingMinMaxOneStillRecordsError() {
+        final var registry = deserialize("k8s/examples/gitops/example-push-autoscaling.yaml");
+        lastRegistry = registry;
+        registry.getSpec().getApp().getAutoscaling().setMinReplicas(1);
+        registry.getSpec().getApp().getAutoscaling().setMaxReplicas(1);
+        final var envVars = new LinkedHashMap<String, EnvVar>();
+        final var deployment = createDeployment();
+        deployment.getSpec().setReplicas(1);
+
+        GitOps.configureGitOps(registry, deployment, envVars);
+
+        assertThat(deployment.getSpec().getReplicas()).isEqualTo(1);
+
+        final var validationManager = StatusManager.get(registry)
+                .getConditionManager(ValidationErrorConditionManager.class);
+        assertThat(validationManager.getErrors())
+                .containsExactly(GitOps.ERROR_PUSH_MODE_AUTOSCALING);
+    }
+
+    @Test
+    void testSwitchFromPushToPullModeRestoresReplicasAndHpa() {
+        final var registry = deserialize("k8s/examples/gitops/example-push-autoscaling.yaml");
+        lastRegistry = registry;
+
+        // First reconcile: push mode with autoscaling — enforcement kicks in, HPA should be blocked
+        final var pushDeployment = createDeployment();
+        GitOps.configureGitOps(registry, pushDeployment, new LinkedHashMap<>());
+
+        assertThat(pushDeployment.getSpec().getReplicas()).isEqualTo(1);
+        assertThat(pushDeployment.getSpec().getStrategy().getType()).isEqualTo("Recreate");
+        assertThat(GitOps.isPushMode(registry)).isTrue();
+        final var validationManager = StatusManager.get(registry)
+                .getConditionManager(ValidationErrorConditionManager.class);
+        assertThat(validationManager.hasErrors()).isTrue();
+
+        // Switch to pull mode
+        StatusManager.clean(registry);
+        registry.getSpec().getApp().getStorage().getGitops().setMode(GitOpsMode.PULL);
+
+        // Second reconcile: pull mode — HPA should be active, strategy unchanged by configureGitOps
+        final var pullDeployment = createDeployment();
+        pullDeployment.getSpec().setReplicas(1);
+        GitOps.configureGitOps(registry, pullDeployment, new LinkedHashMap<>());
+
+        assertThat(GitOps.isPushMode(registry)).isFalse();
+        assertThat(pullDeployment.getSpec().getReplicas()).isEqualTo(1);
+        final var pullValidationManager = StatusManager.get(registry)
+                .getConditionManager(ValidationErrorConditionManager.class);
+        assertThat(pullValidationManager.hasErrors()).isFalse();
     }
 
     @Test

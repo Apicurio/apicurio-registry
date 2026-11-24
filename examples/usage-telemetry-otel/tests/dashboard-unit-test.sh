@@ -53,7 +53,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 #   procmix-null / procmix-missing / procmix-empty / procmix-number (every instant or Grafana answer has a valid process p1 and a
 #   second element whose service_instance_id is null, absent, empty or a number) and refbad-null / refbad-missing (the same, but
 #   only for the instant query of the heartbeat reference, so the process table itself is valid)
-# $DASH_MODE (ok, unprovisioned, missing, error, garbage) answers /api/dashboards/uid/<uid>, serving $DASHBOARD_FILE when ok.
+# $DASH_MODE (ok, diffs, unprovisioned, missing, error, garbage) answers /api/dashboards/uid/<uid>, serving $DASHBOARD_FILE when ok.
 # GET /apis/registry/v3/ids/globalIds/<id> answers 200, or 500 for the $FETCH_FAIL_ON-th such request; the client and operation
 # headers are logged. Every request is appended to the log; a Grafana query body is appended on the line after its request line.
 mode = sys.argv[3]
@@ -110,8 +110,9 @@ class H(BaseHTTPRequestHandler):
             if dm == "missing": return self._send(404, {"message": "Dashboard not found"})
             if dm == "error": return self._send(500, {"message": "internal error"})
             if dm == "garbage": return self._send(200, {"unexpected": True})
-            dash = json.load(open(os.environ["DASHBOARD_FILE"])) if dm == "ok" else {"uid": uid}
-            return self._send(200, {"meta": {"provisioned": dm == "ok"}, "dashboard": dash})
+            dash = json.load(open(os.environ["DASHBOARD_FILE"])) if dm in ("ok", "diffs") else {"uid": uid}
+            if dm == "diffs": dash["title"] = dash.get("title", "") + " CHANGED IN GRAFANA"
+            return self._send(200, {"meta": {"provisioned": dm in ("ok", "diffs")}, "dashboard": dash})
         graf = url.path == "/api/ds/query"
         rng = url.path == "/api/v1/query_range" or (graf and body["queries"][0].get("range") is True)
         expr = body["queries"][0]["expr"] if graf else q.get("query", [""])[0]
@@ -836,6 +837,33 @@ for dm in ok unprovisioned missing error garbage; do
   check "$dm dashboard with --external: endpoints only, the run passes" 0 "$rc"
   stop_server
 done
+
+# The comparison with the canonical file: a difference, a jq failure and a diff error are three different results. A jq or diff that
+# fails must never read as an empty difference (equal).
+part "the provisioned copy is compared by status, not by output"
+REAL_JQ=$(command -v jq)
+mkdir -p "$TMP/shim-jq" "$TMP/shim-diff"
+# shellcheck disable=SC2016  # the $a of the shim is literal on purpose
+printf '#!/bin/sh\nfor a in "$@"; do [ "$a" = -S ] && exit 5; done\nexec "%s" "$@"\n' "$REAL_JQ" > "$TMP/shim-jq/jq"
+printf '#!/bin/sh\nexit 2\n' > "$TMP/shim-diff/diff"
+chmod +x "$TMP/shim-jq/jq" "$TMP/shim-diff/diff"
+prov_run() { # prov_run <dash mode> <extra PATH dir or empty>
+  DASH_MODE=$1 DASHBOARD_FILE=$DASHBOARD_FILE start_server "cmp-$1" data
+  rc=0
+  CONTAINER_RUNTIME=$NORUNTIME PATH="${2:+$2:}$PATH" GRAFANA_URL=http://127.0.0.1:$SERVER_PORT ./tests/dashboard-test.sh --only provisioned > "$TMP/c.out" 2>&1 || rc=$?
+  stop_server
+}
+prov_run ok ""
+check "an identical copy: the comparison passes" yes "$(grep -q "ok    Grafana's copy equals the canonical file" "$TMP/c.out" && echo yes || echo no)"
+prov_run diffs ""
+check "a copy that differs: the check fails as a difference (not as an error)" "yes no" \
+  "$(grep -q "FAIL  Grafana's copy differs from the canonical file" "$TMP/c.out" && echo yes || echo no) $(grep -q 'could not be compared' "$TMP/c.out" && echo yes || echo no)"
+prov_run ok "$TMP/shim-jq"
+check "a jq that fails: UNKNOWN, not equal and not a difference" "no no yes" \
+  "$(grep -q "ok    Grafana's copy equals" "$TMP/c.out" && echo yes || echo no) $(grep -q "copy differs" "$TMP/c.out" && echo yes || echo no) $(grep -q 'could not be compared' "$TMP/c.out" && echo yes || echo no)"
+prov_run ok "$TMP/shim-diff"
+check "a diff that fails (status 2): UNKNOWN, not equal" "no yes" \
+  "$(grep -q "ok    Grafana's copy equals" "$TMP/c.out" && echo yes || echo no) $(grep -q 'could not be compared' "$TMP/c.out" && echo yes || echo no)"
 
 part "the dashboard identity comes from the file"
 check "the canonical file's UID" apicurio-schema-usage "$(dashboard_uid)"

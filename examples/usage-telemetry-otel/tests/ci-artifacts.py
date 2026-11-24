@@ -5,16 +5,16 @@ Only files this invocation produced and that an explicit allowlist names are cop
 verified first (freshness, size, file type, a safe trace's shape, secret patterns). A file that is not on the allowlist is
 excluded and counted; a file that is on it but fails verification, a symbolic link, a directory outside its root or a stale
 file is a violation: it is not published and the exit status is 1. Nothing is read from anywhere the caller did not name,
-and the browser tools' own report trees are never copied wholesale.
+and the Playwright HTML report and its data tree are never published at all: they embed their data in encoded form (base64 or zip)
+that the checks below cannot read, so they stay on the runner. The failure screenshots and the vetted traces of the run directory carry
+what a person needs.
 
-Usage: ci-artifacts.py --out DIR --start EPOCH --ui-dir DIR [--run-dir DIR ...] [--report-dir DIR ...]
+Usage: ci-artifacts.py --out DIR --start EPOCH --ui-dir DIR [--run-dir DIR ...]
                        [--logs DIR] [--components DIR] [--summary FILE] [--private-report FILE]
   --out         new or empty directory that receives the published files and MANIFEST.json
   --start       epoch seconds at which the suite started; nothing older than that is accepted
-  --ui-dir      the example's browser tests directory: run directories must be below its test-results, report
-                directories below its playwright-report
+  --ui-dir      the example's browser tests directory: run directories must be below its test-results
   --run-dir     one run directory this invocation printed (results.json, screenshots/, pw/*/test-failed-N.png, trace.zip)
-  --report-dir  one report directory this invocation printed (index.html and data/<sha1>.png|md|txt|zip)
   --logs        directory of the phase logs (<phase>.log), --components the container logs (<project>/<container>.log)
   --summary     the suite's own summary file; it is published with the collector's own row for this collection
   --private-report  a new file outside --out that receives the names and reasons of what was excluded or rejected; the published
@@ -22,6 +22,7 @@ Usage: ci-artifacts.py --out DIR --start EPOCH --ui-dir DIR [--run-dir DIR ...] 
 Exit status: 0 when there is no violation, 1 on a violation, 2 on a usage error. Python 3.8 or later, standard library only.
 """
 import argparse
+import base64
 import hashlib
 import io
 import json
@@ -33,6 +34,7 @@ import tempfile
 import zipfile
 from calendar import timegm
 from time import strptime
+from urllib.parse import quote
 
 MAX_FILE = 8 * 1024 * 1024
 MAX_TEXT = 1024 * 1024
@@ -53,6 +55,28 @@ SECRET_PATTERNS = [
     ("a private key", re.compile(rb"-----BEGIN [A-Z ]*PRIVATE KEY-----")),
     ("a GitHub or AWS credential", re.compile(rb"\b(gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,}|AKIA[0-9A-Z]{16})\b")),
 ]
+# The credentials this run is configured with: every variable named here (and in CI_REDACT_ENV, separated by spaces) that is present in the
+# environment with a non-empty value is a secret, whatever its length and whatever it says. A short value, or one that equals a word such
+# as "admin", is searched for like any other, so it withholds every file that holds it: the cost of a weak credential is a smaller upload,
+# never a leak. Only a variable that is absent or empty is not scanned; the demo's documented default password is public because nothing
+# puts it in the environment (it is the script's own fallback), not because of its value. The value, its percent-encoded and base64 forms
+# and the base64 of admin:value are searched for.
+DEFAULT_REDACT_ENV = ("GRAFANA_ADMIN_PASSWORD", "GF_SECURITY_ADMIN_PASSWORD")
+
+
+def configured_secrets(environ):
+    names = list(DEFAULT_REDACT_ENV) + environ.get("CI_REDACT_ENV", "").split()
+    found = []
+    for name in names:
+        value = environ.get(name, "")
+        if value == "":
+            continue
+        raw = value.encode("utf-8")
+        forms = {raw, quote(value, safe="").encode(), base64.b64encode(raw), base64.b64encode(b"admin:" + raw)}
+        found.extend(sorted(forms))
+    return found
+
+
 PNG = b"\x89PNG\r\n\x1a\n"
 JPEG = b"\xff\xd8\xff"
 
@@ -62,12 +86,6 @@ RUN_FILES = [
     (re.compile(r"^pw/" + SLOT + r"/test-failed-[0-9]{1,3}\.png$"), "png"),
     (re.compile(r"^pw/" + SLOT + r"/trace\.zip$"), "trace"),
     (re.compile(r"^pw/" + SLOT + r"/error-context\.md$"), "text"),
-]
-REPORT_FILES = [
-    (re.compile(r"^index\.html$"), "html"),
-    (re.compile(r"^data/[0-9a-f]{40}\.png$"), "png"),
-    (re.compile(r"^data/[0-9a-f]{40}\.(md|txt)$"), "text"),
-    (re.compile(r"^data/[0-9a-f]{40}\.zip$"), "trace"),
 ]
 TRACE_ENTRIES = [
     re.compile(r"^trace\.(trace|stacks)$"),
@@ -86,6 +104,7 @@ class Collector:
         self.published = []
         self.excluded = []
         self.violations = []
+        self.literals = configured_secrets(os.environ)
 
     # --- recording -------------------------------------------------------------------------------------------------
     def violation(self, what, why):
@@ -106,7 +125,10 @@ class Collector:
 
     # --- checks ----------------------------------------------------------------------------------------------------
     def secrets_in(self, data):
-        return [name for name, pattern in SECRET_PATTERNS if pattern.search(data)]
+        found = [name for name, pattern in SECRET_PATTERNS if pattern.search(data)]
+        if any(literal in data for literal in self.literals):
+            found.append("a configured credential")
+        return found
 
     def read_regular(self, path, label, limit, tail=False):
         """The bytes of a regular, fresh file read through one descriptor, or None after recording why not.
@@ -303,7 +325,6 @@ def main():
     parser.add_argument("--start", required=True, type=float)
     parser.add_argument("--ui-dir", required=True)
     parser.add_argument("--run-dir", action="append", default=[])
-    parser.add_argument("--report-dir", action="append", default=[])
     parser.add_argument("--logs")
     parser.add_argument("--components")
     parser.add_argument("--summary")
@@ -329,15 +350,10 @@ def main():
     collector = Collector(staging, args.start)
 
     results_root = os.path.join(args.ui_dir, "test-results")
-    report_root = os.path.join(args.ui_dir, "playwright-report")
     for path in dict.fromkeys(args.run_dir):
         base = collector.clean_dir(path, results_root, "run " + os.path.basename(path))
         if base is not None:
             collector.collect_tree(base, RUN_FILES, os.path.join("ui", os.path.basename(base)), "run " + os.path.basename(base))
-    for path in dict.fromkeys(args.report_dir):
-        base = collector.clean_dir(path, report_root, "report " + os.path.basename(path))
-        if base is not None:
-            collector.collect_tree(base, REPORT_FILES, os.path.join("report", os.path.basename(base)), "report " + os.path.basename(base))
     collector.collect_logs(args.logs, re.compile(r"^[a-z0-9][a-z0-9-]{0,60}\.log$"), "logs", "logs")
     collector.collect_logs(args.components, re.compile(r"^[a-z0-9][a-z0-9._-]{0,100}/[A-Za-z0-9][A-Za-z0-9._-]{0,100}\.log$"), "components", "components")
     if args.summary is not None and os.path.lexists(args.summary):

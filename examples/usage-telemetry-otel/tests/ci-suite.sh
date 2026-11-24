@@ -49,6 +49,36 @@ PRIVATE_REPORT=""
 CLEANUP_SECONDS=${CI_CLEANUP_SECONDS:-5}
 COLLECT_SECONDS=${CI_COLLECT_SECONDS:-300}
 
+# --- the status table ---------------------------------------------------------------------------------------------------------------
+
+# Every phase the suite must have run, each once and each passed. The suite passes only when the table says so: a row that is missing,
+# a row that is there twice, a row nobody expects and a row that could not be written all fail it (a table that is silently short
+# would otherwise read as "nothing failed").
+REQUIRED_PHASES="unit dashboard-unit dashboard-promql suite-selftest browser-setup ui-tooling ui-selftest ui-runner ui-clone ui-real-tooling dashboard-test ui-seeded ui-screenshots lifecycle scenarios ui-scenario scenarios-teardown artifacts"
+ROWS_FAILED=false
+
+# record_row <name> <status> <seconds>
+record_row() {
+  printf '%s\t%s\t%s\n' "$1" "$2" "$3" >> "$SUMMARY" || ROWS_FAILED=true
+}
+
+# table_problems: what is wrong with the table, empty when nothing is
+table_problems() {
+  $ROWS_FAILED && printf 'a status row could not be written '
+  awk -F'\t' -v required="$REQUIRED_PHASES" '
+    BEGIN { n = split(required, names, " "); for (i = 1; i <= n; i++) want[names[i]] = 1 }
+    { seen[$1]++; status[$1] = $2; if (!($1 in want)) extra = extra " " $1 }
+    END {
+      for (i = 1; i <= n; i++) {
+        k = names[i]
+        if (seen[k] == 0) printf "%s=missing ", k
+        else if (seen[k] > 1) printf "%s=duplicate ", k
+        else if (status[k] != "pass") printf "%s=%s ", k, status[k]
+      }
+      if (extra != "") printf "unexpected rows:%s ", extra
+    }' "$SUMMARY" || printf 'the status table could not be read '
+}
+
 # --- phases -----------------------------------------------------------------------------------------------------------------------
 
 # run_phase <name> <seconds> <command...>: runs one phase, keeps its whole output in work/logs/<name>.log, records its status and
@@ -65,13 +95,13 @@ run_phase() {
     124) status="timeout" ;;
     *) status="fail($rc)" ;;
   esac
-  printf '%s\t%s\t%s\n' "$name" "$status" "$((SECONDS - began))" >> "$SUMMARY"
+  record_row "$name" "$status" "$((SECONDS - began))"
   printf '==> %s: %s after %ss\n' "$name" "$status" "$((SECONDS - began))"
   return 0
 }
 
 skip_phase() { # skip_phase <name> <reason>
-  printf '%s\tskipped(%s)\t0\n' "$1" "$2" >> "$SUMMARY"
+  record_row "$1" "skipped($2)" 0
   printf '==> %s: skipped, %s\n' "$1" "$2"
 }
 
@@ -126,27 +156,12 @@ $names
 EOT
 }
 
-# The kept project removed by its compose label, for the case where the runner died before it printed where its state is (the
-# teardown script needs that directory): containers, networks and volumes of the project and nothing else
-remove_scenario_project_by_label() {
-  local kind filter="label=com.docker.compose.project=$SCN_PROJECT"
-  choose_runtime
-  if rtq ps -aq --filter "$filter" 2> /dev/null && [ -n "$BCAP_OUT" ]; then
-    # shellcheck disable=SC2086  # whitespace separated container ids
-    rt rm -f -v $BCAP_OUT > /dev/null 2>&1 || true
-  fi
-  for kind in network volume; do
-    if rtq "$kind" ls -q --filter "$filter" 2> /dev/null && [ -n "$BCAP_OUT" ]; then
-      # shellcheck disable=SC2086
-      rt "$kind" rm -f $BCAP_OUT > /dev/null 2>&1 || true
-    fi
-  done
-}
-
 teardown_scenario_stack() {
   if [ -z "$SCN_LOCAL" ]; then
-    printf '%s\tfail(the kept stack was not located)\t0\n' scenarios-teardown >> "$SUMMARY"
-    printf '==> scenarios-teardown: fail, the kept project %s could not be located; it is removed by label when the suite ends\n' "$SCN_PROJECT"
+    # Nothing is removed by guessing: a project that the runner did not say it kept (it may have refused the name because something
+    # else already uses it) is not this suite's to delete, so it is not selected by label or by name. It is named here for a person.
+    record_row scenarios-teardown "fail(the kept stack was not located)" 0
+    printf '==> scenarios-teardown: fail, the project %s was not reported as kept by the scenario runner, so nothing was removed\n' "$SCN_PROJECT"
     return 0
   fi
   save_container_logs "$SCN_PROJECT"
@@ -169,7 +184,7 @@ keep_script_logs() { # keep_script_logs <phase>
 
 # --- artifacts ---------------------------------------------------------------------------------------------------------------------
 
-# the run and report directories the phases printed ("run directory: <path>"): only these are looked at
+# the run directories the phases printed ("run directory: <path>"): only these are looked at. The Playwright report is never collected
 printed_directories() { # printed_directories <label>
   sed -n "s#^$1 directory: \\(/[^ ]*\\)\$#\\1#p" "$LOG_DIR"/*.log 2> /dev/null | sort -u
 }
@@ -182,11 +197,6 @@ collect_artifacts() {
     [ -z "$line" ] || set -- "$@" --run-dir "$line"
   done <<EOF
 $(printed_directories run)
-EOF
-  while IFS= read -r line; do
-    [ -z "$line" ] || set -- "$@" --report-dir "$line"
-  done <<EOF
-$(printed_directories report)
 EOF
   run_bounded "$limit" python3 -I "$EXAMPLE_DIR/tests/ci-artifacts.py" --private-report "$PRIVATE_REPORT" "$@" || rc=$?
   return "$rc"
@@ -212,7 +222,7 @@ finish_hook() {
   FINISHED=true
   drop_incomplete_publish
   if [ ! -f "${PUBLISH:-/nonexistent}/MANIFEST.json" ]; then
-    printf 'suite\tinterrupted\t0\n' >> "$SUMMARY"
+    record_row suite interrupted 0
     if $SCN_PENDING; then [ -n "$SCN_LOCAL" ] || locate_scenario_stack || true; fi
     collect_artifacts "$CLEANUP_SECONDS" > /dev/null 2>&1 || true
     drop_incomplete_publish
@@ -220,14 +230,12 @@ finish_hook() {
   if $SCN_PENDING; then
     if [ -n "$SCN_LOCAL" ]; then
       run_bounded "$CLEANUP_SECONDS" env "COMPOSE_PROJECT_NAME=$SCN_PROJECT" "LOCAL_DIR=$SCN_LOCAL" ./teardown.sh --purge > "$LOG_DIR/scenarios-teardown-on-exit.log" 2>&1 || true
-    else
-      remove_scenario_project_by_label
     fi
   fi
 }
 
 main() {
-  local artifact_dir=${CI_ARTIFACT_DIR:-} rc=0 failed
+  local artifact_dir=${CI_ARTIFACT_DIR:-} rc=0 failed problems
   [ -n "${REGISTRY_IMAGE:-}" ] || die "REGISTRY_IMAGE must name the image built from this checkout: the suite never runs a published image"
   need_commands curl jq od python3 node npm sed awk
   if [ -z "$artifact_dir" ]; then
@@ -288,13 +296,14 @@ main() {
   summarize
   collect_artifacts "$COLLECT_SECONDS" || rc=$?
   drop_incomplete_publish
-  if [ "$rc" -eq 0 ]; then printf 'artifacts\tpass\t0\n' >> "$SUMMARY"; else printf 'artifacts\tfail(%s)\t0\n' "$rc" >> "$SUMMARY"; fi
+  if [ "$rc" -eq 0 ]; then record_row artifacts pass 0; else record_row artifacts "fail($rc)" 0; fi
   summarize
-  if awk -F'\t' '$2 != "pass" { bad = 1 } END { exit bad }' "$SUMMARY"; then
+  problems=$(table_problems)
+  if [ -z "$problems" ]; then
     printf 'All phases passed.\n'
     return 0
   fi
-  printf 'The suite FAILED: %s\n' "$(awk -F'\t' '$2 != "pass" { printf "%s=%s ", $1, $2 }' "$SUMMARY")"
+  printf 'The suite FAILED: %s\n' "$problems"
   return 1
 }
 

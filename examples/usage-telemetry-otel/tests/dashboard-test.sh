@@ -205,6 +205,24 @@ check_mount() {
   fi
 }
 
+# compare_provisioned <dashboard API response>: sets CMP_STATE to equal, different or unknown. Both jq runs and diff are checked by
+# their own status: a jq failure or a diff error (status above 1) is unknown, never an empty difference that reads as equal.
+compare_provisioned() {
+  local mine theirs rc=0
+  CMP_STATE=unknown
+  CMP_DIFF=""
+  mine=$(mktemp "${TMPDIR:-/tmp}/dashboard-cmp.XXXXXX") || return 0
+  theirs=$(mktemp "${TMPDIR:-/tmp}/dashboard-cmp.XXXXXX") || { rm -f "$mine"; return 0; }
+  if jq -S 'del(.id, .version)' "$DASHBOARD_FILE" > "$mine" 2> /dev/null && jq -S '.dashboard | del(.id, .version)' <<< "$1" > "$theirs" 2> /dev/null; then
+    CMP_DIFF=$(diff "$mine" "$theirs" 2> /dev/null) || rc=$?
+    case $rc in
+      0) CMP_STATE=equal ;;
+      1) CMP_STATE=different; CMP_DIFF=$(printf '%s\n' "$CMP_DIFF" | head -5 | tr '\n' ' ') ;;
+    esac
+  fi
+  rm -f "$mine" "$theirs"
+}
+
 if want provisioned; then
   part "The dashboard Grafana provisioned from the canonical file"
   if $external; then
@@ -213,8 +231,12 @@ if want provisioned; then
     if dashboard_state "$DASHBOARD_UID"; then
       ok "Grafana holds the dashboard $DASHBOARD_UID, provisioned from a file"
       if dash=$(http_get "$GRAFANA_URL/api/dashboards/uid/$DASHBOARD_UID" -u "$GRAFANA_ADMIN_USER:$GRAFANA_ADMIN_PASSWORD"); then
-        check "Grafana's copy equals the canonical file (apart from its own id and version)" "" \
-          "$(diff <(jq -S 'del(.id, .version)' "$DASHBOARD_FILE") <(jq -S '.dashboard | del(.id, .version)' <<< "$dash") || true)"
+        compare_provisioned "$dash"
+        case "$CMP_STATE" in
+          equal) ok "Grafana's copy equals the canonical file (apart from its own id and version)" ;;
+          different) fail "Grafana's copy differs from the canonical file (apart from its own id and version): ${CMP_DIFF}" ;;
+          *) fail "Grafana's copy and the canonical file could not be compared (a jq or diff error, not a difference): UNKNOWN" ;;
+        esac
       else
         fail "Grafana's copy of the dashboard could not be read: UNKNOWN"
       fi

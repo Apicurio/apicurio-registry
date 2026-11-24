@@ -225,13 +225,19 @@ image_line=unknown
 if service_container registry; then container=$Q_OUT; fi
 if [ -n "$container" ] && rtq inspect --format '{{.Config.Image}} {{.Image}}' "$container" 2> /dev/null; then image_line=$BCAP_OUT; fi
 
+# What the banner says about the Grafana password. A configured password is never printed (the banner ends up in terminals, job logs and
+# diagnostics); the demo's own default is public and is shown
+grafana_login_note() {
+  if [ "$GRAFANA_ADMIN_PASSWORD" = admin ]; then printf 'password admin, the demo default'; else printf 'password: the one set in GRAFANA_ADMIN_PASSWORD'; fi
+}
+
 cat << EOF
 
 The stack is running (Compose project $PROJECT). Registry image: $image_line
 
   Registry API   $API
   Prometheus     $PROMETHEUS_URL
-  Grafana        $GRAFANA_URL   (user $GRAFANA_ADMIN_USER, password $GRAFANA_ADMIN_PASSWORD; local demonstration only)
+  Grafana        $GRAFANA_URL   (user $GRAFANA_ADMIN_USER, $(grafana_login_note); local demonstration only)
   Collector      $COLLECTOR_HEALTH_URL/   (health only; its OTLP port is not published)
   Dashboard      $GRAFANA_URL/d/$DASHBOARD_UID   (pick the Registry process in its first filter)
 

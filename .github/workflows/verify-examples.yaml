@@ -224,8 +224,8 @@ jobs:
         run: ./"$CI_SUITE_SCRIPT"
 
       # Also on failure and cancellation: that is when the evidence is needed. Only publish/ leaves the runner: the suite's collector copies
-      # into it the files an allowlist names and verification accepts (screenshots, results, failure screenshots and safe traces, a checked
-      # report, phase and container logs, a summary), and never a raw run state, a stale file, a link or a file that fails its check. See
+      # into it the files an allowlist names and verification accepts (screenshots, results, failure screenshots and safe traces, phase and
+      # container logs, a summary), and never a raw run state, a stale file, a link or a file that fails its check. See
       # the example's GUIDE.md, "In CI".
       - name: Upload the example's CI artifacts
         if: always() && matrix.example.suite != ''

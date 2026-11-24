@@ -101,13 +101,11 @@ echo 'stack: ready' > "$COMPONENTS/project-one/registry-1.log"
 printf 'unit\tpass\t3\n' > "$TMP/summary.tsv"
 
 OUT=$TMP/out-good
-collect --out "$OUT" --start "$START" --ui-dir "$UI" --run-dir "$RUN" --report-dir "$REPORT" --logs "$LOGS" --components "$COMPONENTS" --summary "$TMP/summary.tsv" > "$TMP/good.out" 2>&1
+collect --out "$OUT" --start "$START" --ui-dir "$UI" --run-dir "$RUN" --logs "$LOGS" --components "$COMPONENTS" --summary "$TMP/summary.tsv" > "$TMP/good.out" 2>&1
 check "a clean invocation is published without a violation (status 0)" 0 "$?"
 check "  exactly the allowlisted files are published" \
   "components/project-one/registry-1.log
 logs/unit.log
-report/$STAMP-4242-tests/data/0123456789abcdef0123456789abcdef01234567.png
-report/$STAMP-4242-tests/index.html
 summary.tsv
 ui/$STAMP-4242-tests/pw/case-one-usage/error-context.md
 ui/$STAMP-4242-tests/pw/case-one-usage/test-failed-1.png
@@ -120,8 +118,10 @@ check "  the raw run input is excluded, with its reason in the private report" "
   "$(jq -r '.excluded[] | select(.path | endswith("input.sealed.json")) | .reason' "$OUT.private.json")"
 check "  so are an image and a hidden file that are not on the list" "not on the allowlist|not on the allowlist" \
   "$(jq -r '[.excluded[] | select(.path | endswith("extra.png") or endswith(".last-run.json")) | .reason] | join("|")' "$OUT.private.json")"
-check "  nothing but the manifest and those files is in the directory (file count)" "12" "$(find "$OUT" -type f | wc -l | tr -d ' ')"
-check "  the manifest records a digest and the size of every published file" "11 11" \
+check "  nothing but the manifest and those files is in the directory (file count)" "10" "$(find "$OUT" -type f | wc -l | tr -d ' ')"
+check "  the Playwright report and its data tree stay private even though the run printed them (nothing of them is published)" "0 0" \
+  "$(find "$OUT" -path '*report*' | wc -l | tr -d ' ') $(grep -rl '<html>report</html>' "$OUT" | wc -l | tr -d ' ')"
+check "  the manifest records a digest and the size of every published file" "9 9" \
   "$(jq -r '[.published[] | select(.sha256 | test("^[0-9a-f]{64}$"))] | length' "$OUT/MANIFEST.json") $(jq -r '[.published[] | select(.bytes > 0)] | length' "$OUT/MANIFEST.json")"
 
 # spoil <name> <description> <text the violation must contain> <function>: one fresh tree, spoiled in one way by the function, collected
@@ -138,7 +138,7 @@ spoil() { # spoil <name> <description> <expected text in the violations> <functi
   echo '<html></html>' > "$REPORT2/index.html"
   echo 'ok' > "$LOGS2/unit.log"
   "$4"
-  collect --out "$out" --start "$START" --ui-dir "$UI" --run-dir "$RUN2" --report-dir "$REPORT2" --logs "$LOGS2" > "$TMP/spoil-$name.out" 2> "$TMP/spoil-$name.err"
+  collect --out "$out" --start "$START" --ui-dir "$UI" --run-dir "$RUN2" --logs "$LOGS2" > "$TMP/spoil-$name.out" 2> "$TMP/spoil-$name.err"
   rc=$?
   check "$2: status 1" 1 "$rc"
   check "  the violation says why" yes "$(grep -q "$3" "$TMP/spoil-$name.err" && echo yes || echo no)"
@@ -159,8 +159,66 @@ spoil trace-notzip "a trace that is not an archive" "not a readable zip" trace_z
 log_secret() { printf 'GET /x\nAuthorization: Bearer abcdefghijklmnopqrstuvwxyz0123\n' > "$LOGS2/unit.log"; }
 spoil log-secret "a log with an Authorization header" "Authorization" log_secret
 check "  its log is not published" "0" "$(find "$TMP/out-log-secret" -name 'unit.log' | wc -l | tr -d ' ')"
+# A report that embeds a token is not a violation any more: it is never collected, so nothing of it can leave
 html_jwt() { echo '<script>eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.abcdefghij</script>' > "$REPORT2/index.html"; }
-spoil report-jwt "a report holding a web token" "web token" html_jwt
+SPOIL_N=$((SPOIL_N + 1))
+RUN2=$UI/test-results/$STAMP-$((5000 + SPOIL_N))-tests; REPORT2=$UI/playwright-report/$STAMP-$((5000 + SPOIL_N))-tests
+mkdir -p "$RUN2/screenshots" "$REPORT2/data"; echo '{}' > "$RUN2/results.json"; html_jwt
+collect --out "$TMP/out-report-jwt" --start "$START" --ui-dir "$UI" --run-dir "$RUN2" > /dev/null 2>&1
+check "a Playwright report that holds a web token is not collected: status 0 and nothing of it published" "0 0" \
+  "$? $(grep -rl eyJhbGciOiJIUzI1NiJ9 "$TMP/out-report-jwt" | wc -l | tr -d ' ')"
+
+# Configured Grafana credentials: an UNRELATED dummy password, in every form a tool might print it
+S_PW='Dum my:Unrel@ted/9x2Qv7'
+S_PW_B64=$(printf '%s' "$S_PW" | base64 | tr -d '\n')
+S_PW_BASIC=$(printf 'admin:%s' "$S_PW" | base64 | tr -d '\n')
+S_PW_URL=$(python3 -I -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "$S_PW")
+for form in "curl -u admin:$S_PW http://grafana" "the password is $S_PW" "Basic-looking blob $S_PW_B64" "blob $S_PW_BASIC" "login=admin&password=$S_PW_URL"; do
+  pw_log() { printf 'ok line\n%s\n' "$form" > "$LOGS2/unit.log"; }
+  GRAFANA_ADMIN_PASSWORD=$S_PW spoil "pw-$(printf '%s' "$form" | cksum | cut -d' ' -f1)" "a log that prints the configured Grafana password in one form" "configured credential" pw_log
+done
+check "  none of those logs, in no form, reached any output directory" "0" "$(grep -rl -e "$S_PW" -e "$S_PW_B64" -e "$S_PW_BASIC" -e "$S_PW_URL" "$TMP"/out-pw-* 2> /dev/null | wc -l | tr -d ' ')"
+# the same password in a trace's text and in an error context is withheld too
+pw_trace() { mktrace "$RUN2/pw/c-usage/trace.zip" safe; python3 -I - "$RUN2/pw/c-usage/trace.zip" "$S_PW" << 'PY'
+import sys, zipfile
+with zipfile.ZipFile(sys.argv[1], "a") as z:
+    z.writestr("aria/typed@1.json", '{"typed":"%s"}' % sys.argv[2])
+PY
+}
+GRAFANA_ADMIN_PASSWORD=$S_PW spoil pw-trace "a trace whose text holds the configured Grafana password" "configured credential" pw_trace
+pw_context() { printf 'the page said %s\n' "$S_PW" > "$RUN2/pw/c-usage/error-context.md"; }
+GRAFANA_ADMIN_PASSWORD=$S_PW spoil pw-context "an error context that holds the configured Grafana password" "configured credential" pw_context
+check "  neither the trace nor the context is published, and the password is in nothing published" "0 0" \
+  "$(find "$TMP/out-pw-trace" "$TMP/out-pw-context" \( -name trace.zip -o -name error-context.md \) | wc -l | tr -d ' ') $(grep -rl -e "$S_PW" "$TMP/out-pw-trace" "$TMP/out-pw-context" | wc -l | tr -d ' ')"
+# No exemption by value: a configured secret that is short, or that is the word admin, is searched for like any other (and withholds more);
+# only an absent or empty variable is not scanned, and the demo's default password is public because nothing puts it in the environment
+S_SHORT=x9Kq
+pw_case() { # pw_case <name> <log text> <env assignments...>: one collection of one log with those variables set (others unset)
+  local name=$1 text=$2 rc=0
+  shift 2
+  mkdir -p "$TMP/logs-$name"
+  printf '%s\n' "$text" > "$TMP/logs-$name/unit.log"
+  (unset GRAFANA_ADMIN_PASSWORD GF_SECURITY_ADMIN_PASSWORD CI_REDACT_ENV; for assignment in "$@"; do export "${assignment?}"; done
+    collect --out "$TMP/out-$name" --start "$START" --ui-dir "$UI" --logs "$TMP/logs-$name" > "$TMP/$name.out" 2>&1) || rc=$?
+  PW_RC=$rc
+  PW_PUBLISHED=$([ -f "$TMP/out-$name/logs/unit.log" ] && echo yes || echo no)
+}
+pw_case pw-implicit 'login as admin with the password admin'
+check "the demo's default password, not supplied through the environment: status 0, the log is published" "0 yes" "$PW_RC $PW_PUBLISHED"
+pw_case pw-empty 'login as admin with the password admin' GRAFANA_ADMIN_PASSWORD=
+check "  a variable that is present but empty is not scanned either" "0 yes" "$PW_RC $PW_PUBLISHED"
+pw_case pw-explicit-admin 'login as admin with the password admin' GRAFANA_ADMIN_PASSWORD=admin
+check "a configured Grafana password that equals admin is a configured secret: the log is withheld (status 1)" "1 no" "$PW_RC $PW_PUBLISHED"
+pw_case pw-short "curl -u admin:$S_SHORT http://grafana" GF_SECURITY_ADMIN_PASSWORD=$S_SHORT
+check "a short configured secret (4 bytes) is searched for: the log is withheld (status 1)" "1 no" "$PW_RC $PW_PUBLISHED"
+check "  the short value is in neither the collector's output nor the published files" "0" \
+  "$(grep -rl -e "$S_SHORT" "$TMP/pw-short.out" "$TMP/out-pw-short" 2> /dev/null | wc -l | tr -d ' ')"
+pw_case pw-redact-admin 'the token is admin here' CI_REDACT_ENV=MY_TOKEN MY_TOKEN=admin
+check "CI_REDACT_ENV naming a variable whose value is admin is not exempt: the log is withheld (status 1)" "1 no" "$PW_RC $PW_PUBLISHED"
+check "  the word is in neither the collector's output nor the published files" "0" \
+  "$(grep -rl -e admin "$TMP/pw-redact-admin.out" "$TMP/out-pw-redact-admin" 2> /dev/null | wc -l | tr -d ' ')"
+pw_case pw-redact-absent 'the token is admin here' CI_REDACT_ENV=NOT_SET_ANYWHERE
+check "CI_REDACT_ENV naming a variable that is absent scans nothing for it (status 0, published)" "0 yes" "$PW_RC $PW_PUBLISHED"
 png_bad() { echo 'not a png' > "$RUN2/screenshots/overview.png"; }
 spoil png-bad "a screenshot that is not a PNG" "not a PNG" png_bad
 json_bad() { echo '{not json' > "$RUN2/results.json"; }
@@ -321,6 +379,33 @@ check "  the status of each is kept: the exit code, a timeout, a skip" "passing$
   "$(sed -n 6,9p "$TMP/fn.out" | tr '\n' ' ' | sed 's/ $//')"
 check "  the whole output of a phase is kept in its log" "log=went wrong" "$(sed -n 10p "$TMP/fn.out")"
 
+# The status table gate: the suite passes only when every required phase has exactly one row and it passed
+cat > "$TMP/table-test.sh" << SCRIPT
+CI_SUITE_SOURCE_ONLY=1 . "$EXAMPLE/tests/ci-suite.sh"
+full() { for p in \$REQUIRED_PHASES; do printf '%s\\tpass\\t1\\n' "\$p"; done; }
+SUMMARY=$TMP/table.tsv
+show() { printf '%s=[%s]\\n' "\$1" "\$(table_problems | sed 's/ *\$//')"; }
+{
+  full > "\$SUMMARY"; show complete
+  full | grep -v '^lifecycle' > "\$SUMMARY"; show missing
+  { full; printf 'unit\\tpass\\t1\\n'; } > "\$SUMMARY"; show duplicate
+  { full; printf 'mystery\\tpass\\t1\\n'; } > "\$SUMMARY"; show unexpected
+  full | sed 's/^ui-seeded.pass/ui-seeded\\tfail(1)/' > "\$SUMMARY"; show failed
+  full | sed 's/^dashboard-test\\tpass/dashboard-test\\tskipped(x)/' > "\$SUMMARY"; show skipped
+  : > "\$SUMMARY"; show empty
+  full > "\$SUMMARY"; mkdir -p "$TMP/table-dir"; SUMMARY=$TMP/table-dir; record_row extra pass 1 2> /dev/null; SUMMARY=$TMP/table.tsv; show unwritable
+  ROWS_FAILED=false; SUMMARY=$TMP/does-not-exist.tsv; show unreadable
+} > "$TMP/table.out"
+SCRIPT
+bash "$TMP/table-test.sh" > /dev/null 2>&1
+check "the table gate: a complete table has no problem" "complete=[]" "$(sed -n 1p "$TMP/table.out")"
+check "  a missing row, a duplicate row and a row nobody expects are each a problem" "missing=[lifecycle=missing] duplicate=[unit=duplicate] unexpected=[unexpected rows: mystery]" \
+  "$(sed -n 2,4p "$TMP/table.out" | tr '\n' ' ' | sed 's/ $//')"
+check "  a failed phase, a skipped phase and an empty table are problems" "failed=[ui-seeded=fail(1)] skipped=[dashboard-test=skipped(x)]" "$(sed -n 5,6p "$TMP/table.out" | tr '\n' ' ' | sed 's/ $//')"
+check "  an empty table lists every phase as missing (it never reads as nothing failed)" "yes" "$(sed -n 7p "$TMP/table.out" | grep -q 'unit=missing.*artifacts=missing' && echo yes || echo no)"
+check "  a row that could not be written is a problem, with exactly its own message" "unwritable=[a status row could not be written]" "$(sed -n 8p "$TMP/table.out")"
+check "  a table that could not be read is a problem, with its own message (gawk also lists every phase as missing, awk does not)" "yes" "$(sed -n 9p "$TMP/table.out" | grep -q 'the status table could not be read' && echo yes || echo no)"
+
 KEEP='--keep: nothing was cleaned up. Project ci-scn-abc123 now has 4 container(s) and 2 volume(s). The kept stack was started by the dashboard-scenarios case. Stop it with: COMPOSE_PROJECT_NAME=ci-scn-abc123 LOCAL_DIR=/tmp/usage-telemetry-otel-test.Xy12/local ./teardown.sh --purge'
 printf '%s\nLogs of every script call: /tmp/usage-telemetry-otel-test.Xy12/logs\n' "$KEEP" > "$TMP/keep.log"
 printf '%s\n%s\n' "$KEEP" "$KEEP" > "$TMP/keep-twice.log"
@@ -422,6 +507,11 @@ if [ "$label" != test-ui-setup ]; then
   mkdir -p "$run"
   echo '{"stats":{}}' > "$run/results.json"
   printf 'run directory: %s\n' "$run"
+  report="$PWD/tests/ui/playwright-report/$(date -u +%Y%m%dT%H%M%SZ)-$$-tests"
+  mkdir -p "$report/data"
+  echo '<html>SENTINEL-REPORT-3d8c</html>' > "$report/index.html"
+  printf '\211PNG\r\n\032\n....' > "$report/data/0123456789abcdef0123456789abcdef01234567.png"
+  printf 'report directory: %s\n' "$report"
   [ -z "${STUB_EXTRA:-}" ] || : > "$run/$STUB_EXTRA"
 fi
 SCRIPT
@@ -504,9 +594,12 @@ check "a failed scenario run fails the suite, skips the browser run on it and st
   "$SUITE_RC $(skipped noscn ui-scenario) $(calls noscn teardown) $(phase_status noscn scenarios-teardown)"
 
 run_suite early STUB_FAIL=scenarios-early
-check "a scenario run that dies before it says where its state is: the project is still removed by label, and the suite fails" "1 yes 0 fail(the kept stack was not located)" \
-  "$SUITE_RC $(grep -q '^stubrt rm -f -v c1 c2$' "$TMP/stub-early/calls.log" && grep -q '^stubrt network rm -f n1$' "$TMP/stub-early/calls.log" && grep -q '^stubrt volume rm -f v1$' "$TMP/stub-early/calls.log" && echo yes || echo no) $(calls early teardown) $(phase_status early scenarios-teardown)"
-check "  only this run's project is selected by label" "yes" "$(grep '^stubrt ps' "$TMP/stub-early/calls.log" | grep -q 'label=com.docker.compose.project=ci-scn-' && echo yes || echo no)"
+# Refused project, negative control: the runner refused the project (something already uses the name, which the stand-in runtime reports
+# as containers of that project) and never said it kept anything. The suite must not delete what it did not claim.
+check "a scenario runner that refused the project: the suite fails, and nothing was deleted by label or by name" "1 0 0 fail(the kept stack was not located)" \
+  "$SUITE_RC $(grep -c '^stubrt \(rm\|network rm\|volume rm\) ' "$TMP/stub-early/calls.log") $(calls early teardown) $(phase_status early scenarios-teardown)"
+check "  it says so and names the project for a person" "yes" "$(grep -q '^==> scenarios-teardown: fail, the project ci-scn-[0-9a-f]* was not reported as kept by the scenario runner, so nothing was removed' "$TMP/early.out" && echo yes || echo no)"
+check "  the runtime was only asked to list (for the container logs), never to remove" "0" "$(grep '^stubrt' "$TMP/stub-early/calls.log" | grep -c ' rm ')"
 
 run_suite npmfail STUB_FAIL=npm-typecheck
 check "a failing static check of the browser tooling fails the suite" "1 fail(1)" "$SUITE_RC $(phase_status npmfail ui-tooling)"
@@ -549,8 +642,30 @@ check "  the published summary and the suite agree that the artifacts phase fail
   "$(grep -q '^artifacts	fail' "$TMP/stub-sentinel/artifacts/publish/summary.tsv" && echo yes || echo no) $(phase_status sentinel artifacts | grep -q '^fail' && echo yes || echo no)"
 check "  and in the green run the published summary has exactly one artifacts row that passed" "1 pass" \
   "$(grep -c '^artifacts	' "$TMP/stub-green/artifacts/publish/summary.tsv") $(awk -F'\t' '$1 == "artifacts" { print $2 }' "$TMP/stub-green/artifacts/publish/summary.tsv")"
+check "  the Playwright report the browser runs printed is not collected: no report path, and its content is nowhere in the upload" "0 0" \
+  "$(find "$TMP/stub-green/artifacts/publish" -path '*report*' | wc -l | tr -d ' ') $(grep -rl SENTINEL-REPORT-3d8c "$TMP/stub-green/artifacts/publish" | wc -l | tr -d ' ')"
 check "  the example stack's container logs went through the collector too" "yes" "$([ -f "$TMP/stub-green/artifacts/publish/components/usage-telemetry-otel/c-one.log" ] && echo yes || echo no)"
 check "  the console never echoes a phase log (the phase's own stand-in line is not in it)" "0" "$(grep -c 'stand-in .* ok' "$TMP/green.out")"
+
+# Configured Grafana credentials through the whole suite: the stand-in phases print the password the way curl -v or a failing test would
+run_suite creds "GRAFANA_ADMIN_PASSWORD=$S_PW" "STUB_ECHO=curl -u admin:$S_PW http://grafana:3000 and $S_PW_BASIC"
+check "a configured Grafana password printed by every phase: the suite fails (the logs are withheld, status 1)" 1 "$SUITE_RC"
+check "  the password, in no form, is in the console output (what the Actions log would show)" "0" "$(grep -c -e "$S_PW" -e "$S_PW_B64" -e "$S_PW_BASIC" -e "$S_PW_URL" "$TMP/creds.out")"
+check "  nor in anything that is uploaded" "0" "$(grep -rl -e "$S_PW" -e "$S_PW_B64" -e "$S_PW_BASIC" -e "$S_PW_URL" "$TMP/stub-creds/artifacts/publish" | wc -l | tr -d ' ')"
+check "  the suite's own code never prints the environment or traces its commands (the console is not scrubbed)" "0" \
+  "$(grep -c 'printenv\|set -x\|^ *env *$\|declare -p\|set | ' "$EXAMPLE/tests/ci-suite.sh" | tr -d ' ')"
+
+# setup.sh never prints a configured Grafana password (its banner reaches terminals and job logs); the demo default is public and is shown
+sed -n '/^grafana_login_note() {/,/^}/p' "$EXAMPLE/setup.sh" > "$TMP/note-fn.sh"
+check "the banner's password note is a function setup.sh defines" "yes" "$([ -s "$TMP/note-fn.sh" ] && echo yes || echo no)"
+note_for() { env "GRAFANA_ADMIN_PASSWORD=$1" bash -c ". \"$TMP/note-fn.sh\"; grafana_login_note" 2> /dev/null; }
+S_BANNER=Banner-Dummy-Pw-4f7e
+check "  a configured password is not in the note (and the note says where it is configured)" "0 yes" \
+  "$(note_for $S_BANNER | grep -c "$S_BANNER") $(note_for $S_BANNER | grep -q 'GRAFANA_ADMIN_PASSWORD' && echo yes || echo no)"
+check "  a short configured password and one that equals no default are not in the note either" "0" "$(note_for x9Kq | grep -c 'x9Kq')"
+check "  the demo default is shown as the default" "yes" "$(note_for admin | grep -q 'password admin, the demo default' && echo yes || echo no)"
+check "  and no other line of setup.sh prints the variable (only the note's comparison and the authenticated health request mention it)" "0" \
+  "$(grep -n 'GRAFANA_ADMIN_PASSWORD' "$EXAMPLE/setup.sh" | grep -vc 'http_get\|= admin\|^[0-9]*:#\|set in GRAFANA_ADMIN_PASSWORD')"
 
 # a signal while the scenario run is going: the kept stack is removed and the evidence is collected before the suite ends
 rm -rf "$TMP/stub-term"

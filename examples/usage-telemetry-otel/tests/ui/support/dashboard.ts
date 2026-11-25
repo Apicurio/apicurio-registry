@@ -135,6 +135,24 @@ export async function expectRows(page: Page, id: number, expected: string[]): Pr
     await expect.poll(() => readRows(page, id), { message: `rows of panel ${id}` }).toEqual([...expected].sort());
 }
 
+/**
+ * The rate chart has no value to compare in a seeded run (its numbers are covered by the shell oracle), but a picture must not be
+ * taken while it is still loading. Its panel is settled when it shows either the dashboard's own no-rate text (exact, visible), or
+ * the legend of the chart: a button whose accessible name is exactly one of the expected operations, inside this panel. The legend
+ * entry is found by its accessible name because Grafana 13 exposes the series name as the button's name (the hosted accessibility
+ * snapshot shows `button "DESERIALIZE"`), which a text lookup does not reliably find. The "Edit color for ..." buttons of the same
+ * legend, a button of another panel, a loading panel and an operation the selection does not have are not accepted.
+ */
+export async function expectRatePanelSettled(page: Page, operations: string[]): Promise<void> {
+    const box = panelBox(page, PANEL.rate);
+    const noRate = box.getByText(noValueText(PANEL.rate), { exact: true });
+    let settled = noRate;
+    for (const operation of new Set(operations)) {
+        settled = settled.or(box.getByRole("button", { name: operation, exact: true }));
+    }
+    await expect(settled.first()).toBeVisible();
+}
+
 export async function expectUrlValues(page: Page, name: string, values: string[]): Promise<void> {
     await expect.poll(() => new URL(page.url()).searchParams.getAll(name), { message: `URL parameter ${name}` }).toEqual(values);
 }

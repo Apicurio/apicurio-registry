@@ -4,6 +4,7 @@ import {
     changeSelection,
     DATA_PANEL_IDS,
     errorMarkers,
+    expectRatePanelSettled,
     expectRows,
     expectUrlValues,
     failDatasourceQueries,
@@ -91,17 +92,6 @@ async function expectSelection(page: Page, context: Seeded, selection: Selection
     }
     await expectRows(page, PANEL.table, sortedRows(rows));
     await expect(panelValue(page, PANEL.total)).toHaveText(String(totalOf(rows)));
-}
-
-/**
- * The rate chart has no value to compare in a seeded run (its numbers are covered by the shell oracle), but a picture must not
- * be taken while it is still loading: it must show either its own no-rate text or a legend of the operations of the selection.
- */
-async function expectRatePanelSettled(page: Page, operations: string[]): Promise<void> {
-    const box = panelBox(page, PANEL.rate);
-    const noRate = box.getByText(noValueText(PANEL.rate));
-    const legend = box.getByText(new RegExp(`^(${operations.join("|")})$`));
-    await expect(noRate.or(legend).first()).toBeVisible();
 }
 
 export async function overviewFlow(page: Page, context: Seeded, shot: Shot): Promise<void> {

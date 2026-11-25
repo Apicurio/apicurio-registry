@@ -7,7 +7,8 @@
 # Phases, in this order (a phase that needs another one is recorded as skipped when that one failed, which fails the suite):
 #   unit, dashboard-unit, dashboard-promql, suite-selftest   no stack (the PromQL phase needs the container runtime)
 #   browser-setup                                            ./test-ui.sh --setup-only (locked npm packages, Chromium)
-#   ui-tooling, ui-selftest, ui-runner, ui-clone, ui-real-tooling   the browser tooling's own checks, on this operating system
+#   ui-tooling, ui-selftest, ui-runner, ui-clone, ui-real-tooling   the browser tooling's own checks, on this operating system (ui-tooling
+#                                                            also runs the rate panel DOM fixture, in the Chromium of browser-setup)
 #   dashboard-test, ui-seeded, ui-screenshots                the example's stack and the last demo.sh run, read-only
 #   lifecycle                                                tests/lifecycle-test.sh, a project of its own
 #   scenarios, ui-scenario, scenarios-teardown               tests/dashboard-scenarios.sh --keep (a project of its own), the process
@@ -308,9 +309,11 @@ summarize() {
   cat "$SUMMARY"
 }
 
-# the browser tooling's own static checks (type check, static rules, Node unit tests)
+# the browser tooling's own static checks (type check, static rules, Node unit tests) and the rate panel DOM fixture, which runs in the
+# Chromium that browser-setup made ready (the directory ./test-ui.sh uses unless the caller names one); each step's status is the phase's
 ui_tooling_checks() {
-  npm --prefix tests/ui run typecheck && npm --prefix tests/ui run static && npm --prefix tests/ui run unit
+  npm --prefix tests/ui run typecheck && npm --prefix tests/ui run static && npm --prefix tests/ui run unit &&
+    PLAYWRIGHT_BROWSERS_PATH=${PLAYWRIGHT_BROWSERS_PATH:-$EXAMPLE_DIR/tests/ui/.browsers} npm --prefix tests/ui run fixtures
 }
 
 # a test can load the functions without running the suite

@@ -23,6 +23,7 @@
     "include": [
         "playwright.config.ts",
         "specs/**/*.ts",
+        "fixtures/**/*.ts",
         "support/**/*.ts",
         "lib/**/*.mjs"
     ]

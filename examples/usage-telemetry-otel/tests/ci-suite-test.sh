@@ -482,6 +482,7 @@ SCRIPT
 cat > "$BIN/npm" << 'SCRIPT'
 #!/usr/bin/env bash
 printf 'npm %s\n' "$*" >> "$STUB_LOG"
+[ "$4" != fixtures ] || printf 'fixtures-env PLAYWRIGHT_BROWSERS_PATH=%s\n' "${PLAYWRIGHT_BROWSERS_PATH:-unset}" >> "$STUB_LOG"
 case " ${STUB_FAIL:-} " in *" npm-$4 "*) echo "injected failure"; exit 1 ;; esac
 SCRIPT
 chmod 755 "$BIN/npm"
@@ -579,7 +580,7 @@ run_suite() {
   rm -rf "$TMP/stub-$name"
   mkdir -p "$TMP/stub-$name"
   : > "$TMP/stub-$name/calls.log"
-  (cd "$EX" && env PATH="$BIN:$PATH" STUB_LOG="$TMP/stub-$name/calls.log" STUB_ROOT="$TMP/stub-$name" REGISTRY_IMAGE=apicurio/apicurio-registry:test CONTAINER_RUNTIME=stubrt \
+  (cd "$EX" && env -u PLAYWRIGHT_BROWSERS_PATH PATH="$BIN:$PATH" STUB_LOG="$TMP/stub-$name/calls.log" STUB_ROOT="$TMP/stub-$name" REGISTRY_IMAGE=apicurio/apicurio-registry:test CONTAINER_RUNTIME=stubrt \
     CI_ARTIFACT_DIR="$TMP/stub-$name/artifacts" "$@" ./tests/ci-suite.sh) > "$TMP/$name.out" 2>&1
   SUITE_RC=$?
 }
@@ -639,6 +640,18 @@ check "  the scenario runner's own phase still passed and the stack's container 
 
 run_suite npmfail STUB_FAIL=npm-typecheck
 check "a failing static check of the browser tooling fails the suite" "1 fail(1)" "$SUITE_RC $(phase_status npmfail ui-tooling)"
+
+# the rate panel DOM fixture runs inside the required ui-tooling phase (no phase of its own), after the other tooling checks, in the
+# Chromium directory ./test-ui.sh uses, and its status is the phase's
+check "the rate panel fixture runs once in the required ui-tooling phase, after unit, and no phase was added" "1 yes 18" \
+  "$(grep -c '^npm --prefix tests/ui run fixtures$' "$TMP/stub-green/calls.log" | tr -d ' ') $([ "$(grep -n '^npm --prefix tests/ui run unit$' "$TMP/stub-green/calls.log" | cut -d: -f1)" -lt "$(grep -n '^npm --prefix tests/ui run fixtures$' "$TMP/stub-green/calls.log" | cut -d: -f1)" ] && echo yes || echo no) $(wc -l < "$TMP/stub-green/artifacts/work/summary.tsv" | tr -d ' ')"
+check "  it gets the verified Chromium directory of the checkout, and nothing is installed for it" "yes 0" \
+  "$(grep -q "^fixtures-env PLAYWRIGHT_BROWSERS_PATH=$EX/tests/ui/.browsers\$" "$TMP/stub-green/calls.log" && echo yes || echo no) $(grep -c 'npm.* \(install\|ci\)' "$TMP/stub-green/calls.log" | tr -d ' ')"
+run_suite fixturefail STUB_FAIL=npm-fixtures
+check "a nonzero result of the rate panel fixture fails the ui-tooling phase and the suite, and the later phases still ran" "1 fail(1) pass" "$SUITE_RC $(phase_status fixturefail ui-tooling) $(phase_status fixturefail ui-selftest)"
+check "  the fixture was not run when an earlier tooling check failed (the chain stops at the first failure)" "0" "$(grep -c '^npm --prefix tests/ui run fixtures$' "$TMP/stub-npmfail/calls.log" | tr -d ' ')"
+run_suite fixturepath PLAYWRIGHT_BROWSERS_PATH=/named/browsers
+check "  a browser directory the caller names is the one the fixture gets" "yes" "$(grep -q '^fixtures-env PLAYWRIGHT_BROWSERS_PATH=/named/browsers$' "$TMP/stub-fixturepath/calls.log" && echo yes || echo no)"
 
 run_suite notear STUB_FAIL=teardown
 check "a failed removal of the scenario stack fails the suite and is tried once more when the suite ends" "1 fail(1) 2" "$SUITE_RC $(phase_status notear scenarios-teardown) $(calls notear teardown)"

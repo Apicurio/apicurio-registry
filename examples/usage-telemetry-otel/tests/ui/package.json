@@ -11,6 +11,7 @@
         "typecheck": "tsc --noEmit -p tsconfig.json",
         "static": "node scripts/static-check.mjs",
         "unit": "node --test test/*.test.mjs",
+        "fixtures": "playwright test -c fixtures/rate-panel/playwright.config.ts",
         "runner-test": "bash test/runner-test.sh",
         "tooling-test": "bash test/real-tooling-test.sh"
     },

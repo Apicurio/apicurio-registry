@@ -99,7 +99,8 @@ export function flowProblems(state, flows) {
 /**
  * What the processes scenario tests need: the process switch needs at least one typed identifier that both processes show, otherwise
  * switching processes proves nothing; the dependent client reload test narrows the second process to one client, so that process must
- * show at least two different clients, otherwise the narrowing is not a visible change. The one list of rules both the preparation of the
+ * show at least two different clients, otherwise the narrowing is not a visible change; and the two processes must expect different rows
+ * (counts included, in any order), otherwise the switch changes nothing a check could see. The one list of rules both the preparation of the
  * input and the sealed bundle use.
  * @param {{ primaryRows: SeriesRow[], otherRows: SeriesRow[] }} scenario @returns {string[]}
  */
@@ -110,6 +111,10 @@ export function scenarioProblems(scenario) {
     );
     if (!reused) {
         problems.push("the process switch test needs at least one typed identifier that both processes reuse; the two row lists share none");
+    }
+    // the same rows with the same counts, in whatever order: switching processes would then change no table row and no total
+    if (JSON.stringify(sortedRowTexts(scenario.primaryRows)) === JSON.stringify(sortedRowTexts(scenario.otherRows))) {
+        problems.push("the process switch test needs the two processes to show different rows (counts included); primaryRows and otherRows are the same set, so switching would change no row and no total");
     }
     const clients = new Set(scenario.otherRows.map((row) => row.clientId));
     if (clients.size < 2) {

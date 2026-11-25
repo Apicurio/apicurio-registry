@@ -22,7 +22,7 @@ const walk = (directory) => {
         else if (entry.isFile() && path.endsWith(".ts")) files.push(path);
     }
 };
-for (const directory of ["specs", "support"]) walk(directory);
+for (const directory of ["specs", "support", "fixtures"]) walk(directory);
 for (const entry of readdirSync("lib", { withFileTypes: true })) {
     if (entry.isFile() && entry.name.endsWith(".mjs")) files.push(join("lib", entry.name));
 }

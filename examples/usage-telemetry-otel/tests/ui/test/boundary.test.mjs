@@ -152,8 +152,25 @@ test("the selections the browser flows need are decided before any effect, for t
     // two rows of the same client are still one client
     const oneClientTwoRows = raw(RAW_SCENARIO, '["c2", "global_id", "1", "DESERIALIZE", 75]', '["c1", "global_id", "1", "DESERIALIZE", 75]');
     assert.match(problemsOf(() => prepareScenario(oneClientTwoRows)), /otherRows has 1/);
+    // the two processes must expect different rows, counts included and in any order: identical sets would let a panel that keeps reading
+    // the first process pass the process switch checks. Refused by the preparation and by the sealed bundle alike.
+    const identical = raw(RAW_SCENARIO, '"primaryRows": [["c1", "global_id", "1", "SERIALIZE", 1]]', '"primaryRows": [["c1", "global_id", "1", "SERIALIZE", 150], ["c2", "global_id", "1", "DESERIALIZE", 75]]');
+    assert.doesNotThrow(() => parseProcessScenario(identical), "the file itself is well formed");
+    assert.match(problemsOf(() => prepareScenario(identical)), /different rows.*the same set/);
+    const reordered = raw(identical, '"primaryRows": [["c1", "global_id", "1", "SERIALIZE", 150], ["c2", "global_id", "1", "DESERIALIZE", 75]]', '"primaryRows": [["c2", "global_id", "1", "DESERIALIZE", 75], ["c1", "global_id", "1", "SERIALIZE", 150]]');
+    assert.match(problemsOf(() => prepareScenario(reordered)), /different rows.*the same set/, "the same rows in another order are still the same set");
+    // equal identifiers with another count are different rows (the table shows the count), and so are different identifiers
+    const otherCount = raw(identical, '"primaryRows": [["c1", "global_id", "1", "SERIALIZE", 150]', '"primaryRows": [["c1", "global_id", "1", "SERIALIZE", 151]');
+    assert.equal(prepareScenario(otherCount).mode, "scenario", "one count differs, so the switch is visible");
+    assert.equal(prepareScenario(RAW_SCENARIO).mode, "scenario", "a valid, distinguishable scenario still prepares");
     const sealed = JSON.parse(JSON.stringify(prepareScenario(RAW_SCENARIO)));
     assert.equal(parseBundle(JSON.stringify(sealed), false).mode, "scenario");
+    const sealedSame = JSON.parse(JSON.stringify(sealed));
+    const sameProcesses = sealedSame.input.scenarios.find((entry) => entry.kind === "processes");
+    sameProcesses.primaryRows = [...sameProcesses.otherRows].reverse();
+    assert.match(problemsOf(() => parseBundle(JSON.stringify(sealedSame), false)), /different rows.*the same set/, "the sealed bundle repeats the judgment on reordered equal rows");
+    const sealedValid = JSON.parse(JSON.stringify(sealed));
+    assert.equal(parseBundle(JSON.stringify(sealedValid), false).mode, "scenario", "a sealed, distinguishable scenario reads back");
     // the bundle carries the validated input and is judged again from it
     const sealedProcesses = sealed.input.scenarios.find((entry) => entry.kind === "processes");
     sealedProcesses.otherRows = sealedProcesses.otherRows.filter((row) => row[0] === "c1");

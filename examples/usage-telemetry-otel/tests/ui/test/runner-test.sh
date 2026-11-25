@@ -97,7 +97,8 @@ case "$last" in
     [ -z "${STUB_CLAIM_SIGNAL:-}" ] || kill -"$STUB_CLAIM_SIGNAL" "$PPID"
     if [ -n "${STUB_CLAIM_GROUP_SIGNAL:-}" ]; then
       group=$(ps -o pgid= -p "$PPID" | tr -d ' ')
-      kill -"$STUB_CLAIM_GROUP_SIGNAL" -- "-$group"
+      # "kill -SIG -- -PGID" is an error in dash (Ubuntu /bin/sh): the form with -s takes the group in every shell
+      kill -s "$STUB_CLAIM_GROUP_SIGNAL" -- "-$group"
       sleep 1
     fi
     exit $rc
@@ -571,6 +572,31 @@ for sig in TERM INT HUP; do
   check "SIG$sig sent to the runner and to the command that made the claim (its process group), which dies before it can report success: status $WANT, no claim left" "$WANT no no" "$LSTATUS $LHUNG $(claim_present "$T")"
   check "  nothing else was done" "0 0" "$(npm_calls "$T") $(run_dirs "$T")"
 done
+# the same group signal with the stand-in command run by dash (Ubuntu's /bin/sh), where the hosted run first failed. dash is required on
+# GitHub Actions Linux (a runner without it fails here); on any other machine it is optional, and the cases run when it is there
+if [ "${GITHUB_ACTIONS:-}" = true ] && [ "$(uname -s)" = Linux ]; then
+  check "dash is installed (required on GitHub Actions Linux)" yes "$([ -x /bin/dash ] && echo yes || echo no)"
+  HAVE_DASH=$([ -x /bin/dash ] && echo yes || echo no)
+elif [ -x /bin/dash ]; then
+  HAVE_DASH=yes
+else
+  HAVE_DASH=no
+  printf '  note  /bin/dash is not installed: the extra dash group-signal cases are not run here (they are required on GitHub Actions Linux)\n'
+fi
+if [ "$HAVE_DASH" = yes ]; then
+  /bin/mkdir "$T/stubs/claimwrap-dash"
+  sed '1s#.*#\#!/bin/dash#' "$T/stubs/claimwrap/claim-tool" > "$T/stubs/claimwrap-dash/claim-tool"
+  chmod +x "$T/stubs/claimwrap-dash/claim-tool"
+  ln "$T/stubs/claimwrap-dash/claim-tool" "$T/stubs/claimwrap-dash/mkdir"
+  ln "$T/stubs/claimwrap-dash/claim-tool" "$T/stubs/claimwrap-dash/ln"
+  for sig in TERM INT; do
+    case $sig in INT) WANT=130 ;; *) WANT=143 ;; esac
+    fresh_claim
+    XPATH="$T/stubs/claimwrap-dash" launchx "$T" --timeout 20 -- STUB_CLAIM_GROUP_SIGNAL="$sig" ./test-ui.sh --self-test --no-install
+    check "SIG$sig to the runner's process group from a stand-in run by dash: status $WANT, no claim left" "$WANT no no" "$LSTATUS $LHUNG $(claim_present "$T")"
+    check "  nothing else was done" "0 0" "$(npm_calls "$T") $(run_dirs "$T")"
+  done
+fi
 fresh_claim
 XPATH="$T/stubs/claimwrap" launchx "$T" --timeout 20 -- STUB_CLAIM_FAIL=1 ./test-ui.sh --self-test --no-install
 check "a command that fails without creating anything: refused with status 1 and a message, nothing left" "1 no" "$LSTATUS $(claim_present "$T")"

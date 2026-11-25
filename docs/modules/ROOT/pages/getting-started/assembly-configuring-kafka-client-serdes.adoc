@@ -177,6 +177,12 @@ The `DefaultSchemaResolver` provides the following properties to configure acces
 |`String`
 |None
 
+|`TLS_KEYSTORE_KEY_PASSWORD`
+|`apicurio.registry.tls.keystore.key.password`
+|Used by serializers and deserializers. The password for the private key in the key store, when it differs from the key store password. Valid only for JKS and PKCS12 key stores.
+|`String`
+|The key store password
+
 |`TLS_KEYSTORE_TYPE`
 |`apicurio.registry.tls.keystore.type`
 |Used by serializers and deserializers. The type of key store. Valid values are JKS, PKCS12, or PEM.

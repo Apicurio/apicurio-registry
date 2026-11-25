@@ -163,16 +163,17 @@ public class JdkSslContextFactory {
         return trustStore;
     }
 
-    private static KeyManager[] createKeyManagers(RegistryClientOptions options) throws Exception {
+    static KeyManager[] createKeyManagers(RegistryClientOptions options) throws Exception {
         if (options.getKeyStoreType() == RegistryClientOptions.KeyStoreType.NONE) {
             return null;
         }
 
         KeyStore keyStore = loadClientKeyStore(options);
         KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-        kmf.init(keyStore, options.getKeyStorePassword() != null
-                ? options.getKeyStorePassword().toCharArray()
-                : new char[0]);
+        String keyPassword = options.getKeyPassword() != null
+                ? options.getKeyPassword()
+                : options.getKeyStorePassword();
+        kmf.init(keyStore, keyPassword != null ? keyPassword.toCharArray() : new char[0]);
         return kmf.getKeyManagers();
     }
 

@@ -23,13 +23,22 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.URL;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.KeyStore;
+import java.security.UnrecoverableKeyException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -42,6 +51,8 @@ import java.util.Map;
 @QuarkusTest
 @TestProfile(MtlsSerdeTest.MtlsSerdeTestProfile.class)
 public class MtlsSerdeTest extends AbstractResourceTestBase {
+
+    private static final String KEY_PASSWORD = "privatekeypassword";
 
     public static class MtlsSerdeTestProfile extends MtlsTestProfile {
         @Override
@@ -299,6 +310,96 @@ public class MtlsSerdeTest extends AbstractResourceTestBase {
         config.put(SchemaResolverConfig.TLS_CLIENT_KEY, clientKeyUrl.getPath());
 
         runSerdeTest(config, new Person("Grace", "Hopper", 85));
+    }
+
+    /**
+     * Test JsonSchema SerDe with a client keystore whose private key password differs from the keystore password,
+     * for each keystore type and HTTP adapter.
+     */
+    @ParameterizedTest
+    @CsvSource({"JKS, JDK", "JKS, VERTX", "PKCS12, JDK", "PKCS12, VERTX"})
+    public void testJsonSchemaSerdeWithSeparateKeyPassword(String type, String httpAdapter, @TempDir Path dir)
+            throws Exception {
+        Map<String, Object> config = separateKeyPasswordConfig(type, httpAdapter, dir);
+        config.put(SchemaResolverConfig.TLS_KEYSTORE_KEY_PASSWORD, KEY_PASSWORD);
+
+        runSerdeTest(config, new Person("Ada", "Lovelace", 36));
+    }
+
+    /**
+     * Negative test: a keystore whose key password differs from the keystore password cannot be used without the
+     * private key password (empty column), or with a wrong one.
+     */
+    @ParameterizedTest
+    @CsvSource({
+        "JKS, JDK,", "JKS, VERTX,", "PKCS12, JDK,", "PKCS12, VERTX,",
+        "JKS, JDK, wrong", "JKS, VERTX, wrong", "PKCS12, JDK, wrong", "PKCS12, VERTX, wrong"
+    })
+    public void testJsonSchemaSerdeWithoutCorrectKeyPasswordFails(String type, String httpAdapter,
+            String keyPassword, @TempDir Path dir) throws Exception {
+        Map<String, Object> config = separateKeyPasswordConfig(type, httpAdapter, dir);
+        if (keyPassword != null) {
+            config.put(SchemaResolverConfig.TLS_KEYSTORE_KEY_PASSWORD, keyPassword);
+        }
+
+        Exception exception = Assertions.assertThrows(Exception.class,
+                () -> runSerdeTest(config, new Person("Charlie", "Brown", 12)));
+
+        // A wrong key store password also surfaces as an UnrecoverableKeyException, but wrapped in the
+        // IOException thrown by KeyStore.load(). Only a failure to recover the private key counts here.
+        Throwable cause = exception;
+        while (cause != null && !(cause instanceof UnrecoverableKeyException)) {
+            Assertions.assertFalse(cause instanceof IOException,
+                    "Expected the private key to be rejected, but loading the key store failed: " + cause);
+            cause = cause.getCause();
+        }
+        Assertions.assertInstanceOf(UnrecoverableKeyException.class, cause,
+                "Expected an UnrecoverableKeyException, but got: " + exception);
+    }
+
+    /**
+     * Copies the client keystore of the given type into a new keystore that keeps the keystore password but
+     * protects the private key with {@link #KEY_PASSWORD}, and returns a SerDe configuration that uses it.
+     */
+    private Map<String, Object> separateKeyPasswordConfig(String type, String httpAdapter, Path dir)
+            throws Exception {
+        String extension = "JKS".equals(type) ? "jks" : "p12";
+        URL truststoreUrl = getClass().getClassLoader().getResource("tls/registry-truststore." + extension);
+        URL keystoreUrl = getClass().getClassLoader().getResource("tls/client-keystore." + extension);
+        Assertions.assertNotNull(truststoreUrl);
+        Assertions.assertNotNull(keystoreUrl);
+
+        KeyStore source = KeyStore.getInstance(type);
+        try (InputStream in = keystoreUrl.openStream()) {
+            source.load(in, "registrytest".toCharArray());
+        }
+        KeyStore target = KeyStore.getInstance(type);
+        target.load(null, null);
+        for (String alias : Collections.list(source.aliases())) {
+            if (source.isKeyEntry(alias)) {
+                target.setKeyEntry(alias, source.getKey(alias, "registrytest".toCharArray()),
+                        KEY_PASSWORD.toCharArray(), source.getCertificateChain(alias));
+            }
+        }
+        Path keystore = dir.resolve("client-keystore." + extension);
+        try (OutputStream out = Files.newOutputStream(keystore)) {
+            target.store(out, "registrytest".toCharArray());
+        }
+
+        Map<String, Object> config = new HashMap<>();
+        config.put(SerdeConfig.REGISTRY_URL, registryV3ApiUrl);
+        config.put(SchemaResolverConfig.AUTH_USERNAME, "alice");
+        config.put(SchemaResolverConfig.AUTH_PASSWORD, "alice");
+        config.put(SchemaResolverConfig.HTTP_ADAPTER, httpAdapter);
+
+        config.put(SchemaResolverConfig.TLS_TRUSTSTORE_LOCATION, truststoreUrl.getPath());
+        config.put(SchemaResolverConfig.TLS_TRUSTSTORE_PASSWORD, "registrytest");
+        config.put(SchemaResolverConfig.TLS_TRUSTSTORE_TYPE, type);
+
+        config.put(SchemaResolverConfig.TLS_KEYSTORE_LOCATION, keystore.toString());
+        config.put(SchemaResolverConfig.TLS_KEYSTORE_PASSWORD, "registrytest");
+        config.put(SchemaResolverConfig.TLS_KEYSTORE_TYPE, type);
+        return config;
     }
 
     /**

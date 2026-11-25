@@ -372,6 +372,13 @@ public class SchemaResolverConfig extends AbstractConfig {
     public static final String TLS_KEYSTORE_PASSWORD = "apicurio.registry.tls.keystore.password";
 
     /**
+     * The password for the private key in the key store specified by {@link #TLS_KEYSTORE_LOCATION}, when it
+     * differs from {@link #TLS_KEYSTORE_PASSWORD}. Defaults to the key store password. Only valid for JKS and
+     * PKCS12 key stores.
+     */
+    public static final String TLS_KEYSTORE_KEY_PASSWORD = "apicurio.registry.tls.keystore.key.password";
+
+    /**
      * The type of key store. Valid values are "JKS", "PKCS12" (or "P12"), and "PEM". Defaults to "JKS".
      */
     public static final String TLS_KEYSTORE_TYPE = "apicurio.registry.tls.keystore.type";
@@ -720,6 +727,10 @@ public class SchemaResolverConfig extends AbstractConfig {
 
     public String getTlsKeystorePassword() {
         return getString(TLS_KEYSTORE_PASSWORD);
+    }
+
+    public String getTlsKeystoreKeyPassword() {
+        return getString(TLS_KEYSTORE_KEY_PASSWORD);
     }
 
     public String getTlsKeystoreType() {

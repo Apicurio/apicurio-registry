@@ -116,6 +116,7 @@ public class RegistryClientOptions {
     private KeyStoreType keyStoreType = KeyStoreType.NONE;
     private String keyStorePath;
     private String keyStorePassword;
+    private String keyPassword; // private key password, if different from the key store password
     private String pemClientCertPath; // PEM certificate file
     private String pemClientKeyPath;  // PEM private key file
     private String pemClientCertContent; // PEM certificate content as string
@@ -257,6 +258,10 @@ public class RegistryClientOptions {
 
     public String getKeyStorePassword() {
         return keyStorePassword;
+    }
+
+    public String getKeyPassword() {
+        return keyPassword;
     }
 
     public String getPemClientCertPath() {
@@ -665,6 +670,20 @@ public class RegistryClientOptions {
      * @throws IllegalArgumentException if path is null or empty
      */
     public RegistryClientOptions keystoreJks(String path, String password) {
+        return keystoreJks(path, password, null);
+    }
+
+    /**
+     * Configures mutual TLS (mTLS) with a JKS key store whose private key is protected by a password
+     * that differs from the key store password.
+     *
+     * @param path        the path to the JKS key store file (can be a file system path or classpath resource prefixed with "classpath:")
+     * @param password    the password for the key store
+     * @param keyPassword the password for the private key, or null to use the key store password
+     * @return this builder
+     * @throws IllegalArgumentException if path is null or empty
+     */
+    public RegistryClientOptions keystoreJks(String path, String password, String keyPassword) {
         if (path == null || path.trim().isEmpty()) {
             throw new IllegalArgumentException("Key store path cannot be null or empty");
         }
@@ -672,6 +691,7 @@ public class RegistryClientOptions {
         this.keyStoreType = KeyStoreType.JKS;
         this.keyStorePath = path;
         this.keyStorePassword = password;
+        this.keyPassword = keyPassword;
         return this;
     }
 
@@ -688,6 +708,20 @@ public class RegistryClientOptions {
      * @throws IllegalArgumentException if path is null or empty
      */
     public RegistryClientOptions keystorePkcs12(String path, String password) {
+        return keystorePkcs12(path, password, null);
+    }
+
+    /**
+     * Configures mutual TLS (mTLS) with a PKCS#12 key store whose private key is protected by a password
+     * that differs from the key store password.
+     *
+     * @param path        the path to the PKCS#12 key store file (can be a file system path or classpath resource prefixed with "classpath:")
+     * @param password    the password for the key store
+     * @param keyPassword the password for the private key, or null to use the key store password
+     * @return this builder
+     * @throws IllegalArgumentException if path is null or empty
+     */
+    public RegistryClientOptions keystorePkcs12(String path, String password, String keyPassword) {
         if (path == null || path.trim().isEmpty()) {
             throw new IllegalArgumentException("Key store path cannot be null or empty");
         }
@@ -695,6 +729,7 @@ public class RegistryClientOptions {
         this.keyStoreType = KeyStoreType.PKCS12;
         this.keyStorePath = path;
         this.keyStorePassword = password;
+        this.keyPassword = keyPassword;
         return this;
     }
 
@@ -782,6 +817,7 @@ public class RegistryClientOptions {
         this.keyStoreType = KeyStoreType.NONE;
         this.keyStorePath = null;
         this.keyStorePassword = null;
+        this.keyPassword = null;
         this.pemClientCertPath = null;
         this.pemClientKeyPath = null;
         this.pemClientCertContent = null;

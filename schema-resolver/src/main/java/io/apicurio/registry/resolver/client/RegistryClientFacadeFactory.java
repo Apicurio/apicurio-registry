@@ -205,8 +205,14 @@ public class RegistryClientFacadeFactory {
         String clientCert = config.getTlsClientCertificate();
         String clientKey = config.getTlsClientKey();
 
+        if (keystoreLocation == null && config.getTlsKeystoreKeyPassword() != null) {
+            throw new IllegalArgumentException("TLS key password (" + SchemaResolverConfig.TLS_KEYSTORE_KEY_PASSWORD
+                    + ") requires a JKS or PKCS12 key store (" + SchemaResolverConfig.TLS_KEYSTORE_LOCATION + ")");
+        }
+
         if (keystoreLocation != null) {
-            configureKeyStoreFile(clientOptions, keystoreLocation, config.getTlsKeystorePassword(), config.getTlsKeystoreType(), clientKey);
+            configureKeyStoreFile(clientOptions, keystoreLocation, config.getTlsKeystorePassword(),
+                    config.getTlsKeystoreKeyPassword(), config.getTlsKeystoreType(), clientKey);
         } else if (clientCert != null && clientKey != null) {
             configureKeyStorePem(clientOptions, clientCert, clientKey);
         } else if (clientCert != null) {
@@ -220,13 +226,18 @@ public class RegistryClientFacadeFactory {
         }
     }
 
-    private static void configureKeyStoreFile(RegistryClientOptions clientOptions, String location, String password, String type, String clientKey) {
+    private static void configureKeyStoreFile(RegistryClientOptions clientOptions, String location, String password,
+            String keyPassword, String type, String clientKey) {
         String resolvedLocation = resolveClasspathResourceToTempFile(location);
         if ("JKS".equalsIgnoreCase(type)) {
-            clientOptions.keystoreJks(resolvedLocation, password);
+            clientOptions.keystoreJks(resolvedLocation, password, keyPassword);
         } else if ("PKCS12".equalsIgnoreCase(type) || "P12".equalsIgnoreCase(type)) {
-            clientOptions.keystorePkcs12(resolvedLocation, password);
+            clientOptions.keystorePkcs12(resolvedLocation, password, keyPassword);
         } else if ("PEM".equalsIgnoreCase(type)) {
+            if (keyPassword != null) {
+                throw new IllegalArgumentException("TLS key password (" + SchemaResolverConfig.TLS_KEYSTORE_KEY_PASSWORD
+                        + ") is not supported when TLS keystore type is PEM: the private key must be unencrypted");
+            }
             String resolvedClientKey = resolveClasspathResourceToTempFile(clientKey);
             if (resolvedClientKey == null) {
                 throw new IllegalArgumentException("TLS client key is required when TLS keystore type is PEM");

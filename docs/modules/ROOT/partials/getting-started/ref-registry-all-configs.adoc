@@ -87,6 +87,46 @@ The following {registry} configuration options are available for each component 
 |`true`
 |`3.4.0`
 |Update the generated Agent Card whenever its source OpenAPI artifact is updated
+|`apicurio.a2a.signature-verification.allowed-algs`
+|`list<string>`
+|`ES256,EdDSA,RS256,PS256`
+|`3.4.0`
+|JWS algorithms accepted in Agent Card signatures. Only asymmetric algorithms (ES256, ES384, ES512, EdDSA, RS256, RS384, RS512, PS256, PS384, PS512) can be listed; 'none' is never accepted
+|`apicurio.a2a.signature-verification.cache-ttl.seconds`
+|`int`
+|`300`
+|`3.4.0`
+|How long a fetched JSON Web Key Set is used before it is fetched again, in seconds. A signature naming an unknown 'kid' triggers at most one early refresh per key set in this period, so rotated keys are picked up
+|`apicurio.a2a.signature-verification.cache.max-size`
+|`int`
+|`1000`
+|`3.4.0`
+|Number of Agent Card contents whose verified signers are cached for discovery results
+|`apicurio.a2a.signature-verification.fetch.max-size.bytes`
+|`int`
+|`65536`
+|`3.4.0`
+|Largest JSON Web Key Set accepted, in bytes; a larger response is refused
+|`apicurio.a2a.signature-verification.fetch.timeout.seconds`
+|`int`
+|`5`
+|`3.4.0`
+|Time budget, in seconds, for fetching a JSON Web Key Set: connecting, receiving the response headers and reading the whole body. A fetch that takes longer fails, and the key set contributes no keys until it is fetched successfully
+|`apicurio.a2a.signature-verification.jku-allowed-hosts`
+|`optional<list<string>>`
+|
+|`3.4.0`
+|Hosts whose JSON Web Key Sets may be fetched from the 'jku' header of an Agent Card signature, as exact host names or '*.domain' wildcards. A 'jku' naming any other host is never fetched. Empty (the default) means 'jku' is never followed
+|`apicurio.a2a.signature-verification.jwks-urls`
+|`optional<list<string>>`
+|
+|`3.4.0`
+|URLs of the JSON Web Key Sets holding the public keys of trusted Agent Card publishers. Agent Card signatures are verified whenever this or apicurio.a2a.signature-verification.jku-allowed-hosts is set, including in discovery results, whatever the mode. The URLs must use HTTPS unless apicurio.outbound.insecure-http.enabled is set
+|`apicurio.a2a.signature-verification.mode`
+|`string`
+|`off`
+|`3.4.0`
+|Signature policy applied to every AGENT_CARD version published through the REST API, whether or not rules are enabled: 'off' (no check), 'verify-if-present' (an unsigned card is accepted, a signed card needs at least one signature that verifies) or 'require' (every card needs at least one signature that verifies) _(experimental)_
 |`apicurio.agents.enabled`
 |`boolean`
 |`false`

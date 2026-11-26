@@ -1,0 +1,44 @@
+{
+  "name": "Interop Agent é€",
+  "description": "Signed by the a2a-python SDK",
+  "supportedInterfaces": [
+    {
+      "url": "https://example.com/a2a/v1",
+      "protocolBinding": "JSONRPC",
+      "protocolVersion": "1.0"
+    }
+  ],
+  "version": "1.0.0",
+  "capabilities": {
+    "streaming": false,
+    "pushNotifications": true,
+    "extensions": []
+  },
+  "defaultInputModes": [
+    "text/plain"
+  ],
+  "defaultOutputModes": [
+    "text/plain"
+  ],
+  "skills": [
+    {
+      "id": "echo",
+      "name": "Echo",
+      "description": "Echoes the input.",
+      "tags": [
+        "echo",
+        "tést"
+      ]
+    }
+  ],
+  "signatures": [
+    {
+      "protected": "eyJhbGciOiJFUzI1NiIsImtpZCI6InB5LWVzMjU2IiwidHlwIjoiSk9TRSJ9",
+      "signature": "AT-Hl4np97kTpajUkGTwWv7GAxXZm5DlTX9DS1e9x1arV58bqhk8a0Xdw6a3odJxnDaPNXeAdmjUo1dKqBcBuw"
+    },
+    {
+      "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6InB5LWVkZHNhIiwidHlwIjoiSk9TRSJ9",
+      "signature": "wI73kN5XzpopHkvFV9kJy4VILfyu-SvAik-MtICytJEQXh1-lnjnQmmTvBhqkYn0VfBnU0xFMm-nBD68o2g4Cg"
+    }
+  ]
+}

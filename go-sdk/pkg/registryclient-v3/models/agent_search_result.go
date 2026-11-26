@@ -29,6 +29,8 @@ type AgentSearchResult struct {
 	skills []string
 	// The supportedInterfaces property
 	supportedInterfaces []AgentInterfaceable
+	// **Experimental.** The `kid`s of this Agent Card's signatures that verify against the keys this registry trusts (`apicurio.a2a.signature-verification.jwks-urls`, and `jku` key sets on allow-listed hosts), computed when the card is read. Absent when the registry has no trusted keys configured. A verified signature attests which key signed the card, not that the agent is safe.
+	verifiedSigners []string
 	// The version property
 	version *string
 }
@@ -182,6 +184,22 @@ func (m *AgentSearchResult) GetFieldDeserializers() map[string]func(i878a80d2330
 		}
 		return nil
 	}
+	res["verifiedSigners"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetCollectionOfPrimitiveValues("string")
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			res := make([]string, len(val))
+			for i, v := range val {
+				if v != nil {
+					res[i] = *(v.(*string))
+				}
+			}
+			m.SetVerifiedSigners(res)
+		}
+		return nil
+	}
 	res["version"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 		val, err := n.GetStringValue()
 		if err != nil {
@@ -223,6 +241,12 @@ func (m *AgentSearchResult) GetSkills() []string {
 // returns a []AgentInterfaceable when successful
 func (m *AgentSearchResult) GetSupportedInterfaces() []AgentInterfaceable {
 	return m.supportedInterfaces
+}
+
+// GetVerifiedSigners gets the verifiedSigners property value. **Experimental.** The `kid`s of this Agent Card's signatures that verify against the keys this registry trusts (`apicurio.a2a.signature-verification.jwks-urls`, and `jku` key sets on allow-listed hosts), computed when the card is read. Absent when the registry has no trusted keys configured. A verified signature attests which key signed the card, not that the agent is safe.
+// returns a []string when successful
+func (m *AgentSearchResult) GetVerifiedSigners() []string {
+	return m.verifiedSigners
 }
 
 // GetVersion gets the version property value. The version property
@@ -293,6 +317,12 @@ func (m *AgentSearchResult) Serialize(writer i878a80d2330e89d26896388a3f487eef27
 			return err
 		}
 	}
+	if m.GetVerifiedSigners() != nil {
+		err := writer.WriteCollectionOfStringValues("verifiedSigners", m.GetVerifiedSigners())
+		if err != nil {
+			return err
+		}
+	}
 	{
 		err := writer.WriteStringValue("version", m.GetVersion())
 		if err != nil {
@@ -358,6 +388,11 @@ func (m *AgentSearchResult) SetSupportedInterfaces(value []AgentInterfaceable) {
 	m.supportedInterfaces = value
 }
 
+// SetVerifiedSigners sets the verifiedSigners property value. **Experimental.** The `kid`s of this Agent Card's signatures that verify against the keys this registry trusts (`apicurio.a2a.signature-verification.jwks-urls`, and `jku` key sets on allow-listed hosts), computed when the card is read. Absent when the registry has no trusted keys configured. A verified signature attests which key signed the card, not that the agent is safe.
+func (m *AgentSearchResult) SetVerifiedSigners(value []string) {
+	m.verifiedSigners = value
+}
+
 // SetVersion sets the version property value. The version property
 func (m *AgentSearchResult) SetVersion(value *string) {
 	m.version = value
@@ -375,6 +410,7 @@ type AgentSearchResultable interface {
 	GetOwner() *string
 	GetSkills() []string
 	GetSupportedInterfaces() []AgentInterfaceable
+	GetVerifiedSigners() []string
 	GetVersion() *string
 	SetArtifactId(value *string)
 	SetCapabilities(value AgentCapabilitiesable)
@@ -385,5 +421,6 @@ type AgentSearchResultable interface {
 	SetOwner(value *string)
 	SetSkills(value []string)
 	SetSupportedInterfaces(value []AgentInterfaceable)
+	SetVerifiedSigners(value []string)
 	SetVersion(value *string)
 }

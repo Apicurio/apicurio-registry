@@ -82,6 +82,8 @@ jobs:
           filters: |
             java:
               - 'app/**'
+              - 'agents/**'
+              - 'quarkus-app/**'
               - 'common/**'
               - 'schema-util/**'
               - 'schema-validation/**'
@@ -109,6 +111,8 @@ jobs:
               - 'ui/**'
             integration:
               - 'app/**'
+              - 'agents/**'
+              - 'quarkus-app/**'
               - 'common/**'
               - 'integration-tests/**'
               - 'schema-util/**'
@@ -136,9 +140,9 @@ jobs:
             ard:
               # Defines the /well-known/ard* operations and Ard* response schemas.
               - 'common/src/main/resources/META-INF/openapi.json'
-              - 'app/src/main/java/io/apicurio/registry/agents/aicatalog/**'
-              - 'app/src/main/java/io/apicurio/registry/agents/ard/**'
-              - 'app/src/main/java/io/apicurio/registry/agents/rest/wellknown/**'
+              - 'agents/src/main/java/io/apicurio/registry/agents/aicatalog/**'
+              - 'agents/src/main/java/io/apicurio/registry/agents/ard/**'
+              - 'agents/src/main/java/io/apicurio/registry/agents/rest/wellknown/**'
               - '.github/ard-conformance/**'
               - '.github/scripts/ard_conformance.py'
               - '.github/workflows/verify-ard-conformance.yaml'

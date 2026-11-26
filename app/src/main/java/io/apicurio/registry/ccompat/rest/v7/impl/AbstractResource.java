@@ -1,5 +1,6 @@
 package io.apicurio.registry.ccompat.rest.v7.impl;
 
+import io.apicurio.registry.extensions.ArtifactContentPolicies;
 import io.apicurio.registry.ccompat.rest.error.ConflictException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
 import io.apicurio.registry.ccompat.rest.v7.beans.SchemaReference;
@@ -58,6 +59,9 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public abstract class AbstractResource {
+
+    @Inject
+    ArtifactContentPolicies contentPolicies;
 
     @Inject
     Logger log;
@@ -192,6 +196,7 @@ public abstract class AbstractResource {
                 // Apply rules using the potentially converted text content; the first version is stored as "1"
                 rulesService.applyRulesForNewVersion(groupId, artifactId, "1", artifactType, contentForRules,
                         RuleApplicationType.CREATE, artifactReferences, resolvedReferences);
+                contentPolicies.check(artifactType, contentForRules);
 
                 EditableArtifactMetaDataDto artifactMetaData = EditableArtifactMetaDataDto.builder().build();
                 EditableVersionMetaDataDto firstVersionMetaData = EditableVersionMetaDataDto.builder().build();
@@ -207,6 +212,7 @@ public abstract class AbstractResource {
                 // Apply rules using the potentially converted text content
                 rulesService.applyRules(groupId, artifactId, artifactType, contentForRules,
                         RuleApplicationType.UPDATE, artifactReferences, resolvedReferences);
+                contentPolicies.check(artifactType, contentForRules);
                 // Store the ORIGINAL content (text or binary)
                 ContentWrapperDto versionContent = ContentWrapperDto.builder().content(schemaContent)
                         .contentType(contentType).references(parsedReferences).build();

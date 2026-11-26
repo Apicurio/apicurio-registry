@@ -1,0 +1,21 @@
+{
+  "keys": [
+    {
+      "kty": "EC",
+      "crv": "P-256",
+      "x": "OCBgoJeI8bnHiw2bnMJf_mqmtDcfdtCI719ATmfEeEU",
+      "y": "NslOPx-ML3XYHWBzUnNYchUSz3K5T9QBVaOfXMGUsr0",
+      "kid": "py-es256",
+      "use": "sig",
+      "alg": "ES256"
+    },
+    {
+      "x": "h6ctISm5uFqUkSz-KBDrnKaEfQBTyoiGoRbCshqgQQc",
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "kid": "py-eddsa",
+      "use": "sig",
+      "alg": "EdDSA"
+    }
+  ]
+}

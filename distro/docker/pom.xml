@@ -23,7 +23,7 @@
   <dependencies>
     <dependency>
       <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-registry-app</artifactId>
+      <artifactId>apicurio-registry-quarkus-app</artifactId>
       <scope>provided</scope>
     </dependency>
   </dependencies>
@@ -45,7 +45,7 @@
               <outputDirectory>${basedir}/target/docker/app-files</outputDirectory>
               <resources>
                 <resource>
-                  <directory>${basedir}/../../app/target</directory>
+                  <directory>${basedir}/../../quarkus-app/target</directory>
                   <filtering>false</filtering>
                   <includes>
                     <include>apicurio-*.tar.gz</include>

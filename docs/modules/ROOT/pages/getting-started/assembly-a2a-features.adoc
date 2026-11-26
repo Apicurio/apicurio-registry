@@ -229,6 +229,10 @@ Searches for registered Agent Cards with filtering support. This endpoint requir
 |`publicOnly`
 |boolean
 |When `true`, return only Agent Cards with `public` visibility, whoever the caller is, even when authentication is disabled (default: `false`)
+
+|`signedBy`
+|string
+|Experimental. Return only Agent Cards with a signature by the key with this `kid` that verifies against the keys {registry} trusts. See xref:a2a-signed-agent-cards_{context}[].
 |===
 +
 .Example request
@@ -901,6 +905,90 @@ a|Complete schema validation including:
 * Authentication and security scheme validation
 * Valid JSON structure
 |===
+
+// ref-a2a-signed-agent-cards
+[id="a2a-signed-agent-cards_{context}"]
+== Signed Agent Cards
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+An Agent Card can carry JSON Web Signatures in its `signatures` array, as section 8.4 of the A2A v1.0 specification describes. {registry} can verify these signatures against the public keys of the publishers you trust, reject Agent Cards whose signatures do not verify, and tell discovery clients which trusted key signed each Agent Card. This feature is experimental.
+
+IMPORTANT: A verified signature proves that the Agent Card was signed with a key you trust and has not been changed since. It does not prove that the agent is safe or well-behaved, or that the agent serving requests at the card's URLs is the one that signed it.
+
+*How a signature is verified*
+
+Each entry of `signatures` is a JWS (RFC 7515) with a detached payload: the RFC 8785 (JCS) canonical form of the Agent Card without its `signatures` member. A signature verifies when:
+
+* Its protected header has `alg`, `typ` set to `JOSE`, and `kid`, and no `crit`. The unprotected `header` is ignored.
+* `alg` is in `apicurio.a2a.signature-verification.allowed-algs`. `none` and HMAC algorithms are never accepted.
+* A trusted key with that `kid` verifies the signature.
+
+The A2A specification also asks signers to remove fields with default values before canonicalizing, which cannot be reproduced exactly without the Agent Card's Protocol Buffer schema. {registry} therefore accepts a signature computed over the Agent Card exactly as stored, or over the Agent Card with empty strings, arrays, objects and `null` values removed, which is what the reference A2A Python SDK signs. As with that SDK, empty values can be added to or removed from a signed Agent Card without breaking its signatures. An Agent Card with duplicate property names never verifies.
+
+*Trusted keys*
+
+`apicurio.a2a.signature-verification.jwks-urls`:: URLs of JSON Web Key Sets (JWKS) holding the public keys of the publishers you trust.
+`apicurio.a2a.signature-verification.jku-allowed-hosts`:: Hosts, such as `keys.example.com` or `*.example.com`, whose key sets may be fetched from the `jku` header of a signature. A `jku` on any other host is never fetched. By default the list is empty and `jku` is never followed.
+
+Key sets are fetched under the server-wide outbound rules: HTTPS is required unless `apicurio.outbound.insecure-http.enabled` is set, redirects are not followed, and loopback (unless `apicurio.outbound.loopback.enabled` is set), link-local and cloud metadata addresses are refused. Each fetch, from connecting to the last byte of the response, must finish within `apicurio.a2a.signature-verification.fetch.timeout.seconds` (default 5) and must not exceed `apicurio.a2a.signature-verification.fetch.max-size.bytes`. A key set is cached for `apicurio.a2a.signature-verification.cache-ttl.seconds` (default 300). A signature that names an unknown `kid` refreshes the key sets early, at most once per key set in that period, so a newly published key is picked up. A key removed from a key set stops counting once the key set is fetched again. A key set that cannot be fetched contributes no keys until it can be fetched again.
+
+When neither property is set, which is the default, nothing is verified and no key set is ever fetched.
+
+*Signature policy for writes*
+
+`apicurio.a2a.signature-verification.mode` applies to every `AGENT_CARD` version published through the v3 or v2 REST API or the Confluent-compatible API, whether or not a rule is enabled. Because it is not a rule, disabling rules does not bypass it. Setting it to anything other than `off` requires `apicurio.features.experimental.enabled`.
+
+[cols="1,3",options="header"]
+|===
+|Mode |Behavior
+
+|`off` (default)
+|Signatures are not checked when Agent Cards are written.
+
+|`verify-if-present`
+|An unsigned Agent Card is accepted. A signed Agent Card needs at least one signature that verifies. Other signatures, for example by keys you do not trust, do not cause a rejection.
+
+|`require`
+|Every Agent Card needs at least one signature that verifies.
+|===
+
+The policy applies when an artifact is created with its first version, when a version is added, and when a draft version is published. Draft versions are not checked until they are published. Dry runs are rejected exactly like real writes. A rejected write is reported like a rule violation, with one cause per signature that names its `kid` and the reason, for example `Signature by kid 'publisher-2026' rejected: unknown key`. Key material and signature values are never included.
+
+The policy also applies to the Agent Cards that agent inventory synchronization creates, which go through the same v3 create path: an Agent Card that fails the policy is reported as `REJECTED`. In the v2 REST API, which has no dry runs and no drafts, the policy applies when an artifact is created, when a version is added or the artifact is updated, and to the test-update endpoint.
+
+The following writes are not checked by the policy:
+
+* Data import, through the admin import endpoints or the import at startup: it restores exported data, is restricted to administrators or the operator, and must reproduce the exported registry as it was.
+* GitOps and KubernetesOps storage: the operator controls the repository or the Kubernetes resources that the registry loads.
+* Agent Cards that {registry} generates from the `x-agent-card` extension of an OpenAPI document: the registry writes them itself, after the OpenAPI document was accepted, and they are never signed.
+* Changes to the content of a draft version: the content is checked when the draft is published.
+
+Whatever the path a card took, its signatures are always verified when it is read, so `verifiedSigners` and `signedBy` only report signatures that verify against the keys trusted at that moment.
+
+*Signers in discovery*
+
+Whether a signature verifies is computed when the Agent Card is read, from its content and the keys trusted at that moment; nothing is stored. Labels and metadata therefore cannot add or remove a verified signer.
+
+* In `/.well-known/agents` results, `verifiedSigners` lists the `kid` of each signature that verifies. It is absent when no trusted keys are configured.
+* `/.well-known/agents?signedBy=<kid>` returns only the Agent Cards with a signature by that `kid` that verifies now. The candidates are found through the `kid` each signature claims, and every candidate is then verified.
+
+NOTE: The claimed `kid` of each signature is indexed when an Agent Card version is written. When you upgrade an existing SQL database (PostgreSQL, MySQL, SQL Server or H2) to this version of {registry}, the database upgrade re-indexes the latest published version of every Agent Card once, so Agent Cards stored before the upgrade are found by `signedBy`. The re-index reads and parses each Agent Card's content once, which adds time to the upgrade in proportion to the number of Agent Cards; other artifact types are not read. KafkaSQL applies the same upgrade to a restored snapshot and indexes every Agent Card it replays from its journal, and GitOps and KubernetesOps storage index every Agent Card they load.
+
+.Example: trust one publisher and require signed Agent Cards
+[source,properties]
+----
+apicurio.features.experimental.enabled=true
+apicurio.a2a.signature-verification.mode=require
+apicurio.a2a.signature-verification.jwks-urls=https://keys.example.com/.well-known/jwks.json
+----
+
+.Example: find the Agent Cards signed by a trusted key
+[source,bash]
+----
+curl "http://localhost:8080/.well-known/agents?signedBy=publisher-2026"
+----
 
 // ref-a2a-compatibility-checking
 [id="a2a-compatibility-checking_{context}"]

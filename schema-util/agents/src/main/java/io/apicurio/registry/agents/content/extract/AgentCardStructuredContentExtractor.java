@@ -3,7 +3,9 @@ package io.apicurio.registry.agents.content.extract;
 import io.apicurio.registry.content.extract.StructuredContentExtractor;
 import io.apicurio.registry.content.extract.StructuredElement;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -20,6 +22,11 @@ import io.apicurio.registry.content.ContentHandle;
 /**
  * Extracts structured elements from A2A Agent Card content for search indexing. Parses the Agent Card JSON
  * and extracts skills, capabilities, protocol bindings, security schemes, tags, and modes.
+ * <p>
+ * It also indexes, as kind {@code signer}, the {@code kid} each signature in {@code signatures[]} claims
+ * in its protected header. A claimed {@code kid} is only a lookup key: it says nothing about whether the
+ * signature verifies, which is decided when the card is read.
+ * </p>
  */
 public class AgentCardStructuredContentExtractor implements StructuredContentExtractor {
 
@@ -44,6 +51,7 @@ public class AgentCardStructuredContentExtractor implements StructuredContentExt
             extractSecuritySchemeTypes(root, elements);
             extractTags(root, elements);
             extractProtocolVersion(root, elements);
+            extractClaimedSigners(root, elements);
 
             return elements;
         } catch (Exception e) {
@@ -126,6 +134,37 @@ public class AgentCardStructuredContentExtractor implements StructuredContentExt
         JsonNode version = root.path(PROTOCOL_VERSION);
         if (!version.isMissingNode() && version.isTextual()) {
             elements.add(new StructuredElement("protocolversion", version.asText()));
+        }
+    }
+
+    private void extractClaimedSigners(JsonNode root, List<StructuredElement> elements) {
+        JsonNode signatures = root.path("signatures");
+        if (!signatures.isArray()) {
+            return;
+        }
+        Set<String> seen = new HashSet<>();
+        for (JsonNode signature : signatures) {
+            String kid = claimedKid(signature.path("protected"));
+            if (kid != null && seen.add(kid)) {
+                elements.add(new StructuredElement("signer", kid));
+            }
+        }
+    }
+
+    /**
+     * @return the {@code kid} of a base64url-encoded JWS protected header, or {@code null} if the header
+     *         is malformed or has no textual {@code kid}
+     */
+    private String claimedKid(JsonNode protectedHeader) {
+        if (!protectedHeader.isTextual()) {
+            return null;
+        }
+        try {
+            byte[] decoded = Base64.getUrlDecoder().decode(protectedHeader.textValue());
+            JsonNode kid = objectMapper.readTree(new String(decoded, StandardCharsets.UTF_8)).path("kid");
+            return kid.isTextual() && !kid.textValue().isBlank() ? kid.textValue() : null;
+        } catch (Exception e) {
+            return null;
         }
     }
 

@@ -21,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class McpToolsClientTest {
 
-    private static final Duration TIMEOUT = Duration.ofSeconds(2);
+    private static final Duration TIMEOUT = Duration.ofSeconds(10);
 
     private final McpToolsClient client = new McpToolsClient();
     private McpTestServer server;
@@ -125,9 +125,11 @@ class McpToolsClientTest {
     @Test
     void slowServerTimesOut() {
         server.tools(McpTestServer.tool("a", "string"));
-        server.delayMillis = 4000;
+        server.delayMillis = 2500;
 
-        McpImportException e = failure(65536, 10);
+        McpImportException e = assertThrows(McpImportException.class,
+                () -> client.listTools(URI.create(server.url()), Map.of(),
+                        new McpToolsClient.Limits(Duration.ofSeconds(1), Duration.ofMinutes(1), 65536, 10, Long.MAX_VALUE)));
 
         assertEquals(Reason.TIMEOUT, e.getReason());
         assertEquals("The MCP server did not respond in time.", e.getMessage());

@@ -21,7 +21,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class McpToolsClientTest {
 
-    private static final Duration TIMEOUT = Duration.ofSeconds(2);
+    // Generous: used by every test except the two below that specifically exercise a timeout.
+    // A tight budget here made toolsLargerInTotalThanAllowedAreRefused, oversizeMessageIsRefusedByTheSdkBound
+    // and others fail intermittently in CI with TIMEOUT instead of their actual expected reason, once a
+    // loaded runner made a request (which does nothing slow on its own) take longer than the budget
+    // (#11513).
+    private static final Duration TIMEOUT = Duration.ofSeconds(30);
+
+    // Short, and used only where the test deliberately makes a request slow and checks that the client
+    // times out because of it.
+    private static final Duration SHORT_TIMEOUT = Duration.ofSeconds(2);
 
     private final McpToolsClient client = new McpToolsClient();
     private McpTestServer server;
@@ -127,7 +136,9 @@ class McpToolsClientTest {
         server.tools(McpTestServer.tool("a", "string"));
         server.delayMillis = 4000;
 
-        McpImportException e = failure(65536, 10);
+        McpImportException e = assertThrows(McpImportException.class, () -> client.listTools(
+                URI.create(server.url()), Map.of(),
+                new McpToolsClient.Limits(SHORT_TIMEOUT, Duration.ofMinutes(1), 65536, 10, Long.MAX_VALUE)));
 
         assertEquals(Reason.TIMEOUT, e.getReason());
         assertEquals("The MCP server did not respond in time.", e.getMessage());

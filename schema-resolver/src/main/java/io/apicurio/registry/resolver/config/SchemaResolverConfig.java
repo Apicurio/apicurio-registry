@@ -457,6 +457,27 @@ public class SchemaResolverConfig extends AbstractConfig {
     public static final String HTTP_ADAPTER_DEFAULT = "AUTO";
 
     /**
+     * Maximum time (milliseconds) the HTTP client that calls the registry waits to establish a
+     * connection. Only applied together with {@link #HTTP_READ_TIMEOUT_MS}: if either value is
+     * {@code 0}, no request timeout is configured and each HTTP adapter keeps its own defaults.
+     */
+    public static final String HTTP_CONNECT_TIMEOUT_MS = "apicurio.registry.http.connect-timeout-ms";
+    public static final long HTTP_CONNECT_TIMEOUT_MS_DEFAULT = 60000;
+
+    /**
+     * Maximum time (milliseconds) a registry request may go without receiving any data before it
+     * fails. Without it, a request whose response is lost (for example on a connection that drops
+     * without a reset) blocks the calling thread forever: a serializer blocks
+     * {@code Producer.send()}, and a Kafka Connect converter freezes its task while the task still
+     * reports {@code RUNNING}. The Vert.x adapter applies it as a read idle timeout (rounded up to
+     * whole seconds); the JDK adapter applies it as the per-request timeout. A request that times
+     * out is retried by the client retry settings ({@link #CLIENT_RETRY_ENABLED}). Set to {@code 0}
+     * to disable request timeouts, which restores the behaviour of earlier versions.
+     */
+    public static final String HTTP_READ_TIMEOUT_MS = "apicurio.registry.http.read-timeout-ms";
+    public static final long HTTP_READ_TIMEOUT_MS_DEFAULT = 60000;
+
+    /**
      * Whether to enable OpenTelemetry trace context propagation for HTTP requests
      * to the Registry. When enabled, W3C trace context headers ({@code traceparent},
      * {@code tracestate}) will be injected into all outgoing requests.
@@ -798,6 +819,14 @@ public class SchemaResolverConfig extends AbstractConfig {
         return getString(HTTP_ADAPTER);
     }
 
+    public long getHttpConnectTimeoutMs() {
+        return getDurationNonNegativeMillis(HTTP_CONNECT_TIMEOUT_MS).toMillis();
+    }
+
+    public long getHttpReadTimeoutMs() {
+        return getDurationNonNegativeMillis(HTTP_READ_TIMEOUT_MS).toMillis();
+    }
+
     /**
      * Returns whether OpenTelemetry trace context propagation is enabled.
      *
@@ -843,5 +872,7 @@ public class SchemaResolverConfig extends AbstractConfig {
             entry(TLS_TRUST_ALL, TLS_TRUST_ALL_DEFAULT),
             entry(TLS_VERIFY_HOST, TLS_VERIFY_HOST_DEFAULT),
             entry(HTTP_ADAPTER, HTTP_ADAPTER_DEFAULT),
+            entry(HTTP_CONNECT_TIMEOUT_MS, HTTP_CONNECT_TIMEOUT_MS_DEFAULT),
+            entry(HTTP_READ_TIMEOUT_MS, HTTP_READ_TIMEOUT_MS_DEFAULT),
             entry(OTEL_ENABLED, OTEL_ENABLED_DEFAULT));
 }

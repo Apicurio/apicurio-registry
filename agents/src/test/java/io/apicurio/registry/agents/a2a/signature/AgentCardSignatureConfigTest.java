@@ -20,7 +20,7 @@ class AgentCardSignatureConfigTest {
         config.modeValue = mode;
         config.allowedAlgs = algs;
         config.jwksUrls = Optional.empty();
-        config.jkuAllowlist = Optional.empty();
+        config.jkuAllowedHosts = Optional.empty();
         return config;
     }
 

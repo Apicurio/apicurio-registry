@@ -27,7 +27,7 @@ public final class SignatureVerificationProfiles {
         props.put("apicurio.a2a.signature-verification.mode", mode);
         props.put("apicurio.a2a.signature-verification.jwks-urls", JwksStub.url(jwksPath));
         // Only 127.0.0.1: a jku naming "localhost", the same server, must not be followed.
-        props.put("apicurio.a2a.signature-verification.jku-allowlist", "127.0.0.1");
+        props.put("apicurio.a2a.signature-verification.jku-allowed-hosts", "127.0.0.1");
         props.put("apicurio.a2a.signature-verification.cache-ttl.seconds", "2");
         props.put("apicurio.a2a.signature-verification.fetch.timeout.seconds", "2");
         props.put("apicurio.outbound.insecure-http.enabled", "true");

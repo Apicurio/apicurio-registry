@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * The trusted public keys: the JSON Web Key Sets of {@code apicurio.a2a.signature-verification.jwks-urls},
  * and the key set named by a signature's {@code jku} when its host is in
- * {@code apicurio.a2a.signature-verification.jku-allowlist}. A {@code jku} on any other host is never
+ * {@code apicurio.a2a.signature-verification.jku-allowed-hosts}. A {@code jku} on any other host is never
  * fetched.
  * <p>
  * Each key set is fetched when first needed and again once it is older than
@@ -132,7 +132,7 @@ public class TrustedKeyService {
         if (name.endsWith(".")) {
             name = name.substring(0, name.length() - 1);
         }
-        for (String entry : config.getJkuAllowlist()) {
+        for (String entry : config.getJkuAllowedHosts()) {
             String allowed = entry.toLowerCase(Locale.ROOT);
             if (allowed.startsWith("*.")) {
                 String suffix = allowed.substring(1);

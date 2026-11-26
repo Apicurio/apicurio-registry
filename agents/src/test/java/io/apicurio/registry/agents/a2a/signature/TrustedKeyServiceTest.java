@@ -13,7 +13,7 @@ class TrustedKeyServiceTest {
     @Test
     void jkuAllowListMatchesExactHostsAndSubdomainWildcards() {
         AgentCardSignatureConfig config = new AgentCardSignatureConfig();
-        config.jkuAllowlist = Optional.of(List.of("keys.example.com", "*.trusted.example"));
+        config.jkuAllowedHosts = Optional.of(List.of("keys.example.com", "*.trusted.example"));
         TrustedKeyService service = new TrustedKeyService();
         service.config = config;
 

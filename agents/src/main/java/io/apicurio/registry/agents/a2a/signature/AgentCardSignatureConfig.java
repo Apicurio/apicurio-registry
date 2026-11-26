@@ -68,12 +68,12 @@ public class AgentCardSignatureConfig {
     List<String> allowedAlgs;
 
     @ConfigProperty(name = "apicurio.a2a.signature-verification.jwks-urls")
-    @Info(category = CATEGORY_A2A, description = "URLs of the JSON Web Key Sets holding the public keys of trusted Agent Card publishers. Agent Card signatures are verified whenever this or apicurio.a2a.signature-verification.jku-allowlist is set, including in discovery results, whatever the mode. The URLs must use HTTPS unless apicurio.outbound.insecure-http.enabled is set", availableSince = "3.4.0")
+    @Info(category = CATEGORY_A2A, description = "URLs of the JSON Web Key Sets holding the public keys of trusted Agent Card publishers. Agent Card signatures are verified whenever this or apicurio.a2a.signature-verification.jku-allowed-hosts is set, including in discovery results, whatever the mode. The URLs must use HTTPS unless apicurio.outbound.insecure-http.enabled is set", availableSince = "3.4.0")
     Optional<List<String>> jwksUrls;
 
-    @ConfigProperty(name = "apicurio.a2a.signature-verification.jku-allowlist")
+    @ConfigProperty(name = "apicurio.a2a.signature-verification.jku-allowed-hosts")
     @Info(category = CATEGORY_A2A, description = "Hosts whose JSON Web Key Sets may be fetched from the 'jku' header of an Agent Card signature, as exact host names or '*.domain' wildcards. A 'jku' naming any other host is never fetched. Empty (the default) means 'jku' is never followed", availableSince = "3.4.0")
-    Optional<List<String>> jkuAllowlist;
+    Optional<List<String>> jkuAllowedHosts;
 
     @ConfigProperty(name = "apicurio.a2a.signature-verification.fetch.timeout.seconds", defaultValue = "5")
     @Info(category = CATEGORY_A2A, description = "Time budget, in seconds, for fetching a JSON Web Key Set: connecting, receiving the response headers and reading the whole body. A fetch that takes longer fails, and the key set contributes no keys until it is fetched successfully", availableSince = "3.4.0")
@@ -109,7 +109,7 @@ public class AgentCardSignatureConfig {
         }
         if (mode != Mode.OFF && !isVerificationConfigured()) {
             log.warn("apicurio.a2a.signature-verification.mode is '{}' but no trusted keys are configured "
-                    + "(apicurio.a2a.signature-verification.jwks-urls and jku-allowlist are empty): no "
+                    + "(apicurio.a2a.signature-verification.jwks-urls and jku-allowed-hosts are empty): no "
                     + "Agent Card signature can verify.", mode.getValue());
         }
     }
@@ -126,15 +126,15 @@ public class AgentCardSignatureConfig {
         return jwksUrls.orElse(List.of()).stream().map(String::trim).filter(url -> !url.isEmpty()).toList();
     }
 
-    public List<String> getJkuAllowlist() {
-        return jkuAllowlist.orElse(List.of()).stream().map(String::trim).filter(host -> !host.isEmpty()).toList();
+    public List<String> getJkuAllowedHosts() {
+        return jkuAllowedHosts.orElse(List.of()).stream().map(String::trim).filter(host -> !host.isEmpty()).toList();
     }
 
     /**
      * @return whether any key source is configured; when not, nothing is ever fetched
      */
     public boolean isVerificationConfigured() {
-        return !getJwksUrls().isEmpty() || !getJkuAllowlist().isEmpty();
+        return !getJwksUrls().isEmpty() || !getJkuAllowedHosts().isEmpty();
     }
 
     public int getFetchTimeoutSeconds() {

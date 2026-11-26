@@ -930,7 +930,7 @@ The A2A specification also asks signers to remove fields with default values bef
 *Trusted keys*
 
 `apicurio.a2a.signature-verification.jwks-urls`:: URLs of JSON Web Key Sets (JWKS) holding the public keys of the publishers you trust.
-`apicurio.a2a.signature-verification.jku-allowlist`:: Hosts, such as `keys.example.com` or `*.example.com`, whose key sets may be fetched from the `jku` header of a signature. A `jku` on any other host is never fetched. By default the list is empty and `jku` is never followed.
+`apicurio.a2a.signature-verification.jku-allowed-hosts`:: Hosts, such as `keys.example.com` or `*.example.com`, whose key sets may be fetched from the `jku` header of a signature. A `jku` on any other host is never fetched. By default the list is empty and `jku` is never followed.
 
 Key sets are fetched under the server-wide outbound rules: HTTPS is required unless `apicurio.outbound.insecure-http.enabled` is set, redirects are not followed, and loopback (unless `apicurio.outbound.loopback.enabled` is set), link-local and cloud metadata addresses are refused. Each fetch, from connecting to the last byte of the response, must finish within `apicurio.a2a.signature-verification.fetch.timeout.seconds` (default 5) and must not exceed `apicurio.a2a.signature-verification.fetch.max-size.bytes`. A key set is cached for `apicurio.a2a.signature-verification.cache-ttl.seconds` (default 300). A signature that names an unknown `kid` refreshes the key sets early, at most once per key set in that period, so a newly published key is picked up. A key removed from a key set stops counting once the key set is fetched again. A key set that cannot be fetched contributes no keys until it can be fetched again.
 

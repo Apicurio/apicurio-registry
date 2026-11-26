@@ -98,7 +98,8 @@ public class ActivationConditions {
         public boolean isMet(DependentResource<PodDisruptionBudget, ApicurioRegistry3> resource,
                              ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
             boolean isManaged = isPodDisruptionBudgetManaged(
-                    ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp).orElse(null));
+                    ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp).orElse(null))
+                    && !GitOps.isPushMode(primary);
             if (!isManaged) {
                 ((AppPodDisruptionBudgetResource) resource).delete(primary, context);
             }
@@ -126,9 +127,10 @@ public class ActivationConditions {
         @Override
         public boolean isMet(DependentResource<HorizontalPodAutoscaler, ApicurioRegistry3> resource,
                              ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
-            boolean isManaged = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp)
+            boolean autoscalingEnabled = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp)
                     .map(ComponentSpec::getAutoscaling).map(AutoscalingSpec::getEnabled)
                     .orElse(Boolean.FALSE);
+            boolean isManaged = autoscalingEnabled && !GitOps.isPushMode(primary);
             if (!isManaged) {
                 ((AppHorizontalPodAutoscalerResource) resource).delete(primary, context);
             }

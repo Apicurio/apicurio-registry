@@ -7,7 +7,6 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
-import static io.apicurio.registry.cli.common.CliException.APPLICATION_ERROR_RETURN_CODE;
 import static io.apicurio.registry.cli.common.CliException.SERVER_ERROR_RETURN_CODE;
 import static io.apicurio.registry.cli.common.CliException.VALIDATION_ERROR_RETURN_CODE;
 import static io.apicurio.registry.cli.utils.Mapper.MAPPER;
@@ -85,7 +84,7 @@ public class RoleMappingCommandTest extends AbstractCLITest {
         executeAndAssertSuccess("role", "create", "dup-user", TEST_ROLE);
         assertThat(cmd.execute("role", "create", "dup-user", TEST_ROLE))
                 .as(withCliOutput("Command should fail with the expected exit code"))
-                .isEqualTo(APPLICATION_ERROR_RETURN_CODE);
+                .isEqualTo(SERVER_ERROR_RETURN_CODE);
         executeAndAssertSuccess("role", "delete", "dup-user");
     }
 

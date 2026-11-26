@@ -24,7 +24,7 @@ public final class OutboundHeaders {
      * @param target    how the target is named in error messages, for example "the MCP server"
      * @return the headers, unchanged
      * @throws BadRequestException when a name is not an HTTP token or is reserved, or a value
-     *                             contains a line break
+     *                             contains a control character
      */
     public static Map<String, String> validate(Headers requested, Set<String> reserved, String target) {
         if (requested == null || requested.getAdditionalProperties().isEmpty()) {
@@ -38,13 +38,20 @@ public final class OutboundHeaders {
                 // The name is safe to repeat; the value is never repeated.
                 throw new BadRequestException("Header '" + sanitize(name) + "' cannot be sent to " + target + ".");
             }
-            if (!(header.getValue() instanceof String value)
-                    || value.chars().anyMatch(c -> c == '\r' || c == '\n')) {
+            if (!(header.getValue() instanceof String value) || value.chars().anyMatch(OutboundHeaders::isControl)) {
                 throw new BadRequestException("Header '" + sanitize(name) + "' has an invalid value.");
             }
             headers.put(name, value);
         }
         return Map.copyOf(headers);
+    }
+
+    /**
+     * A control character, which RFC 9110 does not allow in a field value (horizontal tab aside).
+     * The HTTP client would refuse it with an exception that repeats the value.
+     */
+    private static boolean isControl(int c) {
+        return c < 0x20 && c != '\t' || c == 0x7f;
     }
 
     /** A character allowed in an HTTP field name: RFC 9110 {@code tchar}. */

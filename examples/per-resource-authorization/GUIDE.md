@@ -183,7 +183,8 @@ status admin GET /groups/team-b/artifacts/inventory-schema
 
 ![Groups visible to developer](images/02-developer-groups.png)
 
-Open `team-b`: it contains only `public-schema`. `inventory-schema` is not listed at all.
+Open `team-b`: it contains only `public-schema`. `inventory-schema` is not listed at all. The group
+is read-only for `developer`, so there is no *Edit*, *Create artifact* or *Delete group*.
 
 ![team-b as seen by developer](images/03-developer-team-b.png)
 
@@ -300,9 +301,8 @@ the UI hides actions that the user's role does not allow.
 
 ![Groups visible to user](images/07-user-groups.png)
 
-`developer`'s role does allow writes, so the UI offers *Edit* on `shared/common-types`. Try it as
-`developer`: change the description and save. The registry refuses the change, and the UI shows the
-*Access permissions needed* page from step 6.
+`developer`'s role does allow writes, but the rules only let `developer` read `shared`, so the UI
+offers no *Edit* on `shared/common-types` (step 10 explains how it knows).
 
 ## Step 10: What can I do with this? The `permissions` flags
 
@@ -336,9 +336,10 @@ call developer GET '/search/groups?limit=100' | jq -c '.groups[] | {group: .grou
 `admin` is `false` everywhere: `developer`'s role does not allow administration. The flags are
 hints, not permissions: every request is still checked on its own.
 
-**In the UI:** the UI does not use the `permissions` flags yet. On `team-b`, it still offers
-`developer` *Edit*, *Create artifact* and *Delete group*, which the registry then refuses. The flags
-are what lets a client hide them.
+**In the UI:** the UI uses the flags to hide what would fail. As `developer`, `team-b` has no
+*Edit*, *Create artifact* or *Delete group*, while `team-a` has all three (compare the screenshots
+of steps 5 and 6). An action the flags allow can still be refused if the rules changed in between:
+the UI then shows the *Access permissions needed* page from step 6.
 
 ## Step 11: Names are checked when you create, and owners bypass the rules
 
@@ -510,7 +511,7 @@ rm -f access.rules.orig
   and only rule denials reach the audit log (9); results tell the client what it can do (10);
   creation checks the name, and owners bypass the rules (11); anonymous access is explicit (12);
   rules reload live, and a broken file is refused (13).
-  The UI shows each of these, except anonymous access (12) and the `permissions` flags (10).
+  The UI shows each of these, except anonymous access (12).
 - **Questions that usually come up:**
   - *Does a group rule give access to the artifacts in the group?* No. Group and artifact rules
     are independent (step 4).

@@ -42,6 +42,7 @@ import io.apicurio.registry.storage.dto.UsageSummaryCountsDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.dto.VersionContentDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.registry.storage.dto.VersionWithArtifactMetaDataDto;
 import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.CommitFailedException;
@@ -70,6 +71,7 @@ import io.apicurio.registry.utils.impexp.v3.GroupRuleEntity;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -281,6 +283,16 @@ public interface RegistryStorage extends DynamicConfigStorage {
      */
     ArtifactMetaDataDto getArtifactMetaData(String groupId, String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException;
+
+    /**
+     * Gets the metadata of many artifacts in as few reads as possible. Each artifact is matched as
+     * {@link #getArtifactMetaData(String, String)} matches it.
+     *
+     * @param artifacts the group (null for the default group) and artifact IDs
+     * @return the metadata of the artifacts that exist, in no particular order
+     * @throws RegistryStorageException
+     */
+    List<ArtifactMetaDataDto> getArtifactsMetaData(Collection<GA> artifacts) throws RegistryStorageException;
 
     /**
      * Gets the metadata of the version that matches content.
@@ -752,6 +764,18 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws RegistryStorageException
      */
     ArtifactVersionMetaDataDto getArtifactVersionMetaData(Long globalId)
+            throws VersionNotFoundException, RegistryStorageException;
+
+    /**
+     * Gets the metadata of the version with this global ID and of its artifact, in a single read.
+     * Authorization needs both: the version tells which artifact a global ID names, and the artifact
+     * holds its stored IDs and owner.
+     *
+     * @param globalId
+     * @throws VersionNotFoundException
+     * @throws RegistryStorageException
+     */
+    VersionWithArtifactMetaDataDto getArtifactVersionWithArtifactMetaData(Long globalId)
             throws VersionNotFoundException, RegistryStorageException;
 
     /**

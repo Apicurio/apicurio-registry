@@ -121,13 +121,13 @@ if (FEATURE_AGENTS) {
     CONFIG.features.agents = FEATURE_AGENTS === "true";
 }
 if (FEATURE_DELETE_GROUP_ENABLED) {
-    CONFIG.features.deleteGroupEnabled = FEATURE_DELETE_GROUP_ENABLED === "true";
+    CONFIG.features.deleteGroup = FEATURE_DELETE_GROUP_ENABLED === "true";
 }
 if (FEATURE_DELETE_ARTIFACT_ENABLED) {
-    CONFIG.features.deleteArtifactEnabled = FEATURE_DELETE_ARTIFACT_ENABLED === "true";
+    CONFIG.features.deleteArtifact = FEATURE_DELETE_ARTIFACT_ENABLED === "true";
 }
 if (FEATURE_DELETE_VERSION_ENABLED) {
-    CONFIG.features.deleteVersionEnabled = FEATURE_DELETE_VERSION_ENABLED === "true";
+    CONFIG.features.deleteVersion = FEATURE_DELETE_VERSION_ENABLED === "true";
 }
 
 

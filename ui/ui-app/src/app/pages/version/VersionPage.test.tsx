@@ -22,6 +22,10 @@ vi.mock("@services/useMcpToolService.ts", () => ({
     useMcpToolService: () => ({ getToolCompatibility })
 }));
 
+vi.mock("@services/useSearchService.ts", () => ({
+    useSearchService: () => ({ artifactPermissions: () => Promise.resolve(undefined) })
+}));
+
 vi.mock("@services/useUserService.ts", () => ({
     useUserService: () => ({ updateCurrentUser: () => Promise.resolve({}) })
 }));

@@ -1,5 +1,6 @@
 package io.apicurio.registry.rest.v2.impl;
 
+import io.apicurio.registry.auth.AuthorizationLookups;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
@@ -20,6 +21,7 @@ import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
+import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.references.ReferenceResolution;
 import io.apicurio.registry.types.ArtifactMediaTypes;
@@ -44,6 +46,9 @@ public class IdsResourceImpl implements IdsResource {
 
     @Inject
     CommonResourceOperations common;
+
+    @Inject
+    AuthorizationLookups lookups;
 
     @Inject
     @Current
@@ -78,7 +83,8 @@ public class IdsResourceImpl implements IdsResource {
     @Override
     @Authorized(style = AuthorizedStyle.GlobalId, level = AuthorizedLevel.Read)
     public Response getContentByGlobalId(long globalId, Boolean dereference) {
-        ArtifactVersionMetaDataDto metaData = storage.getArtifactVersionMetaData(globalId);
+        // Read while authorizing the global ID, in this request
+        ArtifactVersionMetaDataDto metaData = versionMetaData(globalId);
         if (VersionState.DISABLED.equals(metaData.getState())) {
             throw new ArtifactNotFoundException(null, String.valueOf(globalId));
         }
@@ -168,12 +174,16 @@ public class IdsResourceImpl implements IdsResource {
             return artifact.getReferences().stream().map(V2ApiUtil::referenceDtoToReference)
                     .collect(Collectors.toList());
         } else {
-            ArtifactVersionMetaDataDto amd = storage.getArtifactVersionMetaData(globalId);
+            ArtifactVersionMetaDataDto amd = versionMetaData(globalId);
             // Inbound references point from other artifacts: only list those the caller may read
             return storage
                     .getInboundArtifactReferences(amd.getGroupId(), amd.getArtifactId(), amd.getVersion())
                     .stream().filter(ref -> searchAuthorizer.canReadArtifact(ref.getGroupId(), ref.getArtifactId()))
                     .map(V2ApiUtil::referenceDtoToReference).collect(Collectors.toList());
         }
+    }
+
+    private ArtifactVersionMetaDataDto versionMetaData(long globalId) {
+        return lookups.version(storage, globalId).orElseThrow(() -> new VersionNotFoundException(globalId));
     }
 }

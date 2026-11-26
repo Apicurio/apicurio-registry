@@ -27,7 +27,7 @@ follow each example's README quick start.
 
 | Example | What it shows | ADR | Docs |
 |---|---|---|---|
-| [rules-and-compatibility](rules-and-compatibility/) | Validity, compatibility and integrity rules, globally, per group and per artifact; the client-side validation library | [0006](../adr/0006-rules-engine.md) | [Rules](../docs/modules/ROOT/pages/getting-started/assembly-intro-to-registry-rules.adoc) |
+| [rules-and-compatibility](rules-and-compatibility/) | Validity, compatibility and integrity rules, globally, per group and per artifact; the client-side validation library | [0006](../adr/0006-rules-engine.md), [0024](../adr/0024-data-model.md) | [Rules](../docs/modules/ROOT/pages/getting-started/assembly-intro-to-registry-rules.adoc) |
 | [schema-references](schema-references/) | References from the Maven plugin, the REST API and the serializers; the reference graph and integrity rules | [0008](../adr/0008-artifact-references.md) | [References](../docs/modules/ROOT/pages/getting-started/assembly-artifact-reference.adoc) |
 | [custom-artifact-types](custom-artifact-types/) | Adding artifact types with Java classes or a webhook | [0013](../adr/0013-custom-artifact-types.md) | [Custom types](../docs/modules/ROOT/pages/getting-started/assembly-custom-artifact-types.adoc) |
 | [odcs-data-contracts](odcs-data-contracts/) | ODCS contracts projected onto schemas, enforced by serdes, migration rules | [0002](../adr/0002-odcs-native-data-contracts.md) | [Data contracts](../docs/modules/ROOT/pages/getting-started/assembly-data-contracts.adoc) |
@@ -54,7 +54,7 @@ follow each example's README quick start.
 |---|---|---|---|
 | [storage-variants](storage-variants/) | The same checks on in-memory, PostgreSQL, MySQL, SQL Server, KafkaSQL, GitOps and KubernetesOps storage, and Elasticsearch search | [0010](../adr/0010-storage-architecture.md), [0015](../adr/0015-search-and-elasticsearch.md) | [Installing](../docs/modules/ROOT/pages/getting-started/assembly-installing-registry-docker.adoc) |
 | [operator](operator/) | The Kubernetes operator on kind: a custom resource per storage | [0019](../adr/0019-operator.md), [0020](../adr/0020-multitenancy.md) | [Operator](../operator/docs/modules/ROOT/pages/) |
-| [operational-guardrails](operational-guardrails/) | Limits, disabled APIs, deletion switches, read-only mode | [0017](../adr/0017-operational-guardrails.md) | [Configuration](../docs/modules/ROOT/pages/getting-started/assembly-configuring-the-registry.adoc) |
+| [operational-guardrails](operational-guardrails/) | Limits, disabled APIs, deletion switches, read-only mode | [0017](../adr/0017-operational-guardrails.md), [0025](../adr/0025-configuration.md) | [Configuration](../docs/modules/ROOT/pages/getting-started/assembly-configuring-the-registry.adoc) |
 | [http-caching](http-caching/) | Cache headers and ETags per endpoint: what is safe to cache, and what is not | [0016](../adr/0016-http-caching.md) | |
 | [registry-events](registry-events/) | Change events from SQL storage (an outbox table) and from KafkaSQL, and CloudEvents | [0011](../adr/0011-registry-events.md) | [Events](../docs/modules/ROOT/pages/getting-started/assembly-registry-events.adoc) |
 | [usage-telemetry-demo](usage-telemetry-demo/) | Which schemas clients use, and which are safe to retire | [0003](../adr/0003-usage-telemetry.md) | [Usage telemetry](../docs/modules/ROOT/pages/getting-started/assembly-usage-telemetry.adoc) |
@@ -66,7 +66,7 @@ follow each example's README quick start.
 | Example | What it shows | ADR | Docs |
 |---|---|---|---|
 | [agent-registry](agent-registry/) | Agent cards, MCP tools, model schemas and prompt templates; discovery and rendering | [0014](../adr/0014-agent-registry.md), [0004](../adr/0004-ai-catalog-ard-convergence.md) | [Agent registry](../docs/modules/ROOT/pages/getting-started/assembly-agent-registry-quickstart.adoc) |
-| [mcp-keycloak](mcp-keycloak/) | The registry's MCP server against a Keycloak-secured registry, over stdio (service-account login) and HTTP (caller's token forwarded); checks tools, writes and role enforcement in both modes | [0014](../adr/0014-agent-registry.md), [0009](../adr/0009-authentication.md) | [MCP server](../docs/modules/ROOT/pages/getting-started/assembly-mcp-server-integration.adoc) |
+| [mcp-keycloak](mcp-keycloak/) | The registry's MCP server against a Keycloak-secured registry, over stdio (service-account login) and HTTP (caller's token forwarded); checks tools, writes and role enforcement in both modes | [0023](../adr/0023-mcp-server.md), [0014](../adr/0014-agent-registry.md), [0009](../adr/0009-authentication.md) | [MCP server](../docs/modules/ROOT/pages/getting-started/assembly-mcp-server-integration.adoc) |
 
 ## Other
 

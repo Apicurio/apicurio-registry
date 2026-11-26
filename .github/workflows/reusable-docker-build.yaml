@@ -209,11 +209,18 @@ jobs:
 
             # The revision label is the commit the image was built from; it
             # replaces the base image's. Verify's publish guard reads it (#10380).
+            # The version label is the project version from the root pom
+            # (falling back to the image tag), not a moving tag like latest-snapshot.
+            OCI_VERSION=$(sed -n '0,/<version>/s:.*<version>\(.*\)</version>.*:\1:p' pom.xml 2>/dev/null)
+            OCI_VERSION=${OCI_VERSION:-${{ inputs.tag }}}
+            OCI_CREATED=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
             docker buildx build \
               --push \
               --file ${{ inputs.dockerfile }} \
               --platform ${{ inputs.platforms }} \
               --label org.opencontainers.image.revision=${{ github.sha }} \
               --label org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }} \
+              --label "org.opencontainers.image.version=$OCI_VERSION" \
+              --label "org.opencontainers.image.created=$OCI_CREATED" \
               $TAG_ARGS \
               ${{ inputs.context }}

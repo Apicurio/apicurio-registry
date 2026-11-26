@@ -251,7 +251,7 @@ Alternatively, provide one or more PEM certificate files without a password or t
 apicurio.registry.tls.certificates=/etc/certs/ca1.pem,/etc/certs/ca2.pem
 ----
 
-NOTE: These properties configure server trust only. Client certificate (mutual TLS) configuration is not available through the SerDes properties.
+NOTE: These properties configure server trust only. For mutual TLS, also configure a client key store by using the `apicurio.registry.tls.keystore.location` property. Alternatively, provide a PEM client certificate and private key by using the `apicurio.registry.tls.client-certificate` and `apicurio.registry.tls.client-key` properties.
 
 **HTTP proxy for the registry connection**
 
@@ -335,7 +335,7 @@ The `DefaultSchemaResolver` uses the following properties to configure how to lo
 |The value of `apicurio.registry.dereference-schema`
 |`DESERIALIZER_DEREFERENCE_SCHEMA`
 |`apicurio.registry.deserializer.dereference-schema`
-|Used by deserializers only. Overrides `apicurio.registry.dereference-schema`: whether the deserializer requests dereferenced schemas instead of fetching each reference separately. Lookups by content ID or content hash are only dereferenced when this property is set explicitly; they require both the {registry} server and the SerDes to be 3.4.0 or later, and do not apply to Protobuf, which keeps fetching references.
+|Used by deserializers only. Overrides `apicurio.registry.dereference-schema`: whether the deserializer requests dereferenced schemas instead of fetching each reference separately. Lookups by content ID or content hash are only dereferenced when this property is set explicitly; they require both the {registry} server and the SerDes to be 3.4.0 or later.
 |`boolean`
 |The value of `apicurio.registry.dereference-schema`
 |`AUTO_REGISTER_ARTIFACT_IF_EXISTS`
@@ -368,6 +368,31 @@ The `DefaultSchemaResolver` uses the following properties to configure how to lo
 |Used by serializers and deserializers. Optional wall-clock budget (milliseconds) for one schema-cache load retry loop. Checked before each re-attempt; it does not interrupt an in-flight cache attempt (that attempt may still run a full HTTP client retry ladder and request timeouts). `0` means unlimited. Recommended when `apicurio.registry.retry.transient-errors=true` to bound blocking on Kafka `Producer.send()` / Connect polls.
 |`java.time.Duration, non-negative Number, or integer String`
 |`0`
+|`CLIENT_RETRY_ENABLED`
+|`apicurio.registry.client.retry.enabled`
+|Used by serializers and deserializers. Specifies whether the HTTP client that calls the registry retries a request that fails with a connection error or a socket timeout.
+|`boolean`
+|`true`
+|`CLIENT_RETRY_MAX_ATTEMPTS`
+|`apicurio.registry.client.retry.max-attempts`
+|Used by serializers and deserializers. The maximum number of times that the HTTP client retries a request. Valid values are `1` to `1000`.
+|`positive Number, or integer String`
+|`3`
+|`CLIENT_RETRY_DELAY_MS`
+|`apicurio.registry.client.retry.delay-ms`
+|Used by serializers and deserializers. The delay before the first HTTP client retry (milliseconds). Must be greater than `0`.
+|`java.time.Duration, positive Number, or integer String`
+|`250`
+|`CLIENT_RETRY_BACKOFF_MULTIPLIER`
+|`apicurio.registry.client.retry.backoff-multiplier`
+|Used by serializers and deserializers. The factor that multiplies the HTTP client retry delay after each retry. Must be greater than `1.0`.
+|`Number, or decimal String`
+|`2.0`
+|`CLIENT_RETRY_MAX_DELAY_MS`
+|`apicurio.registry.client.retry.max-delay-ms`
+|Used by serializers and deserializers. The maximum delay between HTTP client retries (milliseconds). Must be greater than `0`.
+|`java.time.Duration, positive Number, or integer String`
+|`10000`
 |`FAULT_TOLERANT_REFRESH`
 |`apicurio.registry.fault-tolerant-refresh`
 |Used by serializers and deserializers. If `true`, the SerDes log exceptions instead of throwing them when an error occurs while refreshing a schema in the cache. This is useful for production situations where a stale schema is better than completely failing schema resolution. This does not affect retry attempts, because the SerDes attempt retries before considering this flag.
@@ -404,8 +429,7 @@ NOTE: `apicurio.registry.dereference-schema` alone keeps its previous behavior: 
 lookups by global ID. To also dereference lookups by content ID or content hash, which is the default
 (`apicurio.registry.use-id` is `contentId`), set `apicurio.registry.deserializer.dereference-schema` to `true`
 explicitly. This requires a {registry} server at version 3.4.0 or later, because earlier servers ignore the
-dereference request on those lookups. Content-ID and content-hash dereferencing does not apply to Protobuf,
-which keeps fetching references. The deserialized data is the same. When one resolver is shared between a
+dereference request on those lookups. The deserialized data is the same. When one resolver is shared between a
 serializer and a deserializer, as in Kafka Connect, and the two sides use different dereference values, a
 cached schema can be in either form, dereferenced or with references. Both forms decode to the same data.
 
@@ -496,6 +520,12 @@ endif::[]
 ifdef::service-registry-downstream[]
 * xref:registry-sdk-config_{context}[]
 endif::[]
+ifndef::service-registry-downstream[]
+* xref:getting-started/assembly-data-contracts.adoc#data-contracts-serdes_{context}[Contract rule properties for the Kafka SerDes]
+endif::[]
+ifdef::service-registry-downstream[]
+* xref:data-contracts-serdes_{context}[]
+endif::[]
 * link:https://github.com/Apicurio/apicurio-registry/blob/main/serdes/generic/serde-common/src/main/java/io/apicurio/registry/serde/config/SerdeConfig.java[SerdeConfig Java class]
 
 
@@ -579,7 +609,7 @@ private static KafkaConsumer<Long, GenericRecord> createKafkaConsumer() {
 
 [role="_additional-resources"]
 .Additional resources
-* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[Simple Avro example]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/kafka-serdes[kafka-serdes example]
 
 
 // Module included in the following assemblies:
@@ -763,9 +793,9 @@ Register the implementation through the Java `ServiceLoader` mechanism: package 
 
 [role="_additional-resources"]
 .Additional resources
-* link:https://github.com/Apicurio/apicurio-registry/blob/main/serdes/avro-serde/src/main/java/io/apicurio/registry/serde/avro/AvroSerdeConfig.java[AvroSerdeConfig Java class]
-* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[Simple Avro example]
-* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[SerDes with references example]
+* link:https://github.com/Apicurio/apicurio-registry/blob/main/serdes/generic/serde-common-avro/src/main/java/io/apicurio/registry/serde/avro/AvroSerdeConfig.java[AvroSerdeConfig Java class]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/kafka-serdes[kafka-serdes example]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/schema-references[schema-references example]
 
 
 // Module included in the following assemblies:
@@ -894,8 +924,8 @@ In this example, a given citizen has a city. {registry} creates a citizen artifa
 [role="_additional-resources"]
 .Additional resources
 * link:https://github.com/Apicurio/apicurio-registry/tree/main/serdes/kafka/jsonschema-serde[JSON Schema SerDes module]
-* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[Simple JSON Schema example]
-* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[SerDes with references example]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/kafka-serdes[kafka-serdes example]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/schema-references[schema-references example]
 
 
 // Module included in the following assemblies:
@@ -1064,5 +1094,5 @@ xref:registry-serdes-types-avro_{context}[] under "Choosing where referenced sch
 .Additional resources
 * xref:registry-serdes-concepts-constants_{context}[]
 * xref:registry-serdes-types-avro_{context}[]
-* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[Protobuf Bean and Protobuf Find Latest examples]
-* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[SerDes with references example]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/kafka-serdes[kafka-serdes example]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/schema-references[schema-references example]

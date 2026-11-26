@@ -16,6 +16,8 @@ import io.apicurio.registry.operator.utils.SecretKeyRefTool;
 import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentSpec;
+import io.fabric8.kubernetes.api.model.apps.DeploymentStrategyBuilder;
+import io.fabric8.kubernetes.api.model.apps.RollingUpdateDeploymentBuilder;
 import io.fabric8.kubernetes.api.model.autoscaling.v2.HorizontalPodAutoscaler;
 import io.fabric8.kubernetes.api.model.autoscaling.v2.MetricSpec;
 import io.fabric8.kubernetes.api.model.autoscaling.v2.MetricSpecBuilder;
@@ -251,6 +253,13 @@ public class ResourceFactory {
                 primary.getMetadata().getName() + "-" + componentId + "-" + RESOURCE_TYPE_DEPLOYMENT);
         r.setSpec(new DeploymentSpec());
         r.getSpec().setReplicas(replicas);
+        r.getSpec().setStrategy(new DeploymentStrategyBuilder()
+                .withType("RollingUpdate")
+                .withRollingUpdate(new RollingUpdateDeploymentBuilder()
+                        .withMaxSurge(new IntOrString("25%"))
+                        .withMaxUnavailable(new IntOrString("25%"))
+                        .build())
+                .build());
         r.getSpec().setSelector(new LabelSelector());
         if (pts != null) {
             r.getSpec().setTemplate(pts);

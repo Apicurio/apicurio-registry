@@ -49,7 +49,7 @@ is already the contract the server is checked against, so it is the natural sour
    | Java | `kiota-maven-plugin` in [`java-sdk/client`](../java-sdk/client/pom.xml) at build time | No | `io.apicurio:apicurio-registry-java-sdk` |
    | Java v2 | Same plugin, from a filtered copy of `openapi-v2.json` ([`client-v2`](../java-sdk/client-v2/pom.xml)) | No | `apicurio-registry-v2-java-sdk` (deprecated) |
    | Go | [`generate.sh`](../go-sdk/generate.sh) (`make generate format`), v2 and v3 packages | Yes, `go-sdk/pkg/` | Go module `github.com/apicurio/apicurio-registry/go-sdk/v3` |
-   | Python | [`kiota-gen.py`](../python-sdk/kiota-gen.py), the Poetry build script | No | `apicurioregistrysdk` on PyPI |
+   | Python | [`kiota-gen.py`](../python-sdk/kiota-gen.py), run by `make generate` before the Poetry build | No | `apicurioregistrysdk` on PyPI |
    | TypeScript | `npm run generate-sources` | No | `@apicurio/apicurio-registry-sdk` on npm |
 
 3. **CI keeps the SDKs in step with the spec.** Java is regenerated in every Maven build, so it can
@@ -125,7 +125,7 @@ of that release.
 | Configuration | `config.json` in the CLI's home directory, managed with `acr config`. The `acr` launcher picks that directory, and exports it as `ACR_CURRENT_HOME`: its own directory if the CLI binary is next to it (an unpacked ZIP), otherwise `ACR_HOME`. The installer puts it in `$HOME/.apicurio/apicurio-registry-cli` |
 | Credentials | `acr login` (basic, or OAuth2 client credentials with OIDC discovery); the password or client secret goes to the OS keychain (macOS Keychain, Linux Secret Service, Windows Credential Manager), or an encrypted file with `--allow-unsafe-credential-storage`; tokens are requested per invocation, never stored |
 | Output | `--output-type table` (default) or `json`; JSON on stdout, diagnostics on stderr; `--verbose` logs raw HTTP |
-| Exit codes | `0` success, `1` application error, `2` invalid input, `3` a `ProblemDetails` from the registry |
+| Exit codes | `0` success, `1` application error, `2` invalid input, `3` a `ProblemDetails` or any other `ApiException` (an HTTP error status) from the registry |
 | Timeouts | Registry calls: 30 s connect, 120 s read idle; import: 1 h read idle |
 | Updates | Checks once a day; `acr update` installs, `--check`, `--postpone`, `update.check-enabled=false` |
 | Distribution | Native ZIPs for Linux x86_64, macOS aarch64, Windows x86_64; `acr install` sets up `PATH` and completions |
@@ -158,11 +158,12 @@ What it registers is [ADR-0008](0008-artifact-references.md) and the
    from a proxy reaches the caller without a usable message, and a 401 without a body is a plain
    `ApiException` (`service returned status code401 but no response body was found`), not a
    `ProblemDetails` ([#11261](https://github.com/Apicurio/apicurio-registry/issues/11261)).
-2. The CLI maps only `ProblemDetails` to exit code 3; a plain `ApiException` (such as that 401) is
-   reported as an unexpected error with exit code 1. The CLI prints the problem's detail, not the
-   HTTP status ([#11338](https://github.com/Apicurio/apicurio-registry/issues/11338)).
-3. The JDK adapter does not apply `requestTimeout` (it uses a fixed 30 s connect timeout and no read
-   timeout) and ignores `enableHttpLogging` ([#11337](https://github.com/Apicurio/apicurio-registry/issues/11337)).
+2. For a `ProblemDetails` the CLI prints the problem's detail, not the HTTP status. A plain
+   `ApiException` (such as that 401) exits with code 3 and its message names the HTTP status
+   ([#11338](https://github.com/Apicurio/apicurio-registry/issues/11338)).
+3. The JDK adapter ignores `enableHttpLogging`. It applies `requestTimeout` (default connect timeout
+   30 s), but the JDK `HttpClient` has no read-idle timeout, so the read value bounds the wait for
+   the response headers rather than idle time between reads.
 4. The Kiota version is pinned in four places and must be bumped together
    ([#10923](https://github.com/Apicurio/apicurio-registry/issues/10923)); the Java build downloads
    the Kiota binary from GitHub releases, which is a CI dependency.
@@ -211,7 +212,7 @@ What it registers is [ADR-0008](0008-artifact-references.md) and the
 | Retry, OTel, logging | `RetryInvocationHandlerTest`, `OTelRequestAdapterDecoratorTest`, `HttpLoggingInterceptorTest` |
 | Auth and TLS per adapter | `VertXAuthFactoryTest`, `JdkAuthFactoryTest`, `JdkAdapterAuthenticationTest`, `JdkSslContextFactoryTest` |
 | Serdes facade | `RegistryClientFacadeFactoryTest`, `RegistryClientFacadeImplTest` |
-| CLI | `AbstractCommandRuleViolationTest`, `ClientTimeoutTest`, `AuthCommandTest`, `ContextCommandTest`, `UpdateCommandTest`, `FileCredentialProviderTest` |
+| CLI | `AbstractCommandRuleViolationTest`, `ApiExceptionExitCodeTest`, `ClientTimeoutTest`, `AuthCommandTest`, `ContextCommandTest`, `UpdateCommandTest`, `FileCredentialProviderTest` |
 | Maven plugin | `HttpStatusMessageTest`, `TlsConfigurationTest`, `TlsIntegrationTest` |
 
 ```bash
@@ -228,3 +229,5 @@ What it registers is [ADR-0008](0008-artifact-references.md) and the
 | [#11289](https://github.com/Apicurio/apicurio-registry/pull/11289) | Maven plugin errors name the HTTP status |
 | [#11321](https://github.com/Apicurio/apicurio-registry/pull/11321) | CLI connect and read timeouts |
 | This ADR | First written record |
+| [#11374](https://github.com/Apicurio/apicurio-registry/pull/11374) | CLI exits with code 3 on any `ApiException` and names the HTTP status ([#11338](https://github.com/Apicurio/apicurio-registry/issues/11338)) |
+| [#11377](https://github.com/Apicurio/apicurio-registry/pull/11377) | JDK adapter honours `requestTimeout` ([#11337](https://github.com/Apicurio/apicurio-registry/issues/11337)) |

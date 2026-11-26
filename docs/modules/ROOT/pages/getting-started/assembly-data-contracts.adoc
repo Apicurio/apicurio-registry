@@ -31,7 +31,13 @@ Quality rules:: ODCS accuracy rules are projected as CEL contract rules; complet
 Field tags:: PII and classification annotations, from ODCS contracts or declared in the schema content, are stored as version labels.
 Multi-contract support:: Multiple contracts can reference the same schema artifact without overwriting each other.
 
+To reject new versions of an artifact when its contract is deprecated or its contract metadata is incomplete, configure a `GOVERNANCE` rule.
+
 NOTE: Data contracts are always available. No special configuration is required: submitting a contract is an explicit opt-in action.
+
+[role="_additional-resources"]
+.Additional resources
+* {registry-rule-reference}
 
 [id="data-contracts-odcs_{context}"]
 == ODCS native format
@@ -88,7 +94,7 @@ When you submit an ODCS contract, {registry} parses the YAML, stores it as an `O
 |Artifact-level CEL domain rules named `odcs:\{contractId}:\{name}` (kind `CONDITION`, mode `WRITE`)
 
 |`quality.completeness` rules
-|`contract.\{contractId}.quality.completeness.{field}` labels
+|`contract.\{contractId}.quality.completeness.\{field}` labels
 
 |`quality.freshness.maxStaleness`
 |`contract.\{contractId}.quality.freshness.maxStaleness` label
@@ -194,7 +200,7 @@ When submitted, this contract results in the following projections:
 When you update an ODCS contract with `PUT /groups/\{g}/contracts/\{contractId}`, a new contract version is added (re-submitting an existing `info.version` returns HTTP 409) and the contract is re-projected:
 
 * The `contract.\{contractId}.*` labels taken from the YAML are replaced. The stage, compatibility group, and lifecycle dates set through the API are kept.
-* The status from `info.status` is applied only if the contract lifecycle allows moving to it from the current status (see <<data-contracts-lifecycle_{context}>>). Otherwise the current status is kept, and the response contains a warning.
+* The status from `info.status` is applied only if the contract lifecycle allows moving to it from the current status (see xref:data-contracts-lifecycle_{context}[]). Otherwise the current status is kept, and the response contains a warning.
 * Rules named `odcs:\{contractId}:*` are replaced; a version without `quality.accuracy` rules removes them. Other rules, such as rules added manually through the contract ruleset API, are preserved.
 * Field tags are replaced on the target version; a version without field metadata removes them.
 * Schemas the previous version referenced and the new version does not lose the contract's labels, rules, and field tags.
@@ -277,7 +283,7 @@ Field tags provide semantic annotation of schema fields, enabling you to identif
 
 Field tags are stored as version labels. They come from two sources:
 
-Inline tags:: Declared in the schema content (see <<data-contracts-field-tags-formats_{context}>>). When a version is created through the Core Registry API v3, they are stored as `field-tag.\{fieldPath}|\{tagName}` labels with value `INLINE`. Labels submitted with the version take precedence over extracted tags with the same key. Versions created through the Confluent Schema Registry compatibility API, and draft content updates, do not get inline tags.
+Inline tags:: Declared in the schema content (see xref:data-contracts-field-tags-formats_{context}[]). When a version is created through the Core Registry API v3, they are stored as `field-tag.\{fieldPath}|\{tagName}` labels with value `INLINE`. Labels submitted with the version take precedence over extracted tags with the same key. Versions created through the Confluent Schema Registry compatibility API, and draft content updates, do not get inline tags.
 External tags:: Projected from ODCS contracts as `field-tag.\{contractId}:\{fieldPath}|\{tagName}` labels with value `EXTERNAL`, or set manually by using the version labels API.
 
 The following tag names are commonly used:
@@ -397,6 +403,8 @@ The `onFailure` action controls whether evaluation continues after a failure:
 `DLQ`:: Evaluation continues with the next rule. In the Kafka SerDes, the record is sent to the dead letter queue topic.
 
 How a failed result affects Kafka clients depends on the SerDes `fail-on-error` setting, except for `DLQ`: see xref:data-contracts-serdes_{context}[Kafka SerDes integration].
+
+A rule can also have a list of `tags`. You can search for rules by tag, as described in xref:data-contracts-search_{context}[Contract search]. {registry} stores and returns the `onSuccess` action of a rule, but the action has no effect.
 
 [role="_additional-resources"]
 .Additional resources
@@ -565,6 +573,15 @@ props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, AvroKafkaSerializer.clas
 KafkaProducer<String, GenericRecord> producer = new KafkaProducer<>(props);
 ----
 
+[role="_additional-resources"]
+.Additional resources
+ifndef::service-registry-downstream[]
+* xref:getting-started/assembly-configuring-kafka-client-serdes.adoc[]
+endif::[]
+ifdef::service-registry-downstream[]
+* xref:configuring-kafka-client-serdes_{context}[]
+endif::[]
+
 [id="data-contracts-audit_{context}"]
 == Audit log
 
@@ -585,7 +602,7 @@ The audit log records the following operations:
 
 Changes to the global contract ruleset do not belong to an artifact and are not in this log. Deleting an artifact, or the group that contains it, deletes its audit entries.
 
-Query the audit log for an artifact (`limit` defaults to 20, maximum 500):
+The audit log endpoint returns the newest entries first. Query the audit log for an artifact (`limit` defaults to 20, maximum 500):
 
 [source,bash]
 ----
@@ -615,7 +632,7 @@ curl "http://localhost:8080/apis/registry/v3/groups/my-group/artifacts/my-artifa
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-Search for contracts across the registry using metadata filters.
+Search for contracts across the registry using metadata filters, and find contract rules by tag.
 
 .Contract search query parameters
 [cols="2,3", options="header"]
@@ -635,13 +652,45 @@ Search for contracts across the registry using metadata filters.
 |Pagination (default limit: 20, max: 1000)
 
 |`orderby` / `order`
-|Sort by field and direction
+|Sort by `name`, `createdOn` (default), or `modifiedOn`, in `asc` or `desc` (default) order
 |===
 
 [source,bash]
 ----
 curl "http://localhost:8080/apis/registry/v3/search/contracts?status=STABLE&ownerTeam=orders-team&limit=10"
 ----
+
+To find contract rules by tag, use the `GET /search/contract/rules` endpoint. The `tag` query parameter is required.
+
+[source,bash]
+----
+curl "http://localhost:8080/apis/registry/v3/search/contract/rules?tag=pii"
+----
+
+.Response
+[source,json]
+----
+[
+  {
+    "groupId": "my-group",
+    "artifactId": "my-artifact",
+    "ruleCategory": "DOMAIN",
+    "rule": {
+      "name": "require-email",
+      "kind": "CONDITION",
+      "type": "CEL",
+      "mode": "WRITE",
+      "expr": "customerEmail != \"\"",
+      "params": {},
+      "tags": ["pii"],
+      "onFailure": "ERROR",
+      "disabled": false
+    }
+  }
+]
+----
+
+Each entry contains a rule that has the tag, with the `groupId` and `artifactId` of the artifact that the rule belongs to. An entry for an artifact in the default group has no `groupId`. `ruleCategory` is `DOMAIN` or `MIGRATION`. For a version-level rule, the entry also has the `globalId` of the version. For a global rule, `groupId` and `artifactId` are both `+__GLOBAL__+`. The response includes only rules on artifacts that you can read.
 
 [id="data-contracts-global-rules_{context}"]
 == Global contract rules
@@ -687,6 +736,15 @@ curl http://localhost:8080/apis/registry/v3/admin/contracts/ruleset
 curl -X DELETE http://localhost:8080/apis/registry/v3/admin/contracts/ruleset
 ----
 
+[role="_additional-resources"]
+.Additional resources
+ifndef::service-registry-downstream[]
+* xref:getting-started/assembly-managing-registry-artifacts-ui.adoc#managing-global-contract-rules-using-console_{context}[Managing global contract rules using the {registry} web console]
+endif::[]
+ifdef::service-registry-downstream[]
+* xref:managing-global-contract-rules-using-console_{context}[]
+endif::[]
+
 [id="data-contracts-api_{context}"]
 == REST API
 
@@ -724,6 +782,8 @@ The Data Contracts REST API provides endpoints for managing ODCS contracts, cont
 |`/groups/\{groupId}/artifacts/\{artifactId}/contract/export`
 |Export an artifact's projected contract data as ODCS YAML
 |===
+
+NOTE: The `POST /groups/\{groupId}/contracts` and `PUT /groups/\{groupId}/contracts/\{contractId}` endpoints store the ODCS contract without artifact references. For a contract stored this way, `GET /groups/\{groupId}/artifacts/\{artifactId}/versions/\{version}/content` returns the YAML unchanged with `references=DEREFERENCE` or `references=REWRITE`. These options resolve `schemas[].location` values only for an `ODCS_CONTRACT` artifact that you create through the artifact endpoints with its references. {registry} does not project a contract that you create through the artifact endpoints.
 
 .Contract metadata REST API endpoints
 [cols="1,4,3", options="header"]
@@ -821,7 +881,7 @@ Version-level rulesets are also available at `.../versions/\{version}/contract/r
 |Set the compatibility group label. Body: `{"contractId": "...", "compatibilityGroup": "..."}`. Returns 204
 |===
 
-.Contract search REST API endpoint
+.Contract search REST API endpoints
 [cols="1,4,3", options="header"]
 |===
 |Method |Endpoint |Description
@@ -829,6 +889,10 @@ Version-level rulesets are also available at `.../versions/\{version}/contract/r
 |GET
 |`/search/contracts?status=&ownerTeam=&compatibilityGroup=&offset=&limit=&order=&orderby=`
 |Search contracts across the registry
+
+|GET
+|`/search/contract/rules?tag=`
+|Search contract rules by tag across the registry
 |===
 
 .Global contract ruleset REST API endpoints

@@ -8,8 +8,9 @@
 - **Scope:** How the operator turns an `ApicurioRegistry3` custom resource into a running registry:
   the CR, the dependent resources it creates and owns, the feature modules that wire storage,
   security and observability into them, status, CR migrations, and installation. Not covered: the
-  registry's own configuration (the other ADRs), and federation peers in the CR
-  ([ADR-0018](0018-federation.md), [#8578](https://github.com/Apicurio/apicurio-registry/issues/8578)).
+  registry's own configuration (the other ADRs), federation peers in the CR
+  ([ADR-0018](0018-federation.md), [#8578](https://github.com/Apicurio/apicurio-registry/issues/8578)),
+  and the web console and console plugin themselves ([ADR-0027](0027-web-console.md)).
 
 ## Context
 
@@ -78,11 +79,11 @@ hand-written cleanup.
 | CR | Creates (in the CR's namespace) |
 |---|---|
 | `spec: {}` | `registry-app-deployment`, `registry-ui-deployment`, a Service and a NetworkPolicy for each |
-| `replicas` > 1 (or autoscaling above one) | A PodDisruptionBudget for that component (app or console) |
+| `replicas` > 1 (or autoscaling above one) | A PodDisruptionBudget for that component (app or console); not in GitOps push mode |
 | `ingress.host` | An Ingress for that component |
-| `autoscaling` | A HorizontalPodAutoscaler |
+| `autoscaling` | A HorizontalPodAutoscaler; not in GitOps push mode |
 | `storage.type: kubernetesops` | A ServiceAccount, Role and RoleBinding to read ConfigMaps |
-| `storage.type: gitops` (push mode) | The SSH Service for `git push` |
+| `storage.type: gitops` (push mode) | The SSH Service for `git push`; one replica enforced, `Recreate` strategy, no HPA or PDB |
 | `ui.enabled: false` | No console |
 
 | Storage | CR | Becomes |

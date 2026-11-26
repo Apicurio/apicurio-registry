@@ -1198,6 +1198,12 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     }
 
     @Override
+    public void mergeArtifactLabels(String groupId, String artifactId, String prefix,
+            Map<String, String> labels, Map<String, String> expected) throws RegistryStorageException {
+        mergeArtifactLabelsIfMatch(groupId, artifactId, prefix, labels, expected);
+    }
+
+    @Override
     public void compareAndSetArtifactLabels(String groupId, String artifactId, Map<String, String> expected,
             Map<String, String> labels) throws RegistryStorageException {
         mergeArtifactLabelsIfMatch(groupId, artifactId, null, labels, expected);

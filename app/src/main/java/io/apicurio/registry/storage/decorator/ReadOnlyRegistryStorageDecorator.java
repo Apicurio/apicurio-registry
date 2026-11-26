@@ -193,6 +193,12 @@ public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorBa
         delegate.mergeArtifactLabels(groupId, artifactId, prefix, labels);
     }
 
+    public void mergeArtifactLabels(String groupId, String artifactId, String prefix,
+            Map<String, String> labels, Map<String, String> expected) throws RegistryStorageException {
+        checkReadOnly();
+        delegate.mergeArtifactLabels(groupId, artifactId, prefix, labels, expected);
+    }
+
     public void updateContractMetadata(String groupId, String artifactId, String prefix,
             Map<String, String> labels) throws RegistryStorageException {
         checkReadOnly();

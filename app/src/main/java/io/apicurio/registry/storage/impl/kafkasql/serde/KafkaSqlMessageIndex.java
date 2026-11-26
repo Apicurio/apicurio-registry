@@ -67,6 +67,7 @@ public class KafkaSqlMessageIndex {
                 DeleteGlobalContractRuleset0Message.class,
                 InsertContractAuditEntry1Message.class,
                 MergeArtifactLabels4Message.class,
+                MergeArtifactLabels5Message.class,
                 MergeVersionLabels5Message.class,
                 UpdateContractMetadata4Message.class,
                 UpdateContractMetadata5Message.class,

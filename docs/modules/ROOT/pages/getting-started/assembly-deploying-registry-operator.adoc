@@ -1209,6 +1209,14 @@ You can also add additional containers to the pod if needed.
 
 IMPORTANT: *Order of evaluation:* The operator first extends the provided PodTemplateSpec with default values and then applies additional configuration based on other fields in the `ApicurioRegistry3` CR. Therefore, other configuration fields might override settings in the PodTemplateSpec.
 
+[IMPORTANT]
+====
+*Image overrides and upgrades:* overriding `spec.(app/ui).podTemplateSpec.spec.containers[name=...].image` is not recommended.
+If you set it, the operator leaves it alone on every reconcile, including after you upgrade the operator: your image stays set to whatever you configured, and the operator does not advance it to the version it would otherwise pin.
+The {operator} and the {registry} image it ships with are released as one unit and are not validated against other combinations, so if you override the image, you are responsible for keeping it in step with the operator version yourself.
+If you don't set `image`, the operator always sets it to the version it pins, and upgrading the operator upgrades {registry} too.
+====
+
 // ref-configuring-app-tls
 [id="configuring-console-plugin_{context}"]
 == OpenShift Console plugin configuration

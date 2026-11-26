@@ -309,11 +309,32 @@ You can apply a patch upgrade (for example, 3.3.0 to 3.3.1) at any time. Patch r
 You can upgrade to a new minor version (for example, from 3.3.x to the next minor release) to receive new features, enhancements, and bug fixes.
 
 .Procedure
-. Review the release notes for the target version to understand new features and any behavioral changes.
+. Review the release notes for the target version, in particular the *Breaking Changes & Migration* and *Deprecations* sections if present, to understand behavioral changes that affect your deployment.
 . Back up your database.
 . Replace the {registry} container image with the new minor version.
 . Start {registry}. Database schema migrations run automatically.
 . Verify that your client applications work correctly with the new version.
+
+
+[id="minor-upgrades-operator_{context}"]
+== Performing minor upgrades with the {operator}
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+If you deploy {registry} by using the {operator}, the operator and the {registry} image it ships with are released and supported as one unit: the operator's install YAML pins both to the same version, and the combination is not validated against any other.
+
+.Procedure
+. Review the release notes for the target version, as in the general minor upgrade procedure.
+. Back up your database.
+. Upgrade the {operator} first, for example by moving to the new version's channel, or by approving the next install plan on a manual-approval subscription.
+. The operator reconciles existing `ApicurioRegistry3` custom resources to the new version's pinned images, which upgrades {registry} and the {registry-ui}.
+. Verify that your client applications work correctly with the new version.
+
+[IMPORTANT]
+====
+If you override the {registry} or {registry-ui} image with `spec.(app/ui).podTemplateSpec`, upgrading the operator does *not* upgrade your image: the operator leaves an explicitly set image alone. You must update it yourself, in step with the operator version. See xref:getting-started/assembly-deploying-registry-operator.adoc#using-podtemplatespec_{context}[PodTemplateSpec advanced customization].
+====
 
 
 [id="skipping-minor-versions_{context}"]

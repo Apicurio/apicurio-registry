@@ -18,6 +18,8 @@ import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.ParametersConflictException;
 import io.apicurio.registry.storage.error.ContractStateConflictException;
 import io.apicurio.registry.rest.RestConfig;
+import io.apicurio.registry.rest.WebhookRequestTooLargeException;
+import io.apicurio.registry.rest.WebhookSubscriptionValidationException;
 import io.apicurio.registry.rules.DefaultRuleDeletionException;
 import io.apicurio.registry.rules.violation.RuleViolationException;
 import io.apicurio.registry.rules.violation.UnprocessableSchemaException;
@@ -56,6 +58,9 @@ import io.apicurio.registry.storage.error.VersionAlreadyExistsException;
 import io.apicurio.registry.storage.error.VersionAlreadyExistsOnBranchException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.types.provider.configured.ArtifactTypeWebhookException;
+import io.apicurio.registry.storage.error.WebhookStorageNotSupportedException;
+import io.apicurio.registry.storage.error.WebhookSubscriptionNotFoundException;
+import io.apicurio.registry.storage.error.WebhookSubscriptionRevisionConflictException;
 import io.smallrye.mutiny.TimeoutException;
 import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
@@ -70,6 +75,7 @@ import java.util.Map;
 import static java.net.HttpURLConnection.HTTP_BAD_GATEWAY;
 import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
 import static java.net.HttpURLConnection.HTTP_CONFLICT;
+import static java.net.HttpURLConnection.HTTP_ENTITY_TOO_LARGE;
 import static java.net.HttpURLConnection.HTTP_FORBIDDEN;
 import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
 import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
@@ -155,6 +161,11 @@ public class HttpStatusCodeMap {
         map.put(VersionAlreadyExistsException.class, HTTP_CONFLICT);
         map.put(VersionAlreadyExistsOnBranchException.class, HTTP_CONFLICT);
         map.put(VersionNotFoundException.class, HTTP_NOT_FOUND);
+        map.put(WebhookSubscriptionNotFoundException.class, HTTP_NOT_FOUND);
+        map.put(WebhookSubscriptionRevisionConflictException.class, HTTP_CONFLICT);
+        map.put(WebhookRequestTooLargeException.class, HTTP_ENTITY_TOO_LARGE);
+        map.put(WebhookSubscriptionValidationException.class, HTTP_BAD_REQUEST);
+        map.put(WebhookStorageNotSupportedException.class, HTTP_CONFLICT);
 
         codeMap = Collections.unmodifiableMap(map);
     }

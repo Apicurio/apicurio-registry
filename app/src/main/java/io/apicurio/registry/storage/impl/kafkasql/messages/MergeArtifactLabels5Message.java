@@ -1,5 +1,6 @@
 package io.apicurio.registry.storage.impl.kafkasql.messages;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.impl.kafkasql.AbstractMessage;
 import lombok.AllArgsConstructor;
@@ -25,6 +26,7 @@ public class MergeArtifactLabels5Message extends AbstractMessage {
     private String artifactId;
     private String prefix;
     private Map<String, String> labels;
+    @JsonInclude(value = JsonInclude.Include.NON_NULL, content = JsonInclude.Include.ALWAYS)
     private Map<String, String> expected;
 
     @Override

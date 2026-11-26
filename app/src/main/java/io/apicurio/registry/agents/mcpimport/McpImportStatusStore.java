@@ -86,6 +86,8 @@ public class McpImportStatusStore {
         Map<String, String> expected = new HashMap<>();
         expected.put(McpImportLabels.ID, current.get(McpImportLabels.ID));
         expected.put(McpImportLabels.STATE, current.get(McpImportLabels.STATE));
+        expected.put(McpImportLabels.UPDATED_ON, current.get(McpImportLabels.UPDATED_ON));
+        expected.put(McpImportLabels.STARTED_ON, current.get(McpImportLabels.STARTED_ON));
         try {
             storage.mergeArtifactLabels(raw(groupId), artifactId, McpImportLabels.PREFIX,
                     runningLabels(importId, startedOn, startedOn), expected);

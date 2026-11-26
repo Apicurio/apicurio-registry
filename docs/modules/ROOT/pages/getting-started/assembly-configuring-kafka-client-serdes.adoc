@@ -393,6 +393,16 @@ The `DefaultSchemaResolver` uses the following properties to configure how to lo
 |Used by serializers and deserializers. The maximum delay between HTTP client retries (milliseconds). Must be greater than `0`.
 |`java.time.Duration, positive Number, or integer String`
 |`10000`
+|`HTTP_CONNECT_TIMEOUT_MS`
+|`apicurio.registry.http.connect-timeout-ms`
+|Used by serializers and deserializers. The maximum time that the HTTP client waits to connect to the registry (milliseconds). Applied only together with `apicurio.registry.http.read-timeout-ms`: if either is `0`, no request timeout is configured and each HTTP adapter uses its own defaults.
+|`java.time.Duration, non-negative Number, or integer String`
+|`60000`
+|`HTTP_READ_TIMEOUT_MS`
+|`apicurio.registry.http.read-timeout-ms`
+|Used by serializers and deserializers. The maximum time that a registry request can go without receiving any data before it fails (milliseconds). The Vert.x adapter applies it as a read idle timeout, rounded up to whole seconds, and the JDK adapter as the per-request timeout. Without it, a request whose response is lost blocks the calling thread forever, for example `Producer.send()` or a Kafka Connect task, which keeps reporting `RUNNING`. A request that times out is retried according to the `apicurio.registry.client.retry.*` settings. Set to `0` to disable request timeouts.
+|`java.time.Duration, non-negative Number, or integer String`
+|`60000`
 |`FAULT_TOLERANT_REFRESH`
 |`apicurio.registry.fault-tolerant-refresh`
 |Used by serializers and deserializers. If `true`, the SerDes log exceptions instead of throwing them when an error occurs while refreshing a schema in the cache. This is useful for production situations where a stale schema is better than completely failing schema resolution. This does not affect retry attempts, because the SerDes attempt retries before considering this flag.

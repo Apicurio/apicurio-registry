@@ -1,17 +1,25 @@
 package io.apicurio.registry.agents.a2a.signature;
 
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.storage.impl.sql.HandleFactory;
+import io.apicurio.registry.storage.impl.sql.IDbUpgrader;
+import io.apicurio.registry.storage.impl.sql.SqlStatements;
+import io.apicurio.registry.storage.impl.sql.jdb.Handle;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
+import jakarta.inject.Inject;
+import org.eclipse.microprofile.config.ConfigProvider;
 import org.jose4j.jwk.JsonWebKey;
 import org.jose4j.jwk.PublicJsonWebKey;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -45,6 +53,12 @@ public class AgentCardSignatureVerificationTest extends AbstractResourceTestBase
     /** The keys served at {@link SignatureVerificationProfiles#VERIFY_JWKS}, by kid. */
     private static final Map<String, PublicJsonWebKey> SERVED = new ConcurrentHashMap<>();
     private static PublicJsonWebKey trusted;
+
+    @Inject
+    HandleFactory handles;
+
+    @Inject
+    SqlStatements sqlStatements;
 
     @BeforeAll
     static void serveTrustedKey() {
@@ -290,5 +304,47 @@ public class AgentCardSignatureVerificationTest extends AbstractResourceTestBase
         long elapsedMillis = Duration.ofNanos(System.nanoTime() - start).toMillis();
         assertTrue(elapsedMillis < 10_000, "the write took " + elapsedMillis + " ms");
         assertTrue(JwksStub.get().requestCount(path) >= 1);
+    }
+
+    /**
+     * A signed card indexed by the extraction from before claimed kids were indexed (no {@code signer}
+     * rows) is not a {@code signedBy} candidate until the real 115 to 116 upgrade re-indexes Agent Cards.
+     * SQL storage only: KafkaSQL rebuilds its index from the journal when it starts.
+     */
+    @Test
+    void upgradeReindexesSignedCardsStoredBeforeSignersWereIndexed() {
+        Assumptions.assumeFalse("kafkasql".equals(
+                ConfigProvider.getConfig().getOptionalValue("apicurio.storage.kind", String.class).orElse("sql")));
+        String group = TestUtils.generateGroupId();
+        String skill = skill();
+        createCard(group, "pre-upgrade", TestCardSigner.sign(card(skill), trusted, "ES256"), false).then()
+                .statusCode(200);
+        handles.withHandleNoException((Handle handle) -> {
+            handle.createUpdate("DELETE FROM artifact_structured_content WHERE groupId = ? AND elementType = ?")
+                    .bind(0, group).bind(1, "agent_card:signer").execute();
+            handle.createUpdate("UPDATE apicurio SET propValue = '115' WHERE propName = 'db_version'").execute();
+            return null;
+        });
+        search(skill, trusted.getKeyId()).then().body("count", equalTo(0));
+        search(skill, null).then().body("agents[0].verifiedSigners", contains(trusted.getKeyId()));
+
+        List<String> statements = sqlStatements.databaseUpgrade(115, 116);
+        handles.withHandleNoException((Handle handle) -> {
+            for (String statement : statements) {
+                if (statement.startsWith("UPGRADER:")) {
+                    String className = statement.substring("UPGRADER:".length()).trim();
+                    ((IDbUpgrader) Class.forName(className).getConstructor().newInstance()).upgrade(handle);
+                } else {
+                    handle.createUpdate(statement).execute();
+                }
+            }
+            return null;
+        });
+
+        assertEquals("116", handles.withHandleNoException((Handle handle) -> handle
+                .createQuery("SELECT propValue FROM apicurio WHERE propName = 'db_version'")
+                .map(rs -> rs.getString("propValue")).one()));
+        search(skill, trusted.getKeyId()).then().body("count", equalTo(1))
+                .body("agents[0].artifactId", equalTo("pre-upgrade"));
     }
 }

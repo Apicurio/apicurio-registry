@@ -18,6 +18,7 @@ import io.apicurio.registry.utils.impexp.v3.BranchEntity;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.VersionId;
+import io.apicurio.registry.storage.impl.sql.upgrader.AgentCardStructuredContentUpgrader;
 import io.apicurio.registry.storage.impl.sql.upgrader.StructuredContentUpgrader;
 import io.apicurio.registry.storage.impl.sql.jdb.RuntimeSqlException;
 import io.quarkus.test.junit.QuarkusTest;
@@ -197,6 +198,33 @@ public class StructuredContentSearchTest {
         });
         assertEquals(Set.of("agent"),matches(group,SearchFilter.ofStructure("skill:published")));
         assertEquals(Set.of(),matches(group,SearchFilter.ofStructure("skill:draft")));
+    }
+
+    @Test
+    public void agentCardBackfillRebuildsOnlyAgentCardRows() {
+        String group=group();
+        create(group,"agent","rebuilt");
+        storage.createArtifact(group,"tool","MCP_TOOL",EditableArtifactMetaDataDto.builder().build(),"1",
+                ContentWrapperDto.builder().content(ContentHandle.create(
+                        "{\"name\":\"tool\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"}}}}"))
+                        .contentType("application/json").references(List.of()).build(),
+                EditableVersionMetaDataDto.builder().build(),List.of(),false,false,"test");
+        handles.withHandleNoException(handle -> {
+            handle.createUpdate("DELETE FROM artifact_structured_content WHERE groupId = ? AND artifactId = ?")
+                    .bind(0,group).bind(1,"agent").execute();
+            // A row the full backfill would remove, as it is not extracted from the tool's content.
+            handle.createUpdate("INSERT INTO artifact_structured_content (groupId, artifactId, elementType, elementValue)"
+                    + " VALUES (?, ?, ?, ?)").bind(0,group).bind(1,"tool").bind(2,"mcp_tool:marker")
+                    .bind(3,elementValue("kept")).execute();
+            new AgentCardStructuredContentUpgrader().upgrade(handle);
+            new AgentCardStructuredContentUpgrader().upgrade(handle);
+            return null;
+        });
+        assertEquals(Set.of("agent"),matches(group,SearchFilter.ofStructure("skill:rebuilt")));
+        Set<SearchFilter> toolFilters=new HashSet<>();
+        toolFilters.add(SearchFilter.ofGroupId(group));
+        toolFilters.add(SearchFilter.ofStructure("mcp_tool:marker:kept"));
+        assertEquals(1L,storage.searchArtifacts(toolFilters,OrderBy.artifactId,OrderDirection.asc,0,10,false).getCount());
     }
 
     @Test

@@ -61,11 +61,26 @@ public class StructuredContentUpgrader implements IDbUpgrader {
 
     private final ArtifactTypeUtilProviderFactory factory = new DefaultArtifactTypeUtilProviderImpl(true);
 
+    /**
+     * @return whether artifacts of this type are re-indexed; all types with an extractor by default
+     */
+    protected boolean includes(String artifactType) {
+        return true;
+    }
+
+    /**
+     * Removes the rows this backfill rebuilds, so that artifacts with no eligible published tip lose
+     * stale rows too. Removes every row by default.
+     */
+    protected void clearIndex(Handle handle) {
+        handle.createUpdate("DELETE FROM artifact_structured_content").execute();
+    }
+
     @Override
     public void upgrade(Handle handle) throws Exception {
         log.info("Backfilling structured content for existing artifacts...");
         // Rebuilds/retries must also remove stale rows for artifacts with no eligible published tip.
-        handle.createUpdate("DELETE FROM artifact_structured_content").execute();
+        clearIndex(handle);
 
         String sql = "SELECT a.groupId, a.artifactId, a.type, c.content "
                 + "FROM artifacts a "
@@ -86,6 +101,9 @@ public class StructuredContentUpgrader implements IDbUpgrader {
         AtomicInteger failed = new AtomicInteger();
         for (ArtifactTypeUtilProvider provider : factory.getAllArtifactTypeProviders()) {
             StructuredContentExtractor extractor = provider.getStructuredContentExtractor();
+            if (!includes(provider.getArtifactType())) {
+                continue;
+            }
             if (extractor == null || extractor instanceof NoopStructuredContentExtractor) {
                 // Providers never return null here - types without structured extraction get
                 // NoopStructuredContentExtractor, so that is what identifies them. Checking for null

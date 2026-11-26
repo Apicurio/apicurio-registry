@@ -974,7 +974,7 @@ Whether a signature verifies is computed when the Agent Card is read, from its c
 * In `/.well-known/agents` results, `verifiedSigners` lists the `kid` of each signature that verifies. It is absent when no trusted keys are configured.
 * `/.well-known/agents?signedBy=<kid>` returns only the Agent Cards with a signature by that `kid` that verifies now. The candidates are found through the `kid` each signature claims, and every candidate is then verified.
 
-NOTE: The claimed `kid` of each signature is indexed when an Agent Card version is written. On SQL storage, Agent Cards whose latest version was stored before upgrading to this version of {registry} are found by `signedBy` only after a new version is added. KafkaSQL, GitOps and KubernetesOps storage rebuild the index when they start.
+NOTE: The claimed `kid` of each signature is indexed when an Agent Card version is written. When you upgrade an existing SQL database (PostgreSQL, MySQL, SQL Server or H2) to this version of {registry}, the database upgrade re-indexes the latest published version of every Agent Card once, so Agent Cards stored before the upgrade are found by `signedBy`. The re-index reads and parses each Agent Card's content once, which adds time to the upgrade in proportion to the number of Agent Cards; other artifact types are not read. KafkaSQL applies the same upgrade to a restored snapshot and indexes every Agent Card it replays from its journal, and GitOps and KubernetesOps storage index every Agent Card they load.
 
 .Example: trust one publisher and require signed Agent Cards
 [source,properties]

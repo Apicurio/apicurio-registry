@@ -141,6 +141,61 @@ class RegistryClientFacadeFactoryTest {
     }
 
     @Test
+    void testBuildClientOptionsRequestTimeoutDefaults() {
+        Map<String, Object> originals = new HashMap<>();
+        originals.put(SchemaResolverConfig.REGISTRY_URL, "http://localhost:8080/apis/registry/v3");
+
+        SchemaResolverConfig config = new SchemaResolverConfig(originals);
+        RegistryClientOptions options = RegistryClientFacadeFactory.buildClientOptions(config, null);
+
+        Assertions.assertEquals(60000L, options.getConnectTimeoutMs());
+        Assertions.assertEquals(60000L, options.getReadIdleTimeoutMs());
+    }
+
+    @Test
+    void testBuildClientOptionsRequestTimeoutCustomValues() {
+        Map<String, Object> originals = new HashMap<>();
+        originals.put(SchemaResolverConfig.REGISTRY_URL, "http://localhost:8080/apis/registry/v3");
+        originals.put(SchemaResolverConfig.HTTP_CONNECT_TIMEOUT_MS, "5000");
+        originals.put(SchemaResolverConfig.HTTP_READ_TIMEOUT_MS, 15000L);
+
+        SchemaResolverConfig config = new SchemaResolverConfig(originals);
+        RegistryClientOptions options = RegistryClientFacadeFactory.buildClientOptions(config, null);
+
+        Assertions.assertEquals(5000L, options.getConnectTimeoutMs());
+        Assertions.assertEquals(15000L, options.getReadIdleTimeoutMs());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {SchemaResolverConfig.HTTP_CONNECT_TIMEOUT_MS, SchemaResolverConfig.HTTP_READ_TIMEOUT_MS})
+    void testBuildClientOptionsRequestTimeoutDisabledByZero(String property) {
+        Map<String, Object> originals = new HashMap<>();
+        originals.put(SchemaResolverConfig.REGISTRY_URL, "http://localhost:8080/apis/registry/v3");
+        originals.put(property, 0L);
+
+        SchemaResolverConfig config = new SchemaResolverConfig(originals);
+        RegistryClientOptions options = RegistryClientFacadeFactory.buildClientOptions(config, null);
+
+        // -1 is RegistryClientOptions' "not configured" value: each adapter keeps its own default.
+        Assertions.assertEquals(-1L, options.getConnectTimeoutMs());
+        Assertions.assertEquals(-1L, options.getReadIdleTimeoutMs());
+    }
+
+    @Test
+    void testBuildClientOptionsRequestTimeoutRejectsNegative() {
+        Map<String, Object> originals = new HashMap<>();
+        originals.put(SchemaResolverConfig.REGISTRY_URL, "http://localhost:8080/apis/registry/v3");
+        originals.put(SchemaResolverConfig.HTTP_READ_TIMEOUT_MS, -1L);
+
+        SchemaResolverConfig config = new SchemaResolverConfig(originals);
+
+        IllegalArgumentException ex = Assertions.assertThrows(IllegalArgumentException.class,
+                () -> RegistryClientFacadeFactory.buildClientOptions(config, null));
+        Assertions.assertTrue(ex.getMessage().contains(SchemaResolverConfig.HTTP_READ_TIMEOUT_MS),
+                ex.getMessage());
+    }
+
+    @Test
     void testBuildClientOptionsRetryDisabled() {
         Map<String, Object> originals = new HashMap<>();
         originals.put(SchemaResolverConfig.REGISTRY_URL, "http://localhost:8080/apis/registry/v3");

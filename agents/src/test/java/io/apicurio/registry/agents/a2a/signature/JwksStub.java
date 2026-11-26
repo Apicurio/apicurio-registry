@@ -27,6 +27,7 @@ public final class JwksStub {
     private final HttpServer server;
     private final Map<String, String> keySets = new ConcurrentHashMap<>();
     private final Map<String, AtomicInteger> requests = new ConcurrentHashMap<>();
+    private final Map<String, Long> trickleMillis = new ConcurrentHashMap<>();
 
     private JwksStub() {
         try {
@@ -66,6 +67,15 @@ public final class JwksStub {
         keySets.put(path, jwks);
     }
 
+    /**
+     * Serves this key set at the path from now on, sending the headers at once and then one byte of the
+     * body every {@code millisPerByte} milliseconds.
+     */
+    public void serveSlowly(String path, String jwks, long millisPerByte) {
+        keySets.put(path, jwks);
+        trickleMillis.put(path, millisPerByte);
+    }
+
     /** The number of requests received for the path since the last {@link #resetCount}. */
     public int requestCount(String path) {
         AtomicInteger count = requests.get(path);
@@ -83,7 +93,21 @@ public final class JwksStub {
         byte[] bytes = body == null ? new byte[0] : body.getBytes(StandardCharsets.UTF_8);
         exchange.getResponseHeaders().add("Content-Type", "application/jwk-set+json");
         exchange.sendResponseHeaders(body == null ? 404 : 200, bytes.length == 0 ? -1 : bytes.length);
-        exchange.getResponseBody().write(bytes);
-        exchange.close();
+        Long delay = trickleMillis.get(path);
+        try {
+            if (delay == null) {
+                exchange.getResponseBody().write(bytes);
+            } else {
+                for (byte b : bytes) {
+                    exchange.getResponseBody().write(b);
+                    exchange.getResponseBody().flush();
+                    Thread.sleep(delay);
+                }
+            }
+        } catch (IOException | InterruptedException e) {
+            // The client gave up; nothing more to send.
+        } finally {
+            exchange.close();
+        }
     }
 }

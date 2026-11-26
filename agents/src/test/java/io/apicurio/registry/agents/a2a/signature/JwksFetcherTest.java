@@ -4,9 +4,11 @@ import io.apicurio.registry.http.OutboundConfig;
 import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -88,5 +90,20 @@ class JwksFetcherTest {
                 () -> fetcher.fetch("http://169.254.169.254/jwks")).getMessage());
         assertEquals("must not contain user information", assertThrows(JwksFetcher.JwksFetchException.class,
                 () -> fetcher.fetch("https://user:pass@keys.example.com/jwks")).getMessage());
+    }
+
+    @Test
+    void givesUpOnABodyTrickledPastTheDeadline() {
+        String path = "/fetcher/slow-" + UUID.randomUUID();
+        // Headers at once, then about 30 seconds of body: the 2-second budget must cut it short.
+        JwksStub.get().serveSlowly(path, "{\"keys\":[" + " ".repeat(300) + "]}", 100);
+        long start = System.nanoTime();
+
+        JwksFetcher.JwksFetchException error = assertThrows(JwksFetcher.JwksFetchException.class,
+                () -> fetcher(true, true, 1024).fetch(JwksStub.url(path)));
+
+        long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+        assertEquals("not fetched within 2 seconds", error.getMessage());
+        assertTrue(elapsedMillis >= 1_900 && elapsedMillis < 5_000, "elapsed " + elapsedMillis + " ms");
     }
 }

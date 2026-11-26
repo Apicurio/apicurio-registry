@@ -76,7 +76,7 @@ public class AgentCardSignatureConfig {
     Optional<List<String>> jkuAllowlist;
 
     @ConfigProperty(name = "apicurio.a2a.signature-verification.fetch.timeout.seconds", defaultValue = "5")
-    @Info(category = CATEGORY_A2A, description = "Timeout, in seconds, for connecting to a JSON Web Key Set URL and again for receiving its response headers", availableSince = "3.4.0")
+    @Info(category = CATEGORY_A2A, description = "Time budget, in seconds, for fetching a JSON Web Key Set: connecting, receiving the response headers and reading the whole body. A fetch that takes longer fails, and the key set contributes no keys until it is fetched successfully", availableSince = "3.4.0")
     int fetchTimeoutSeconds;
 
     @ConfigProperty(name = "apicurio.a2a.signature-verification.fetch.max-size.bytes", defaultValue = "65536")

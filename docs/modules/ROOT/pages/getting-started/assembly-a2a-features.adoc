@@ -932,13 +932,13 @@ The A2A specification also asks signers to remove fields with default values bef
 `apicurio.a2a.signature-verification.jwks-urls`:: URLs of JSON Web Key Sets (JWKS) holding the public keys of the publishers you trust.
 `apicurio.a2a.signature-verification.jku-allowlist`:: Hosts, such as `keys.example.com` or `*.example.com`, whose key sets may be fetched from the `jku` header of a signature. A `jku` on any other host is never fetched. By default the list is empty and `jku` is never followed.
 
-Key sets are fetched under the server-wide outbound rules: HTTPS is required unless `apicurio.outbound.insecure-http.enabled` is set, redirects are not followed, and loopback (unless `apicurio.outbound.loopback.enabled` is set), link-local and cloud metadata addresses are refused. A key set is cached for `apicurio.a2a.signature-verification.cache-ttl.seconds` (default 300). A signature that names an unknown `kid` refreshes the key sets early, at most once per key set in that period, so a newly published key is picked up. A key removed from a key set stops counting once the key set is fetched again. A key set that cannot be fetched contributes no keys until it can be fetched again.
+Key sets are fetched under the server-wide outbound rules: HTTPS is required unless `apicurio.outbound.insecure-http.enabled` is set, redirects are not followed, and loopback (unless `apicurio.outbound.loopback.enabled` is set), link-local and cloud metadata addresses are refused. Each fetch, from connecting to the last byte of the response, must finish within `apicurio.a2a.signature-verification.fetch.timeout.seconds` (default 5) and must not exceed `apicurio.a2a.signature-verification.fetch.max-size.bytes`. A key set is cached for `apicurio.a2a.signature-verification.cache-ttl.seconds` (default 300). A signature that names an unknown `kid` refreshes the key sets early, at most once per key set in that period, so a newly published key is picked up. A key removed from a key set stops counting once the key set is fetched again. A key set that cannot be fetched contributes no keys until it can be fetched again.
 
 When neither property is set, which is the default, nothing is verified and no key set is ever fetched.
 
 *Signature policy for writes*
 
-`apicurio.a2a.signature-verification.mode` applies to every `AGENT_CARD` version published through the REST API, whether or not a rule is enabled. Because it is not a rule, disabling rules does not bypass it. Setting it to anything other than `off` requires `apicurio.features.experimental.enabled`.
+`apicurio.a2a.signature-verification.mode` applies to every `AGENT_CARD` version published through the v3 or v2 REST API or the Confluent-compatible API, whether or not a rule is enabled. Because it is not a rule, disabling rules does not bypass it. Setting it to anything other than `off` requires `apicurio.features.experimental.enabled`.
 
 [cols="1,3",options="header"]
 |===
@@ -956,7 +956,16 @@ When neither property is set, which is the default, nothing is verified and no k
 
 The policy applies when an artifact is created with its first version, when a version is added, and when a draft version is published. Draft versions are not checked until they are published. Dry runs are rejected exactly like real writes. A rejected write is reported like a rule violation, with one cause per signature that names its `kid` and the reason, for example `Signature by kid 'publisher-2026' rejected: unknown key`. Key material and signature values are never included.
 
-The policy applies only to writes made through the REST API. Agent Cards that reach the registry in other ways, such as an import, GitOps or KubernetesOps storage, inventory synchronization, or Agent Cards generated from OpenAPI documents, are not checked when they are written. Their signatures are still verified when they are read.
+The policy also applies to the Agent Cards that agent inventory synchronization creates, which go through the same v3 create path: an Agent Card that fails the policy is reported as `REJECTED`. In the v2 REST API, which has no dry runs and no drafts, the policy applies when an artifact is created, when a version is added or the artifact is updated, and to the test-update endpoint.
+
+The following writes are not checked by the policy:
+
+* Data import, through the admin import endpoints or the import at startup: it restores exported data, is restricted to administrators or the operator, and must reproduce the exported registry as it was.
+* GitOps and KubernetesOps storage: the operator controls the repository or the Kubernetes resources that the registry loads.
+* Agent Cards that {registry} generates from the `x-agent-card` extension of an OpenAPI document: the registry writes them itself, after the OpenAPI document was accepted, and they are never signed.
+* Changes to the content of a draft version: the content is checked when the draft is published.
+
+Whatever the path a card took, its signatures are always verified when it is read, so `verifiedSigners` and `signedBy` only report signatures that verify against the keys trusted at that moment.
 
 *Signers in discovery*
 

@@ -7,30 +7,39 @@ import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Flow;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Fetches JSON Web Key Sets under the server-wide outbound rules: HTTPS unless
  * {@code apicurio.outbound.insecure-http.enabled}, no user information, no redirects, and no
  * connection to link-local, unspecified, multicast, reserved or cloud metadata addresses, nor to loopback
- * unless {@code apicurio.outbound.loopback.enabled} (see {@link OutboundAddressPolicy}). Connecting and
- * receiving the response headers are each bounded by
- * {@code apicurio.a2a.signature-verification.fetch.timeout.seconds}, and the response size by
- * {@code apicurio.a2a.signature-verification.fetch.max-size.bytes}.
+ * unless {@code apicurio.outbound.loopback.enabled} (see {@link OutboundAddressPolicy}). The whole
+ * fetch, from connecting to the last byte of the body, must finish within
+ * {@code apicurio.a2a.signature-verification.fetch.timeout.seconds}, and the body must not exceed
+ * {@code apicurio.a2a.signature-verification.fetch.max-size.bytes}; otherwise the fetch fails and the key
+ * set contributes no keys.
  * <p>
- * Known limitations: the HTTP client resolves the host again when it connects, so a DNS answer that
- * changes between the check and the connection is not caught (as for the MCP import); and reading the
- * body after the headers arrived is bounded in size, not in time.
+ * Known limitations: the host is resolved with the system resolver before the deadline is enforced, and
+ * that lookup has no timeout of its own; and the HTTP client resolves the host again when it connects, so a
+ * DNS answer that changes between the check and the connection is not caught (as for the MCP import).
  * </p>
  */
 @ApplicationScoped
@@ -68,33 +77,92 @@ public class JwksFetcher {
      * @return the response body
      */
     public String fetch(String url) throws JwksFetchException {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(config.getFetchTimeoutSeconds());
         URI uri = checkTarget(url);
         HttpRequest request = HttpRequest.newBuilder(uri)
                 .timeout(Duration.ofSeconds(config.getFetchTimeoutSeconds()))
                 .header("Accept", "application/jwk-set+json, application/json")
                 .GET()
                 .build();
-        HttpResponse<InputStream> response;
+        int max = config.getFetchMaxSizeBytes();
+        CompletableFuture<HttpResponse<byte[]>> pending = httpClient.sendAsync(request,
+                info -> new LimitedBodySubscriber(max));
+        HttpResponse<byte[]> response;
         try {
-            response = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
-        } catch (IOException e) {
-            throw new JwksFetchException("request failed");
+            response = pending.get(Math.max(0, deadline - System.nanoTime()), TimeUnit.NANOSECONDS);
+        } catch (TimeoutException e) {
+            pending.cancel(true);
+            throw new JwksFetchException("not fetched within " + config.getFetchTimeoutSeconds() + " seconds");
         } catch (InterruptedException e) {
+            pending.cancel(true);
             Thread.currentThread().interrupt();
             throw new JwksFetchException("interrupted");
-        }
-        try (InputStream body = response.body()) {
-            if (response.statusCode() != 200) {
-                throw new JwksFetchException("HTTP status " + response.statusCode());
-            }
-            int max = config.getFetchMaxSizeBytes();
-            byte[] bytes = body.readNBytes(max + 1);
-            if (bytes.length > max) {
+        } catch (ExecutionException e) {
+            if (e.getCause() instanceof ResponseTooLargeException) {
                 throw new JwksFetchException("response larger than " + max + " bytes");
             }
-            return new String(bytes, StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            throw new JwksFetchException("reading the response failed");
+            throw new JwksFetchException("request failed");
+        }
+        if (response.statusCode() != 200) {
+            throw new JwksFetchException("HTTP status " + response.statusCode());
+        }
+        return new String(response.body(), StandardCharsets.UTF_8);
+    }
+
+    /** The body was larger than allowed; reading it was cancelled. */
+    private static final class ResponseTooLargeException extends IOException {
+
+        private static final long serialVersionUID = -4381127389712532447L;
+    }
+
+    /**
+     * Collects the response body, cancelling the exchange as soon as it exceeds the size limit.
+     */
+    private static final class LimitedBodySubscriber implements HttpResponse.BodySubscriber<byte[]> {
+
+        private final CompletableFuture<byte[]> result = new CompletableFuture<>();
+        private final ByteArrayOutputStream body = new ByteArrayOutputStream();
+        private final int max;
+        private Flow.Subscription subscription;
+
+        private LimitedBodySubscriber(int max) {
+            this.max = max;
+        }
+
+        @Override
+        public CompletionStage<byte[]> getBody() {
+            return result;
+        }
+
+        @Override
+        public void onSubscribe(Flow.Subscription subscription) {
+            this.subscription = subscription;
+            subscription.request(1);
+        }
+
+        @Override
+        public void onNext(List<ByteBuffer> buffers) {
+            for (ByteBuffer buffer : buffers) {
+                if ((long) body.size() + buffer.remaining() > max) {
+                    subscription.cancel();
+                    result.completeExceptionally(new ResponseTooLargeException());
+                    return;
+                }
+                byte[] bytes = new byte[buffer.remaining()];
+                buffer.get(bytes);
+                body.writeBytes(bytes);
+            }
+            subscription.request(1);
+        }
+
+        @Override
+        public void onError(Throwable throwable) {
+            result.completeExceptionally(throwable);
+        }
+
+        @Override
+        public void onComplete() {
+            result.complete(body.toByteArray());
         }
     }
 

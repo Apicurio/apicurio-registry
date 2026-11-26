@@ -31,6 +31,7 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Agent Card signature verification in {@code verify-if-present} mode, end to end: the write policy, the
@@ -270,5 +271,24 @@ public class AgentCardSignatureVerificationTest extends AbstractResourceTestBase
         RestAssured.given().queryParam("skill", skill).queryParam("signedBy", trusted.getKeyId())
                 .get("/registry/v3/well-known/agents").then().statusCode(200).body("count", equalTo(1))
                 .body("agents[0].verifiedSigners", contains(trusted.getKeyId()));
+    }
+
+    @Test
+    void keySetTrickledPastTheDeadlineFailsClosedWithoutHanging() {
+        String group = TestUtils.generateGroupId();
+        String path = "/verify/jku-slow-" + UUID.randomUUID();
+        PublicJsonWebKey key = TestCardSigner.generateKey("ES256", "jku-slow-" + UUID.randomUUID());
+        // Headers at once, then one byte every 100 ms: far longer than the profile's 2-second budget.
+        JwksStub.get().serveSlowly(path, TestCardSigner.jwks(key), 100);
+        String signed = TestCardSigner.sign(card(skill()), key, "ES256", Map.of("alg", "ES256", "typ", "JOSE",
+                "kid", key.getKeyId(), "jku", JwksStub.url("127.0.0.1", path)));
+        long start = System.nanoTime();
+
+        createCard(group, "jku-slow", signed, false).then().statusCode(400)
+                .body("causes.description", contains("Signature by kid '" + key.getKeyId() + "' rejected: unknown key"));
+
+        long elapsedMillis = Duration.ofNanos(System.nanoTime() - start).toMillis();
+        assertTrue(elapsedMillis < 10_000, "the write took " + elapsedMillis + " ms");
+        assertTrue(JwksStub.get().requestCount(path) >= 1);
     }
 }

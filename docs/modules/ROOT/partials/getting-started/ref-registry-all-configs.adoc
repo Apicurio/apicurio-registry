@@ -111,7 +111,7 @@ The following {registry} configuration options are available for each component 
 |`int`
 |`5`
 |`3.4.0`
-|Timeout, in seconds, for connecting to a JSON Web Key Set URL and again for receiving its response headers
+|Time budget, in seconds, for fetching a JSON Web Key Set: connecting, receiving the response headers and reading the whole body. A fetch that takes longer fails, and the key set contributes no keys until it is fetched successfully
 |`apicurio.a2a.signature-verification.jku-allowlist`
 |`optional<list<string>>`
 |

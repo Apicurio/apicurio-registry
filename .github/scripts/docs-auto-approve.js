@@ -51,8 +51,12 @@ async function findPrNumber(github, owner, repo, run) {
 }
 
 async function docsCheckPassed(github, owner, repo, runId) {
+  // per_page: 30, not 100 — runId is a Verify run, the same workflow whose
+  // large/multi-attempt runs return a 502 from GitHub at per_page: 100 (see
+  // .github/scripts/pr-lifecycle.js, api.listRunJobs). github.paginate still
+  // fetches every job, just in smaller pages.
   const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun, {
-    owner, repo, run_id: runId, per_page: 100,
+    owner, repo, run_id: runId, per_page: 30,
   });
   const list = Array.isArray(jobs) ? jobs : jobs.jobs;
   const docsJobs = list.filter(j => j.name.startsWith(DOCS_CHECK_JOB_PREFIX));

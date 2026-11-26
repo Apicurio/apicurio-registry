@@ -197,6 +197,16 @@
       <artifactId>iceberg-core</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.eclipse.jgit</groupId>
+      <artifactId>org.eclipse.jgit</artifactId>
+      <scope>test</scope>
+    </dependency>
 
   </dependencies>
   <build>
@@ -436,6 +446,34 @@
                     <registry-image>quay.io/apicurio/apicurio-registry:latest-snapshot</registry-image>
                     <cluster.tests>true</cluster.tests>
                     <deployKubernetesOps>true</deployKubernetesOps>
+                    <quarkus.http.test-scheme>http</quarkus.http.test-scheme>
+                    <quarkus.http.test-host>localhost</quarkus.http.test-host>
+                    <quarkus.http.test-port>8080</quarkus.http.test-port>
+                  </systemPropertyVariables>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <profile>
+      <id>remote-gitops</id>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>integration-test</goal>
+                </goals>
+                <configuration>
+                  <systemPropertyVariables>
+                    <registry-image>quay.io/apicurio/apicurio-registry:latest-snapshot</registry-image>
+                    <cluster.tests>true</cluster.tests>
+                    <deployGitOps>true</deployGitOps>
                     <quarkus.http.test-scheme>http</quarkus.http.test-scheme>
                     <quarkus.http.test-host>localhost</quarkus.http.test-host>
                     <quarkus.http.test-port>8080</quarkus.http.test-port>

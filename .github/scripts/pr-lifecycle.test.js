@@ -112,10 +112,22 @@ function makeWorld(prLabels, { approved = false, suiteRuns = [], suiteJobs = {},
       calls.graphql.push({ query, vars });
       return {};
     },
-    // paginate: reviews list when asked for reviews, empty otherwise
-    paginate: async (fn) => fn === github.rest.pulls.listReviews
-      ? (approved ? [{ state: 'APPROVED', user: { login: 'maintainer-jane' } }] : [])
-      : [],
+    // paginate: reviews list when asked for reviews; for anything else
+    // (notably listJobsForWorkflowRun, since the real code paginates job
+    // listings to avoid GitHub's 502 on large runs), delegate to whatever
+    // the test mocked that rest call to and flatten its known array field,
+    // so a test that only overrides listJobsForWorkflowRun doesn't also
+    // have to override paginate.
+    paginate: async (fn, params) => {
+      if (fn === github.rest.pulls.listReviews) {
+        return approved ? [{ state: 'APPROVED', user: { login: 'maintainer-jane' } }] : [];
+      }
+      const { data } = await fn(params);
+      if (Array.isArray(data)) return data;
+      if (data && Array.isArray(data.jobs)) return data.jobs;
+      if (data && Array.isArray(data.workflow_runs)) return data.workflow_runs;
+      return [];
+    },
   };
 
   const core = { info: () => {}, warning: () => {}, error: () => {} };
@@ -809,6 +821,51 @@ test('gate status: reconcile re-syncs the status for the PR head commit', async 
   assert.equal(w.calls.statuses[0].sha, SHA);
 });
 
+// GitHub returns a 502 listing a large run's jobs with per_page: 100, but not
+// with per_page: 30 (found on #11385, #11476 and #10250). The gate lookup
+// must ask for jobs 30 at a time and combine every page, not fetch 100 at
+// once — and it must actually see every page, not just the first: Verify
+// Result is deliberately placed on the second page here, beyond the first
+// 30 jobs, so a lookup that silently stopped at one unpaginated per_page:30
+// page (truncating the run) would miss it and this test would fail on the
+// final gate status rather than only on the page-size assertion.
+test('gate status: job listings are paginated at per_page 30, not fetched 100 at a time', async () => {
+  const w = gateWorld({ runs: [verifyRun(1)] });
+  const requestedPageSizes = [];
+  const page1 = Array.from({ length: 30 }, (_, i) => ({ name: `Other Job ${i}`, conclusion: 'success' }));
+  const page2 = resultJob('success');
+  w.github.rest.actions.listJobsForWorkflowRun = async ({ per_page, page }) => {
+    requestedPageSizes.push(per_page);
+    return { data: { jobs: page === 2 ? page2 : page1 } };
+  };
+  const defaultPaginate = w.github.paginate;
+  // A real github.paginate keeps asking for the next page until one comes
+  // back shorter than per_page; simulate that here rather than relying on
+  // the default single-page mock, which would hide a lookup that never
+  // paginates at all. Anything else (e.g. the reviews lookup reconcile()
+  // also makes) falls back to the default mock.
+  w.github.paginate = async (fn, params) => {
+    if (fn !== w.github.rest.actions.listJobsForWorkflowRun) {
+      return defaultPaginate(fn, params);
+    }
+    const results = [];
+    for (let page = 1; ; page++) {
+      const { data } = await fn({ ...params, page });
+      const jobs = data.jobs;
+      results.push(...jobs);
+      if (jobs.length < params.per_page) break;
+    }
+    return results;
+  };
+  await lifecycle.handleReconcile({ github: w.github, context: reconcileContext(), core: w.core, prNumber: 42 });
+  assert.ok(requestedPageSizes.every(size => size === 30),
+    `expected every job listing request to use per_page: 30, got: ${requestedPageSizes}`);
+  assert.equal(requestedPageSizes.length, 2, 'expected the second page to be fetched too');
+  assert.equal(w.calls.statuses.length, 1);
+  assert.equal(w.calls.statuses[0].state, 'success',
+    'Verify Result on the second page must still be found and reflected in the gate status');
+});
+
 // ---------------------------------------------------------------------------
 // Starting the full suite once it becomes required — an approval re-runs the
 // commit's Verify run instead of verify.yaml starting a second one
@@ -970,7 +1027,10 @@ test('review relay: a fork PR past the first page of open PRs is found by its he
   w.github.rest.pulls.list = async ({ head }) => ({ data: head === 'contributor:feature-x' ? [forkPr] : [] });
   const firstPage = Array.from({ length: 100 }, (_, i) => ({ number: 1000 + i, head: { sha: `other${i}` } }));
   w.github.paginate = async (fn, params) => {
-    assert.equal(fn, w.github.rest.pulls.list);
+    if (fn !== w.github.rest.pulls.list) {
+      const { data } = await fn(params);
+      return data.jobs ?? data;
+    }
     assert.equal(params.head, undefined, 'the scan is not filtered by head branch');
     return [...firstPage, forkPr];
   };
@@ -1171,9 +1231,16 @@ function makeStaleWorld({ labels = [LABELS.READY_FOR_REVIEW], updatedDaysAgo = 3
         get: async () => ({ data: { ...pr, labels: [...prLabels].map(name => ({ name })) } }),
       },
     },
-    paginate: async (fn) => {
+    paginate: async (fn, params) => {
       if (fn === 'pulls.list') return [pr];
       if (fn === 'listEventsForTimeline') return timelinePages.flat();
+      // The sweep's Verification Gate re-sync paginates job listings (see
+      // the comment on api.listRunJobs); delegate to whatever the test
+      // mocked that rest call to.
+      if (typeof fn === 'function') {
+        const { data } = await fn(params);
+        return data.jobs ?? data;
+      }
       return [];
     },
   };

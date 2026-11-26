@@ -20,6 +20,8 @@ public class KubernetesTestResources {
     protected static final String APPLICATION_IN_MEMORY_ICEBERG_RESOURCES = "/infra/in-memory/registry-in-memory-iceberg.yml";
     protected static final String APPLICATION_KUBERNETESOPS_RESOURCES = "/infra/kubernetesops/registry-kubernetesops.yml";
     protected static final String KUBERNETESOPS_CONFIGMAPS = "/infra/kubernetesops/kubernetesops-configmaps.yml";
+    protected static final String APPLICATION_GITOPS_RESOURCES = "/infra/gitops/registry-gitops.yml";
+    protected static final String GITOPS_INIT_RESOURCES = "/infra/gitops/gitops-init-configmap.yml";
     public static final String TEST_NAMESPACE = "apicurio-registry-e2e";
     public static final String APPLICATION_SERVICE = "apicurio-registry-service";
     protected static final String APPLICATION_DEPLOYMENT = "apicurio-registry-deployment";

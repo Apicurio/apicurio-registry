@@ -394,7 +394,7 @@
 
     <!-- Kroxylicious Authorizer API (shared authorization contract) -->
     <kroxylicious.version>0.26.0</kroxylicious.version>
-    <re2j.version>1.8</re2j.version>
+    <re2j.version>1.9</re2j.version>
   </properties>
 
   <dependencyManagement>

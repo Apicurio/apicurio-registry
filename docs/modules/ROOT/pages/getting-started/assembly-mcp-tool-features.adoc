@@ -254,7 +254,7 @@ The `GET /.well-known/mcp-tools` endpoint searches for registered MCP tool defin
 
 |`name`
 |string
-|Filter by tool name (partial match)
+|Filter by artifact name or artifact ID (partial match). The filter does not match the `name` field inside the tool definition, so set the artifact name to the tool name when you create the artifact.
 
 |`parameter`
 |string (repeatable)
@@ -513,6 +513,7 @@ curl -X POST "http://localhost:8080/apis/registry/v3/groups/mcp-tools/artifacts"
   -d '{
     "artifactId": "weather-tool",
     "artifactType": "MCP_TOOL",
+    "name": "get_weather",
     "firstVersion": {
       "version": "1.0.0",
       "content": {
@@ -634,7 +635,7 @@ The engine can conservatively reject changes that accept the same values, especi
 
 Earlier MCP tool checking compared only top-level input types, property names, and requiredness; output changes and nested constraint changes were unchecked. Version 3.4 checks the supported subset above and changes those results. Making an input optional is now backward compatible. Adding a typed optional input to an open schema is no longer automatically accepted. Stored versions are not rewritten; unsupported schemas in existing versions can prevent subsequent publication under an enabled compatibility rule.
 
-For a release-safety demonstration, publish a tool whose input `query` is a string with `maxLength: 10`, enable `BACKWARD`, and propose `maxLength: 5`. Expect HTTP 400 and unchanged old content. Propose `maxLength: 20` and expect acceptance. For an output schema, the direction is reversed. Use a disposable registry and retain the rule configuration, exact versions, responses, and retrieved content as evidence for the agent-registry graduation work (#10294). This demonstrates publication-time schema enforcement only; it is not evidence of runtime admission, authenticated invocation, or full feature graduation.
+For a release-safety demonstration, publish a tool whose input `query` is a string with `maxLength: 10`, enable `BACKWARD`, and propose `maxLength: 5`. Expect HTTP 400 and unchanged old content. Propose `maxLength: 20` and expect acceptance. For an output schema, the direction is reversed. Use a disposable registry. This demonstrates publication-time schema enforcement only; it is not evidence of runtime admission, authenticated invocation, or full feature graduation.
 
 // con-mcp-cross-tool-compatibility
 [id="mcp-cross-tool-compatibility_{context}"]

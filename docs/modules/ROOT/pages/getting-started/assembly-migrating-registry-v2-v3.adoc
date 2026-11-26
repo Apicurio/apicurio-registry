@@ -1738,7 +1738,7 @@ The migration scripts are production-ready tools that handle the most critical a
 * *apicurio-verify-registry-version.sh:* Verifies registry version and health.
 * *apicurio-verify-v3-api-features.sh:* Tests v3-specific API features.
 
-Find all scripts in the {registry} GitHub repository under link:https://github.com/Apicurio/apicurio-registry/tree/3.2.x/docs/scripts[docs/scripts/].
+Find all scripts in the {registry} GitHub repository under link:https://github.com/Apicurio/apicurio-registry/tree/{upstream-version-tag}/docs/scripts[docs/scripts/].
 
 All migration scripts share the following common features:
 

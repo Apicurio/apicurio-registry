@@ -10,6 +10,31 @@ You can configure your {registry} deployment, including file-based secrets, HTTP
 
 NOTE: For a list of all available configuration options, see {registry-config-reference}.
 
+// con-registry-experimental-features
+[id="registry-experimental-features_{context}"]
+== Experimental features
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+An experimental feature is disabled by default and can change incompatibly or be removed in a later release. To use one, enable the feature and set the `apicurio.features.experimental.enabled` property, which is the experimental features gate, to `true`. If you enable an experimental feature while the gate is `false`, {registry} does not start.
+
+The gate is `false` by default. It applies to every property whose description in the configuration reference ends with _(experimental)_, for example, `apicurio.agents.enabled` and `apicurio.iceberg.enabled`. It also applies to the GitOps and KubernetesOps storage variants, `apicurio.storage.kind=gitops` and `apicurio.storage.kind=kubernetesops`.
+
+{registry} checks the gate at startup, before it initializes storage. When the gate is `false`, startup fails if you set one of these properties to `true` or if the storage kind is `gitops` or `kubernetesops`. The error names each property that you set, with its description:
+
+----
+The following experimental features are enabled but the experimental features gate ('apicurio.features.experimental.enabled') is not enabled. Either enable the experimental features gate or disable the following properties: apicurio.iceberg.enabled (Enable the Iceberg REST Catalog API)
+----
+
+To start {registry}, set `apicurio.features.experimental.enabled=true` or the `APICURIO_FEATURES_EXPERIMENTAL_ENABLED=true` environment variable, or disable the features that the error names.
+
+IMPORTANT: {registry} 3.2 and 3.3 define the gate but do not check it at startup. A deployment that enables an experimental feature without the gate starts on those versions and does not start on 3.4. Before you upgrade such a deployment, set the gate to `true` or disable the feature.
+
+[role="_additional-resources"]
+.Additional resources
+* {registry-config-reference}
+
 // proc-configuring-file-based-secrets
 [id="configuring-file-based-secrets_{context}"]
 == Loading configuration values from files

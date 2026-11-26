@@ -94,7 +94,7 @@ You can use the {registry} web console to browse the schema and API artifacts st
 . In the {registry} web console, find the artifact by using one of the following tabs:
 +
 ** *Explore*: Browse the list of groups, click a group, and then click an artifact in the *Artifacts in group* list.
-** *Search*: Select *Artifacts* from the *Search for* menu to browse artifacts. You can filter the results by criteria such as *Name*, *Group*, *Labels*, or *Global Id*. The *Name* filter ignores letter case. When you filter by *Type*, select the value from a list instead of typing it. The *State* filter is available when you select *Versions* from *Search for*. For this filter, you also select the value from a list.
+** *Search*: Select *Artifacts* from the *Search for* menu to browse artifacts. You can filter the results by criteria such as *Name*, *Group*, *Labels*, or *Global Id*. The *Name* filter ignores letter case and finds artifacts whose name or artifact ID contains the text that you enter. To match only the start of the name or artifact ID, add `+*+` after the text, for example, `+payment*+`. When you filter by *Type*, select the value from a list instead of typing it. The *State* filter is available when you select *Versions* from *Search for*. For this filter, you also select the value from a list.
 ** *Dashboard*: Click an artifact in the *Recent Artifacts* list.
 +
 .Artifacts in {registry} web console

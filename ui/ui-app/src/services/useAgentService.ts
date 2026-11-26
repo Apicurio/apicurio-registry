@@ -1,7 +1,8 @@
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 import { AuthService, useAuth } from "@apitomy/common-ui-components";
 import { Paging } from "@models/Paging.ts";
-import { createAuthOptions } from "@utils/rest.utils.ts";
+import { createAuthOptions, getRegistryClient } from "@utils/rest.utils.ts";
+import { FederatedAgentSearchResults } from "@sdk/lib/generated-client/models";
 
 /**
  * Agent capabilities structure
@@ -141,6 +142,32 @@ const searchAgents = async (
     return response.json();
 };
 
+const toArray = (value?: string | string[]): string[] | undefined => {
+    const values = (Array.isArray(value) ? value : [value]).filter((v): v is string => !!v);
+    return values.length > 0 ? values : undefined;
+};
+
+/**
+ * Searches this registry and every enabled peer registry in one request. There is no paging:
+ * every source returns at most perSourceLimit agents, and each has an outcome of its own.
+ */
+const searchFederatedAgents = async (
+    config: ConfigService,
+    auth: AuthService,
+    filters: AgentSearchFilters,
+    perSourceLimit: number
+): Promise<FederatedAgentSearchResults> => {
+    console.debug("[AgentService] Searching agents across registries: ", filters, perSourceLimit);
+    return getRegistryClient(config, auth).search.federated.get({
+        queryParameters: {
+            name: filters.name || undefined,
+            capability: toArray(filters.capability),
+            skill: toArray(filters.skill),
+            perSourceLimit
+        }
+    }).then(v => v!);
+};
+
 const getAgentCard = async (
     config: ConfigService,
     auth: AuthService,
@@ -215,6 +242,7 @@ const getRegistryAgentCard = async (
 
 export interface AgentService {
     searchAgents(filters: AgentSearchFilters, paging: Paging): Promise<AgentSearchResults>;
+    searchFederatedAgents(filters: AgentSearchFilters, perSourceLimit: number): Promise<FederatedAgentSearchResults>;
     getAgentCard(groupId: string, artifactId: string): Promise<any>;
     getRegistryAgentCard(): Promise<any>;
 }
@@ -226,6 +254,9 @@ export const useAgentService: () => AgentService = (): AgentService => {
     return {
         searchAgents(filters: AgentSearchFilters, paging: Paging): Promise<AgentSearchResults> {
             return searchAgents(config, auth, filters, paging);
+        },
+        searchFederatedAgents(filters: AgentSearchFilters, perSourceLimit: number): Promise<FederatedAgentSearchResults> {
+            return searchFederatedAgents(config, auth, filters, perSourceLimit);
         },
         getAgentCard(groupId: string, artifactId: string): Promise<any> {
             return getAgentCard(config, auth, groupId, artifactId);

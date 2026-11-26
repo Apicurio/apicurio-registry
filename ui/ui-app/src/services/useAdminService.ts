@@ -5,11 +5,14 @@ import { Paging } from "@models/Paging.ts";
 import {
     ArtifactTypeInfo, ConfigurationProperty,
     CreateRule, DownloadRef,
+    NewPeer,
+    PeerSearchResults,
     RoleMapping,
     RoleMappingSearchResults,
     RoleType,
     Rule,
     RuleType, UpdateConfigurationProperty,
+    type UpdatePeer,
     type UpdateRole
 } from "@sdk/lib/generated-client/models";
 
@@ -104,6 +107,32 @@ const deleteRoleMapping = async (config: ConfigService, auth: AuthService, princ
     return getRegistryClient(config, auth).admin.roleMappings.byPrincipalId(principalId).delete().then(() => null);
 };
 
+const getPeers = async (config: ConfigService, auth: AuthService, paging: Paging): Promise<PeerSearchResults> => {
+    console.info("[AdminService] Getting the list of peer registries.");
+    const start: number = (paging.page - 1) * paging.pageSize;
+    return getRegistryClient(config, auth).admin.peers.get({
+        queryParameters: {
+            limit: paging.pageSize,
+            offset: start
+        }
+    }).then(v => v!);
+};
+
+const createPeer = async (config: ConfigService, auth: AuthService, peer: NewPeer): Promise<void> => {
+    console.info("[AdminService] Creating a peer registry:", peer.peerId);
+    return getRegistryClient(config, auth).admin.peers.post(peer);
+};
+
+const updatePeer = async (config: ConfigService, auth: AuthService, peerId: string, peer: UpdatePeer): Promise<void> => {
+    console.info("[AdminService] Updating a peer registry:", peerId);
+    return getRegistryClient(config, auth).admin.peers.byPeerId(peerId).put(peer);
+};
+
+const deletePeer = async (config: ConfigService, auth: AuthService, peerId: string): Promise<void> => {
+    console.info("[AdminService] Deleting a peer registry:", peerId);
+    return getRegistryClient(config, auth).admin.peers.byPeerId(peerId).delete();
+};
+
 const exportAs = async (config: ConfigService, auth: AuthService, filename: string): Promise<DownloadRef> => {
     const baseHref: string = config.artifactsUrl();
     return getRegistryClient(config, auth).admin.exportEscaped.get({
@@ -168,6 +197,10 @@ export interface AdminService {
     createRoleMapping(principalId: string, role: string, principalName: string): Promise<RoleMapping>;
     updateRoleMapping(principalId: string, role: string): Promise<RoleMapping>;
     deleteRoleMapping(principalId: string): Promise<null>;
+    getPeers(paging: Paging): Promise<PeerSearchResults>;
+    createPeer(peer: NewPeer): Promise<void>;
+    updatePeer(peerId: string, peer: UpdatePeer): Promise<void>;
+    deletePeer(peerId: string): Promise<void>;
     exportAs(filename: string): Promise<DownloadRef>;
     importFrom(file: string | File, progressFunction: (progressEvent: any) => void): Promise<void>;
     listConfigurationProperties(): Promise<ConfigurationProperty[]>;
@@ -213,6 +246,18 @@ export const useAdminService: () => AdminService = (): AdminService => {
         },
         deleteRoleMapping(principalId: string): Promise<null> {
             return deleteRoleMapping(config, auth, principalId);
+        },
+        getPeers(paging: Paging): Promise<PeerSearchResults> {
+            return getPeers(config, auth, paging);
+        },
+        createPeer(peer: NewPeer): Promise<void> {
+            return createPeer(config, auth, peer);
+        },
+        updatePeer(peerId: string, peer: UpdatePeer): Promise<void> {
+            return updatePeer(config, auth, peerId, peer);
+        },
+        deletePeer(peerId: string): Promise<void> {
+            return deletePeer(config, auth, peerId);
         },
         exportAs(filename: string): Promise<DownloadRef> {
             return exportAs(config, auth, filename);

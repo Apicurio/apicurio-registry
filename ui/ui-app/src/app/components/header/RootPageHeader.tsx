@@ -9,6 +9,7 @@ import {
     DASHBOARD_PAGE_IDX,
     DRAFTS_PAGE_IDX,
     EXPLORE_PAGE_IDX,
+    PEERS_PAGE_IDX,
     ROLES_PAGE_IDX,
     RULES_PAGE_IDX,
     SEARCH_PAGE_IDX,
@@ -62,6 +63,10 @@ export const RootPageHeader: FunctionComponent<RootPageHeaderProps> = (props: Ro
                 // navigate to permissions page
                 appNavigation.navigateTo("/roles");
             }
+            if (eventKey === PEERS_PAGE_IDX) {
+                // navigate to remote registries page
+                appNavigation.navigateTo("/peers");
+            }
             if (eventKey === SETTINGS_PAGE_IDX) {
                 // navigate to settings page
                 appNavigation.navigateTo("/settings");
@@ -104,6 +109,14 @@ export const RootPageHeader: FunctionComponent<RootPageHeaderProps> = (props: Ro
     if (config.featureRoleManagement() && user.isUserAdmin()) {
         tabs.push(
             <Tab data-testid="access-tab" key={ROLES_PAGE_IDX} eventKey={ROLES_PAGE_IDX} title={<TabTitleText>Access</TabTitleText>} />
+        );
+    }
+
+    // Show the Remote registries tab to admins (peer management is an admin operation).
+    // The page itself explains when federation is not enabled on the server.
+    if (user.isUserAdmin()) {
+        tabs.push(
+            <Tab data-testid="peers-tab" key={PEERS_PAGE_IDX} eventKey={PEERS_PAGE_IDX} title={<TabTitleText>Remote registries</TabTitleText>} />
         );
     }
 

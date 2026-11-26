@@ -104,3 +104,19 @@
 .bottom-pagination {
     margin-top: 16px;
 }
+
+.agent-card.agent-card-remote {
+    cursor: default;
+}
+
+.remote-problem {
+    margin-top: 16px;
+}
+
+.federated-summary {
+    margin-top: 16px;
+}
+
+.federated-summary .federated-sources {
+    margin-bottom: 8px;
+}

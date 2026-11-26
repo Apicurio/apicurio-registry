@@ -1,0 +1,12 @@
+.peer-list .peer-list-action-column {
+    text-align: right
+}
+
+.peer-list .peer-id {
+    color: #999;
+}
+
+.peer-list .peer-description {
+    color: #666;
+    font-size: 0.875em;
+}

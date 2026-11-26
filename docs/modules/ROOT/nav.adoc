@@ -53,6 +53,7 @@ endif::[]
 * AI Agent Integration
 ** xref:getting-started/assembly-agent-registry-quickstart.adoc[]
 ** xref:getting-started/assembly-a2a-features.adoc[]
+** xref:getting-started/assembly-federated-agent-search.adoc[]
 ** xref:getting-started/assembly-mcp-tool-features.adoc[]
 ** xref:getting-started/assembly-mcp-server-integration.adoc[]
 ** xref:getting-started/assembly-mcp-registry-api.adoc[]

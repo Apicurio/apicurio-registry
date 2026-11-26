@@ -7,3 +7,4 @@ export const RULES_PAGE_IDX = 4;
 export const ROLES_PAGE_IDX = 5;
 export const SETTINGS_PAGE_IDX = 6;
 export const CONTRACT_RULES_PAGE_IDX = 7;
+export const PEERS_PAGE_IDX = 8;

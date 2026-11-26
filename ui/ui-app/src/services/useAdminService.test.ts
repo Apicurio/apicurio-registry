@@ -51,4 +51,67 @@ describe("useAdminService pagination", () => {
             expect(params.offset).toBe(pagesToCheck[i].expectedOffset);
         });
     });
+
+    it("sends a constant limit and correct offset across pages for getPeers", async () => {
+        const get = vi.fn().mockResolvedValue({ count: 0, peers: [] });
+        getRegistryClientMock.mockReturnValue({ admin: { peers: { get } } });
+
+        const service = useAdminService();
+        await service.getPeers({ page: 1, pageSize: 25 });
+        await service.getPeers({ page: 3, pageSize: 25 });
+
+        expect(get).toHaveBeenCalledTimes(2);
+        expect(get.mock.calls[0][0].queryParameters).toEqual({ limit: 25, offset: 0 });
+        expect(get.mock.calls[1][0].queryParameters).toEqual({ limit: 25, offset: 50 });
+    });
+});
+
+describe("useAdminService peers", () => {
+    it("returns the peers the server listed", async () => {
+        const results = { count: 1, peers: [{ peerId: "eu", url: "https://eu.example.com", enabled: true }] };
+        getRegistryClientMock.mockReturnValue({ admin: { peers: { get: vi.fn().mockResolvedValue(results) } } });
+
+        expect(await useAdminService().getPeers({ page: 1, pageSize: 100 })).toBe(results);
+    });
+
+    it("posts a new peer to the collection", async () => {
+        const post = vi.fn().mockResolvedValue(undefined);
+        getRegistryClientMock.mockReturnValue({ admin: { peers: { post } } });
+        const peer = { peerId: "eu", url: "https://eu.example.com", enabled: true };
+
+        await useAdminService().createPeer(peer);
+
+        expect(post).toHaveBeenCalledTimes(1);
+        expect(post).toHaveBeenCalledWith(peer);
+    });
+
+    it("puts an update to the peer with the given id", async () => {
+        const put = vi.fn().mockResolvedValue(undefined);
+        const byPeerId = vi.fn().mockReturnValue({ put });
+        getRegistryClientMock.mockReturnValue({ admin: { peers: { byPeerId } } });
+        const update = { url: "https://eu2.example.com", enabled: false };
+
+        await useAdminService().updatePeer("eu", update);
+
+        expect(byPeerId).toHaveBeenCalledWith("eu");
+        expect(put).toHaveBeenCalledWith(update);
+    });
+
+    it("deletes the peer with the given id", async () => {
+        const del = vi.fn().mockResolvedValue(undefined);
+        const byPeerId = vi.fn().mockReturnValue({ delete: del });
+        getRegistryClientMock.mockReturnValue({ admin: { peers: { byPeerId } } });
+
+        await useAdminService().deletePeer("eu");
+
+        expect(byPeerId).toHaveBeenCalledWith("eu");
+        expect(del).toHaveBeenCalledTimes(1);
+    });
+
+    it("passes the server's error on to the caller", async () => {
+        const error = { responseStatusCode: 409, detail: "Federation is not enabled on this registry instance." };
+        getRegistryClientMock.mockReturnValue({ admin: { peers: { get: vi.fn().mockRejectedValue(error) } } });
+
+        await expect(useAdminService().getPeers({ page: 1, pageSize: 100 })).rejects.toBe(error);
+    });
 });

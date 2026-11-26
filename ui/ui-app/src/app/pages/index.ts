@@ -11,6 +11,7 @@ export * from "./group";
 export * from "./version";
 export * from "./settings";
 export * from "./roles";
+export * from "./peers";
 export * from "./root";
 export * from "./rules";
 export * from "./contractRules";

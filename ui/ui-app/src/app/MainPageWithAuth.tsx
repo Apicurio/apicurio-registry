@@ -18,7 +18,7 @@ import {
     SearchPage,
     VersionPage
 } from "@app/pages";
-import { RolesPage, SettingsPage } from "./pages";
+import { PeersPage, RolesPage, SettingsPage } from "./pages";
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 import { ApplicationAuth, AuthConfig, AuthConfigContext } from "@apitomy/common-ui-components";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
@@ -69,6 +69,7 @@ export const MainPageWithAuth: FunctionComponent<MainPageWithAuthProps> = () => 
                             <Route path="/rules" element={ <RulesPage /> } />
                             <Route path="/contract-rules" element={ <GlobalContractRulesPage /> } />
                             <Route path="/roles" element={ <RolesPage /> } />
+                            <Route path="/peers" element={ <PeersPage /> } />
                             <Route path="/settings" element={ <SettingsPage /> } />
                             <Route path="/search" element={ <SearchPage /> } />
                             <Route path="/drafts" element={ <DraftsPage /> } />

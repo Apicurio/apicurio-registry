@@ -16,6 +16,7 @@ import java.util.TreeMap;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -129,15 +130,85 @@ class UsageMetricsOtelOnlyTest extends AbstractUsageMetricsTest {
         assertEquals(200, get(GLOBAL_ROUTE + sentinelSchema.globalId(), sentinel, "SERIALIZE"));
         awaitSeries(sentinel, Map.of("global_id:" + sentinelSchema.globalId() + ":SERIALIZE", 1L));
 
-        String ignoredGlobal = String.valueOf(ignored.globalId());
-        String ignoredContent = String.valueOf(ignored.contentId());
-        assertTrue(allSchemaFetchPoints().stream().noneMatch(p -> {
-            String value = p.attributes().get("apicurio.registry.identifier_value");
-            return ignoredGlobal.equals(value) || ignoredContent.equals(value);
-        }), "nothing may be counted for the schema that was only fetched through rejected requests");
+        assertTrue(allSchemaFetchPoints().stream().noneMatch(p -> isCountedFor(p, ignored)),
+                "nothing may be counted for the schema that was only fetched through rejected requests");
         assertEquals(Map.of(), seriesOf(missingClient), "neither 404 response may produce a series");
         assertEquals(1, allSchemaFetchPoints().stream()
                 .filter(p -> sentinel.equals(p.attributes().get("apicurio.registry.client_id"))).count());
+    }
+
+    /**
+     * Whether a point carries one of the two identifiers of the schema. For a recognised identifier type the type
+     * counts: global IDs and content IDs are numbered independently, so the same number under the other type is
+     * another schema. A point with a missing or unknown type is matched by either number, as a point whose type
+     * cannot be told must not hide a count for the schema. A point without an identifier value is never matched.
+     */
+    private static boolean isCountedFor(OtlpMetricsTestReceiver.Point point, Schema schema) {
+        String type = point.attributes().get("apicurio.registry.identifier_type");
+        String value = point.attributes().get("apicurio.registry.identifier_value");
+        if (value == null) {
+            return false;
+        }
+        String globalId = String.valueOf(schema.globalId());
+        String contentId = String.valueOf(schema.contentId());
+        if ("global_id".equals(type)) {
+            return globalId.equals(value);
+        }
+        if ("content_id".equals(type)) {
+            return contentId.equals(value);
+        }
+        return globalId.equals(value) || contentId.equals(value);
+    }
+
+    private static OtlpMetricsTestReceiver.Point pointFor(String type, long value) {
+        return new OtlpMetricsTestReceiver.Point(METRIC, Map.of(),
+                Map.of("apicurio.registry.identifier_type", type, "apicurio.registry.identifier_value",
+                        String.valueOf(value)),
+                1L);
+    }
+
+    @Test
+    void aSameNumberUnderTheOtherIdentifierTypeIsNotTheIgnoredSchema() {
+        // Global ID 2 and content ID 3 are the ignored schema. A valid fetch of another schema may have global ID 3,
+        // and another schema may have content ID 2. Neither is the ignored schema.
+        Schema ignored = new Schema(2L, 3L);
+        assertFalse(isCountedFor(pointFor("global_id", 3L), ignored));
+        assertFalse(isCountedFor(pointFor("content_id", 2L), ignored));
+        assertFalse(isCountedFor(pointFor("global_id", 4L), ignored));
+    }
+
+    @Test
+    void aPointOfTheIgnoredSchemaUnderItsOwnIdentifierTypeIsStillDetected() {
+        Schema ignored = new Schema(2L, 3L);
+        assertTrue(isCountedFor(pointFor("global_id", 2L), ignored));
+        assertTrue(isCountedFor(pointFor("content_id", 3L), ignored));
+    }
+
+    @Test
+    void aPointWithAMissingOrUnknownTypeIsMatchedByEitherIgnoredNumber() {
+        Schema ignored = new Schema(2L, 3L);
+        OtlpMetricsTestReceiver.Point untyped2 = new OtlpMetricsTestReceiver.Point(METRIC, Map.of(),
+                Map.of("apicurio.registry.identifier_value", "2"), 1L);
+        OtlpMetricsTestReceiver.Point untyped3 = new OtlpMetricsTestReceiver.Point(METRIC, Map.of(),
+                Map.of("apicurio.registry.identifier_value", "3"), 1L);
+        assertTrue(isCountedFor(untyped2, ignored), "no type: the ignored global ID number");
+        assertTrue(isCountedFor(untyped3, ignored), "no type: the ignored content ID number");
+        assertTrue(isCountedFor(pointFor("globalid", 2L), ignored), "a misspelled type: the global ID number");
+        assertTrue(isCountedFor(pointFor("contentid", 3L), ignored), "a misspelled type: the content ID number");
+        assertTrue(isCountedFor(pointFor("", 3L), ignored), "an empty type: the content ID number");
+        assertFalse(isCountedFor(pointFor("globalid", 4L), ignored), "an unknown type with another number");
+        assertFalse(isCountedFor(new OtlpMetricsTestReceiver.Point(METRIC, Map.of(), Map.of(), 1L), ignored));
+    }
+
+    @Test
+    void aPointWithoutAnIdentifierValueIsNeverMatched() {
+        Schema ignored = new Schema(2L, 3L);
+        OtlpMetricsTestReceiver.Point overflow = new OtlpMetricsTestReceiver.Point(METRIC, Map.of(),
+                Map.of("otel.metric.overflow", "true"), 5L);
+        OtlpMetricsTestReceiver.Point typedWithoutValue = new OtlpMetricsTestReceiver.Point(METRIC, Map.of(),
+                Map.of("apicurio.registry.identifier_type", "global_id"), 1L);
+        assertFalse(isCountedFor(overflow, ignored), "an overflow point has no identifier at all");
+        assertFalse(isCountedFor(typedWithoutValue, ignored), "a recognised type without a value");
     }
 
     @Test

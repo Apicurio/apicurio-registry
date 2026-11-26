@@ -77,8 +77,26 @@ The project uses a three-tier build system to allow developers to build only wha
 Dev mode:
 
 ```bash
-cd app && ../mvnw quarkus:dev -Dlocal
+cd quarkus-app && ../mvnw quarkus:dev -Dlocal
 ```
+
+### Server modules
+
+The server is split into three Maven modules:
+
+| Module        | Artifact                        | Contents                                                     |
+|---------------|---------------------------------|--------------------------------------------------------------|
+| `app`         | `apicurio-registry-app`         | The registry core, as a library. Holds `application.properties`. |
+| `agents`      | `apicurio-registry-agents`      | Agent registry features (`io.apicurio.registry.agents..`) and their tests. Depends on `app`; `app` must never depend on it. |
+| `quarkus-app` | `apicurio-registry-quarkus-app` | No code. Runs the Quarkus build over `app` and `agents`, producing `quarkus-app/target/quarkus-app/quarkus-run.jar`, the `-all.tar.gz` distribution and, with `-Dfull`, the mutable-jar distribution. |
+
+`app` publishes a test-jar with its test base classes and profiles, which `agents` tests use.
+Test beans in it are indexed through `quarkus.index-dependency.app-tests.*` in `agents/pom.xml`.
+
+A version pinned directly in `app/pom.xml` or `agents/pom.xml` (instead of in the root
+`dependencyManagement`) does not reach `quarkus-app`, where the Quarkus BOM wins. Repeat such pins
+in `quarkus-app/pom.xml` (as done for snakeyaml) and compare
+`quarkus-app/target/quarkus-app/quarkus-app-dependencies.txt` before and after the change.
 
 Integration tests and examples are always opt-in via their own profiles:
 `-Pintegration-tests`, `-Pexamples`.

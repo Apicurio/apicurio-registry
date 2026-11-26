@@ -66,9 +66,9 @@ disagree with one that started after — Decide re-evaluates live, every time.
 
 | Flag | Paths | Phases |
 |------|-------|--------|
-| `java` | `app/`, `common/`, `schema-*/`, `serdes/`, `config-index/`, `java-sdk/`, `mcp/`, `distro/`, `pom.xml`, and the code or generated parts of `docs/` (`docs/pom.xml`, `docs/config-generator/`, `docs/rest-api/`, `ref-registry-all-configs.*`) | build, unit-tests, extras, examples, sdk |
+| `java` | `app/`, `agents/`, `quarkus-app/`, `common/`, `schema-*/`, `serdes/`, `config-index/`, `java-sdk/`, `mcp/`, `distro/`, `pom.xml`, and the code or generated parts of `docs/` (`docs/pom.xml`, `docs/config-generator/`, `docs/rest-api/`, `ref-registry-all-configs.*`) | build, unit-tests, extras, examples, sdk |
 | `ui` | `ui/` | build, extras, examples |
-| `integration` | `app/`, `common/`, `integration-tests/`, `schema-*/`, `serdes/`, `distro/`, `pom.xml` | integration-tests |
+| `integration` | `app/`, `agents/`, `quarkus-app/`, `common/`, `integration-tests/`, `schema-*/`, `serdes/`, `distro/`, `pom.xml` | integration-tests |
 | `sdk` | `java-sdk/`, `go-sdk/`, `python-sdk/`, `typescript-sdk/` | build, sdk |
 | `cli` | `cli/`, `java-sdk/`, `verify-cli.yaml` | build, cli-verify |
 | `examples` | `examples/`, `.github/scripts/discover-examples.sh` | build, examples |
@@ -261,7 +261,8 @@ threshold in `verify-unit-tests.yaml`.
 | `app-transport` | TLS/mTLS, HTTP security headers and CORS (`tls`, `headers`, `cors`) | ~2.5 min |
 | `app-metrics` | Metrics, tracing and search-index tests (`metrics`, `search`) | ~2 min |
 | `app-other` | Catch-all for everything else in `app/`: rules, ui, services, contracts, customTypes and most of `noprofile/*` (compatibility, resolver, serde, proxy, etc.), excluding the packages claimed by every other `app-*` shard | ~9 min |
-| `non-app` | All modules except `app/`, `distro/docker`, `docs`, `docs/config-generator`, `docs/rest-api` (schema-util, serdes, java-sdk, cli, mcp, etc.) | ~5 min |
+| `agents` / `agents-other` | The `agents` module (A2A, MCP tools and Registry, AI Catalog, ARD): `io.apicurio.registry.agents.**` and everything else. Built with `-pl agents -am -DskipAppTests=true` so app's own tests are left to the `app-*` shards | not yet measured |
+| `non-app` | All modules except `app/`, `agents/`, `quarkus-app/`, `distro/docker`, `docs`, `docs/config-generator`, `docs/rest-api` (schema-util, serdes, java-sdk, cli, mcp, etc.) | ~5 min |
 
 ### How sharding works
 

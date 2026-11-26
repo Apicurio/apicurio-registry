@@ -1,7 +1,6 @@
 package io.apicurio.registry.architecture;
 
 import com.tngtech.archunit.base.DescribedPredicate;
-import com.tngtech.archunit.core.domain.JavaAccess;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.domain.JavaMethod;
@@ -28,7 +27,6 @@ import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -48,8 +46,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * allowlist.
  *
  * <p>The rule sees method calls and constants, not values chosen at run time: httpAdapter(type) with a type
- * computed at run time, or registryUrl pointing the options at another server, still passes. It does not see
- * other modules, nor clients built by production code such as the SerDes resolver or the Maven plugin mojos.
+ * computed at run time, or registryUrl pointing the options at another server, still passes. It sees only this
+ * module's tests; the agents module applies the same {@link TestClientTimeoutRule} to its own. It does not see
+ * clients built by production code such as the SerDes resolver or the Maven plugin mojos.
  */
 class TestClientTimeoutBoundaryTest {
 
@@ -63,16 +62,15 @@ class TestClientTimeoutBoundaryTest {
             // A main() load utility, not a test.
             ExportLoader.class,
             // Its nested fixtures break the rule on purpose, to prove that it fires.
-            TestClientTimeoutBoundaryTest.class)
+            TestClientTimeoutBoundaryTest.class,
+            // The rule itself, which names HttpAdapterType.JDK to match it.
+            TestClientTimeoutRule.class)
             .map(Class::getName)
             .collect(Collectors.toUnmodifiableSet());
 
     private static final DescribedPredicate<JavaClass> NOT_ALLOWED = DescribedPredicate.describe(
             "are not on the allowlist",
             clazz -> !ALLOWED.contains(clazz.getName().split("\\$")[0]));
-
-    /** RegistryClientOptions methods that create options without the bound, or loosen or drop it. */
-    private static final Set<String> UNBOUNDED_OPTIONS_METHODS = Set.of("create", "requestTimeout", "customWebClient");
 
     private static JavaClasses testClasses;
     private static JavaMethod helper;
@@ -107,32 +105,7 @@ class TestClientTimeoutBoundaryTest {
     }
 
     private static ArchRule rule(DescribedPredicate<? super JavaClass> checkedClasses) {
-        DescribedPredicate<JavaAccess<?>> unboundedClient = DescribedPredicate.describe(
-                "build options outside boundedClientOptions, override its bound, or use the JDK adapter",
-                access -> !access.getOrigin().equals(helper) && (isUnboundedOptionsCall(access)
-                        || isRawAdapter(access) || isJdkAdapterType(access)));
-        return noClasses().that(checkedClasses)
-                .should().accessTargetWhere(unboundedClient)
-                .because("test clients must start from AbstractResourceTestBase.boundedClientOptions and keep "
-                        + "its bound; a class that needs the JDK adapter, which ignores requestTimeout, or its own "
-                        + "timeout belongs on the allowlist with its reason");
-    }
-
-    private static boolean isUnboundedOptionsCall(JavaAccess<?> access) {
-        return access.getTargetOwner().isEquivalentTo(RegistryClientOptions.class)
-                && UNBOUNDED_OPTIONS_METHODS.contains(access.getName());
-    }
-
-    /** Matched by exact class, so adapter test doubles that never open a socket are not flagged. */
-    private static boolean isRawAdapter(JavaAccess<?> access) {
-        JavaClass owner = access.getTargetOwner();
-        return (owner.isEquivalentTo(VertXRequestAdapter.class) || owner.isEquivalentTo(JDKRequestAdapter.class))
-                && "<init>".equals(access.getName());
-    }
-
-    private static boolean isJdkAdapterType(JavaAccess<?> access) {
-        return access.getTargetOwner().isEquivalentTo(HttpAdapterType.class)
-                && HttpAdapterType.JDK.name().equals(access.getName());
+        return TestClientTimeoutRule.rule(checkedClasses, helper);
     }
 
     static class CreatesOptions {

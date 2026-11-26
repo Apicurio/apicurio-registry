@@ -81,6 +81,8 @@
   <modules>
     <!-- Essential modules (always built) -->
     <module>app</module>
+    <module>agents</module>
+    <module>quarkus-app</module>
     <module>common</module>
     <module>config-index/definitions</module>
     <module>config-index/deployment</module>
@@ -468,6 +470,16 @@
       <dependency>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry-app</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry-agents</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry-quarkus-app</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

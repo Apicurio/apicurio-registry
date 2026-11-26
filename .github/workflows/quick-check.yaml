@@ -139,14 +139,14 @@ jobs:
         run: |
           # Plain JUnit modules (schema-utils, serdes, SDKs, common): no Quarkus
           # boot, no containers. -Dlocal already excludes distro/docs from the
-          # reactor, so only app needs excluding here.
+          # reactor, so only app and the modules built on it need excluding here.
           #
           # utils/protobuf-schema-utilities is excluded: FileDescriptorUtilsTest
           # fails in fresh environments (missing google well-known .proto
           # resources) — a pre-existing issue on main, tracked separately.
           ./mvnw test --no-transfer-progress \
             -s ${{ github.workspace }}/.github/ci-settings.xml \
-            -Dlocal -pl '!app,!utils/protobuf-schema-utilities' \
+            -Dlocal -pl '!app,!agents,!quarkus-app,!utils/protobuf-schema-utilities' \
             -DskipCommitIdPlugin=true \
             -Dsurefire.failIfNoSpecifiedTests=false \
             -Daether.syncContext.named.factory=noop

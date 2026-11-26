@@ -247,6 +247,8 @@ jobs:
           name: build-artifacts-${{ github.sha }}
           path: |
             app/target/
+            agents/target/
+            quarkus-app/target/
             cli/target/
             common/target/
             contracts-rules/target/

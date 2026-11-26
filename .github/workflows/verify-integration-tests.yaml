@@ -55,6 +55,8 @@ jobs:
           - { storage: kafkasql, groups: kafkasql-startup, remote-profile: remote-kafka }
           # kubernetesops storage
           - { storage: kubernetesops, groups: kubernetesops, remote-profile: remote-kubernetesops }
+          # gitops storage
+          - { storage: gitops, groups: gitops, remote-profile: remote-gitops }
     steps:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -86,6 +88,14 @@ jobs:
           image-name: 'apicurio/apicurio-registry'
           tag: '${{ inputs.image-tag }}'
 
+      - name: Load registry image into Docker for topology tests
+        if: matrix.storage == 'gitops'
+        run: docker load -i /tmp/apicurio-registry-${{ inputs.image-tag }}.tar
+
+      - name: Build GitOps sidecar image
+        if: matrix.storage == 'gitops'
+        run: docker build -t apicurio-registry-gitops-sync:test ./distro/gitops
+
       - name: Run Integration Tests
         run: |
           # -Pintegration-tests + -P<remote-profile>: select storage backend (remote-mem, remote-sql, remote-kafka, etc.)
@@ -108,7 +118,8 @@ jobs:
             -Daether.syncContext.named.factory=noop \
             -Dfailsafe.rerunFailingTestsCount=1 \
             -Djunit.jupiter.execution.timeout.default=10m \
-            -Djunit.jupiter.execution.parallel.enabled=true
+            -Djunit.jupiter.execution.parallel.enabled=true \
+            ${{ matrix.storage == 'gitops' && '-Dgitops-sync-image=apicurio-registry-gitops-sync:test' || '' }}
 
       - name: Parse Flaky Tests
         if: always()

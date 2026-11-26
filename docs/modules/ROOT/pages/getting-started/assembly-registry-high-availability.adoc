@@ -337,7 +337,7 @@ spec:
     retention.bytes: -1  # Infinite retention
 ----
 
-WARNING: The journal topic and the snapshots topic must use `cleanup.policy: delete` with infinite retention (`retention.ms: -1` and `retention.bytes: -1`) to prevent accidental data loss. As of the latest version, {registry} will check these settings on startup and refuse to start if they are not configured correctly.
+WARNING: The journal topic and the snapshots topic must use `cleanup.policy: delete` with infinite retention (`retention.ms: -1` and `retention.bytes: -1`) to prevent accidental data loss. {registry} checks these settings on startup and refuses to start if they are not configured correctly.
 
 {registry} automatically creates the journal, snapshots, and events topics on startup by default, if they do not exist. While this is not recommended in a high-availability production scenario, if you want the topics to be created automatically, the following environment variables provide the equivalent configuration:
 
@@ -350,6 +350,20 @@ APICURIO_KAFKASQL_SNAPSHOTS_TOPIC_PARTITIONS=3
 APICURIO_KAFKASQL_SNAPSHOTS_TOPIC_REPLICATION_FACTOR=3
 APICURIO_KAFKASQL_SNAPSHOTS_TOPIC_MIN_INSYNC_REPLICAS=2
 ----
+
+[IMPORTANT]
+====
+A journal or snapshots topic that {registry} 3.1.2 or earlier created can have the default retention period of the broker, because those versions do not set a retention period on the topics that they create. {registry} 3.1.3 and later refuses to start with such a topic. Before you upgrade from 3.1.2 or earlier, set unlimited retention on the journal topic and on the snapshots topic. For example, for the journal topic:
+
+[source,bash]
+----
+bin/kafka-configs.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 \
+  --entity-type topics --entity-name kafkasql-journal --alter \
+  --add-config cleanup.policy=delete,retention.ms=-1,retention.bytes=-1
+----
+
+If you manage the topics with {kafka-streams}, set the same values in the `spec.config` section of each `KafkaTopic` resource instead.
+====
 
 [id="ha-kafkasql-startup-verification_{context}"]
 == KafkaSQL startup verification

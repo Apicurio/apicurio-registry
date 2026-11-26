@@ -14,7 +14,7 @@
   },
   "devDependencies": {
     "@apicurio/eslint-config": "1.0.0",
-    "@types/react": "19.3.1",
+    "@types/react": "19.3.3",
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react-swc": "4.3.3",
     "eslint": "9.39.5",

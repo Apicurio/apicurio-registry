@@ -30,6 +30,8 @@ IMAGE_PLATFORMS ?= linux/amd64,linux/arm64,linux/s390x,linux/ppc64le
 # Commit the image is built from, in its org.opencontainers.image.revision label.
 # Verify's publish guard reads it from latest-snapshot.
 IMAGE_REVISION ?= $(shell git rev-parse HEAD 2>/dev/null)
+# Build timestamp, in its org.opencontainers.image.created label.
+IMAGE_CREATED ?= $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
 
 OPERAND_IMAGE_TAG ?= latest-snapshot
 
@@ -352,6 +354,8 @@ image-buildx-push: ## Build and push a multi-arch operator image
 				--platform $(IMAGE_PLATFORMS) \
 				$(if $(IMAGE_REVISION),--label org.opencontainers.image.revision=$(IMAGE_REVISION),) \
 				--label org.opencontainers.image.source=https://github.com/Apicurio/apicurio-registry \
+				--label org.opencontainers.image.version=$(VERSION) \
+				--label org.opencontainers.image.created=$(IMAGE_CREATED) \
 				-t $(IMAGE) \
 				$(if $(and $(ADDITIONAL_IMAGE),$(ADDITIONAL_IMAGE_TAG)),-t $(ADDITIONAL_IMAGE),) \
 				controller/target && break; \

@@ -39,6 +39,23 @@ The A2A protocol is a standard that AI agents use to discover and communicate wi
 * `MCP_TOOL`: MCP tool definition that describes a tool, its input parameters, and its output schema
 * `MCP_SERVER`: MCP server definition that references the `MCP_TOOL` artifacts of the tools it provides
 
+// con-agent-data-and-feature-flags
+[id="agent-data-and-feature-flags_{context}"]
+== Agent data and feature flags
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+The agent features are experimental. `apicurio.agents.enabled=true` enables all the discovery features: A2A, MCP tools, the MCP Registry API, the AI Catalog, ARD, and the web console's *Agents* tab. Each one also has its own configuration property, such as `apicurio.a2a.enabled` or `apicurio.mcp-tools.enabled`, which takes precedence. Features that connect to other servers, such as importing tools from MCP servers, have their own properties and are not included. The flags control the feature endpoints only. They do not control how {registry} stores agent artifacts.
+
+* The AI and ML artifact types are always available. You can create, version, reference and search these artifacts through the core REST API, whether or not any agent feature is enabled.
+* When you disable a feature, its endpoints stop responding: the `/.well-known` discovery endpoints and the MCP Registry API return `404`, and importing tools from an MCP server returns `409`. {registry} does not delete, hide or change any stored artifact, version, reference or label.
+* Labels that a feature maintains, such as `apicurio.mcp-registry.*` and `apicurio.a2a.openapi-agent-card.*`, are kept when you update artifact metadata, even while the feature is disabled. The `apicurio.agent.visibility` label is a user label and is not changed.
+* Artifacts that {registry} creates for you remain ordinary artifacts. For example, the input and output schemas embedded in a `MODEL_SCHEMA` or `PROMPT_TEMPLATE` artifact are registered as separate artifacts, such as `<artifactId>-input-schema`.
+* If you enable a feature flag without setting `apicurio.features.experimental.enabled=true`, {registry} fails to start, rather than silently disabling the feature.
+
+When an experimental feature becomes supported, changes incompatibly or is removed, the release notes describe the change. Stored agent artifacts stay readable through the core REST API.
+
 ifndef::service-registry-downstream[]
 // proc-starting-the-agent-registry-quickstart
 [id="starting-agent-registry-quickstart_{context}"]
@@ -71,7 +88,7 @@ cd apicurio-registry
 docker compose -f distro/docker-compose/ai-agent-registry/docker-compose.yml up -d
 ----
 +
-The stack starts PostgreSQL, {registry} with the agent features enabled, and the web console. A `seed` container then loads the demo catalog into the `demo` group and exits.
+The stack starts PostgreSQL, {registry} with the agent features enabled, the web console, and a demo MCP server for importing tools. A `seed` container then loads the demo catalog into the `demo` group and exits.
 
 .Verification
 . Check that the demo catalog is loaded:
@@ -216,22 +233,64 @@ curl http://localhost:8080/apis/registry/v3/groups/demo/artifacts/weather.get_fo
 +
 The tool has only version `1`. Agents that use this tool keep getting the definition that they were built against.
 
-// con-importing-tools-from-a-running-mcp-server
+// proc-importing-tools-from-a-running-mcp-server
 [id="importing-tools-from-running-mcp-server_{context}"]
 == Importing tools from a running MCP server
 
-:_mod-docs-content-type: CONCEPT
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 Instead of writing `MCP_TOOL` artifacts by hand, you can import the tools of a running MCP server, and import them again when the server changes. The same compatibility rules apply, so an incompatible tool change is rejected on import.
 
-NOTE: Importing tools from a running MCP server is planned for {registry} 3.4 and is not available in released versions. For the planned behavior, see xref:getting-started/assembly-mcp-tool-features.adoc[MCP tool definition features].
+The stack includes a demo MCP server, `weather-mcp`, which only {registry} can reach. Its `/mcp` endpoint lists `get_forecast`, as registered in the demo catalog, and a new tool, `get_alerts`. Its `/mcp-v2` endpoint plays the same server after a breaking change: `get_forecast` now requires a `units` property.
+
+.Procedure
+. Import the tools of the running server into the `weather` MCP server artifact:
++
+[source,bash]
+----
+curl -X POST http://localhost:8080/apis/registry/v3/groups/demo/artifacts/weather/mcp-import \
+  -H "Content-Type: application/json" \
+  -d '{"url": "http://weather-mcp:8000/mcp"}'
+----
++
+The report lists each tool. `get_alerts` is `CREATED` as the `weather.get_alerts` artifact. `get_forecast` is `UNCHANGED`, because version `1` already has the same definition. The `weather` server artifact gets version `2`, which references both tools.
+
+. Check what a redeployed server with a breaking change would do, without writing anything:
++
+[source,bash]
+----
+curl -X POST http://localhost:8080/apis/registry/v3/groups/demo/artifacts/weather/mcp-import \
+  -H "Content-Type: application/json" \
+  -d '{"url": "http://weather-mcp:8000/mcp-v2", "dryRun": true}'
+----
++
+`get_forecast` is `REJECTED` by the `BACKWARD` compatibility rule, and its causes include `A property was made 'required'.` Callers that send only `city` would break.
+
+. Import again from the unchanged server:
++
+[source,bash]
+----
+curl -X POST http://localhost:8080/apis/registry/v3/groups/demo/artifacts/weather/mcp-import \
+  -H "Content-Type: application/json" \
+  -d '{"url": "http://weather-mcp:8000/mcp"}'
+----
+
+.Verification
+* The report's `status` and every tool's `status` are `UNCHANGED`: importing again from the same server writes nothing.
+
+The stack allows imports only from `weather-mcp`, over plain HTTP, because it runs on the stack's private network. For the settings, the import results, importing in the background with `"async": true` for servers with many tools, and the outbound connection rules, see xref:getting-started/assembly-mcp-tool-features.adoc[MCP tool definition features].
+
+NOTE: Importing tools from a running MCP server is available from {registry} 3.4.
 
 // proc-stopping-the-agent-registry-quickstart
 [id="stopping-agent-registry-quickstart_{context}"]
 == Stopping the quick start stack
 
 :_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+When you finish the quick start, stop the stack with Docker Compose.
 
 .Procedure
 * Stop the stack and keep the catalog:

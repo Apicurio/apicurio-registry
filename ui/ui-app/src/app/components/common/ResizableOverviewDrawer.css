@@ -2,7 +2,7 @@
     width: 100%;
     max-width: 100%;
     min-width: 0;
-    overflow-x: auto;
+    overflow-x: hidden;
     overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
 }
@@ -15,7 +15,7 @@
 
 .resizable-overview-drawer .pf-v6-c-drawer__content,
 .resizable-overview-drawer .pf-v6-c-drawer__body {
-    overflow-x: auto;
+    overflow-x: hidden;
     overflow-y: hidden;
 }
 
@@ -30,13 +30,19 @@
 
 /* Keep tabular data readable by scrolling horizontally instead of hiding columns. */
 .resizable-overview-drawer :is(.versions-table, .artifacts-table, .comments) {
+    min-width: 0;
     max-width: 100%;
     overflow-x: auto;
+    overflow-y: hidden;
 }
 
-.resizable-overview-drawer .pf-v6-c-table {
-    min-width: 0;
-    width: 100%;
+/*
+ * Truncated cells use max-width: 0, so they collapse to nothing in a narrow pane. Give every cell a
+ * floor so the table overflows (and scrolls) instead; long text still truncates with an ellipsis.
+ */
+.resizable-overview-drawer .pf-v6-c-table th,
+.resizable-overview-drawer .pf-v6-c-table td {
+    min-width: 7rem;
 }
 
 .resizable-overview-drawer .pf-v6-c-toolbar__content {
@@ -61,4 +67,29 @@
 .resizable-overview-drawer .pf-v6-c-data-list__item-content {
     min-width: 0;
     overflow-wrap: anywhere;
+}
+
+@media (max-width: 1024px) {
+    /* Stack the panes: __main is the flex container holding both the panel and the content. */
+    .resizable-overview-drawer > .pf-v6-c-drawer__main {
+        flex-direction: column;
+    }
+
+    /* Ignore the resizable width (set inline by PatternFly) and the panel-left slide-in offsets. */
+    .resizable-overview-drawer > .pf-v6-c-drawer__main > .resizable-overview-drawer__panel {
+        flex: 0 0 auto;
+        width: 100%;
+        max-width: 100%;
+        margin-inline-end: 0;
+        transform: none;
+    }
+
+    .resizable-overview-drawer > .pf-v6-c-drawer__main > .pf-v6-c-drawer__content {
+        flex: 0 0 auto;
+        width: 100%;
+    }
+
+    .resizable-overview-drawer .pf-v6-c-drawer__splitter {
+        display: none;
+    }
 }

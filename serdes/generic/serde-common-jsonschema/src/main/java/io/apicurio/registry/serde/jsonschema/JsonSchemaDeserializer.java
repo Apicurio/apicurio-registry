@@ -1,6 +1,7 @@
 package io.apicurio.registry.serde.jsonschema;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,10 +19,12 @@ import io.apicurio.registry.serde.utils.ByteBufferInputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
+import java.util.Map;
 
 public class JsonSchemaDeserializer<T> extends AbstractDeserializer<JsonSchema, T> {
 
     private ObjectMapper mapper;
+    private volatile ObjectMapper ruleRecordMapper;
     private Boolean validationEnabled;
     private final JsonSchemaParser<T> parser = new JsonSchemaParser<>();
 
@@ -84,6 +87,7 @@ public class JsonSchemaDeserializer<T> extends AbstractDeserializer<JsonSchema, 
 
     public void setObjectMapper(ObjectMapper objectMapper) {
         this.mapper = objectMapper;
+        this.ruleRecordMapper = null;
     }
 
     public void setSpecificReturnClass(Class<T> specificReturnClass) {
@@ -92,6 +96,54 @@ public class JsonSchemaDeserializer<T> extends AbstractDeserializer<JsonSchema, 
 
     public Class<T> getSpecificReturnClass() {
         return specificReturnClass;
+    }
+
+    @Override
+    protected Map<String, Object> toRuleRecord(T data) {
+        if (data == null) {
+            return Map.of();
+        }
+        return ruleRecordMapper().convertValue(data, new TypeReference<Map<String, Object>>() {
+        });
+    }
+
+    /**
+     * The configured mapper, but keeping explicit nulls: the configured one may leave them out
+     * ({@code NON_NULL}), which would drop nullable fields from the rule record and from its result.
+     */
+    private ObjectMapper ruleRecordMapper() {
+        ObjectMapper copy = ruleRecordMapper;
+        if (copy == null) {
+            copy = mapper.copy().setSerializationInclusion(JsonInclude.Include.ALWAYS);
+            ruleRecordMapper = copy;
+        }
+        return copy;
+    }
+
+    @Override
+    protected boolean supportsMigrationResult(T data) {
+        return data != null;
+    }
+
+    /**
+     * Returns a {@link JsonNode} if the record was read as one, otherwise an instance of the record's
+     * class. The migrated record is validated against the target schema when validation is enabled.
+     */
+    @SuppressWarnings("unchecked")
+    @Override
+    protected T fromRuleRecord(Map<String, Object> record, ParsedSchema<JsonSchema> targetSchema, T original) {
+        JsonNode node = ruleRecordMapper().valueToTree(record);
+        try {
+            if (isValidationEnabled()) {
+                JsonSchemaValidationUtil.validateDataWithSchema(targetSchema, node);
+            }
+            if (original instanceof JsonNode) {
+                return (T) node;
+            }
+            return (T) mapper.treeToValue(node, original.getClass());
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     /**

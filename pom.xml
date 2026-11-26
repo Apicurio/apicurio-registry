@@ -190,7 +190,7 @@
     <quarkus-mcp-server.version>1.13.2</quarkus-mcp-server.version>
     <!-- MCP client for importing tools from MCP servers (#10115). Only mcp-core is used: mcp-json-jackson2
          needs networknt json-schema-validator 2.x, which conflicts with the 1.x version managed below. -->
-    <mcp-java-sdk.version>2.1.0</mcp-java-sdk.version>
+    <mcp-java-sdk.version>2.2.0</mcp-java-sdk.version>
     <!--
     /WARNING
     -->
@@ -208,7 +208,7 @@
     <icu4j.version>78.3</icu4j.version>
     <protobuf.version>4.36.2</protobuf.version>
     <xmlsec.version>4.0.4</xmlsec.version>
-    <protobuf.googleapi.types.version>2.81.0</protobuf.googleapi.types.version>
+    <protobuf.googleapi.types.version>2.82.0</protobuf.googleapi.types.version>
     <wsdl4j.version>1.6.3</wsdl4j.version>
     <google.truth.extension.version>1.4.5</google.truth.extension.version>
 
@@ -241,7 +241,7 @@
     <apitomy-data-models.version>4.0.0-beta.1</apitomy-data-models.version>
 
     <!-- GraphQL -->
-    <graphql.version>26.1</graphql.version>
+    <graphql.version>26.2</graphql.version>
 
     <!-- JSON Schema Validator -->
     <json-sKema.version>0.32.0</json-sKema.version>
@@ -264,7 +264,7 @@
     <!-- OpenAPI -->
     <openapi-diff.version>2.1.7</openapi-diff.version>
     <!-- We need to manually include the version because of dependency issues with snakeyaml -->
-    <swagger-parser-v3.version>2.1.48</swagger-parser-v3.version>
+    <swagger-parser-v3.version>2.1.49</swagger-parser-v3.version>
 
     <!-- Dependency versions -->
     <lombok.version>1.18.48</lombok.version>
@@ -276,7 +276,7 @@
     <pulsar-clients.version>4.2.5</pulsar-clients.version>
     <commons-beanutils.version>1.11.0</commons-beanutils.version>
 
-    <nats.version>2.26.4</nats.version>
+    <nats.version>2.27.0</nats.version>
     <snakeyaml.version>2.7</snakeyaml.version>
     <woodstox-core.version>7.3.0</woodstox-core.version>
     <jgit.version>7.8.1.202611041320-r</jgit.version>
@@ -286,7 +286,7 @@
          because the license scan reads the profile-less model, where Byteman (LGPL) must not appear. -->
     <byteman.version>4.0.28</byteman.version>
     <assertj.core.version>3.27.7</assertj.core.version>
-    <semver4j.version>6.0.0</semver4j.version>
+    <semver4j.version>6.1.0</semver4j.version>
     <slf4j.version>2.0.17</slf4j.version>
 
     <!-- Kafka Connect -->
@@ -316,7 +316,7 @@
     <version.resources.plugin>3.3.1</version.resources.plugin>
     <version.clean.plugin>3.4.0</version.clean.plugin>
 
-    <version.license-maven-plugin>2.9.0</version.license-maven-plugin>
+    <version.license-maven-plugin>2.10.0</version.license-maven-plugin>
     <version.exec-maven-plugin>3.7.0</version.exec-maven-plugin>
     <version.apicurio-codegen-plugin>1.2.11.Final</version.apicurio-codegen-plugin>
     <version.gmavenplus-plugin>4.3.1</version.gmavenplus-plugin>
@@ -380,8 +380,8 @@
 
     <!-- Test containers version, should be aligned with version used in Quarkus -->
     <pulsar.testcontainers.version>2.0.5</pulsar.testcontainers.version>
-    <keycloak.testcontainers.version>4.4.0</keycloak.testcontainers.version>
-    <embedded-postgres.version>2.2.2</embedded-postgres.version>
+    <keycloak.testcontainers.version>4.4.1</keycloak.testcontainers.version>
+    <embedded-postgres.version>2.2.3</embedded-postgres.version>
     <strimzi.version>0.105.0</strimzi.version>
     <wiremock.version>3.13.2</wiremock.version>
     <strimzi-test-container.version>0.118.0</strimzi-test-container.version>
@@ -393,8 +393,8 @@
     <cel-standalone.version>0.8.0</cel-standalone.version>
 
     <!-- Kroxylicious Authorizer API (shared authorization contract) -->
-    <kroxylicious.version>0.25.1</kroxylicious.version>
-    <re2j.version>1.8</re2j.version>
+    <kroxylicious.version>0.26.0</kroxylicious.version>
+    <re2j.version>1.9</re2j.version>
   </properties>
 
   <dependencyManagement>

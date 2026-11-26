@@ -1,0 +1,166 @@
+include::{mod-loc}shared/all-attributes.adoc[]
+
+[id="agent-inventory-sync_{context}"]
+= Syncing agents and MCP servers from inventory sources
+
+:_mod-docs-content-type: ASSEMBLY
+
+[role="_abstract"]
+{registry} can keep a group in sync with an inventory of agents and MCP servers that it does not host: MCP servers and agent cards deployed in Kubernetes, and agents registered in Google Cloud Agent Registry. Each item becomes an artifact, a changed item gets a new version, and an item that the source no longer lists is marked deprecated. You get one inventory of agents and MCP servers across clusters and platforms, with the rules, versions, and discovery of {registry}.
+
+IMPORTANT: This feature is experimental. It is disabled by default.
+
+// con-agent-inventory-sources
+[id="agent-inventory-sources_{context}"]
+== Inventory sources
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+A sync reads one inventory source. The source stays the source of truth for its items: {registry} only reads it and never writes back.
+
+[%header,cols="2,3,2"]
+|===
+|Source |Reads |Stored as
+
+|`KUBERNETES_MCP_SERVERS`
+|`MCPServer` resources (`mcp.x-k8s.io`) of the MCP Lifecycle Operator in one namespace. Versions `v1`, `v1beta1`, and `v1alpha1` are read, whichever the cluster serves.
+|`MCP_SERVER` artifacts with the ID `k8s-mcp.<namespace>.<name>`
+
+|`KUBERNETES_AGENT_CARDS`
+|`AgentCard` resources of the Rossoctl operator (formerly Kagenti) in one namespace. The operator fetches each agent's card and caches it in the resource status. A resource without a cached card is skipped.
+|`AGENT_CARD` artifacts with the ID `k8s-agent.<namespace>.<name>`
+
+|`GOOGLE_AGENT_REGISTRY`
+|Agents registered in one Google Cloud Agent Registry location, by using the Agent Registry API v1. The stored A2A agent card is used when the agent has one. Otherwise, the card is built from the agent's display name, description, version, skills, and A2A interfaces.
+|`AGENT_CARD` artifacts with the ID `gcp-agent.<project>.<location>.<agent>`
+|===
+
+Agent cards in the A2A 0.3 format, which have a single `url`, are stored in the A2A 1.0 format: the URL, transport, and protocol version become the entry of `supportedInterfaces`. Nothing else is added.
+
+For an `MCPServer`, the server definition names the server `io.k8s.<namespace>/<name>`, takes its version from the server information that the operator records, and lists the server's address as a `streamable-http` remote. The resource does not list the server's tools. Set `importTools` to import them from the server's address, as described in xref:getting-started/assembly-mcp-tool-features.adoc[MCP tool definition features].
+
+// proc-enabling-agent-inventory-sync
+[id="enabling-agent-inventory-sync_{context}"]
+== Enabling inventory sync
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+Before you can sync a group with an inventory source, enable inventory sync in the {registry} configuration.
+
+.Procedure
+. Enable the feature:
++
+[source,properties]
+----
+apicurio.features.experimental.enabled=true
+apicurio.agent-inventory.enabled=true
+----
+. For the Kubernetes sources, list the namespaces that a sync may read:
++
+[source,properties]
+----
+apicurio.agent-inventory.kubernetes.namespaces=team-a,team-b
+----
++
+Give the service account of {registry} permission to list the resources in those namespaces, for example:
++
+[source,yaml]
+----
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: apicurio-agent-inventory
+  namespace: team-a
+rules:
+  - apiGroups: ["mcp.x-k8s.io"]
+    resources: ["mcpservers"]
+    verbs: ["list"]
+  - apiGroups: ["agent.rossoctl.dev"]
+    resources: ["agentcards"]
+    verbs: ["list"]
+----
++
+For clusters that run an older Kagenti operator, set `apicurio.agent-inventory.kubernetes.agent-card.group=agent.kagenti.dev`.
+. To import the tools of MCP servers, also enable the MCP import and allow the hosts of the servers, for example `apicurio.mcp-import.allowed-hosts=*.svc.cluster.local`.
+
+// proc-syncing-an-inventory
+[id="syncing-an-inventory_{context}"]
+== Syncing a group with an inventory source
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+To sync a group, send a `POST` request to the `agent-inventory-sync` endpoint of the group. The request names the inventory source, and the response reports the result of the sync.
+
+.Prerequisites
+* Inventory sync is enabled.
+* You have write access to the group.
+
+.Procedure
+. Sync the MCP servers of a namespace, and import their tools:
++
+[source,bash]
+----
+curl -X POST http://localhost:8080/apis/registry/v3/groups/inventory/agent-inventory-sync \
+  -H "Content-Type: application/json" \
+  -d '{"source": "KUBERNETES_MCP_SERVERS", "namespace": "team-a", "importTools": true}'
+----
+. Sync the agents of a Google Cloud Agent Registry location, with an access token that has the `agentregistry.read-only` scope:
++
+[source,bash]
+----
+curl -X POST http://localhost:8080/apis/registry/v3/groups/inventory/agent-inventory-sync \
+  -H "Content-Type: application/json" \
+  -d '{
+        "source": "GOOGLE_AGENT_REGISTRY",
+        "location": "projects/my-project/locations/us-central1",
+        "headers": { "Authorization": "Bearer '"$(gcloud auth print-access-token)"'" }
+      }'
+----
++
+The headers are sent to the inventory source only. They are never stored, returned, logged, or audited.
+
+. Read the report. Each item has one of the following statuses:
++
+[%header,cols="1,3"]
+|===
+|Status |Meaning
+
+|`CREATED`
+|A new artifact was created for the item.
+
+|`UPDATED`
+|The item changed, and a new version was added. An item that the source lists again after it was reported `MISSING` is also `UPDATED`, and its latest version is enabled again.
+
+|`UNCHANGED`
+|The latest version already matches the item. A latest version that someone set to `DISABLED` is also left as it is: the sync adds no version to the artifact and does not enable it again.
+
+|`REJECTED`
+|A rule rejected the item, and the causes list the violations. Nothing was stored.
+
+|`MISSING`
+|An earlier sync of the same source and scope created the artifact, but the source no longer lists the item. The latest version is marked `DEPRECATED`. Nothing is deleted.
+
+|`NOT_MANAGED`
+|An artifact with the item's ID exists, and the sync did not create it. It is not changed.
+|===
+
+Add `"dryRun": true` to see the report without writing anything.
+
+.Verification
+* The artifacts carry the labels `apicurio.agent-inventory.source`, `apicurio.agent-inventory.scope`, and `apicurio.agent-inventory.external-id`. A later sync of the same source and scope uses them to find its artifacts. If you change these labels, the sync no longer manages the artifact and reports it as `NOT_MANAGED`.
+
+// con-agent-inventory-scheduling
+[id="agent-inventory-scheduling_{context}"]
+== Running syncs on a schedule
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+{registry} runs a sync when a caller requests one, with the caller's identity: authorization, rules, and auditing apply to every write as for any other request. To keep the inventory current, call the endpoint on a schedule, for example from a Kubernetes `CronJob` that authenticates with a service account token when Kubernetes authentication is enabled.
+
+Each request to Google Cloud Agent Registry, including reading its response, times out after `apicurio.agent-inventory.timeout.seconds`. The Kubernetes sources use the timeouts of the Kubernetes client, set with `quarkus.kubernetes-client.request-timeout`. A source that lists more than `apicurio.agent-inventory.items.max-size` items is refused, so that an unexpectedly large inventory cannot flood the group.
+
+A sync reports an item as `MISSING` only on the evidence of a complete, well-formed listing: a listing that fails or that is not in the documented shape fails the whole sync before anything is written. An `AgentCard` whose card the operator has not fetched yet is not published, and is not reported missing either.

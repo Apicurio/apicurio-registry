@@ -143,6 +143,7 @@ The available rule types are:
 * *Validity rule*: validates that the content is syntactically and semantically correct for its artifact type.
 * *Compatibility rule*: validates that new content is compatible with previous versions according to a specified compatibility level.
 * *Integrity rule*: validates referential integrity of artifact references.
+* *Governance rule*: validates the data contract metadata of an artifact.
 
 [role="_additional-resources"]
 .Additional resources
@@ -196,6 +197,7 @@ Supported artifact types include:
 * `MCP_SERVER`: MCP server definitions in `server.json` format (Model Context Protocol)
 * `MODEL_SCHEMA`: AI/ML model input/output schema definitions
 * `PROMPT_TEMPLATE`: LLM prompt templates with variable schemas
+* `ODCS_CONTRACT`: Open Data Contract Standard (ODCS) data contract
 
 [role="_additional-resources"]
 .Additional resources

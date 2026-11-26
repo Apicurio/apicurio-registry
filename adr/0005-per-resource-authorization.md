@@ -1,6 +1,6 @@
 # ADR-0005: Per-Resource Authorization for Apicurio Registry
 
-- **Status:** Accepted; implementation guide updated 2026-11-05.
+- **Status:** Accepted; implementation guide updated 2026-11-17.
 - **Original decision date:** 2026-05-09.
 - **Author:** Carles Arnal.
 - **Tracking:** [#7724](https://github.com/Apicurio/apicurio-registry/issues/7724),
@@ -271,9 +271,14 @@ permission reporting evaluates operations on the selected page; it does not repl
   permission. Deleting a group/all its artifacts checks the affected artifacts too.
 - References included in dereferencing, canonicalization, Protobuf export, and Confluent resolved
   content use **all-of** semantics: every reached artifact must be readable. This differs from
-  the any-of rule for shared content IDs.
+  the any-of rule for shared content IDs. A content-ID or content-hash lookup with
+  `references=DEREFERENCE` or `REWRITE` applies both: any-of for the content itself, then all-of
+  for its references.
 - Submitted references, including those of drafts, are checked before write-hook planning.
   Generated targets have their own write checks through `requireGeneratedArtifactWrite`.
+- References matched automatically (`autoReferences=true`) are looked up with an unfiltered
+  storage search, and each candidate is kept only if the caller can read it. The lookup scans at
+  most 1,000 artifacts and keeps at most 50 readable candidates.
 
 Embedded-schema extraction now uses
 [ContentPlan](../app/src/main/java/io/apicurio/registry/extensions/ContentPlan.java): predict the
@@ -367,7 +372,8 @@ policy/data changes. Counts describe the query's selected result set (when the e
 a count); no promise is made that every page is full, or that separate requests share a snapshot.
 
 Not every list uses a paginated search: branch-version lists are gated on the parent artifact;
-inbound-reference/content-user lists use per-item visibility checks. The outbound reference graph
+inbound-reference/content-user lists and automatic reference matching use per-item visibility
+checks. The outbound reference graph
 can retain reference coordinates while suppressing an unreadable target's metadata. Raw stored
 content can itself contain references. This design does not conceal every occurrence of a hidden
 artifact's name; it prevents unauthorized content/metadata access through protected paths.
@@ -478,6 +484,15 @@ artifact/group/version metadata and content users within the request, including 
 Without an active request context, those lookups go directly to storage. Keys preserve requested
 spelling except for default-group normalization; different case spellings can cause extra reads.
 
+Two lookups read more than they are asked for, so that a request needs fewer reads. A global ID's
+version is read together with its artifact (`getArtifactVersionWithArtifactMetaData`), so resolving
+it, the owner bypass and the stored IDs all come from one read, and the global-ID endpoints reuse the
+version instead of reading it again. `prefetchArtifacts` reads many artifacts in one query
+(`getArtifactsMetaData`) before a batched check, such as one reference level. An artifact the
+database matched under another spelling is left to its own lookup. With these, authorizing a global
+ID adds no read, an artifact one, and a reference level one, however many references it has
+(`GrantsStorageReadsTest`).
+
 The first result is reused for that request, not refreshed after each check. A missing resource
 stays missing even if the same request subsequently creates it. Authorize before writing; do not
 reuse these lookups to establish the ownership of something just created. This memoization is not
@@ -495,9 +510,12 @@ cannot be invalidated on other replicas. Release 3.4.0 development briefly had s
 properties. `GrantsAuthorizationTest.aGlobalIdRebindByImportIsAuthorizedAgainstTheNewArtifact` and
 `AuthorizationLookupsTest` cover this.
 
-Any future cross-request metadata cache (#10600) must be safe across replicas and imports: it must
-never make an authorization decision from data a later request could see differently.
-Decision caching is not implemented.
+There is **no cross-request cache** of authorization metadata or decisions (#10600). A decision must
+use the data the endpoint then serves, on every replica and across imports, and each way of keeping
+a shared cache to that costs what it saves: a staleness window delays revocations by design, a
+version check against storage is a read per request, and cluster-wide invalidation exists only for
+KafkaSQL and still leaves a window. Decisions derived from a subject are not cached either, as
+Kroxylicious proposal 009 advises. The reads are reduced within a request instead (above).
 
 ## Observability and failure diagnosis
 
@@ -521,7 +539,9 @@ observability does not mean preserving the exact number of events per request.
 
 An authenticated point denial normally returns 403 with
 `User is not authorized to perform the requested operation.` Anonymous point denials in the
-interceptor return 401. Indirect checks can throw `ForbiddenException` after the outer gate,
+interceptor return 401. On MySQL, a request whose path contains a non-ASCII ID is answered with
+404 (reads) or 400 (writes) before authorization, whoever the caller is: no stored ID can contain
+one. Indirect checks can throw `ForbiddenException` after the outer gate,
 including on an anonymous read path. API families have their own error envelopes; internal
 resource names in audit logs must not become stack traces or internal errors in client responses.
 
@@ -645,6 +665,7 @@ are more useful design boundaries than an assumed fixed rule count or latency cl
 | [#10858](https://github.com/Apicurio/apicurio-registry/pull/10858) | v3 search/list permission reporting for #10599 |
 | [#10882](https://github.com/Apicurio/apicurio-registry/pull/10882) | Renumbered this ADR from `001` to `0005`, avoiding a duplicate ADR 1 |
 | [#10883](https://github.com/Apicurio/apicurio-registry/pull/10883) | Batches reference authorization: one authorizer call per level or sibling set |
+| [#10900](https://github.com/Apicurio/apicurio-registry/pull/10900) | Removed the cross-request global-ID cache of #10849; global IDs are resolved in every request |
 
 Earlier versions of this document are retained in Git history. They explain the development JSON
 format and initial alternatives; they must not be used as current configuration instructions.

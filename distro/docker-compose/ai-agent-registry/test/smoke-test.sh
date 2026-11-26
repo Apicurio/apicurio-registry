@@ -90,4 +90,30 @@ versions=$(curl -fsS "$REGISTRY_URL/apis/registry/v3/groups/demo/artifacts/weath
 [ "$versions" = "1" ] || fail "tool versions after the rejection: $versions"
 pass "incompatible tool change rejected, version 1 kept"
 
+# 5. Importing tools from the running demo MCP server.
+mcp_import() {
+  curl -fsS -X POST "$REGISTRY_URL/apis/registry/v3/groups/demo/artifacts/weather/mcp-import" \
+    -H 'Content-Type: application/json' -d "$1"
+}
+statuses="d['status']+' '+','.join(t['name']+'='+t['status'] for t in d['tools'])"
+
+imported=$(mcp_import '{"url": "http://weather-mcp:8000/mcp"}' | json "$statuses")
+[ "$imported" = "NEW_VERSION get_forecast=UNCHANGED,get_alerts=CREATED" ] \
+  || fail "first import from weather-mcp: $imported"
+pass "import from the running server: get_alerts created, get_forecast unchanged"
+
+dry=$(mcp_import '{"url": "http://weather-mcp:8000/mcp-v2", "dryRun": true}' \
+  | json "' '.join(t['status'] + ('|' + '|'.join(c['description'] for c in t.get('causes', [])) if t.get('causes') else '') for t in d['tools'] if t['name'] == 'get_forecast')")
+case "$dry" in
+  REJECTED*"A property was made 'required'."*) pass "breaking change on the redeployed server rejected (dry run)" ;;
+  *) fail "dry run against /mcp-v2, get_forecast: $dry" ;;
+esac
+versions=$(curl -fsS "$REGISTRY_URL/apis/registry/v3/groups/demo/artifacts/weather.get_forecast/versions" \
+  | json "','.join(v['version'] for v in d['versions'])")
+[ "$versions" = "1" ] || fail "tool versions after the dry run: $versions"
+
+again=$(mcp_import '{"url": "http://weather-mcp:8000/mcp"}' | json "$statuses")
+[ "$again" = "UNCHANGED get_forecast=UNCHANGED,get_alerts=UNCHANGED" ] || fail "re-import: $again"
+pass "importing again from the unchanged server writes nothing"
+
 echo "Quickstart smoke test passed."

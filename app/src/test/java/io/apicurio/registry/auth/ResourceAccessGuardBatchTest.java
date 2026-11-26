@@ -45,6 +45,8 @@ class ResourceAccessGuardBatchTest {
         guard = spy(new ResourceAccessGuard());
         guard.grantsAc = grantsAc;
         guard.storage = storage;
+        // Outside a request, lookups read storage directly and prefetching does nothing
+        guard.lookups = new AuthorizationLookups();
         doReturn(true).when(guard).isEnforced(any());
         when(grantsAc.isAllowedForAll(any(), anyList())).thenReturn(true);
     }

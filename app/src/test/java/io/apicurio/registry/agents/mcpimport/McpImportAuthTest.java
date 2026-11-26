@@ -2,10 +2,11 @@ package io.apicurio.registry.agents.mcpimport;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.client.RegistryClientFactory;
-import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateVersion;
+import io.apicurio.registry.rest.client.models.McpToolImportJobState;
+import io.apicurio.registry.rest.client.models.McpToolImportJobStatus;
 import io.apicurio.registry.rest.client.models.McpToolImportRequest;
 import io.apicurio.registry.rest.client.models.McpToolImportResult;
 import io.apicurio.registry.rest.client.models.McpToolImportStatus;
@@ -19,8 +20,10 @@ import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.vertx.core.Vertx;
+import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -29,7 +32,11 @@ import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.junit.jupiter.api.parallel.ResourceLock;
 
+import java.time.Duration;
+
+import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 /**
  * Importing writes artifacts, so it needs write access; a read-only user is refused before the
@@ -47,6 +54,12 @@ public class McpImportAuthTest extends AbstractResourceTestBase {
     @ConfigProperty(name = "quarkus.oidc.token-path")
     String authServerUrlConfigured;
 
+    @Inject
+    McpToolImportService importService;
+
+    @Inject
+    McpImportConfig importConfig;
+
     @BeforeAll
     void startMcp() throws Exception {
         mcp = new McpTestServer();
@@ -60,13 +73,19 @@ public class McpImportAuthTest extends AbstractResourceTestBase {
         }
     }
 
+    @AfterEach
+    void awaitBackgroundImports() {
+        await().atMost(Duration.ofSeconds(30))
+                .until(() -> importService.availablePermits() == importConfig.getMaxConcurrent());
+    }
+
     @Override
     protected RegistryClient createRestClientV3(Vertx vertx) {
         return clientFor(vertx, KeycloakTestContainerManager.ADMIN_CLIENT_ID);
     }
 
     private RegistryClient clientFor(Vertx vertx, String clientId) {
-        return RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+        return RegistryClientFactory.create(boundedClientOptions(registryV3ApiUrl, vertx)
                 .oauth2(authServerUrlConfigured, clientId, "test1"));
     }
 
@@ -173,5 +192,66 @@ public class McpImportAuthTest extends AbstractResourceTestBase {
 
         assertForbidden(exception);
         assertEquals(before, mcp.requests.get());
+    }
+
+    private McpToolImportRequest asyncRequest() {
+        McpToolImportRequest request = request();
+        request.setAsync(true);
+        return request;
+    }
+
+    private McpToolImportJobStatus awaitFinished(RegistryClient client, String group) {
+        await().atMost(Duration.ofSeconds(30)).pollInterval(Duration.ofMillis(200))
+                .untilAsserted(() -> assertNotEquals(McpToolImportJobState.RUNNING, client.groups().byGroupId(group)
+                        .artifacts().byArtifactId("srv").mcpImport().status().get().getState()));
+        return client.groups().byGroupId(group).artifacts().byArtifactId("srv").mcpImport().status().get();
+    }
+
+    /**
+     * The background import writes as the caller who started it: its tools are owned by them, as
+     * they would be after a synchronous import.
+     */
+    @Test
+    void asyncImportWritesAsTheCaller() throws Exception {
+        RegistryClient developer = clientFor(vertx, KeycloakTestContainerManager.DEVELOPER_CLIENT_ID);
+        String group = developerServerArtifact(developer);
+
+        developer.groups().byGroupId(group).artifacts().byArtifactId("srv").mcpImport().post(asyncRequest());
+
+        McpToolImportJobStatus status = awaitFinished(developer, group);
+        assertEquals(McpToolImportJobState.COMPLETED, status.getState());
+        assertEquals("2", status.getVersion());
+        assertEquals(1, ((Number) status.getCounts().getAdditionalData().get("CREATED")).intValue());
+        String developerOwner = clientV3.groups().byGroupId(group).artifacts().byArtifactId("srv").get().getOwner();
+        String adminOwner = clientV3.groups().byGroupId(serverArtifact()).artifacts().byArtifactId("srv").get()
+                .getOwner();
+        assertNotEquals(adminOwner, developerOwner);
+        assertEquals(developerOwner, clientV3.groups().byGroupId(group).artifacts().byArtifactId("srv.search").get()
+                .getOwner());
+        assertEquals(developerOwner, clientV3.groups().byGroupId(group).artifacts().byArtifactId("srv").versions()
+                .byVersionExpression("2").get().getOwner());
+    }
+
+    @Test
+    void readOnlyUserCanReadTheStatusButNotStartAnAsyncImport() throws Exception {
+        String group = serverArtifact();
+        RegistryClient readOnly = clientFor(vertx, KeycloakTestContainerManager.READONLY_CLIENT_ID);
+        int before = mcp.requests.get();
+
+        Exception exception = Assertions.assertThrows(Exception.class, () -> readOnly.groups().byGroupId(group)
+                .artifacts().byArtifactId("srv").mcpImport().post(asyncRequest()));
+        assertForbidden(exception);
+        assertEquals(before, mcp.requests.get());
+        ProblemDetails none = Assertions.assertThrows(ProblemDetails.class, () -> readOnly.groups()
+                .byGroupId(group).artifacts().byArtifactId("srv").mcpImport().status().get());
+        assertEquals(404, none.getResponseStatusCode());
+
+        clientV3.groups().byGroupId(group).artifacts().byArtifactId("srv").mcpImport().post(asyncRequest());
+        assertEquals(McpToolImportJobState.COMPLETED, awaitFinished(clientV3, group).getState());
+
+        McpToolImportJobStatus status = readOnly.groups().byGroupId(group).artifacts().byArtifactId("srv")
+                .mcpImport().status().get();
+        assertEquals(McpToolImportJobState.COMPLETED, status.getState());
+        assertEquals("2", status.getVersion());
     }
 }

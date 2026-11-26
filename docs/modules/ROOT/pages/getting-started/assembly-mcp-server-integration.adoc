@@ -288,6 +288,40 @@ The {registry} MCP server provides the following tools for LLM clients to call. 
 |Renders any `PROMPT_TEMPLATE` artifact with variables that you provide, regardless of MCP enablement.
 |===
 
+.Rule tools
+
+[cols="2,4",options="header"]
+|===
+|Tool name
+|Description
+
+|`test_schema_rules`
+|Tests schema content against an existing artifact without creating a version. Checks validity, integrity, and compatibility rules, and explains which rule failed.
+|===
+
+.Agent and MCP tool discovery tools
+
+[cols="2,4",options="header"]
+|===
+|Tool name
+|Description
+
+|`discover_agents`
+|Searches for A2A agent cards by name, skill ID, or capability.
+
+|`get_agent_card`
+|Returns the full A2A agent card for a group ID and artifact ID.
+
+|`search_mcp_tools`
+|Searches for registered `MCP_TOOL` definitions by name or input parameter name.
+
+|`get_mcp_tool`
+|Returns the full `MCP_TOOL` definition, including the input schema, for a group ID and artifact ID.
+
+|`ard_search`
+|Searches the Agentic Resource Discovery (ARD) index with a natural-language query and optional filters (type, tags, capabilities, publisher). Returns matching A2A agents and MCP tools in the ARD entry format.
+|===
+
 You can also use the following MCP prompts in Claude Desktop by clicking the *+* icon and selecting *Add from {registry}*:
 
 * **create_new_artifact_version**: A guided workflow for creating artifact versions, including draft mode support and content iteration.
@@ -384,6 +418,8 @@ For the Docker method, pass environment variables by using separate `-e` element
 |_none_
 |OAuth2 scope. Optional.
 |===
+
+When authentication is enabled, the MCP server requests a token at startup. If the token endpoint rejects the client ID or secret (an HTTP 4xx response), the server logs an error that names the token endpoint and the client ID, and exits with a non-zero status. If the token endpoint cannot be reached or returns an HTTP 5xx response, the server retries for at most 60 seconds in total before it exits. The client secret is never logged.
 
 .HTTP transport properties
 

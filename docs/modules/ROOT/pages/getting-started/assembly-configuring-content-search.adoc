@@ -201,6 +201,9 @@ spec:
 [role="_additional-resources"]
 .Additional resources
 * xref:getting-started/assembly-deploying-registry-operator.adoc[Deploying with the {operator}]
+ifndef::service-registry-downstream[]
+* xref:getting-started/assembly-operator-config-reference.adoc#search-index-spec_{context}[SearchIndexSpec]
+endif::[]
 * link:https://quarkus.io/guides/elasticsearch[Quarkus Elasticsearch client configuration]
 
 
@@ -423,5 +426,7 @@ When an upgrade changes the index mapping version, {registry} deletes and recrea
 During normal operation, a background worker processes index updates. The delay before results reflect a change depends on the indexing workload and Elasticsearch refreshes. A successful artifact write does not confirm that its search index update has completed.
 
 Edits to draft version content do not currently trigger an index update. Finalizing the draft triggers reindexing of that version. Until then, content and structure searches can continue to match the content from before the edit.
+
+With GitOps and KubernetesOps storage, the search index is currently not populated: the startup rebuild runs before the data is loaded, and later loads do not update the index. Content and structure searches return no results on these storage variants. Metadata searches are not affected.
 
 For content search, {registry} indexes only the first `apicurio.search.index.content.max-size` characters of each version. The default is 1,048,576 characters. Terms beyond that limit do not match a content query. Structured extraction receives the complete artifact content and is separate from this truncation.

@@ -107,7 +107,9 @@ jobs:
 
       - name: Build Package
         working-directory: registry/python-sdk
-        run: poetry build
+        run: |
+          make build
+          make verify-wheel
 
       - name: Publish to PyPI
         working-directory: registry/python-sdk
@@ -156,7 +158,7 @@ jobs:
           fi
 
       - name: Setup Go
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7
         with:
           go-version: '1.27.4'
           cache: false
@@ -223,7 +225,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
-          node-version: 24.22.2
+          node-version: 24.22.3
           registry-url: 'https://registry.npmjs.org'
 
       - name: Update npm

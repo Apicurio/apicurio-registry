@@ -1,0 +1,22 @@
+# Registry clients example. See README.md; run ./build.sh, then ./demo.sh to verify.
+#
+# For local demonstration only: in-memory storage, no authentication.
+#
+# The host port defaults to 8081; override it with REGISTRY_PORT.
+services:
+  apicurio-registry:
+    image: ${REGISTRY_IMAGE:-apicurio/apicurio-registry:latest-snapshot}
+    container_name: apicurio-registry-api-clients
+    environment:
+      # Every client deletes its artifact at the end of the scenario, and demo.sh cleans up first
+      apicurio.rest.deletion.group.enabled: "true"
+      apicurio.rest.deletion.artifact.enabled: "true"
+      apicurio.rest.deletion.artifact-version.enabled: "true"
+    ports:
+      - "${REGISTRY_PORT:-8081}:8080"
+    # Health is on the management port, 9000; `docker compose up --wait` waits for it
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9000/health/ready > /dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 30

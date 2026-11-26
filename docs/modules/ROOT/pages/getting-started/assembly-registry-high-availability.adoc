@@ -337,7 +337,7 @@ spec:
     retention.bytes: -1  # Infinite retention
 ----
 
-WARNING: The journal topic and the snapshots topic must use `cleanup.policy: delete` with infinite retention (`retention.ms: -1` and `retention.bytes: -1`) to prevent accidental data loss. As of the latest version, {registry} will check these settings on startup and refuse to start if they are not configured correctly.
+WARNING: The journal topic and the snapshots topic must use `cleanup.policy: delete` with infinite retention (`retention.ms: -1` and `retention.bytes: -1`) to prevent accidental data loss. {registry} checks these settings on startup and refuses to start if they are not configured correctly.
 
 {registry} automatically creates the journal, snapshots, and events topics on startup by default, if they do not exist. While this is not recommended in a high-availability production scenario, if you want the topics to be created automatically, the following environment variables provide the equivalent configuration:
 
@@ -350,6 +350,20 @@ APICURIO_KAFKASQL_SNAPSHOTS_TOPIC_PARTITIONS=3
 APICURIO_KAFKASQL_SNAPSHOTS_TOPIC_REPLICATION_FACTOR=3
 APICURIO_KAFKASQL_SNAPSHOTS_TOPIC_MIN_INSYNC_REPLICAS=2
 ----
+
+[IMPORTANT]
+====
+A journal or snapshots topic that {registry} 3.1.2 or earlier created can have the default retention period of the broker, because those versions do not set a retention period on the topics that they create. {registry} 3.1.3 and later refuses to start with such a topic. Before you upgrade from 3.1.2 or earlier, set unlimited retention on the journal topic and on the snapshots topic. For example, for the journal topic:
+
+[source,bash]
+----
+bin/kafka-configs.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 \
+  --entity-type topics --entity-name kafkasql-journal --alter \
+  --add-config cleanup.policy=delete,retention.ms=-1,retention.bytes=-1
+----
+
+If you manage the topics with {kafka-streams}, set the same values in the `spec.config` section of each `KafkaTopic` resource instead.
+====
 
 [id="ha-kafkasql-startup-verification_{context}"]
 == KafkaSQL startup verification
@@ -608,6 +622,44 @@ use `scheme: HTTPS`. The {operator} handles this automatically.
 
 . If you are using the {operator}, confirm that no manual changes are required: it automatically configures the
 correct probe ports for operator-managed deployments.
+
+[id="ha-upgrade-native-id-sequences_{context}"]
+== Upgrading SQL storage to native ID sequences
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+Database schema version 115 replaces the row-locked `sequences` table, which allocated global IDs, content
+IDs, and comment IDs, with native database sequences on PostgreSQL and SQL Server, and with `AUTO_INCREMENT`
+ticket tables on MySQL. {registry} applies this schema upgrade automatically on startup. H2 and KafkaSQL
+storage are not affected.
+
+Rolling updates::
+The schema upgrade deliberately drops the `sequences` table so that older replicas cannot allocate duplicate
+IDs. As a result, replicas running a release earlier than schema version 115 fail write requests as soon as
+any upgraded replica has migrated the schema. Read requests are unaffected. Complete the rollout promptly.
+
+Database version requirements::
+SQL Server 2017 or later is required, because {registry} reads `sys.sequences.last_used_value`.
+
+Database privileges::
+{registry} does not run any DDL at runtime for ID allocation. The database user that runs the schema upgrade
+creates the new objects. If {registry} connects at runtime with a different, less privileged user, grant the
+following privileges:
++
+* PostgreSQL: `USAGE`, `SELECT`, and `UPDATE` on the three ID sequences. {registry} calls `nextval`, reads
+`last_value`, and calls `setval` when it resets the sequences.
+* SQL Server: `UPDATE` on the three ID sequences.
+* MySQL: `INSERT`, `DELETE`, and `SELECT` on the ID ticket tables. {registry} prunes consumed ticket rows
+hourly.
+
+ID ordering::
+A `globalId` value is unique, but under concurrent writes it no longer strictly follows commit order. To
+determine the newest version of an artifact, use the version order rather than comparing `globalId` values.
+
+Imports that preserve IDs::
+Run imports that preserve existing IDs while no other writes are in progress. On PostgreSQL, resetting the
+sequences while other clients allocate IDs has a small window in which an ID can be issued twice.
 
 [id="ha-backup-restore_{context}"]
 == Backup and restore procedures

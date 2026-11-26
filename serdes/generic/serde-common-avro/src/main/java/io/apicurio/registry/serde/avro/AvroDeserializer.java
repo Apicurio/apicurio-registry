@@ -10,12 +10,15 @@ import io.apicurio.registry.serde.AbstractDeserializer;
 import io.apicurio.registry.serde.config.SerdeConfig;
 import io.apicurio.registry.serde.utils.ByteBufferInputStream;
 import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DecoderFactory;
+import org.apache.avro.specific.SpecificRecord;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 
@@ -95,6 +98,29 @@ public class AvroDeserializer<U> extends AbstractDeserializer<Schema, U> {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    @Override
+    protected Map<String, Object> toRuleRecord(U data) {
+        if (data instanceof GenericRecord) {
+            return AvroRuleRecordConverter.toMap((GenericRecord) data);
+        }
+        return super.toRuleRecord(data);
+    }
+
+    /**
+     * Only generic records: a specific record class is generated for one schema version and cannot
+     * hold a record of the migration target version.
+     */
+    @Override
+    protected boolean supportsMigrationResult(U data) {
+        return data instanceof GenericRecord && !(data instanceof SpecificRecord);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    protected U fromRuleRecord(Map<String, Object> record, ParsedSchema<Schema> targetSchema, U original) {
+        return (U) AvroRuleRecordConverter.fromMap(record, targetSchema.getParsedSchema());
     }
 
     public AvroDeserializer<U> setAvroDatumProvider(AvroDatumProvider<U> avroDatumProvider) {

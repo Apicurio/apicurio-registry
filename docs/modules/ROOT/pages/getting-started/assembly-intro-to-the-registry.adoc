@@ -41,7 +41,7 @@ endif::[]
 {registry} provides the following capabilities for managing event schemas and API designs across event-driven and API architectures:
 
 * Multiple payload formats for standard event schema and API specifications such as Apache Avro, JSON Schema, Google Protobuf, AsyncAPI, OpenAPI, OpenRPC, and more.
-* AI/ML artifact types for LLMOps: MODEL_SCHEMA for model input/output contracts and PROMPT_TEMPLATE for version-controlled prompts with variable schemas.
+* AI/ML artifact types for LLMOps and AI agents: MODEL_SCHEMA for model input/output contracts, PROMPT_TEMPLATE for version-controlled prompts with variable schemas, AGENT_CARD for Agent-to-Agent (A2A) agent cards, and MCP_TOOL and MCP_SERVER for Model Context Protocol (MCP) tool and server definitions.
 * Pluggable {registry} storage options for storing content in Apache Kafka or PostgreSQL database, or for serving read-only content from a Git repository.
 * Rules for content validation, compatibility, and integrity to govern how {registry} content evolves over time.
 * {registry} content management using web console, REST API, command line, Maven plug-in, or language SDKs.
@@ -422,7 +422,7 @@ endif::[]
 ifdef::apicurio-registry[]
 * link:https://debezium.io/documentation/reference/stable/configuration/avro.html[Configuring Debezium to use Avro serialization and {registry}]
 endif::[]
-* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/event-driven-architecture[Example of using Debezium to monitor the PostgreSQL database used by Apicurio Registry]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/registry-events[Example of consuming registry events, with Debezium and the outbox table on PostgreSQL, and with KafkaSQL]
 * link:https://kafka.apache.org/documentation/#connect[Apache Kafka Connect documentation]
 
 // Metadata created by nebel
@@ -477,7 +477,7 @@ ifdef::apicurio-registry[]
 |User Interface
 |https://hub.docker.com/r/apicurio/apicurio-registry-ui
 |{operator}
-|https://hub.docker.com/r/apicurio/apicurio-registry-operator
+|https://quay.io/repository/apicurio/apicurio-registry-3-operator
 |===
 
 [role="_additional-resources"]

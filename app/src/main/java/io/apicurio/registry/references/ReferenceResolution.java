@@ -1,41 +1,36 @@
 package io.apicurio.registry.references;
 
+import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
-import io.quarkus.security.ForbiddenException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Bridges the pre-#10634 reference-resolution API — a one-at-a-time {@code Function<ArtifactReferenceDto,
  * ?>} loader, called from about twenty places across REST, rules, polling and importing — onto
  * {@link ReferenceGraphWalker}, without changing any of those call sites' signatures.
  * <p>
- * This class exists only because rewriting every caller to build its own batch {@link ReferenceLoader} and
- * handle errors itself, on the day the walker was introduced, would have been a much larger and riskier
- * change than #10634 is meant to be. It preserves two behaviours of the generic walker it replaces that are
- * themselves considered bugs, deliberately, rather than fixing them as a side effect here:
+ * This class exists because rewriting every caller to build its own batch {@link ReferenceLoader} and
+ * handle errors itself would have been a much larger and riskier change than #10634. It still preserves
+ * one behaviour of the generic walker it replaces that is itself a known issue:
  * <ul>
- * <li>A reference that fails to load is logged and skipped, not failed — fixed by #9626, which also removes
- * this class once no caller still needs the old loader shape.</li>
  * <li>Two different targets sharing a reference name collapse to whichever the walk resolves first — fixed
  * properly by #9000, which keys on coordinates instead.</li>
  * </ul>
- * A {@link ForbiddenException} is the one loader failure that is never swallowed: the caller lacking
- * permission to read a referenced artifact is not the same as the reference not existing, and must not be
- * reported as if it were.
+ * As of #9626, loader exceptions are no longer swallowed: any failure other than a missing reference
+ * (a {@code null} return from the loader, which the walker records in {@link ResolvedReferences#missing()})
+ * propagates to the caller immediately.
  */
 public final class ReferenceResolution {
-
-    private static final Logger log = LoggerFactory.getLogger(ReferenceResolution.class);
 
     private ReferenceResolution() {
     }
@@ -61,7 +56,7 @@ public final class ReferenceResolution {
                     coordinates.stream().map(ReferenceResolution::toReference).toList());
             Map<GAV, ReferenceNode> loaded = new LinkedHashMap<>();
             for (GAV coordinate : coordinates) {
-                ContentWrapperDto content = loadOne(coordinate, loader);
+                ContentWrapperDto content = loader.apply(toReference(coordinate));
                 if (content != null) {
                     loaded.put(coordinate,
                             ReferenceNode.builder().coordinates(coordinate)
@@ -79,6 +74,56 @@ public final class ReferenceResolution {
     }
 
     /**
+     * Checks that {@code references} can be dereferenced: every version in the reference graph exists and
+     * the graph has no cycle. Dereferencing a graph with a missing target would return incomplete content
+     * (or fail deep inside a content type's dereferencer), and a cyclic graph cannot be inlined at all.
+     *
+     * @throws UnprocessableEntityException naming the missing references, or the cycle
+     */
+    public static void requireDereferenceable(List<ArtifactReferenceDto> references,
+            Function<ArtifactReferenceDto, ContentWrapperDto> loader) {
+        if (references == null || references.isEmpty()) {
+            return;
+        }
+        ReferenceLoader batchLoader = coordinates -> {
+            AuthorizingReferenceLoader.authorizeAll(loader,
+                    coordinates.stream().map(ReferenceResolution::toReference).toList());
+            Map<GAV, ReferenceNode> loaded = new LinkedHashMap<>();
+            for (GAV coordinate : coordinates) {
+                ContentWrapperDto content = loader.apply(toReference(coordinate));
+                if (content != null) {
+                    loaded.put(coordinate, ReferenceNode.builder().coordinates(coordinate)
+                            .references(content.getReferences()).build());
+                }
+            }
+            return loaded;
+        };
+        ResolvedReferences resolved = ReferenceGraphWalker.walk(references, batchLoader,
+                ReferenceResolutionConfig.maxDepth());
+
+        if (!resolved.missing().isEmpty()) {
+            List<ArtifactReferenceDto> edges = new ArrayList<>(references);
+            resolved.coordinates().forEach(gav -> resolved.get(gav)
+                    .ifPresent(node -> edges.addAll(node.getReferences())));
+            String missing = edges.stream()
+                    .filter(ref -> resolved.missing().contains(ReferenceGraphWalker.coordinatesOf(ref)))
+                    .map(ref -> "'" + ref.getName() + "' (" + format(ReferenceGraphWalker.coordinatesOf(ref)) + ")")
+                    .distinct().collect(Collectors.joining(", "));
+            throw new UnprocessableEntityException(
+                    "Cannot dereference the content: these references point to versions that do not exist: "
+                            + missing);
+        }
+        resolved.findCycle().ifPresent(cycle -> {
+            throw new UnprocessableEntityException("Cannot dereference the content: circular reference "
+                    + cycle.stream().map(ReferenceResolution::format).collect(Collectors.joining(" -> ")));
+        });
+    }
+
+    private static String format(GAV gav) {
+        return gav.getRawGroupIdWithDefaultString() + "/" + gav.getRawArtifactId() + "@" + gav.getRawVersionId();
+    }
+
+    /**
      * Collects the content IDs of every artifact version in {@code root}'s reference tree, distinct and
      * sorted in natural order. Used for identity views, such as the ETag over a whole reference tree, where
      * the set of content matters but names and order do not.
@@ -90,10 +135,23 @@ public final class ReferenceResolution {
      */
     public static List<Long> recursivelyResolveReferenceContentIds(StoredArtifactVersionDto root,
             Function<ArtifactReferenceDto, StoredArtifactVersionDto> loader) {
+        return recursivelyResolveReferenceContentIds(root == null ? List.of() : root.getReferences(), loader);
+    }
+
+    /**
+     * Content IDs of every artifact version reachable from the given references, for ETags that must change
+     * when any of them changes.
+     *
+     * @param rootReferences the references of the content being returned
+     * @param loader loads a referenced artifact version
+     * @return the content IDs of the whole reference tree
+     */
+    public static List<Long> recursivelyResolveReferenceContentIds(List<ArtifactReferenceDto> rootReferences,
+            Function<ArtifactReferenceDto, StoredArtifactVersionDto> loader) {
         ReferenceLoader batchLoader = coordinates -> {
             Map<GAV, ReferenceNode> loaded = new LinkedHashMap<>();
             for (GAV coordinate : coordinates) {
-                StoredArtifactVersionDto version = loadOne(coordinate, loader);
+                StoredArtifactVersionDto version = loader.apply(toReference(coordinate));
                 if (version != null) {
                     loaded.put(coordinate,
                             ReferenceNode.builder().coordinates(coordinate)
@@ -104,26 +162,8 @@ public final class ReferenceResolution {
             }
             return loaded;
         };
-        List<ArtifactReferenceDto> rootReferences = root == null ? List.of() : root.getReferences();
         return ReferenceGraphWalker.walk(rootReferences, batchLoader, ReferenceResolutionConfig.maxDepth())
                 .contentIds();
-    }
-
-    /**
-     * Calls a one-at-a-time loader for one coordinate, logging and skipping (returning {@code null}, "does
-     * not exist") anything the loader throws except {@link ForbiddenException}, which always propagates:
-     * the caller being forbidden to read a reference is never the same as the reference not existing.
-     */
-    private static <T> T loadOne(GAV coordinates, Function<ArtifactReferenceDto, T> loader) {
-        ArtifactReferenceDto reference = toReference(coordinates);
-        try {
-            return loader.apply(reference);
-        } catch (ForbiddenException ex) {
-            throw ex;
-        } catch (Exception ex) {
-            log.error("Could not resolve reference {}.", coordinates, ex);
-            return null;
-        }
     }
 
     private static ArtifactReferenceDto toReference(GAV coordinates) {

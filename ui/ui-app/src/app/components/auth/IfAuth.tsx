@@ -1,6 +1,8 @@
 import React, { FunctionComponent, useEffect, useState } from "react";
 import { AuthService, useAuth } from "@apitomy/common-ui-components";
 import { useUserService } from "@services/useUserService.ts";
+import { ResourcePermissions } from "@sdk/lib/generated-client/models";
+import { isPermitted, ResourcePermission } from "@utils/permissions.utils.ts";
 
 /**
  * Properties
@@ -13,6 +15,10 @@ export type IfAuthProps = {
     isOwner?: boolean;
     isAdminOrOwner?: boolean;
     owner?: string | null;
+    /** The permissions the server reported for the resource; absent when it does not report them. */
+    permissions?: ResourcePermissions | null;
+    /** The permission the children need, checked against {@link permissions}. Defaults to write. */
+    requires?: ResourcePermission;
     children?: React.ReactNode;
 };
 
@@ -54,6 +60,7 @@ export const IfAuth: FunctionComponent<IfAuthProps> = (props: IfAuthProps) => {
         if (props.isAdminOrOwner === true && props.owner) {
             rval = rval && (user.isUserAdmin() || user.isUserId(props.owner));
         }
+        rval = rval && isPermitted(props.permissions, props.requires);
         return rval;
     };
 

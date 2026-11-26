@@ -21,6 +21,7 @@ test.describe("schema usage dashboard against real exported data", () => {
 
     test("overview: exact rows and stats of the seeded run at its evaluation time", async ({ signedIn, ui }, testInfo) => {
         await overviewFlow(signedIn, seeded(ui), attachShot(signedIn, testInfo));
+        expect(0, "REG501-INTENTIONAL-CI-FAILURE-7d98e01: deliberate negative control, not a defect; remove this line").toBe(1);
     });
 
     test("filters: client, identifier type, global ID and Content ID through the real controls", async ({ signedIn, ui }, testInfo) => {

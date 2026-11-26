@@ -23,8 +23,10 @@ type AgentsRequestBuilderGetQueryParameters struct {
 	Offset     *int32   "uriparametername:\"offset\""
 	OutputMode []string "uriparametername:\"outputMode\""
 	// When `true`, only agent cards whose effective visibility is `public` are returned, whoever the caller is and whether or not authentication is enabled on this registry. The filter is applied before `offset` and `limit`, and the response then carries `publicOnly: true`. A registry that predates this parameter ignores it, so a caller that depends on the guarantee must check that field. Defaults to `false`, which keeps the existing visibility rules.
-	PublicOnly *bool    "uriparametername:\"publicOnly\""
-	Skill      []string "uriparametername:\"skill\""
+	PublicOnly *bool "uriparametername:\"publicOnly\""
+	// **Experimental.** Only Agent Cards with a signature by the key with this `kid` that verifies against the keys this registry trusts. Candidates are found by the `kid` their signatures claim, then each is verified when the request is served, so a card is returned only while the key is trusted. Returns no results when the registry has no trusted keys configured.
+	SignedBy *string  "uriparametername:\"signedBy\""
+	Skill    []string "uriparametername:\"skill\""
 }
 
 // AgentsRequestBuilderGetRequestConfiguration configuration for the request such as headers, query parameters, and middleware options.
@@ -53,7 +55,7 @@ func (m *AgentsRequestBuilder) ByGroupId(groupId string) *AgentsWithGroupItemReq
 // NewAgentsRequestBuilderInternal instantiates a new AgentsRequestBuilder and sets the default values.
 func NewAgentsRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *AgentsRequestBuilder {
 	m := &AgentsRequestBuilder{
-		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/well-known/agents{?capability*,inputMode*,limit*,name*,offset*,outputMode*,publicOnly*,skill*}", pathParameters),
+		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/well-known/agents{?capability*,inputMode*,limit*,name*,offset*,outputMode*,publicOnly*,signedBy*,skill*}", pathParameters),
 	}
 	return m
 }

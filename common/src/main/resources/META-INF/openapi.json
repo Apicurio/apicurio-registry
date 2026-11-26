@@ -6954,6 +6954,15 @@
             },
             "in": "query",
             "required": false
+          },
+          {
+            "name": "signedBy",
+            "description": "**Experimental.** Only Agent Cards with a signature by the key with this `kid` that verifies against the keys this registry trusts. Candidates are found by the `kid` their signatures claim, then each is verified when the request is served, so a card is returned only while the key is trusted. Returns no results when the registry has no trusted keys configured.",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "required": false
           }
         ],
         "responses": {
@@ -11218,6 +11227,13 @@
           },
           "owner": {
             "type": "string"
+          },
+          "verifiedSigners": {
+            "description": "**Experimental.** The `kid`s of this Agent Card's signatures that verify against the keys this registry trusts (`apicurio.a2a.signature-verification.jwks-urls`, and `jku` key sets on allow-listed hosts), computed when the card is read. Absent when the registry has no trusted keys configured. A verified signature attests which key signed the card, not that the agent is safe.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },

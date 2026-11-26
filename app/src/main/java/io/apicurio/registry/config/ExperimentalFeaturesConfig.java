@@ -76,6 +76,12 @@ public class ExperimentalFeaturesConfig {
         if ("kubernetesops".equals(storageKind)) {
             violations.add("apicurio.storage.kind=kubernetesops (KubernetesOps storage)");
         }
+        final String signatureMode = config.getOptionalValue("apicurio.a2a.signature-verification.mode", String.class)
+                .orElse("off").trim();
+        if (!"off".equalsIgnoreCase(signatureMode)) {
+            violations.add("apicurio.a2a.signature-verification.mode=" + signatureMode
+                    + " (A2A Agent Card signature policy)");
+        }
 
         if (!violations.isEmpty()) {
             throw new IllegalStateException(

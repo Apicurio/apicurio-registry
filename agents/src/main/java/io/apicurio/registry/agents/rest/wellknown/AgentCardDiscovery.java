@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.agents.a2a.A2AConfig;
 import io.apicurio.registry.agents.a2a.RegistryAgentCardBuilder;
+import io.apicurio.registry.agents.a2a.signature.AgentCardSignatureService;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.extensions.AgentSearchHandler;
 import io.apicurio.registry.model.GA;
@@ -67,6 +68,9 @@ public class AgentCardDiscovery implements AgentSearchHandler {
     @Inject
     WellKnownRequestSupport wellKnownRequestSupport;
 
+    @Inject
+    AgentCardSignatureService signatureService;
+
     public AgentCard getAgentCard() {
         if (!a2aConfig.isEnabled()) {
             throw new NotFoundException("A2A support is disabled");
@@ -116,9 +120,9 @@ public class AgentCardDiscovery implements AgentSearchHandler {
 
     public AgentSearchResults searchAgents(String name, List<String> skills, List<String> capabilities,
             List<String> inputModes, List<String> outputModes, Integer offset, Integer limit,
-            Boolean publicOnly) {
+            Boolean publicOnly, String signedBy) {
         return searchAgents(name, skills, capabilities, inputModes, outputModes, offset, limit, publicOnly,
-                NO_CHECKPOINT);
+                signedBy, NO_CHECKPOINT);
     }
 
     /**
@@ -130,6 +134,17 @@ public class AgentCardDiscovery implements AgentSearchHandler {
     public AgentSearchResults searchAgents(String name, List<String> skills, List<String> capabilities,
             List<String> inputModes, List<String> outputModes, Integer offset, Integer limit,
             Boolean publicOnly, Runnable checkpoint) {
+        return searchAgents(name, skills, capabilities, inputModes, outputModes, offset, limit, publicOnly, null,
+                checkpoint);
+    }
+
+    /**
+     * @param signedBy when set, only cards with a signature by this {@code kid} that verifies now: the
+     *            candidates are the cards whose signatures claim the {@code kid}, and each is verified
+     */
+    private AgentSearchResults searchAgents(String name, List<String> skills, List<String> capabilities,
+            List<String> inputModes, List<String> outputModes, Integer offset, Integer limit,
+            Boolean publicOnly, String signedBy, Runnable checkpoint) {
         if (!a2aConfig.isEnabled()) {
             throw new NotFoundException("A2A support is disabled");
         }
@@ -143,6 +158,10 @@ public class AgentCardDiscovery implements AgentSearchHandler {
         addStructureFilters(structureFilters, "inputmode", inputModes);
         addStructureFilters(structureFilters, "outputmode", outputModes);
         addCapabilityFilters(structureFilters, capabilities);
+        if (signedBy != null) {
+            requireNonBlankStructuredFilter("signedBy", signedBy);
+            structureFilters.add(SearchFilter.ofStructure("agent_card:signer:" + signedBy));
+        }
         // Delegate candidate collection (including the single, shared visibility-filtering
         // implementation) to the same core that backs the AI Catalog / ARD endpoints.
         // Structured skill/capability/input-mode/output-mode filters have no equivalent in
@@ -153,7 +172,8 @@ public class AgentCardDiscovery implements AgentSearchHandler {
         for (AiCatalogDiscovery.AiCatalogCandidate candidate : aiCatalogDiscovery.collectAgentCandidates(baseUrl,
                 publisherDomain, name, structureFilters, publicOnlyMode, checkpoint)) {
             checkpoint.run();
-            if (matchesAgentStructuredFilters(candidate.content, skills, capabilities, inputModes, outputModes)) {
+            if (matchesAgentStructuredFilters(candidate.content, skills, capabilities, inputModes, outputModes)
+                    && (signedBy == null || isVerifiedSigner(candidate.rawContent, signedBy))) {
                 matched.add(candidate);
             }
         }
@@ -165,7 +185,7 @@ public class AgentCardDiscovery implements AgentSearchHandler {
         List<AgentSearchResult> agents = new ArrayList<>();
         for (AiCatalogDiscovery.AiCatalogCandidate candidate : matched.subList(safeOffset, toIndex)) {
             checkpoint.run();
-            agents.add(convertToAgentSearchResult(candidate.artifact, candidate.content));
+            agents.add(convertToAgentSearchResult(candidate.artifact, candidate.content, candidate.rawContent));
         }
 
         return AgentSearchResults.builder()
@@ -259,7 +279,13 @@ public class AgentCardDiscovery implements AgentSearchHandler {
      * Converts a searched artifact DTO into an agent search result by fetching and parsing the latest
      * version content to extract skills and capabilities.
      */
-    private AgentSearchResult convertToAgentSearchResult(SearchedArtifactDto artifact, JsonNode root) {
+    private boolean isVerifiedSigner(String rawContent, String kid) {
+        List<String> verified = signatureService.verifiedSigners(rawContent);
+        return verified != null && verified.contains(kid);
+    }
+
+    private AgentSearchResult convertToAgentSearchResult(SearchedArtifactDto artifact, JsonNode root,
+            String rawContent) {
         List<String> skills = new ArrayList<>(extractAgentCardSkillIds(root));
         List<AgentInterface> supportedInterfaces = new ArrayList<>();
         JsonNode interfacesNode = root.path("supportedInterfaces");
@@ -290,12 +316,13 @@ public class AgentCardDiscovery implements AgentSearchHandler {
                         .streaming(streaming)
                         .pushNotifications(pushNotifications)
                         .build())
+                .verifiedSigners(signatureService.verifiedSigners(rawContent))
                 .build();
     }
 
     /**
      * Extracts the {@code id} of every entry in an Agent Card's {@code skills[]} array.
-     * Shared by {@link #convertToAgentSearchResult(SearchedArtifactDto, JsonNode)} and the AI Catalog /
+     * Shared by {@link #convertToAgentSearchResult(SearchedArtifactDto, JsonNode, String)} and the AI Catalog /
      * ARD entry-building helpers below.
      */
     List<String> extractAgentCardSkillIds(JsonNode root) {

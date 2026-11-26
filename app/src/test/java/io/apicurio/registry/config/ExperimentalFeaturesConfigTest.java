@@ -71,6 +71,28 @@ class ExperimentalFeaturesConfigTest {
     }
 
     @Test
+    void agentCardSignaturePolicyWithoutGateFailsStartup() {
+        config.experimentalFeaturesEnabled = false;
+        when(mpConfig.getOptionalValue(STORAGE_KIND, String.class)).thenReturn(Optional.of("sql"));
+        when(mpConfig.getOptionalValue("apicurio.a2a.signature-verification.mode", String.class))
+                .thenReturn(Optional.of("require"));
+
+        IllegalStateException thrown = assertThrows(IllegalStateException.class, () -> config.validate());
+        assertTrue(thrown.getMessage().contains("apicurio.a2a.signature-verification.mode=require"),
+                "message should name the signature policy, was: " + thrown.getMessage());
+    }
+
+    @Test
+    void agentCardSignaturePolicyOffWithoutGatePasses() {
+        config.experimentalFeaturesEnabled = false;
+        when(mpConfig.getOptionalValue(STORAGE_KIND, String.class)).thenReturn(Optional.of("sql"));
+        when(mpConfig.getOptionalValue("apicurio.a2a.signature-verification.mode", String.class))
+                .thenReturn(Optional.of("OFF"));
+
+        assertDoesNotThrow(() -> config.validate());
+    }
+
+    @Test
     void kubernetesopsStorageWithoutGateFailsStartup() {
         config.experimentalFeaturesEnabled = false;
         when(mpConfig.getOptionalValue(STORAGE_KIND, String.class))

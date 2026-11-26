@@ -383,7 +383,8 @@ public class AiCatalogDiscovery {
 
     private AiCatalogCandidate buildAgentCandidate(SearchedArtifactDto artifact, String baseUrl,
             String publisherDomain) {
-        JsonNode root = readLatestContent(artifact);
+        String rawContent = readLatestRawContent(artifact);
+        JsonNode root = parseContent(artifact, rawContent);
         String displayName = textOrDefault(root, "name", artifact.getName());
         String version = textOrDefault(root, "version", null);
         List<String> capabilities = agentCardDiscovery.extractAgentCardSkillIds(root);
@@ -402,7 +403,7 @@ public class AiCatalogDiscovery {
                 .tags(formatTags(artifact.getLabels()))
                 .representativeQueries(representativeQueries)
                 .build();
-        return new AiCatalogCandidate(entry, artifact.getLabels(), artifact, root);
+        return new AiCatalogCandidate(entry, artifact.getLabels(), artifact, root, rawContent);
     }
 
     private AiCatalogCandidate buildToolCandidate(SearchedArtifactDto artifact, String baseUrl,
@@ -423,7 +424,7 @@ public class AiCatalogDiscovery {
                 .updatedAt(formatUpdatedAt(artifact))
                 .tags(formatTags(artifact.getLabels()))
                 .build();
-        return new AiCatalogCandidate(entry, artifact.getLabels(), artifact, root);
+        return new AiCatalogCandidate(entry, artifact.getLabels(), artifact, root, null);
     }
 
     /**
@@ -499,13 +500,33 @@ public class AiCatalogDiscovery {
      * {@code .path(...)} lookups without null-checking.
      */
     JsonNode readLatestContent(SearchedArtifactDto artifact) {
+        return parseContent(artifact, readLatestRawContent(artifact));
+    }
+
+    /**
+     * @return the latest version's content as stored, or {@code null} if it could not be read
+     */
+    private String readLatestRawContent(SearchedArtifactDto artifact) {
         try {
             GA ga = new GA(artifact.getGroupId(), artifact.getArtifactId());
             GAV gav = VersionExpressionParser.parse(ga, "branch=latest",
                     (g, branchId) -> storage.getBranchTip(g, branchId, RetrievalBehavior.SKIP_DISABLED_LATEST));
             StoredArtifactVersionDto stored = storage.getArtifactVersionContent(
                     gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
-            return mapper.readTree(stored.getContent().content());
+            return stored.getContent().content();
+        } catch (Exception e) {
+            log.warn("Failed to read content for {}/{}: {}",
+                    artifact.getGroupId(), artifact.getArtifactId(), e.getMessage());
+            return null;
+        }
+    }
+
+    private JsonNode parseContent(SearchedArtifactDto artifact, String rawContent) {
+        if (rawContent == null) {
+            return MissingNode.getInstance();
+        }
+        try {
+            return mapper.readTree(rawContent);
         } catch (Exception e) {
             log.warn("Failed to parse content for {}/{}: {}",
                     artifact.getGroupId(), artifact.getArtifactId(), e.getMessage());
@@ -789,13 +810,16 @@ public class AiCatalogDiscovery {
         final SearchedArtifactDto artifact;
         /** The latest version's parsed content, read once, or a missing node if it could not be read. */
         final JsonNode content;
+        /** The latest version's content as stored, for Agent Cards only; {@code null} if unread. */
+        final String rawContent;
 
         private AiCatalogCandidate(AiCatalogEntry entry, Map<String, String> labels,
-                SearchedArtifactDto artifact, JsonNode content) {
+                SearchedArtifactDto artifact, JsonNode content, String rawContent) {
             this.entry = entry;
             this.labels = labels;
             this.artifact = artifact;
             this.content = content;
+            this.rawContent = rawContent;
         }
     }
 }

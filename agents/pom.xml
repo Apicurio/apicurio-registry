@@ -47,6 +47,11 @@
       <groupId>io.modelcontextprotocol.sdk</groupId>
       <artifactId>mcp-core</artifactId>
     </dependency>
+    <!-- JWS verification of signed A2A Agent Cards; the version is managed by the Quarkus BOM. -->
+    <dependency>
+      <groupId>org.bitbucket.b_c</groupId>
+      <artifactId>jose4j</artifactId>
+    </dependency>
 
 <!-- Test Only -->
     <!-- Shared test base classes, profiles and resources of the app module -->

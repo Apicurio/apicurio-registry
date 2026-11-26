@@ -91,6 +91,8 @@ public interface WellKnownResource {
      * @param limit pagination limit
      * @param publicOnly when true, return only agent cards whose effective visibility is public,
      *            whoever the caller is and whether or not authentication is enabled
+     * @param signedBy when set, only agent cards with a signature by the key with this {@code kid} that
+     *            verifies against the registry's trusted keys
      * @return search results containing matching agent cards
      */
     @GET
@@ -104,7 +106,8 @@ public interface WellKnownResource {
             @QueryParam("outputMode") List<String> outputModes,
             @QueryParam("offset") @DefaultValue("0") Integer offset,
             @QueryParam("limit") @DefaultValue("20") Integer limit,
-            @QueryParam("publicOnly") @DefaultValue("false") Boolean publicOnly);
+            @QueryParam("publicOnly") @DefaultValue("false") Boolean publicOnly,
+            @QueryParam("signedBy") String signedBy);
 
     /**
      * Returns a specific registered MCP tool definition by group and artifact ID.

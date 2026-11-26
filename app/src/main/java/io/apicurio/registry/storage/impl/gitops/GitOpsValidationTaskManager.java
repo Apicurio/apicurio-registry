@@ -48,6 +48,14 @@ public class GitOpsValidationTaskManager {
     GitOpsConfig gitOpsConfig;
 
     private final ConcurrentHashMap<ValidationTaskId, ValidationTaskState> tasks = new ConcurrentHashMap<>();
+    private final Object createTaskLock = new Object();
+
+    private volatile Runnable validationStartBarrier = () -> { };
+
+    /** Test hook: runs before validation starts. No-op in production. */
+    void setValidationStartBarrier(Runnable barrier) {
+        this.validationStartBarrier = barrier;
+    }
 
     /**
      * Whether dry-run validation is enabled.
@@ -77,7 +85,7 @@ public class GitOpsValidationTaskManager {
                     .filter(f -> f.toString().endsWith(JSON_EXTENSION))
                     .filter(f -> {
                         final String name = stripJsonExtension(f.getFileName().toString());
-                        if (!ValidationTaskId.isValid(name)) {
+                        if (!ValidationTaskId.isValidLocalFileName(name)) {
                             log.warn("Skipping file with invalid task ID format: {}", f.getFileName());
                             return false;
                         }
@@ -99,7 +107,7 @@ public class GitOpsValidationTaskManager {
         if (!isEnabled()) {
             return;
         }
-        for (var taskState : tasks.values()) {
+        for (final var taskState : tasks.values()) {
             try {
                 pollSidecarStatus(taskState);
                 cleanDiskIfCompleted(taskState);
@@ -121,32 +129,52 @@ public class GitOpsValidationTaskManager {
      * @return the created task with its assigned taskId in "pending" state
      */
     public GitOpsValidateTask createTask(GitOpsValidateRequest request) {
-        var taskId = ValidationTaskId.random();
-        Instant now = Instant.now();
+        final String type = request.getType() != null ? request.getType().value() : "pull";
 
-        var taskState = new ValidationTaskState();
-        taskState.setTaskId(taskId);
-        taskState.setType(request.getType() != null ? request.getType().value() : "pull");
-        taskState.setRepoId(request.getRepoId());
-        taskState.setRef(request.getRef());
-        taskState.setState(ValidationTaskStatus.PENDING);
-        taskState.setCreatedAt(now);
-        tasks.put(taskId, taskState);
+        synchronized (createTaskLock) {
+            final var existing = findPendingDuplicate(type, request.getRepoId(), request.getRef());
+            if (existing != null) {
+                return toDto(existing);
+            }
 
-        // Try to submit immediately if there's capacity, otherwise it stays queued
-        // and the scheduled poll will submit it when capacity frees up.
-        trySubmitPendingTasks();
+            final Instant now = Instant.now();
+            final var taskId = ValidationTaskId.encode(type, request.getRepoId(),
+                    request.getRef(), now, gitOpsConfig.getValidateHmacKey());
 
-        log.info("[validate:{}] Task created: type={}, repoId={}, ref={}",
-                taskId, taskState.getType(), taskState.getRepoId(), taskState.getRef());
+            final var taskState = new ValidationTaskState();
+            taskState.setTaskId(taskId);
+            taskState.setType(type);
+            taskState.setRepoId(request.getRepoId());
+            taskState.setRef(request.getRef());
+            taskState.setState(ValidationTaskStatus.PENDING);
+            taskState.setCreatedAt(now);
+            tasks.put(taskId, taskState);
 
-        return toDto(taskState);
+            trySubmitPendingTasks();
+
+            log.info("[validate:{}] Task created: type={}, repoId={}, ref={}",
+                    taskId.localFileName(), taskState.getType(), taskState.getRepoId(), taskState.getRef());
+
+            return toDto(taskState);
+        }
+    }
+
+    private ValidationTaskState findPendingDuplicate(String type, String repoId, String ref) {
+        for (final var ts : tasks.values()) {
+            if ((ts.getState() == ValidationTaskStatus.PENDING
+                    || ts.getState() == ValidationTaskStatus.SUBMITTED)
+                    && type.equals(ts.getType())
+                    && repoId.equals(ts.getRepoId())
+                    && ref.equals(ts.getRef())) {
+                return ts;
+            }
+        }
+        return null;
     }
 
     /**
-     * Gets a task by ID. Returns the last known state from memory.
-     * State transitions (sidecar polling, validation execution, cleanup) happen
-     * asynchronously in the scheduled poll — not in this method.
+     * Gets a task by ID. If the task is not in memory, decodes the
+     * self-describing ID and starts validation on this replica.
      *
      * @param taskId the task identifier
      * @return the task DTO, or null if not found or expired
@@ -155,9 +183,53 @@ public class GitOpsValidationTaskManager {
         if (!ValidationTaskId.isValid(taskId)) {
             return null;
         }
-        var taskState = tasks.get(new ValidationTaskId(taskId));
-        if (taskState == null) {
+        final var id = new ValidationTaskId(taskId);
+        final var taskState = tasks.get(id);
+        if (taskState != null) {
+            return toDto(taskState);
+        }
+        return resolveFromId(id);
+    }
+
+    private GitOpsValidateTask resolveFromId(ValidationTaskId id) {
+        final ValidationTaskPayload payload;
+        try {
+            payload = id.decode(gitOpsConfig.getValidateHmacKey(),
+                    gitOpsConfig.getValidateTaskTtlSeconds());
+        } catch (IllegalArgumentException e) {
             return null;
+        }
+
+        final Instant createdAt = payload.createdAtInstant();
+        final int gracePeriod = gitOpsConfig.getValidateGracePeriodSeconds();
+        if (createdAt.plusSeconds(gracePeriod).isAfter(Instant.now())) {
+            final var dto = new GitOpsValidateTask();
+            dto.setTaskId(id.value());
+            dto.setType(payload.type());
+            dto.setRepoId(payload.repoId());
+            dto.setRef(payload.ref());
+            dto.setState(GitOpsValidateTask.State.fromValue(ValidationTaskStatus.PENDING.value()));
+            dto.setCreatedAt(Date.from(createdAt));
+            dto.setErrors(List.of());
+            return dto;
+        }
+
+        final var taskState = new ValidationTaskState();
+        taskState.setTaskId(id);
+        taskState.setType(payload.type());
+        taskState.setRepoId(payload.repoId());
+        taskState.setRef(payload.ref());
+        taskState.setState(ValidationTaskStatus.PENDING);
+        taskState.setCreatedAt(createdAt);
+
+        final var existing = tasks.putIfAbsent(id, taskState);
+        if (existing != null) {
+            return toDto(existing);
+        }
+
+        if (log.isInfoEnabled()) {
+            log.info("[validate:{}] Resolved from self-describing ID: type={}, repoId={}, ref={}",
+                    id.localFileName(), payload.type(), payload.repoId(), payload.ref());
         }
         return toDto(taskState);
     }
@@ -173,87 +245,124 @@ public class GitOpsValidationTaskManager {
 
     /**
      * Deletes a task and cleans up its files from the shared volume.
+     * Only tasks that are PENDING or finished (COMPLETED/FAILED) can be deleted.
+     * Tasks that are SUBMITTED, FETCHING or VALIDATING are considered in-flight.
      *
      * @param taskId the task identifier
      * @return true if the task existed and was deleted
+     * @throws IllegalStateException if the task is in-flight (SUBMITTED, FETCHING, VALIDATING)
      */
     public boolean deleteTask(String taskId) {
         if (!ValidationTaskId.isValid(taskId)) {
             return false;
         }
-        var taskState = tasks.remove(new ValidationTaskId(taskId));
+        final var id = new ValidationTaskId(taskId);
+        final var taskState = tasks.get(id);
         if (taskState == null) {
             return false;
         }
-        cleanupFiles(taskState);
+        synchronized (taskState.getLock()) {
+            final ValidationTaskStatus state = taskState.getState();
+            if (state == ValidationTaskStatus.SUBMITTED
+                    || state == ValidationTaskStatus.FETCHING
+                    || state == ValidationTaskStatus.VALIDATING) {
+                throw new IllegalStateException("Cannot delete task while it is " + state.value());
+            }
+            if (!tasks.remove(id, taskState)) {
+                return false;
+            }
+            cleanupFiles(taskState);
+        }
         return true;
     }
 
     /**
      * Reads the sidecar's status from the request file and updates the task state.
      * If the sidecar reports the fetch is complete, triggers validation execution.
+     *
+     * <p>The per-task lock is held only for state transitions, not during validation
+     * itself, so that {@link #toDto}, {@link #listTasks()}, and other callers are
+     * not blocked while a task validates.
      */
     void pollSidecarStatus(ValidationTaskState taskState) {
-        ValidationTaskStatus currentState = taskState.getState();
-        if (currentState != ValidationTaskStatus.SUBMITTED && currentState != ValidationTaskStatus.FETCHING) {
-            return;
-        }
+        boolean shouldValidate = false;
 
-        Path requestFile = getRequestFilePath(taskState.getTaskId());
-        if (!Files.exists(requestFile)) {
-            return;
-        }
-
-        try {
-            var request = JsonObjectMapper.MAPPER.readValue(requestFile.toFile(), ValidationRequest.class);
-
-            if (request.getApiVersion() != null
-                    && !ValidationRequest.CURRENT_API_VERSION.equals(request.getApiVersion())) {
-                failTask(taskState, "Unsupported apiVersion: " + request.getApiVersion()
-                        + ". Expected " + ValidationRequest.CURRENT_API_VERSION);
+        synchronized (taskState.getLock()) {
+            final ValidationTaskStatus currentState = taskState.getState();
+            if (currentState != ValidationTaskStatus.SUBMITTED
+                    && currentState != ValidationTaskStatus.FETCHING) {
                 return;
             }
 
-            var status = request.getStatus();
-            if (status == null || status.getState() == null) {
+            final Path requestFile = getRequestFilePath(taskState.getTaskId());
+            if (!Files.exists(requestFile)) {
                 return;
             }
 
-            switch (status.getState()) {
-                case FETCHING -> taskState.setState(ValidationTaskStatus.FETCHING);
-                case FETCHED -> {
-                    taskState.setCheckoutPath(status.getCheckoutPath());
-                    if (status.getCompletedAt() != null) {
-                        taskState.setSidecarCompletedAt(Instant.parse(status.getCompletedAt()));
+            try {
+                final var request = JsonObjectMapper.MAPPER.readValue(
+                        requestFile.toFile(), ValidationRequest.class);
+
+                if (request.getApiVersion() != null
+                        && !ValidationRequest.CURRENT_API_VERSION.equals(request.getApiVersion())) {
+                    failTask(taskState, "Unsupported apiVersion: " + request.getApiVersion()
+                            + ". Expected " + ValidationRequest.CURRENT_API_VERSION);
+                    return;
+                }
+
+                final var status = request.getStatus();
+                if (status == null || status.getState() == null) {
+                    return;
+                }
+
+                switch (status.getState()) {
+                    case FETCHING -> taskState.setState(ValidationTaskStatus.FETCHING);
+                    case FETCHED -> {
+                        taskState.setCheckoutPath(status.getCheckoutPath());
+                        if (status.getCompletedAt() != null) {
+                            taskState.setSidecarCompletedAt(Instant.parse(status.getCompletedAt()));
+                        }
+                        taskState.setState(ValidationTaskStatus.VALIDATING);
+                        shouldValidate = true;
                     }
-                    executeValidation(taskState);
+                    case FAILED -> {
+                        taskState.setSidecarError(status.getError() != null
+                                ? status.getError() : "Unknown sidecar error");
+                        failTask(taskState, taskState.getSidecarError());
+                    }
                 }
-                case FAILED -> {
-                    taskState.setSidecarError(status.getError() != null
-                            ? status.getError() : "Unknown sidecar error");
-                    failTask(taskState, taskState.getSidecarError());
-                }
+            } catch (IOException e) {
+                log.warn("[validate:{}] Failed to read sidecar status: {}",
+                        taskState.getTaskId(), e.getMessage());
             }
-        } catch (IOException e) {
-            log.warn("[validate:{}] Failed to read sidecar status: {}", taskState.getTaskId(), e.getMessage());
+        }
+
+        if (shouldValidate) {
+            executeValidation(taskState);
         }
     }
 
     /**
      * Executes the validation by loading data from the sidecar's checkout into the
      * inactive storage and running the full validation pipeline.
+     *
+     * <p>Called without the per-task lock held (the caller sets {@code VALIDATING}
+     * under the lock before invoking this). State transitions on completion or
+     * failure re-acquire the lock and re-check that the task is still in the map,
+     * so a concurrent expiry or removal is handled safely.
      */
     private void executeValidation(ValidationTaskState taskState) {
-        taskState.setState(ValidationTaskStatus.VALIDATING);
         log.info("[validate:{}] Starting validation from checkout path", taskState.getTaskId());
+
+        validationStartBarrier.run();
 
         final Path checkoutPath = getCheckoutPath(taskState);
         if (checkoutPath == null) {
-            failTask(taskState, "Invalid checkout path");
+            failTaskIfActive(taskState, "Invalid checkout path");
             return;
         }
         if (!Files.exists(checkoutPath)) {
-            failTask(taskState, "Checkout path does not exist: " + checkoutPath);
+            failTaskIfActive(taskState, "Checkout path does not exist: " + checkoutPath);
             return;
         }
 
@@ -262,19 +371,19 @@ public class GitOpsValidationTaskManager {
             var tempRepo = new GitRepo(log, repoConfig, checkoutPath.toString(), gitOpsConfig);
 
             if (!tempRepo.tryOpen()) {
-                failTask(taskState, "Failed to open git repository at " + checkoutPath);
+                failTaskIfActive(taskState, "Failed to open git repository at " + checkoutPath);
                 return;
             }
 
             try {
                 var head = tempRepo.resolveHead();
                 if (head == null) {
-                    failTask(taskState, "No commits found in checkout repository");
+                    failTaskIfActive(taskState, "No commits found in checkout repository");
                     return;
                 }
                 var pollResult = tempRepo.collectFiles(head);
                 if (pollResult == null || pollResult.files().isEmpty()) {
-                    failTask(taskState, "No files found in checkout");
+                    failTaskIfActive(taskState, "No files found in checkout");
                     return;
                 }
 
@@ -287,26 +396,31 @@ public class GitOpsValidationTaskManager {
                 var storage = gitOpsStorage.get();
                 var processingResult = storage.dryRunValidate(pollingResult);
 
-                if (processingResult.isSuccessful()) {
-                    completeTask(taskState, "success",
-                            processingResult.getGroupCount(),
-                            processingResult.getArtifactCount(),
-                            processingResult.getVersionCount(),
-                            List.of());
-                } else {
-                    var errors = processingResult.getErrors().stream()
-                            .map(e -> {
-                                var err = new GitOpsError();
-                                err.setDetail(e.detail());
-                                err.setSource(e.source());
-                                err.setContext(e.context());
-                                return err;
-                            }).toList();
-                    completeTask(taskState, "failure",
-                            processingResult.getGroupCount(),
-                            processingResult.getArtifactCount(),
-                            processingResult.getVersionCount(),
-                            errors);
+                synchronized (taskState.getLock()) {
+                    if (tasks.get(taskState.getTaskId()) != taskState) {
+                        return;
+                    }
+                    if (processingResult.isSuccessful()) {
+                        completeTask(taskState, "success",
+                                processingResult.getGroupCount(),
+                                processingResult.getArtifactCount(),
+                                processingResult.getVersionCount(),
+                                List.of());
+                    } else {
+                        var errors = processingResult.getErrors().stream()
+                                .map(e -> {
+                                    var err = new GitOpsError();
+                                    err.setDetail(e.detail());
+                                    err.setSource(e.source());
+                                    err.setContext(e.context());
+                                    return err;
+                                }).toList();
+                        completeTask(taskState, "failure",
+                                processingResult.getGroupCount(),
+                                processingResult.getArtifactCount(),
+                                processingResult.getVersionCount(),
+                                errors);
+                    }
                 }
             } finally {
                 tempRepo.close();
@@ -314,10 +428,14 @@ public class GitOpsValidationTaskManager {
         } catch (io.apicurio.registry.storage.error.StorageBusyException e) {
             log.info("[validate:{}] Validation deferred — normal sync in progress, will retry",
                     taskState.getTaskId());
-            taskState.setState(ValidationTaskStatus.SUBMITTED);
+            synchronized (taskState.getLock()) {
+                if (tasks.get(taskState.getTaskId()) == taskState) {
+                    taskState.setState(ValidationTaskStatus.SUBMITTED);
+                }
+            }
         } catch (Exception e) {
             log.error("[validate:{}] Validation failed: {}", taskState.getTaskId(), e.getMessage(), e);
-            failTask(taskState, "Validation error: " + e.getMessage());
+            failTaskIfActive(taskState, "Validation error: " + e.getMessage());
         }
     }
 
@@ -338,6 +456,14 @@ public class GitOpsValidationTaskManager {
         taskState.setCompletedAt(Instant.now());
     }
 
+    private void failTaskIfActive(ValidationTaskState taskState, String error) {
+        synchronized (taskState.getLock()) {
+            if (tasks.get(taskState.getTaskId()) == taskState) {
+                failTask(taskState, error);
+            }
+        }
+    }
+
     /**
      * Submits queued (pending) tasks to the sidecar by writing request files,
      * up to the configured max active tasks limit.
@@ -348,16 +474,21 @@ public class GitOpsValidationTaskManager {
                 .filter(ts -> !ts.isCleaned() && ts.getState() != ValidationTaskStatus.PENDING)
                 .count();
 
-        for (var taskState : tasks.values()) {
+        for (final var taskState : tasks.values()) {
             if (activeTasks >= maxTasks) {
                 break;
             }
             if (taskState.getState() == ValidationTaskStatus.PENDING) {
-                writeRequestFile(taskState);
-                if (taskState.getState() != ValidationTaskStatus.FAILED) {
-                    taskState.setState(ValidationTaskStatus.SUBMITTED);
-                    activeTasks++;
-                    log.info("[validate:{}] Submitted to sidecar", taskState.getTaskId());
+                synchronized (taskState.getLock()) {
+                    if (taskState.getState() == ValidationTaskStatus.PENDING
+                            && tasks.get(taskState.getTaskId()) == taskState) {
+                        writeRequestFile(taskState);
+                        if (taskState.getState() != ValidationTaskStatus.FAILED) {
+                            taskState.setState(ValidationTaskStatus.SUBMITTED);
+                            activeTasks++;
+                            log.info("[validate:{}] Submitted to sidecar", taskState.getTaskId());
+                        }
+                    }
                 }
             }
         }
@@ -368,14 +499,17 @@ public class GitOpsValidationTaskManager {
      * while keeping the in-memory record so clients can still read the result.
      */
     private void cleanDiskIfCompleted(ValidationTaskState taskState) {
-        if (taskState.isCleaned()) {
-            return;
-        }
-        ValidationTaskStatus state = taskState.getState();
-        if (state == ValidationTaskStatus.COMPLETED || state == ValidationTaskStatus.FAILED) {
-            if (cleanupFiles(taskState)) {
-                taskState.setCleaned(true);
-                log.debug("[validate:{}] Disk cleaned, result retained in memory", taskState.getTaskId());
+        synchronized (taskState.getLock()) {
+            if (taskState.isCleaned()) {
+                return;
+            }
+            final ValidationTaskStatus state = taskState.getState();
+            if (state == ValidationTaskStatus.COMPLETED || state == ValidationTaskStatus.FAILED) {
+                if (cleanupFiles(taskState)) {
+                    taskState.setCleaned(true);
+                    log.debug("[validate:{}] Disk cleaned, result retained in memory",
+                            taskState.getTaskId());
+                }
             }
         }
     }
@@ -391,6 +525,7 @@ public class GitOpsValidationTaskManager {
                     .apiVersion(ValidationRequest.CURRENT_API_VERSION)
                     .kind("ValidateRequest")
                     .spec(ValidationRequest.Spec.builder()
+                            .taskId(taskState.getTaskId().value())
                             .type(taskState.getType())
                             .repoId(taskState.getRepoId())
                             .ref(taskState.getRef())
@@ -432,17 +567,26 @@ public class GitOpsValidationTaskManager {
                 return;
             }
 
-            var taskId = new ValidationTaskId(
-                    stripJsonExtension(requestFile.getFileName().toString()));
+            if (request.getSpec().getTaskId() == null
+                    || !ValidationTaskId.isValid(request.getSpec().getTaskId())) {
+                log.warn("Skipping request file with missing or invalid taskId: {}", requestFile);
+                return;
+            }
 
-            var taskState = new ValidationTaskState();
-            taskState.setTaskId(taskId);
-            taskState.setType(request.getSpec().getType() != null ? request.getSpec().getType() : "pull");
-            taskState.setRepoId(request.getSpec().getRepoId());
-            taskState.setRef(request.getSpec().getRef());
-            taskState.setCreatedAt(request.getSpec().getRequestedAt() != null
+            final var taskId = new ValidationTaskId(request.getSpec().getTaskId());
+            final String type = request.getSpec().getType() != null ? request.getSpec().getType() : "pull";
+            final String repoId = request.getSpec().getRepoId();
+            final String ref = request.getSpec().getRef();
+            final Instant createdAt = request.getSpec().getRequestedAt() != null
                     ? Instant.parse(request.getSpec().getRequestedAt())
-                    : Instant.now());
+                    : Instant.now();
+
+            final var taskState = new ValidationTaskState();
+            taskState.setTaskId(taskId);
+            taskState.setType(type);
+            taskState.setRepoId(repoId);
+            taskState.setRef(ref);
+            taskState.setCreatedAt(createdAt);
 
             // Determine state from the sidecar status
             if (request.getStatus() != null && request.getStatus().getState() != null) {
@@ -467,6 +611,45 @@ public class GitOpsValidationTaskManager {
         }
     }
 
+    /**
+     * Triggers submission of pending tasks. Package-private for
+     * deterministic concurrency testing.
+     */
+    void submitPendingTasks() {
+        trySubmitPendingTasks();
+    }
+
+    /**
+     * Creates a task in PENDING state without triggering auto-submission.
+     * Package-private for deterministic concurrency testing.
+     */
+    ValidationTaskId addPendingTask(String type, String repoId, String ref) {
+        final Instant now = Instant.now();
+        final var taskId = ValidationTaskId.encode(type, repoId, ref, now,
+                gitOpsConfig.getValidateHmacKey());
+        final var taskState = new ValidationTaskState();
+        taskState.setTaskId(taskId);
+        taskState.setType(type);
+        taskState.setRepoId(repoId);
+        taskState.setRef(ref);
+        taskState.setState(ValidationTaskStatus.PENDING);
+        taskState.setCreatedAt(now);
+        tasks.put(taskId, taskState);
+        return taskId;
+    }
+
+    /**
+     * Unconditionally removes all tasks and cleans up their files.
+     * Package-private for test use only — production code should use
+     * {@link #deleteTask(String)} which enforces state constraints.
+     */
+    void removeAllTasks() {
+        for (final var taskState : tasks.values()) {
+            cleanupFiles(taskState);
+        }
+        tasks.clear();
+    }
+
     // ---- Helpers ----
 
     private static String stripJsonExtension(String fileName) {
@@ -481,7 +664,7 @@ public class GitOpsValidationTaskManager {
     }
 
     private Path getRequestFilePath(ValidationTaskId taskId) {
-        return getValidateDir().resolve(taskId.value() + JSON_EXTENSION);
+        return getValidateDir().resolve(taskId.localFileName() + JSON_EXTENSION);
     }
 
     private Path getCheckoutPath(ValidationTaskState taskState) {
@@ -490,7 +673,7 @@ public class GitOpsValidationTaskManager {
         }
 
         final Path taskDir = getValidateDir()
-                .resolve(taskState.getTaskId().value())
+                .resolve(taskState.getTaskId().localFileName())
                 .toAbsolutePath()
                 .normalize();
 
@@ -512,7 +695,7 @@ public class GitOpsValidationTaskManager {
         try {
             Path requestFile = getRequestFilePath(taskState.getTaskId());
             Files.deleteIfExists(requestFile);
-            Path taskDir = getValidateDir().resolve(taskState.getTaskId().value());
+            Path taskDir = getValidateDir().resolve(taskState.getTaskId().localFileName());
             if (Files.exists(taskDir)) {
                 deleteRecursive(taskDir);
             }
@@ -541,33 +724,40 @@ public class GitOpsValidationTaskManager {
 
     private void expireAll() {
         tasks.values().removeIf(ts -> {
-            if (isExpired(ts)) {
-                cleanupFiles(ts);
-                return true;
+            synchronized (ts.getLock()) {
+                if (ts.getState() == ValidationTaskStatus.VALIDATING) {
+                    return false;
+                }
+                if (isExpired(ts)) {
+                    cleanupFiles(ts);
+                    return true;
+                }
+                return false;
             }
-            return false;
         });
     }
 
     private GitOpsValidateTask toDto(ValidationTaskState ts) {
-        var dto = new GitOpsValidateTask();
-        dto.setTaskId(ts.getTaskId().value());
-        dto.setType(ts.getType());
-        dto.setRepoId(ts.getRepoId());
-        dto.setRef(ts.getRef());
-        dto.setState(GitOpsValidateTask.State.fromValue(ts.getState().value()));
-        dto.setCreatedAt(Date.from(ts.getCreatedAt()));
-        if (ts.getResult() != null) {
-            dto.setResult(GitOpsValidateTask.Result.fromValue(ts.getResult()));
+        synchronized (ts.getLock()) {
+            final var dto = new GitOpsValidateTask();
+            dto.setTaskId(ts.getTaskId().value());
+            dto.setType(ts.getType());
+            dto.setRepoId(ts.getRepoId());
+            dto.setRef(ts.getRef());
+            dto.setState(GitOpsValidateTask.State.fromValue(ts.getState().value()));
+            dto.setCreatedAt(Date.from(ts.getCreatedAt()));
+            if (ts.getResult() != null) {
+                dto.setResult(GitOpsValidateTask.Result.fromValue(ts.getResult()));
+            }
+            if (ts.getCompletedAt() != null) {
+                dto.setCompletedAt(Date.from(ts.getCompletedAt()));
+            }
+            dto.setGroupCount(ts.getGroupCount());
+            dto.setArtifactCount(ts.getArtifactCount());
+            dto.setVersionCount(ts.getVersionCount());
+            dto.setErrors(ts.getErrors() != null ? ts.getErrors() : List.of());
+            return dto;
         }
-        if (ts.getCompletedAt() != null) {
-            dto.setCompletedAt(Date.from(ts.getCompletedAt()));
-        }
-        dto.setGroupCount(ts.getGroupCount());
-        dto.setArtifactCount(ts.getArtifactCount());
-        dto.setVersionCount(ts.getVersionCount());
-        dto.setErrors(ts.getErrors() != null ? ts.getErrors() : List.of());
-        return dto;
     }
 
     private static GitOpsError createError(String detail) {

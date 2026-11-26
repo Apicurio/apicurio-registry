@@ -44,9 +44,6 @@ It ends with `All checks passed.`.
 - **Known issues**, shown by the demo:
   - [#11124](https://github.com/Apicurio/apicurio-registry/issues/11124): `READONLY` mode is stored
     but not enforced.
-  - [#11125](https://github.com/Apicurio/apicurio-registry/issues/11125): some error responses
-    differ from Confluent (soft-delete errors return 409, not 404; a class name in the incompatibility
-    message; an empty 400 for a subject without the group-concat separator).
 - Confluent's and Apicurio's serdes in the same application, both ways: the `confluent` step of
   [`kafka-serdes`](../kafka-serdes/).
 - **Local only:** no authentication, no TLS.

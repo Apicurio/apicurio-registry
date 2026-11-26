@@ -42,6 +42,7 @@ import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.dto.VersionContentDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.registry.storage.dto.VersionWithArtifactMetaDataDto;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.CommitFailedException;
 import io.apicurio.registry.storage.error.RegistryStorageException;
@@ -65,6 +66,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -459,6 +461,16 @@ public class TestInMemoryRegistryStorage implements RegistryStorage {
 
     @Override
     public ArtifactVersionMetaDataDto getArtifactVersionMetaData(Long globalId) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public VersionWithArtifactMetaDataDto getArtifactVersionWithArtifactMetaData(Long globalId) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public List<ArtifactMetaDataDto> getArtifactsMetaData(Collection<GA> artifacts) {
         throw new UnsupportedOperationException();
     }
 

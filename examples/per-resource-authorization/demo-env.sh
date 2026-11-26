@@ -10,7 +10,7 @@
 #   status anonymous GET /groups/shared/artifacts/common-types       # no credentials at all
 #
 # Paths are relative to the Core Registry API v3 (/apis/registry/v3). Requires curl and jq.
-# Override KEYCLOAK and API if you changed the ports (see README.md).
+# Override KEYCLOAK and API if you changed the ports (see GUIDE.md, "Using other ports").
 
 KEYCLOAK=${KEYCLOAK:-http://localhost:8080}
 API=${API:-http://localhost:8081/apis}

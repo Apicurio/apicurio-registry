@@ -78,9 +78,13 @@ function createApi(github, owner, repo) {
       return data.conclusion;
     },
 
+    // per_page: 30, not 100 — GitHub's API returns a 502 listing jobs for a
+    // large run with per_page: 100 once it has accumulated enough jobs
+    // across attempts (see .github/scripts/pr-lifecycle.js, api.listRunJobs).
+    // github.paginate still fetches every job, just in smaller pages.
     listAttemptJobs: async (runId, attempt) => github.paginate(
       github.rest.actions.listJobsForWorkflowRunAttempt,
-      { owner, repo, run_id: runId, attempt_number: attempt, per_page: 100 },
+      { owner, repo, run_id: runId, attempt_number: attempt, per_page: 30 },
     ),
 
     // compare/{base}...{head}: 'ahead' means head is newer than base. Null

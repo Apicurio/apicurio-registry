@@ -7,7 +7,7 @@
   [#7974](https://github.com/Apicurio/apicurio-registry/pull/7974),
   [#7985](https://github.com/Apicurio/apicurio-registry/pull/7985),
   [#11124](https://github.com/Apicurio/apicurio-registry/issues/11124),
-  [#11125](https://github.com/Apicurio/apicurio-registry/issues/11125).
+  [#11125](https://github.com/Apicurio/apicurio-registry/issues/11125) (fixed).
 - **Scope:** The Confluent Schema Registry-compatible REST API (`/apis/ccompat/v7/`, `/apis/ccompat/v8/`):
   subject and group mapping, ID mapping, deletes, error codes, registration, compatibility checks,
   serialization and mode. It does not
@@ -139,12 +139,17 @@ Confluent uses numeric error codes in JSON responses. The mapping is in `CCompat
 | `InvalidCompatibilityLevelException` | 42203 (INVALID_COMPATIBILITY_LEVEL) | 422 |
 | `ReferenceExistsException` | 42206 (REFERENCE_EXISTS) | 422 |
 | `SubjectSoftDeletedException` | 40404 | 404 |
-| `SubjectNotSoftDeletedException` | 40405 | 409 (Confluent: 404) |
-| `SchemaSoftDeletedException` | 40406 | 409 (Confluent: 404) |
-| `SchemaNotSoftDeletedException` | 40407 | 409 (Confluent: 404) |
+| `SubjectNotSoftDeletedException` | 40405 | 404 |
+| `SchemaSoftDeletedException` | 40406 | 404 |
+| `SchemaNotSoftDeletedException` | 40407 | 404 |
 | `RuleViolationException` | 409 | 409 |
 
-Error messages are formatted to match Confluent's style (e.g., `"Subject 'foo' not found."`).
+Error messages are formatted to match Confluent's style (e.g., `"Subject 'foo' not found."`). The
+soft-delete codes (40404 to 40407) use Confluent's message text. An incompatible registration
+returns 409 with `Schema being registered is incompatible with an earlier schema for subject
+"<s>", details: ...`, without Java class names. An error with no entity of its own (for example,
+with group-concat, a subject without the separator) still returns a body,
+`{"error_code": <status>, "message": ...}`.
 
 ### Schema registration
 
@@ -248,11 +253,7 @@ The per-subject lock is per JVM only; see [Limitations](#limitations-and-open-wo
    validation in `validateMode()` only runs on API requests, not direct storage writes). Consider
    promoting mode to a first-class storage entity.
 7. **Modes are not enforced** ([#11124](https://github.com/Apicurio/apicurio-registry/issues/11124)).
-8. **Error responses that differ from Confluent** ([#11125](https://github.com/Apicurio/apicurio-registry/issues/11125)):
-   `40405`, `40406` and `40407` return 409 where Confluent returns 404; the incompatibility message
-   includes the Java exception class name; with group-concat, a subject without the separator
-   returns 400 with an empty body.
-9. **Single remaining harness test failure.** `lookupVersion_unregisteredSchema` fails: Confluent
+8. **Single remaining harness test failure.** `lookupVersion_unregisteredSchema` fails: Confluent
    returns 405 (Method Not Allowed) when a non-matching schema is POSTed to
    `POST /subjects/{subject}/versions/{version}`. Apicurio returns 404 (Schema Not Found). This
    appears to be a Confluent-specific edge case where 405 may indicate the endpoint doesn't validate
@@ -318,3 +319,4 @@ results, before 26/53 (49%), after 52/53 (98%):
 | [#7971](https://github.com/Apicurio/apicurio-registry/pull/7971), [#7974](https://github.com/Apicurio/apicurio-registry/pull/7974), [#7985](https://github.com/Apicurio/apicurio-registry/pull/7985) | Harness conformance raised from 26/53 to 52/53 |
 | This ADR reformatted to [the ADR template](TEMPLATE.md) | Structure only; no change to the decisions |
 | Subject mapping, deletes and v7/v8 documented | Decisions 7 to 9 recorded; a verified example; mode and error-status gaps filed (#11124, #11125) |
+| [#11174](https://github.com/Apicurio/apicurio-registry/pull/11174) | Fixed: soft-delete errors 40405 to 40407 return 404, the incompatibility message matches Confluent's, and entity-less errors have a body (#11125) |

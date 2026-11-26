@@ -16,6 +16,8 @@ endif::[]
 * xref:registry-operator-quickstart[]
 * xref:registry-quickstart[]
 
+For a runnable walkthrough on a local kind cluster, with in-memory, PostgreSQL, and KafkaSQL storage, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/operator[operator example].
+
 NOTE: The recommended installation option for production environments is the OpenShift OperatorHub. The recommended storage option is an SQL database for performance, stability, and data management. 
 
 // INCLUDES

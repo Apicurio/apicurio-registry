@@ -246,13 +246,13 @@ order whose `amount` is text instead of a number. The registry rejects the schem
 and nothing is written:
 
 ```
-  info  producer exception: java.lang.RuntimeException: io.apicurio.registry.rest.client.models.RuleViolationProblemDetails ...
+  info  producer exception: org.apache.kafka.common.errors.SerializationException: Registry request failed (HTTP 409) due to COMPATIBILITY rule violation: Incompatible artifact: orders-value [AVRO] ...
   info  rule violation: Incompatible artifact: orders-value [AVRO], ... reader type: STRING not compatible with writer type: DOUBLE at /fields/1/type
 ```
 
-The reason is in the cause, a `RuleViolationProblemDetails` from the Java SDK; the tour shows how to
-read it. That the exception's own message is empty is
-[#11018](https://github.com/Apicurio/apicurio-registry/issues/11018). `orders-value` still has 2
+The exception is Kafka's `SerializationException`, and its message names the violated rule. The
+full answer is in the cause, a `RuleViolationProblemDetails` from the Java SDK; the tour shows how to
+read it. `orders-value` still has 2
 versions. The [rules example](../rules-and-compatibility/) covers the rules themselves.
 
 **In the UI:** open **Explore** > `default` > `orders-value`: 2 versions, and a compatibility rule

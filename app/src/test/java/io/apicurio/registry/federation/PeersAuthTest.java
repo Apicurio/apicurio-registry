@@ -2,7 +2,6 @@ package io.apicurio.registry.federation;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.client.RegistryClientFactory;
-import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.NewPeer;
 import io.apicurio.registry.rest.client.models.Peer;
@@ -44,7 +43,7 @@ public class PeersAuthTest extends AbstractResourceTestBase {
     }
 
     private RegistryClient clientFor(Vertx vertx, String clientId) {
-        return RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+        return RegistryClientFactory.create(boundedClientOptions(registryV3ApiUrl, vertx)
                 .oauth2(authServerUrlConfigured, clientId, "test1"));
     }
 
@@ -117,7 +116,7 @@ public class PeersAuthTest extends AbstractResourceTestBase {
         clientV3.admin().peers().post(newPeer(PEER_ID));
         try {
             RegistryClient anonymous = RegistryClientFactory.create(
-                    RegistryClientOptions.create(registryV3ApiUrl, vertx));
+                    boundedClientOptions(registryV3ApiUrl, vertx));
             for (Executable operation : everyOperation(anonymous)) {
                 Exception exception = Assertions.assertThrows(Exception.class, operation);
                 assertNotAuthorized(exception);

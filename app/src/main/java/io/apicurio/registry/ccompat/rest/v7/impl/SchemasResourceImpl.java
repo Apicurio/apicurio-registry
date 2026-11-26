@@ -1,5 +1,6 @@
 package io.apicurio.registry.ccompat.rest.v7.impl;
 
+import io.apicurio.registry.references.ReferenceResolution;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
@@ -11,6 +12,7 @@ import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
+import io.apicurio.registry.rest.ParameterValidationUtils;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
@@ -63,20 +65,12 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
             artifactType = contentWrapper.getArtifactType();
         }
 
-        // Apply default format if configured and no format was explicitly provided
-        if (format == null || format.isBlank()) {
-            java.util.Optional<String> configuredDefault = restConfig.getDefaultReferenceHandling();
-            if (configuredDefault.isPresent() && !configuredDefault.orElseThrow().trim().isEmpty()
-                    && "DEREFERENCE".equalsIgnoreCase(configuredDefault.orElseThrow())) {
-                // Apply RESOLVED format for Avro and Protobuf when DEREFERENCE is configured
-                if (ArtifactType.AVRO.equals(artifactType) || ArtifactType.PROTOBUF.equals(artifactType)) {
-                    format = "resolved";
-                }
-            }
-        }
+        // Apply the configured default format if the client did not provide one
+        format = resolveEffectiveFormat(format, artifactType);
 
         // Apply format transformation if requested
         if (format != null && !format.isBlank()) {
+            ReferenceResolution.requireDereferenceable(references, accessGuard.referenceLoader());
             Map<String, TypedContent> resolvedReferences = resolveReferenceDtos(references);
             contentHandle = formatService.applyFormat(contentHandle, artifactType, format,
                     resolvedReferences);
@@ -104,20 +98,12 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
             artifactType = contentWrapper.getArtifactType();
         }
 
-        // Apply default format if configured and no format was explicitly provided
-        if (format == null || format.isBlank()) {
-            java.util.Optional<String> configuredDefault = restConfig.getDefaultReferenceHandling();
-            if (configuredDefault.isPresent() && !configuredDefault.orElseThrow().trim().isEmpty()
-                    && "DEREFERENCE".equals(configuredDefault.orElseThrow())) {
-                // Apply RESOLVED format for Avro and Protobuf when DEREFERENCE is configured
-                if (ArtifactType.AVRO.equals(artifactType) || ArtifactType.PROTOBUF.equals(artifactType)) {
-                    format = "RESOLVED";
-                }
-            }
-        }
+        // Apply the configured default format if the client did not provide one
+        format = resolveEffectiveFormat(format, artifactType);
 
         // Apply format transformation if requested
         if (format != null && !format.trim().isEmpty()) {
+            ReferenceResolution.requireDereferenceable(references, accessGuard.referenceLoader());
             Map<String, TypedContent> resolvedReferences = resolveReferenceDtos(references);
             contentHandle = formatService.applyFormat(contentHandle, artifactType, format,
                     resolvedReferences);
@@ -145,7 +131,7 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
         }
 
         // Handle pagination
-        int effectiveOffset = offset != null ? offset.intValue() : 0;
+        int effectiveOffset = offset != null ? ParameterValidationUtils.normalizeOffset(offset) : 0;
         int effectiveLimit = (limit != null && limit.intValue() > 0) ? limit.intValue()
                 : cconfig.maxSubjects.get();
 

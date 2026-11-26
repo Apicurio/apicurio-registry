@@ -1,0 +1,7 @@
+$type: artifact-v0
+registryIds: [test]
+groupId: testgroup
+artifactId: empty-artifact
+artifactType: JSON
+name: Empty Artifact
+description: Artifact with no versions

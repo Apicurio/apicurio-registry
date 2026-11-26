@@ -221,6 +221,32 @@ function overrideConfig(base: ApicurioRegistryConfig, overrides: ApicurioRegistr
 
 let registryConfig: ApicurioRegistryConfig = _getRegistryConfig();
 
+/**
+ * True when the console runs in an iframe. Reading window.top can throw across origins, which
+ * also means the console is framed.
+ */
+export function isFramed(win: Window | undefined): boolean {
+    if (!win) {
+        return false;
+    }
+    try {
+        return win.self !== win.top;
+    } catch {
+        return true;
+    }
+}
+
+/**
+ * True when the console is framed and was loaded with "?masthead=false" (set by the OpenShift
+ * console plugin). Read once at load so it survives in-app navigation.
+ */
+export function isMastheadHiddenByUrl(search: string | undefined, framed: boolean): boolean {
+    return framed && new URLSearchParams(search || "").get("masthead") === "false";
+}
+
+const mastheadHiddenByUrl: boolean = isMastheadHiddenByUrl(globalThis.location?.search,
+    isFramed(globalThis.window as Window | undefined));
+
 
 export interface ConfigService {
 
@@ -322,13 +348,14 @@ export class ConfigServiceImpl implements ConfigService {
             readOnly: false,
             breadcrumbs: true
         };
-        if (!registryConfig.features) {
-            return defaults;
-        }
-        return {
+        const features: FeaturesConfig = {
             ...defaults,
             ...registryConfig.features
         };
+        if (mastheadHiddenByUrl) {
+            features.showMasthead = false;
+        }
+        return features;
     }
 
     public featureReadOnly(): boolean {

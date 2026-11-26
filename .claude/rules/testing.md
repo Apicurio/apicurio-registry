@@ -13,7 +13,7 @@ paths:
 
 ## Integration Tests
 - Located in `integration-tests/` module
-- Profiles: `integration-tests`, `remote-mem`, `remote-sql`, `remote-kafka`, `remote-kubernetesops`
+- Profiles: `integration-tests`, `remote-mem`, `remote-sql`, `remote-kafka`, `remote-kubernetesops`, `remote-gitops`
 - Run: `./mvnw verify -Pintegration-tests -pl integration-tests -am`
 
 ## Storage Variant Coverage

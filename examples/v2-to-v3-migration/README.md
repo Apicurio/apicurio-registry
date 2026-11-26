@@ -45,12 +45,9 @@ It ends with `All checks passed.`.
 
 ## Notes
 
-- **Known issues**, worked around:
-  - [#11115](https://github.com/Apicurio/apicurio-registry/issues/11115): an import with
-    `X-Registry-Preserve-ContentId: false` links versions to the wrong content when the target already
-    holds the same content. The demo's existing artifact uses content that is not in the export.
-  - [#11116](https://github.com/Apicurio/apicurio-registry/issues/11116): the v2 API on 3.x serves a
-    `DISABLED` version's content by globalId; 2.6 did not. The demo does not compare that content.
+- An import with `X-Registry-Preserve-ContentId: false` reuses the target's content when it already
+  holds the same bytes. An entity the import cannot import is skipped with a warning in the log, and
+  the import still returns 204.
 - **Local only:** no authentication, no TLS.
 
 ## Learn more

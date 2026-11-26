@@ -21,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class McpToolsClientTest {
 
-    private static final Duration TIMEOUT = Duration.ofSeconds(2);
+    private static final Duration TIMEOUT = Duration.ofSeconds(10);
 
     private final McpToolsClient client = new McpToolsClient();
     private McpTestServer server;
@@ -37,7 +37,42 @@ class McpToolsClientTest {
     }
 
     private ServerTools list(Map<String, String> headers, int maxMessage, int maxTools) {
-        return client.listTools(URI.create(server.url()), headers, TIMEOUT, maxMessage, maxTools);
+        return client.listTools(URI.create(server.url()), headers,
+                new McpToolsClient.Limits(TIMEOUT, Duration.ofMinutes(1), maxMessage, maxTools, Long.MAX_VALUE));
+    }
+
+    /** Ten pages of one tool each. */
+    private void tenPages() {
+        for (int i = 0; i < 10; i++) {
+            String cursor = i == 0 ? "" : "p" + i;
+            server.pages.put(cursor, List.of(McpTestServer.tool("t" + i, "string")));
+            if (i < 9) {
+                server.nextCursors.put(cursor, "p" + (i + 1));
+            }
+        }
+    }
+
+    @Test
+    void listingThatTakesLongerThanTheTotalTimeoutStops() {
+        tenPages();
+        // Each request is well within its own timeout, but ten of them are not within the total
+        server.delayMillis = 200;
+        McpImportException e = assertThrows(McpImportException.class, () -> client.listTools(
+                URI.create(server.url()), Map.of(),
+                new McpToolsClient.Limits(TIMEOUT, Duration.ofMillis(500), 65536, 100, Long.MAX_VALUE)));
+        assertEquals(Reason.TIMEOUT, e.getReason());
+        assertTrue(server.requests.get() < 10, () -> "requests: " + server.requests.get());
+    }
+
+    @Test
+    void toolsLargerInTotalThanAllowedAreRefused() {
+        tenPages();
+        // Each page is small, but the ten together are not
+        McpImportException e = assertThrows(McpImportException.class, () -> client.listTools(
+                URI.create(server.url()), Map.of(), new McpToolsClient.Limits(TIMEOUT, Duration.ofMinutes(1),
+                        65536, 100, 1000)));
+        assertEquals(Reason.OVERSIZE, e.getReason());
+        assertEquals(10, list(Map.of(), 65536, 100).tools().size());
     }
 
     private McpImportException failure(int maxMessage, int maxTools) {
@@ -90,9 +125,11 @@ class McpToolsClientTest {
     @Test
     void slowServerTimesOut() {
         server.tools(McpTestServer.tool("a", "string"));
-        server.delayMillis = 4000;
+        server.delayMillis = 2500;
 
-        McpImportException e = failure(65536, 10);
+        McpImportException e = assertThrows(McpImportException.class,
+                () -> client.listTools(URI.create(server.url()), Map.of(),
+                        new McpToolsClient.Limits(Duration.ofSeconds(1), Duration.ofMinutes(1), 65536, 10, Long.MAX_VALUE)));
 
         assertEquals(Reason.TIMEOUT, e.getReason());
         assertEquals("The MCP server did not respond in time.", e.getMessage());

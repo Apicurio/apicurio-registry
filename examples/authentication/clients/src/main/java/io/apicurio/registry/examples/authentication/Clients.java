@@ -1,7 +1,6 @@
 package io.apicurio.registry.examples.authentication;
 
 import io.apicurio.registry.client.RegistryClientFactory;
-import io.apicurio.registry.client.common.HttpAdapterType;
 import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateGroup;
@@ -84,9 +83,8 @@ public final class Clients {
                 status(() -> wrongSecret.groups().get() != null ? "ok" : "none"));
 
         String token = fetchToken(tokenEndpoint, "admin-client", "test1");
-        // bearerToken() needs the JDK HTTP adapter; the default (AUTO) picks Vert.x when it is present
         RegistryClient bearer = RegistryClientFactory.create(RegistryClientOptions.create(registryUrl)
-                .httpAdapter(HttpAdapterType.JDK).bearerToken(token));
+                .bearerToken(token));
         check("a bearer token obtained elsewhere (admin-client): admin API", "ok",
                 status(() -> bearer.admin().config().properties().get() != null ? "ok" : "none"));
 

@@ -1051,6 +1051,9 @@ The following commands are available. Running a parent command, such as `acr gro
 | `acr admin import`
 | Import registry data from a .zip file.
 
+| `acr mcp`
+| Work with MCP servers. Subcommand: `import` (experimental), which imports the tools of a running MCP server into an `MCP_SERVER` artifact.
+
 | `acr gitops`
 | Display GitOps command help. Subcommands: `status`, `sync`, `validate`.
 
@@ -1080,6 +1083,9 @@ The rule commands accept the following rule types and configuration values:
 
 | `INTEGRITY`
 | `NONE`, `REFS_EXIST`, `ALL_REFS_MAPPED`, `NO_DUPLICATES`, `NO_CIRCULAR_REFERENCES`, `FULL`
+
+| `GOVERNANCE`
+| `NONE`, `BASIC`, `FULL`
 |===
 
 You can adjust the behavior of the CLI itself with the `acr config set` command. The following CLI configuration properties are available:
@@ -1114,4 +1120,5 @@ You can adjust the behavior of the CLI itself with the `acr config set` command.
 * {rest-client}
 ifndef::service-registry-downstream[]
 * link:https://github.com/Apicurio/apicurio-registry/tree/main/cli[CLI README]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/registry-clients[Registry clients example]: the CLI and the SDKs running the same scenario
 endif::[]

@@ -3,7 +3,7 @@ import "./ArtifactPageHeader.css";
 import { Button, Flex, FlexItem, Content, ContentVariants } from "@patternfly/react-core";
 import { IfAuth, IfFeature } from "@app/components";
 import { If } from "@apitomy/common-ui-components";
-import { ArtifactMetaData } from "@sdk/lib/generated-client/models";
+import { ArtifactMetaData, ResourcePermissions } from "@sdk/lib/generated-client/models";
 
 
 /**
@@ -11,6 +11,7 @@ import { ArtifactMetaData } from "@sdk/lib/generated-client/models";
  */
 export type ArtifactPageHeaderProps = {
     artifact: ArtifactMetaData;
+    permissions?: ResourcePermissions;
     onDeleteArtifact: () => void;
     onImportMcpTools?: () => void;
 };
@@ -33,7 +34,7 @@ export const ArtifactPageHeader: FunctionComponent<ArtifactPageHeaderProps> = (p
                 </Content>
             </FlexItem>
             <FlexItem align={{ default: "alignRight" }}>
-                <IfAuth isDeveloper={true} owner={props.artifact.owner}>
+                <IfAuth isDeveloper={true} owner={props.artifact.owner} permissions={props.permissions}>
                     <IfFeature feature="readOnly" isNot={true}>
                         <If condition={props.artifact.artifactType === "MCP_SERVER" && props.onImportMcpTools !== undefined}>
                             <IfFeature feature="mcpImport" is={true}>

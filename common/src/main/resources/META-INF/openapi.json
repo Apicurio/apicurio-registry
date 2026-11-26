@@ -612,6 +612,18 @@
               "type": "string"
             },
             "in": "query"
+          },
+          {
+            "name": "format",
+            "description": "The format of the exported data. When set to `gitops-v0`, the export produces a ZIP containing `*.registry.yaml` files compatible with the GitOps v0 data model, intended for migrating to GitOps storage. The `gitops-v0` format cannot be imported back through the `/admin/import` endpoint; for backups, use the default format. When omitted or set to `default`, the standard import/export format is used.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "default",
+                "gitops-v0"
+              ]
+            },
+            "in": "query"
           }
         ],
         "responses": {
@@ -875,10 +887,29 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/McpToolImportResult"
-                }
+                },
+                "x-codegen-returnType": "jakarta.ws.rs.core.Response"
               }
             },
             "description": "The result of the import, for the server and for each tool."
+          },
+          "202": {
+            "headers": {
+              "Location": {
+                "description": "The URL of the import status: `/groups/{groupId}/artifacts/{artifactId}/mcp-import/status`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/McpToolImportJobStatus"
+                }
+              }
+            },
+            "description": "With `async`, the import was started and runs in the background. The body is its status, `RUNNING`."
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
@@ -911,7 +942,66 @@
         },
         "operationId": "importMcpTools",
         "summary": "Import tools from an MCP server",
-        "description": "**Experimental.** Connects to a live MCP server over the Streamable HTTP transport, lists its tools with `tools/list`, and publishes each tool as an `MCP_TOOL` artifact. The artifact named in the path must be an `MCP_SERVER`; a new version of it references every imported tool whose definition is stored.\n\nEach tool is published like any other version: configured rules, such as `COMPATIBILITY`, apply, and a tool rejected by a rule is reported as `REJECTED` with the violations, without changing what is stored. A tool whose definition is unchanged is reported as `UNCHANGED`. A tool referenced by the previous `MCP_SERVER` version but no longer listed by the server is reported as `REMOVED`; its artifact is left as it is. With `dryRun`, nothing is written and the same report is returned.\n\nThe registry connects only to hosts in `apicurio.mcp-import.allowed-hosts`, never to loopback, link-local or cloud metadata addresses, and does not follow redirects. Headers in the request are sent to the MCP server only; they are not stored, returned or logged.\n\nThis operation can fail for the following reasons:\n\n* The import feature is disabled, or the storage is read-only (HTTP error `409`)\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* The artifact is not an `MCP_SERVER`, or the URL or its host is not allowed (HTTP error `400`)\n* The MCP server could not be reached, timed out, sent a response that is too large or invalid, or listed too many tools (HTTP error `502`)\n* A server error occurred (HTTP error `500`)\n"
+        "description": "**Experimental.** Connects to a live MCP server over the Streamable HTTP transport, lists its tools with `tools/list`, and publishes each tool as an `MCP_TOOL` artifact. The artifact named in the path must be an `MCP_SERVER`; a new version of it references every imported tool whose definition is stored.\n\nEach tool is published like any other version: configured rules, such as `COMPATIBILITY`, apply, and a tool rejected by a rule is reported as `REJECTED` with the violations, without changing what is stored. A tool whose definition is unchanged is reported as `UNCHANGED`. A tool referenced by the previous `MCP_SERVER` version but no longer listed by the server is reported as `REMOVED`; its artifact is left as it is. With `dryRun`, nothing is written and the same report is returned.\n\nWith `async`, the request is checked as usual, then the import runs in the background: the response is `202 Accepted`, with a `Location` header naming `/groups/{groupId}/artifacts/{artifactId}/mcp-import/status`, where the outcome can be read. Use it for servers with many tools, whose import can take longer than an HTTP client waits. `async` cannot be combined with `dryRun`. The status of the last import, synchronous or not, is kept in labels of the `MCP_SERVER` artifact under `apicurio.mcp-import.`. An import, other than a dry run, is refused while the recorded import into the same artifact is still running.\n\nThe registry connects only to hosts in `apicurio.mcp-import.allowed-hosts`, never to loopback, link-local or cloud metadata addresses, and does not follow redirects. Headers in the request are sent to the MCP server only; they are not stored, returned or logged.\n\nThis operation can fail for the following reasons:\n\n* The import feature is disabled, the storage is read-only, or an import into this artifact is already running (HTTP error `409`)\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* The artifact is not an `MCP_SERVER`, the URL or its host is not allowed, or `async` is combined with `dryRun` (HTTP error `400`)\n* As many imports as allowed are already running (HTTP error `429`)\n* The MCP server could not be reached, timed out, sent a response that is too large or invalid, or listed too many tools (HTTP error `502`)\n* A server error occurred (HTTP error `500`)\n"
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \".{1,512}\" pattern.",
+          "schema": {
+            "$ref": "#/components/schemas/GroupId"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "artifactId",
+          "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier. Must follow the \".{1,512}\" pattern.",
+          "schema": {
+            "$ref": "#/components/schemas/ArtifactId"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
+    "/groups/{groupId}/artifacts/{artifactId}/mcp-import/status": {
+      "summary": "The status of the last import of tools from an MCP server.",
+      "get": {
+        "tags": [
+          "Artifacts",
+          "AI"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/McpToolImportJobStatus"
+                }
+              }
+            },
+            "description": "The status of the last import into this artifact."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "getMcpToolImportStatus",
+        "summary": "Get the status of an MCP import",
+        "description": "**Experimental.** Returns the status of the last import of tools into this `MCP_SERVER` artifact, synchronous or started with `async`: `RUNNING`, `COMPLETED` with the server version and the number of tools by outcome, or `FAILED` with a reason. Dry runs are not recorded. An import still `RUNNING` that has not reported progress for longer than `apicurio.mcp-import.total-timeout.seconds` plus `apicurio.mcp-import.timeout.seconds`, for example because the registry instance running it stopped, is reported as `FAILED`.\n\nThe status is kept in labels of the artifact under `apicurio.mcp-import.`, so it can be read from any registry instance. Like any label, it can be edited by callers with write access to the artifact.\n\nThis operation can fail for the following reasons:\n\n* The import feature is disabled (HTTP error `409`)\n* No artifact with this `artifactId` exists, or no import was recorded for it (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
       },
       "parameters": [
         {
@@ -1185,7 +1275,8 @@
             "enum": [
               "VALIDITY",
               "COMPATIBILITY",
-              "INTEGRITY"
+              "INTEGRITY",
+              "GOVERNANCE"
             ],
             "type": "string"
           },
@@ -2761,7 +2852,17 @@
         },
         "operationId": "getContentByHash",
         "summary": "Get artifact content by SHA-256 hash",
-        "description": "Gets the content for an artifact version in the registry using the \nSHA-256 hash of the content.  This content hash may be shared by multiple artifact\nversions in the case where the artifact versions have identical content.\n\nThis operation may fail for one of the following reasons:\n\n* No content with this `contentHash` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+        "description": "Gets the content for an artifact version in the registry using the \nSHA-256 hash of the content.  This content hash may be shared by multiple artifact\nversions in the case where the artifact versions have identical content.\n\nThis operation may fail for one of the following reasons:\n\n* No content with this `contentHash` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n",
+        "parameters": [
+          {
+            "name": "references",
+            "description": "Allows the user to specify how references in the content should be treated. Available since 3.4.0.",
+            "schema": {
+              "$ref": "#/components/schemas/HandleReferencesType"
+            },
+            "in": "query"
+          }
+        ]
       },
       "parameters": [
         {
@@ -2800,7 +2901,17 @@
         },
         "operationId": "getContentById",
         "summary": "Get artifact content by ID",
-        "description": "Gets the content for an artifact version in the registry using the unique content\nidentifier for that content.  This content ID may be shared by multiple artifact\nversions in the case where the artifact versions are identical.\n\nThis operation may fail for one of the following reasons:\n\n* No content with this `contentId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+        "description": "Gets the content for an artifact version in the registry using the unique content\nidentifier for that content.  This content ID may be shared by multiple artifact\nversions in the case where the artifact versions are identical.\n\nThis operation may fail for one of the following reasons:\n\n* No content with this `contentId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n",
+        "parameters": [
+          {
+            "name": "references",
+            "description": "Allows the user to specify how references in the content should be treated. Available since 3.4.0.",
+            "schema": {
+              "$ref": "#/components/schemas/HandleReferencesType"
+            },
+            "in": "query"
+          }
+        ]
       },
       "parameters": [
         {
@@ -3928,6 +4039,131 @@
         }
       ]
     },
+    "/search/federated": {
+      "summary": "Search for agents across this registry and its peer registries.",
+      "get": {
+        "tags": [
+          "Search"
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "description": "Filter by agent name (partial match).",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
+          },
+          {
+            "name": "skill",
+            "description": "Filter by skill id. Repeat the parameter to require several skills.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "in": "query"
+          },
+          {
+            "name": "capability",
+            "description": "Filter by capability, for example `streaming` or `streaming:false`.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "in": "query"
+          },
+          {
+            "name": "inputMode",
+            "description": "Filter by default input mode.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "in": "query"
+          },
+          {
+            "name": "outputMode",
+            "description": "Filter by default output mode.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "in": "query"
+          },
+          {
+            "name": "perSourceLimit",
+            "description": "The maximum number of agents to return from each source, this registry and every peer registry alike. It does not cap the merged response, which can hold up to `perSourceLimit` agents per source. There is no merged offset or page token. Defaults to 20. A value below 1 is refused with `400`. A value above `apicurio.federation.search.per-source-limit.max` (100 by default) is lowered to it, and `truncated` then reports the sources that had more.",
+            "schema": {
+              "default": 20,
+              "type": "integer"
+            },
+            "in": "query",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FederatedAgentSearchResults"
+                }
+              }
+            },
+            "description": "Agents from this registry and from every peer that answered, with one outcome per source."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                },
+                "examples": {
+                  "SearchDeadlineExceededExample": {
+                    "value": {
+                      "detail": "SearchDeadlineExceededException: The search did not finish within 5000 ms.",
+                      "title": "The search did not finish within 5000 ms.",
+                      "status": 503,
+                      "name": "SearchDeadlineExceededException"
+                    }
+                  }
+                }
+              }
+            },
+            "description": "The search of this registry did not finish before the deadline."
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "searchFederatedAgents",
+        "summary": "Search for agents across this registry and its peer registries",
+        "description": "Searches the agent cards of this registry and of every enabled peer registry, and returns them in one response with the `source` of each agent.\n\nThe caller's own visibility rules apply to this registry's results. Peers are queried anonymously and asked for `public` agent cards only, so a peer never returns an agent that is not public, whatever its own authentication settings. A peer that does not confirm the public-only mode is reported as `unsupported` and its agents are discarded. The caller's credentials are never sent to a peer. Every call to a peer carries an `X-Federation-Hop` header, and a search that carries one is refused, so a search is forwarded at most once.\n\nEvery enabled peer is called once per search, so one request leads to as many outbound calls as there are enabled peers, up to `apicurio.federation.search.max-peers` (16 by default). If more peers are enabled than that, the first ones in peer id order are searched and the rest are reported as `failed` with the reason `capacity_exceeded`. A caller can have at most `apicurio.federation.search.max-searches-per-caller` searches (2 by default) in progress at once: a search beyond that still returns this registry's results, but calls no peer and reports every peer as `failed` with the reason `capacity_exceeded`. An authenticated caller is told apart by principal name and an anonymous one by network address.\n\nWhich peer is which, and why one failed, is shown only to a caller who may list the peers (`GET /admin/peers`): an administrator, or anyone when authentication is off. Any other caller sees each peer as `peer-1`, `peer-2` and so on, numbered in peer id order within the one response, with its `outcome` but without a `reason`. Such a caller can still tell how many peers are enabled and whether each one answered.\n\nThe response is `200` whenever the search of this registry succeeds, even when some or all peers fail: the outcome of each source is in `sources`. Agents with the same group and artifact id from different sources are all returned.\n\nThis operation can fail for the following reasons:\n\n* The request carries an `X-Federation-Hop` header, because another registry forwarded it (HTTP error `400`)\n* `perSourceLimit` is below 1 (HTTP error `400`)\n* Federation is not enabled on this registry (HTTP error `409`)\n* A2A support is not enabled on this registry (HTTP error `404`)\n* The search of this registry did not finish before the deadline (HTTP error `503`)\n* A server error occurred (HTTP error `500`)\n"
+      }
+    },
     "/search/groups": {
       "summary": "Search for groups in the registry.",
       "get": {
@@ -4893,7 +5129,8 @@
             "enum": [
               "VALIDITY",
               "COMPATIBILITY",
-              "INTEGRITY"
+              "INTEGRITY",
+              "GOVERNANCE"
             ],
             "type": "string"
           },
@@ -6719,6 +6956,16 @@
               }
             },
             "in": "query"
+          },
+          {
+            "name": "publicOnly",
+            "description": "When `true`, only agent cards whose effective visibility is `public` are returned, whoever the caller is and whether or not authentication is enabled on this registry. The filter is applied before `offset` and `limit`, and the response then carries `publicOnly: true`. A registry that predates this parameter ignores it, so a caller that depends on the guarantee must check that field. Defaults to `false`, which keeps the existing visibility rules.",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            },
+            "in": "query",
+            "required": false
           }
         ],
         "responses": {
@@ -7371,6 +7618,77 @@
         "operationId": "ardExplore",
         "summary": "ARD explore"
       }
+    },
+    "/groups/{groupId}/agent-inventory-sync": {
+      "summary": "Keep this group in sync with an inventory of agents or MCP servers.",
+      "post": {
+        "tags": [
+          "Groups",
+          "AI"
+        ],
+        "requestBody": {
+          "description": "The inventory source to read, and how.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentInventorySyncRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentInventorySyncResult"
+                }
+              }
+            },
+            "description": "The result of the sync, for each item."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The inventory source could not be reached, or its response could not be used."
+          }
+        },
+        "operationId": "syncAgentInventory",
+        "summary": "Sync agents and MCP servers from an inventory source",
+        "description": "**Experimental.** Reads the agents or MCP servers that an inventory source knows about, and keeps one artifact per item in this group: `MCP_SERVER` artifacts for `MCPServer` resources in Kubernetes (`mcp.x-k8s.io`), `AGENT_CARD` artifacts for `AgentCard` resources in Kubernetes and for agents registered in Google Cloud Agent Registry.\n\nEach item is published like any other version: configured rules apply, and a rejected item is reported as `REJECTED` with the violations. An item whose content is unchanged is reported as `UNCHANGED`. An artifact that an earlier sync of the same source and scope created, but that the source no longer lists, is reported as `MISSING` and its latest version is marked `DEPRECATED`; nothing is deleted. An existing artifact that the sync did not create is never changed and is reported as `NOT_MANAGED`. For MCP servers, `importTools` also imports each server's tools, as `mcp-import` does. With `dryRun`, nothing is written and the same report is returned.\n\nKubernetes sources read only the namespaces in `apicurio.agent-inventory.kubernetes.namespaces`. Headers in the request are sent to the inventory source only; they are not stored, returned or logged.\n\nThis operation can fail for the following reasons:\n\n* The inventory feature or the source is disabled, or the storage is read-only (HTTP error `409`)\n* The request is invalid, for example a namespace that is not allowed (HTTP error `400`)\n* The inventory source could not be reached or sent an invalid response (HTTP error `502`)\n* A server error occurred (HTTP error `500`)\n"
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \".{1,512}\" pattern.",
+          "schema": {
+            "$ref": "#/components/schemas/GroupId"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
     }
   },
   "components": {
@@ -7445,7 +7763,8 @@
         "enum": [
           "VALIDITY",
           "COMPATIBILITY",
-          "INTEGRITY"
+          "INTEGRITY",
+          "GOVERNANCE"
         ],
         "type": "string",
         "example": "VALIDITY",
@@ -9443,6 +9762,10 @@
           "dryRun": {
             "description": "When `true`, the server is contacted and the report is returned, but nothing is written.",
             "type": "boolean"
+          },
+          "async": {
+            "description": "When `true`, the import runs in the background and the response is `202 Accepted`: read its outcome from `/groups/{groupId}/artifacts/{artifactId}/mcp-import/status`. Cannot be combined with `dryRun`. Defaults to `false`.",
+            "type": "boolean"
           }
         },
         "example": {
@@ -9517,6 +9840,67 @@
             "items": {
               "$ref": "#/components/schemas/McpToolImportToolResult"
             }
+          }
+        }
+      },
+      "McpToolImportJobState": {
+        "description": "The state of an MCP import.\n\n* `RUNNING` - the import has started and has not finished\n* `COMPLETED` - the import finished; tools a rule rejected are counted as `REJECTED`\n* `FAILED` - the import stopped before it finished; tools written before the failure stay stored\n",
+        "enum": [
+          "RUNNING",
+          "COMPLETED",
+          "FAILED"
+        ],
+        "type": "string"
+      },
+      "McpToolImportCounts": {
+        "description": "The number of tools by outcome, keyed by `McpToolImportStatus`. Outcomes no tool had are left out.",
+        "type": "object",
+        "additionalProperties": {
+          "type": "integer",
+          "format": "int32"
+        }
+      },
+      "McpToolImportJobStatus": {
+        "title": "Root Type for McpToolImportJobStatus",
+        "description": "The status of the last import of tools into an `MCP_SERVER` artifact.",
+        "required": [
+          "state"
+        ],
+        "type": "object",
+        "properties": {
+          "state": {
+            "$ref": "#/components/schemas/McpToolImportJobState"
+          },
+          "startedOn": {
+            "format": "date-time",
+            "description": "When the import started.",
+            "type": "string"
+          },
+          "finishedOn": {
+            "format": "date-time",
+            "description": "When the import finished. Absent while it is running.",
+            "type": "string"
+          },
+          "version": {
+            "description": "The `MCP_SERVER` version that references the imported tools, when the import completed.",
+            "type": "string"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/McpToolImportCounts"
+          },
+          "reason": {
+            "description": "Why the import failed, when it did.",
+            "type": "string"
+          }
+        },
+        "example": {
+          "state": "COMPLETED",
+          "startedOn": "2026-11-20T10:15:30Z",
+          "finishedOn": "2026-11-20T10:16:12Z",
+          "version": "3",
+          "counts": {
+            "CREATED": 498,
+            "UNCHANGED": 2
           }
         }
       },
@@ -10865,8 +11249,192 @@
             "items": {
               "$ref": "#/components/schemas/AgentSearchResult"
             }
+          },
+          "publicOnly": {
+            "description": "`true` when the request asked for `publicOnly` and this registry applied it. Absent otherwise, and absent from registries that predate the parameter.",
+            "type": "boolean"
           }
         }
+      },
+      "FederatedAgentSearchResults": {
+        "description": "Agents found in this registry and in its peer registries, with the outcome of each source.",
+        "required": [
+          "agents",
+          "sources"
+        ],
+        "type": "object",
+        "properties": {
+          "agents": {
+            "description": "The agents found. This registry's agents come first, then each peer's in peer id order. There is no ranking across sources.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FederatedAgentSearchResult"
+            }
+          },
+          "sources": {
+            "description": "One entry for this registry, source `local`, and one for every enabled peer.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FederatedSearchSource"
+            }
+          }
+        },
+        "example": {
+          "agents": [
+            {
+              "source": "local",
+              "groupId": "payments",
+              "artifactId": "refund-agent",
+              "name": "Refund Agent",
+              "skills": [
+                "refund"
+              ]
+            },
+            {
+              "source": "eu-registry",
+              "groupId": "payments",
+              "artifactId": "refund-agent",
+              "name": "Refund Agent",
+              "skills": [
+                "refund"
+              ]
+            }
+          ],
+          "sources": [
+            {
+              "source": "local",
+              "outcome": "ok",
+              "count": 1,
+              "truncated": false
+            },
+            {
+              "source": "eu-registry",
+              "outcome": "ok",
+              "count": 1,
+              "truncated": false
+            },
+            {
+              "source": "us-registry",
+              "outcome": "failed",
+              "reason": "unreachable",
+              "count": 0,
+              "truncated": false
+            },
+            {
+              "source": "apac-registry",
+              "outcome": "deadline_exceeded",
+              "count": 0,
+              "truncated": false
+            },
+            {
+              "source": "lab-registry",
+              "outcome": "unsupported",
+              "count": 0,
+              "truncated": false
+            }
+          ]
+        }
+      },
+      "FederatedAgentSearchResult": {
+        "description": "An agent card search result and the source it came from. For an agent from a peer, every field but `source` is what the peer returned, unchecked by this registry, and `owner` is left out. Text fields from a peer are bounded only by the size limit on the peer's whole answer, `apicurio.federation.search.max-response-bytes`.",
+        "required": [
+          "source"
+        ],
+        "type": "object",
+        "properties": {
+          "source": {
+            "description": "Where the agent was found: `local` for this registry, otherwise the peer registry it came from. A caller who may list the peers sees the peer's id, and any other caller sees `peer-1`, `peer-2` and so on, numbered in peer id order within the one response. Assigned by this registry, never taken from the peer.",
+            "type": "string"
+          },
+          "groupId": {
+            "type": "string"
+          },
+          "artifactId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "supportedInterfaces": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentInterface"
+            }
+          },
+          "skills": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/AgentCapabilities"
+          },
+          "createdOn": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "owner": {
+            "description": "The owner of the agent in this registry. Not set for an agent from a peer.",
+            "type": "string"
+          }
+        }
+      },
+      "FederatedSearchSource": {
+        "description": "What happened when one source was searched.",
+        "required": [
+          "source",
+          "outcome",
+          "count",
+          "truncated"
+        ],
+        "type": "object",
+        "properties": {
+          "source": {
+            "description": "`local` for this registry, otherwise the peer registry: its id for a caller who may list the peers, and `peer-1`, `peer-2` and so on, in peer id order, for any other caller.",
+            "type": "string"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/FederatedSearchOutcome"
+          },
+          "reason": {
+            "$ref": "#/components/schemas/FederatedSearchFailureReason"
+          },
+          "count": {
+            "description": "The number of agents from this source that are in the response.",
+            "type": "integer"
+          },
+          "truncated": {
+            "description": "`true` when the source reported more matches than were returned, because of `perSourceLimit`.",
+            "type": "boolean"
+          }
+        }
+      },
+      "FederatedSearchOutcome": {
+        "description": "The result of searching one source.\n\n* `ok` - the source answered and its agents are in the response.\n* `deadline_exceeded` - the search ran out of time before the source answered. This says nothing about the peer's health.\n* `unsupported` - the peer did not confirm the public-only mode, so its answer was discarded.\n* `failed` - the source could not be searched; `reason` says why.\n",
+        "enum": [
+          "ok",
+          "deadline_exceeded",
+          "unsupported",
+          "failed"
+        ],
+        "type": "string"
+      },
+      "FederatedSearchFailureReason": {
+        "description": "Why a source could not be searched. Set only when the outcome is `failed`, and only for a caller who may list the peers.\n\n* `unauthorized` - the peer answered 401 or 403.\n* `unreachable` - the peer could not be reached, or its address is not allowed.\n* `timeout` - the peer did not answer within the per-peer timeout.\n* `peer_error` - the peer answered with a server error, or with a redirect.\n* `invalid_response` - the peer's answer was malformed, too large or inconsistent.\n* `circuit_open` - the peer is failing repeatedly and was not called.\n* `capacity_exceeded` - this registry had no capacity left to call the peer: too many peer calls were in progress across all searches, the caller had too many searches in progress, or more peers are enabled than one search queries.\n",
+        "enum": [
+          "unauthorized",
+          "unreachable",
+          "timeout",
+          "peer_error",
+          "invalid_response",
+          "circuit_open",
+          "capacity_exceeded"
+        ],
+        "type": "string"
       },
       "McpToolSearchResult": {
         "description": "MCP tool search result.",
@@ -11431,6 +11999,123 @@
           },
           "facets": {
             "$ref": "#/components/schemas/ArdFacets"
+          }
+        }
+      },
+      "AgentInventorySource": {
+        "description": "Where a sync reads its items.\n\n* `KUBERNETES_MCP_SERVERS` - `MCPServer` resources (`mcp.x-k8s.io`), as `MCP_SERVER` artifacts\n* `KUBERNETES_AGENT_CARDS` - `AgentCard` resources, as `AGENT_CARD` artifacts\n* `GOOGLE_AGENT_REGISTRY` - agents registered in Google Cloud Agent Registry, as `AGENT_CARD` artifacts\n",
+        "enum": [
+          "KUBERNETES_MCP_SERVERS",
+          "KUBERNETES_AGENT_CARDS",
+          "GOOGLE_AGENT_REGISTRY"
+        ],
+        "type": "string"
+      },
+      "AgentInventorySyncStatus": {
+        "description": "The outcome of a sync for one item.\n\n* `CREATED` - a new artifact was created\n* `UPDATED` - a new version was added to the artifact\n* `UNCHANGED` - the latest version already matches, or it is `DISABLED` and is left as it is\n* `REJECTED` - a rule rejected the item; nothing was stored\n* `MISSING` - the source no longer lists the item; the latest version was marked `DEPRECATED`\n* `NOT_MANAGED` - an artifact with this ID exists and was not created by this sync; it was not changed\n",
+        "enum": [
+          "CREATED",
+          "UPDATED",
+          "UNCHANGED",
+          "REJECTED",
+          "MISSING",
+          "NOT_MANAGED"
+        ],
+        "type": "string"
+      },
+      "AgentInventorySyncRequest": {
+        "title": "Root Type for AgentInventorySyncRequest",
+        "description": "The inventory source to read, and how.",
+        "required": [
+          "source"
+        ],
+        "type": "object",
+        "properties": {
+          "source": {
+            "$ref": "#/components/schemas/AgentInventorySource"
+          },
+          "namespace": {
+            "description": "For Kubernetes sources: the namespace to read. Must be listed in `apicurio.agent-inventory.kubernetes.namespaces`.",
+            "type": "string"
+          },
+          "location": {
+            "description": "For `GOOGLE_AGENT_REGISTRY`: the location to read, as `projects/{project}/locations/{location}`.",
+            "type": "string"
+          },
+          "headers": {
+            "description": "HTTP headers to send to the inventory source, for example `Authorization`. Sent to the source only: never stored, returned or logged.",
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "importTools": {
+            "description": "For `KUBERNETES_MCP_SERVERS`: also import the tools of each server, as `mcp-import` does. Requires the MCP import to be enabled and the server hosts to be allowed.",
+            "type": "boolean"
+          },
+          "dryRun": {
+            "description": "When `true`, the source is read and the report is returned, but nothing is written.",
+            "type": "boolean"
+          }
+        }
+      },
+      "AgentInventorySyncItemResult": {
+        "title": "Root Type for AgentInventorySyncItemResult",
+        "description": "The outcome of the sync for one item.",
+        "type": "object",
+        "properties": {
+          "externalId": {
+            "description": "The item's ID in the inventory source: `<namespace>/<name>` for Kubernetes resources, the resource name for Google Cloud Agent Registry.",
+            "type": "string"
+          },
+          "artifactId": {
+            "$ref": "#/components/schemas/ArtifactId"
+          },
+          "artifactType": {
+            "description": "The type of the artifact: `MCP_SERVER` or `AGENT_CARD`.",
+            "type": "string"
+          },
+          "version": {
+            "description": "The version that matches the item. Absent when nothing was stored.",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AgentInventorySyncStatus"
+          },
+          "causes": {
+            "description": "The rule violations, when the item was rejected.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RuleViolationCause"
+            }
+          },
+          "toolImport": {
+            "$ref": "#/components/schemas/McpToolImportResult",
+            "description": "For MCP servers with `importTools`: the result of importing its tools."
+          },
+          "toolImportError": {
+            "description": "For MCP servers with `importTools`: why the tools could not be imported.",
+            "type": "string"
+          }
+        }
+      },
+      "AgentInventorySyncResult": {
+        "title": "Root Type for AgentInventorySyncResult",
+        "description": "The result of a sync.",
+        "type": "object",
+        "properties": {
+          "groupId": {
+            "$ref": "#/components/schemas/GroupId"
+          },
+          "source": {
+            "$ref": "#/components/schemas/AgentInventorySource"
+          },
+          "items": {
+            "description": "The result for each item, including the ones the source no longer lists.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentInventorySyncItemResult"
+            }
           }
         }
       }

@@ -13,7 +13,9 @@ public class GitopsTestProfile implements QuarkusTestProfile {
         return Map.of(
                 "apicurio.storage.kind", "gitops",
                 "apicurio.features.experimental.enabled", "true",
-                "apicurio.federation.enabled", "true"
+                "apicurio.federation.enabled", "true",
+                "apicurio.rest.deletion.artifact.enabled", "true",
+                "apicurio.rest.deletion.group.enabled", "true"
         );
     }
 

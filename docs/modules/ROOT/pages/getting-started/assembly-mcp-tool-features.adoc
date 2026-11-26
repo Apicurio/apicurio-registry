@@ -28,7 +28,8 @@ NOTE: Storing an `MCP_TOOL` definition in {registry} provides governance, versio
 
 Version management:: Track tool evolution with full version history.
 Validation:: Ensure that tool definitions conform to the MCP specification.
-Compatibility checking:: Detect breaking changes in tool input schemas.
+Version compatibility:: Detect breaking changes in the input and output schemas of a tool when you publish a new version of it.
+Cross-tool compatibility:: Find the tools whose input can take the output of another tool.
 Discovery:: Search for tools by name or input parameter.
 Well-known endpoints:: Serve tool definitions at standard URLs.
 
@@ -41,12 +42,16 @@ Well-known endpoints:: Serve tool definitions at standard URLs.
 a|
 * `/.well-known/mcp-tools` (search tools)
 * `/.well-known/mcp-tools/\{groupId}/\{artifactId}` (retrieve tool)
+* `/.well-known/mcp-tools/\{groupId}/\{artifactId}/compatible` (find the tools that accept the output of a tool)
+* `/.well-known/mcp-tools/\{groupId}/\{artifactId}/compatibility` (explain the cross-tool compatibility of a tool)
+* `/.well-known/schemas/mcp-tool/v1` (retrieve the JSON Schema for tool definitions)
 
 a|
 * Store tool definitions as `MCP_TOOL` artifacts
 * Search by name or input parameter
 * Version management
-* Validation and compatibility checking
+* Validation and version compatibility checking
+* Cross-tool compatibility
 |===
 
 [role="_additional-resources"]
@@ -68,7 +73,7 @@ You can configure MCP tool features by using the following configuration propert
 |Property |Default |Description
 
 |`apicurio.mcp-tools.enabled`
-|`false`
+|Value of `apicurio.agents.enabled`, `false` by default
 |Enables or disables MCP tool definition support (experimental)
 
 |`apicurio.features.experimental.enabled`
@@ -83,6 +88,9 @@ To enable MCP tool support, set both properties:
 apicurio.features.experimental.enabled=true
 apicurio.mcp-tools.enabled=true
 ----
+
+TIP: To enable all the agent registry discovery features at once (A2A, MCP tools, the MCP Registry API, the AI Catalog, ARD, and the web console's *Agents* tab), set `apicurio.features.experimental.enabled=true` and `apicurio.agents.enabled=true`. A feature's own property, such as `apicurio.a2a.enabled`, still takes precedence, so you can turn a single feature off. Features that connect to other servers, such as importing tools from MCP servers, are not included and must be enabled separately.
+
 
 // ref-mcp-tool-definition-schema
 [id="mcp-tool-definition-schema_{context}"]
@@ -234,7 +242,9 @@ Annotations provide metadata about the tool by using the MCP `ToolAnnotations` t
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-You can search for and retrieve MCP tool definitions by using the following well-known endpoints.
+You can search for, retrieve, and compare MCP tool definitions by using the following well-known endpoints.
+
+The `/.well-known/mcp-tools` endpoints are available only when MCP tools support is enabled, and require read-level authorization. {registry} also serves them under `/apis/registry/v3/well-known/mcp-tools`, which is where the generated SDK clients call them.
 
 The `GET /.well-known/mcp-tools` endpoint searches for registered MCP tool definitions with filtering support. It accepts the following query parameters:
 
@@ -244,7 +254,7 @@ The `GET /.well-known/mcp-tools` endpoint searches for registered MCP tool defin
 
 |`name`
 |string
-|Filter by tool name (partial match)
+|Filter by artifact name or artifact ID (partial match). The filter does not match the `name` field inside the tool definition, so set the artifact name to the tool name when you create the artifact.
 
 |`parameter`
 |string (repeatable)
@@ -297,6 +307,152 @@ You can optionally specify the following query parameter:
 
 The response is the MCP tool definition JSON document.
 
+The `GET /.well-known/mcp-tools/\{groupId}/\{artifactId}/compatible` endpoint returns the registered MCP tools whose `inputSchema` accepts every output that the `outputSchema` of the specified tool permits. These are the tools with the `COMPATIBLE` verdict described in <<mcp-cross-tool-compatibility_{context},Cross-tool compatibility>>. The specified tool itself is never returned, and no tools are returned when its `outputSchema` is absent or cannot be compared. The endpoint accepts the `groupId` and `artifactId` path parameters and the following query parameters:
+
+[cols="1,1,3"]
+|===
+|Parameter |Type |Description
+
+|`version`
+|string
+|Version of the specified tool to compare (defaults to latest)
+
+|`offset`
+|integer
+|Pagination offset (default: 0)
+
+|`limit`
+|integer
+|Pagination limit (default: 20)
+|===
+
+.Example request
+[source,bash]
+----
+curl "http://localhost:8080/.well-known/mcp-tools/orders/get-order/compatible"
+----
+
+.Response: `McpCompatibleToolsResults`
+[source,json]
+----
+{
+  "count": 1,
+  "tools": [
+    {
+      "groupId": "orders",
+      "artifactId": "send-receipt",
+      "owner": "",
+      "createdOn": 1794940649173,
+      "parameters": [
+        "orderId",
+        "total"
+      ]
+    }
+  ]
+}
+----
+
+The `GET /.well-known/mcp-tools/\{groupId}/\{artifactId}/compatibility` endpoint makes the same comparison and returns every compared tool with its verdict, and with the reasons and limitations that decide it. The endpoint accepts the `groupId` and `artifactId` path parameters and the following query parameters:
+
+[cols="1,1,3"]
+|===
+|Parameter |Type |Description
+
+|`version`
+|string
+|Version of the specified tool to compare (defaults to latest)
+
+|`verdict`
+|string (repeatable)
+|Return only the tools with this verdict: `COMPATIBLE`, `INCOMPATIBLE`, or `INDETERMINATE`. Repeat the parameter to select more than one. By default, all three verdicts are returned.
+
+|`offset`
+|integer
+|Pagination offset, applied after the `verdict` filter (default: 0)
+
+|`limit`
+|integer
+|Pagination limit, applied after the `verdict` filter (default: 20)
+|===
+
+.Example request
+[source,bash]
+----
+curl "http://localhost:8080/apis/registry/v3/well-known/mcp-tools/orders/get-order/compatibility?verdict=INCOMPATIBLE&verdict=INDETERMINATE"
+----
+
+.Response: `McpToolCompatibilityResults`
+[source,json]
+----
+{
+  "candidateTotal": 4,
+  "evaluated": 3,
+  "scanLimit": 500,
+  "complete": true,
+  "totals": {
+    "compatible": 1,
+    "incompatible": 1,
+    "indeterminate": 1
+  },
+  "count": 2,
+  "limitations": [],
+  "results": [
+    {
+      "tool": {
+        "groupId": "orders",
+        "artifactId": "convert-currency",
+        "owner": "",
+        "createdOn": 1794940649237,
+        "parameters": [
+          "total",
+          "currency"
+        ]
+      },
+      "verdict": "INDETERMINATE",
+      "reasons": [],
+      "limitations": [
+        {
+          "code": "UNSUPPORTED_KEYWORD",
+          "side": "CONSUMER",
+          "pointer": "/inputSchema/properties/currency/enum",
+          "message": "'enum' is not evaluated yet"
+        }
+      ]
+    },
+    {
+      "tool": {
+        "groupId": "orders",
+        "artifactId": "schedule-delivery",
+        "owner": "",
+        "createdOn": 1794940649203,
+        "parameters": [
+          "orderId",
+          "address"
+        ]
+      },
+      "verdict": "INCOMPATIBLE",
+      "reasons": [
+        {
+          "code": "REQUIRED_NOT_GUARANTEED",
+          "producerPointer": "/outputSchema/required",
+          "consumerPointer": "/inputSchema/required/1",
+          "message": "Required input 'address' is not declared by the producer"
+        }
+      ],
+      "limitations": []
+    }
+  ]
+}
+----
+
+For the fields of the response and the codes of reasons and limitations, see <<mcp-cross-tool-compatibility-reference_{context},Cross-tool compatibility reference>>.
+
+Both endpoints page their results with `offset` and `limit`. An `offset` or `limit` sent without a value takes its default, 0 or 20. A negative `offset` is treated as 0, a negative `limit` as 1, and a `limit` above 1000 as 1000, including values outside the 32-bit integer range. An `offset` or `limit` that is not a number is rejected with a `404` error, which the conversion of the request parameters returns before the endpoint runs. An unknown `verdict` value is rejected with a `400` error. Both endpoints return a `404` error when MCP tools support is disabled, when the specified tool or version does not exist, or when the artifact is not an `MCP_TOOL`.
+
+IMPORTANT: The `offset` and `limit` parameters of the `/.well-known/mcp-tools/\{groupId}/\{artifactId}/compatible` endpoint now follow these rules. Earlier versions of {registry} returned one tool for a `limit` of 0, where an empty page is now returned, and returned an error for an `offset` or `limit` sent without a value or outside the 32-bit integer range, or for a `limit` close to the 32-bit maximum combined with a non-zero `offset`, where the values now take their defaults or are normalized.
+
+IMPORTANT: The `/.well-known/mcp-tools/\{groupId}/\{artifactId}/compatible` endpoint now returns a different set of tools than earlier versions of {registry}, which returned any candidate whose `inputSchema` declared every property in the `outputSchema` of the specified tool. A candidate that ignores part of the output is now returned. A candidate is no longer returned when it requires an input that the `outputSchema` does not require, when it rejects a value that the output can contain, such as `null`, or when the comparison cannot evaluate part of either schema. Structure nested inside a property is now compared as well, so a candidate whose nested types or nested required inputs do not match the output is no longer returned.
+
 The `GET /.well-known/schemas/mcp-tool/v1` endpoint retrieves the JSON Schema for MCP tool definitions. You can use the schema for IDE autocompletion and validation.
 
 .Example
@@ -304,6 +460,35 @@ The `GET /.well-known/schemas/mcp-tool/v1` endpoint retrieves the JSON Schema fo
 ----
 curl "http://localhost:8080/.well-known/schemas/mcp-tool/v1"
 ----
+
+// ref-mcp-tool-visibility
+[id="mcp-tool-visibility_{context}"]
+== MCP tool visibility
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+MCP tool definitions are not subject to the `apicurio.agent.visibility` discovery filter described in
+ifndef::service-registry-downstream[]
+xref:getting-started/assembly-a2a-features.adoc#a2a-visibility-model_{context}[Agent visibility model].
+endif::[]
+ifdef::service-registry-downstream[]
+xref:a2a-visibility-model_{context}[Agent visibility model].
+endif::[]
+This is a deliberate design decision, not a gap: filtering `/.well-known/mcp-tools` would only imply a protection that does not exist, because tool discovery returns exactly the tools the caller can already find through the core search API.
+
+* `apicurio.agent.visibility` and its `apicurio.a2a.default-visibility` fallback apply only to Agent Card discovery (`GET /.well-known/agents`, and Agent Card entries in AI Catalog and ARD responses). They have no effect on MCP tool discovery.
+* `GET /.well-known/mcp-tools`, the compatible-tools endpoint (`/.well-known/mcp-tools/\{groupId}/\{artifactId}/compatible`), and MCP tool entries in AI Catalog and ARD responses return every MCP tool that the caller is authorized to see, unfiltered by visibility.
+* The visibility label is a discovery-only hint, not access control, for both agents and tools: callers can retrieve artifacts they are authorized to read directly through the core v3 API or find them through `/apis/registry/v3/search`, regardless of their visibility labels. Per-resource authorization, when enabled, still restricts access and search results. An MCP tool artifact can still carry an `apicurio.agent.visibility` label, but {registry} does not act on it when serving MCP tool discovery requests.
+
+[role="_additional-resources"]
+.Additional resources
+ifndef::service-registry-downstream[]
+* xref:getting-started/assembly-a2a-features.adoc#a2a-visibility-model_{context}[Agent visibility model]
+endif::[]
+ifdef::service-registry-downstream[]
+* xref:a2a-visibility-model_{context}[Agent visibility model]
+endif::[]
 
 // proc-creating-mcp-tool-artifact
 [id="creating-mcp-tool-artifact_{context}"]
@@ -328,6 +513,7 @@ curl -X POST "http://localhost:8080/apis/registry/v3/groups/mcp-tools/artifacts"
   -d '{
     "artifactId": "weather-tool",
     "artifactType": "MCP_TOOL",
+    "name": "get_weather",
     "firstVersion": {
       "version": "1.0.0",
       "content": {
@@ -373,7 +559,7 @@ IMPORTANT: If you already use the `FULL` validity level for MCP tool definitions
 
 // ref-mcp-compatibility-checking
 [id="mcp-compatibility-checking_{context}"]
-== Compatibility checking
+== Version compatibility checking
 
 :_mod-docs-content-type: REFERENCE
 
@@ -443,13 +629,348 @@ References (`$ref`, `$dynamicRef`, `$recursiveRef`, identifiers and definition c
 
 A known incompatible change returns HTTP 400 with a rule-violation context prefixed by `/inputSchema` or `/outputSchema`. For example, narrowing an input string reports `/inputSchema/properties/query/maxLength`. Input BACKWARD contexts point into the new schema; output BACKWARD contexts point into the old schema because its accepted outputs are the comparison target. FORWARD reverses those locations; FULL can report both. Invalid or unsupported schemas return HTTP 422. Neither rejection creates the candidate version or changes previously accepted content.
 
-The engine can conservatively reject changes that accept the same values, especially when several constraints interact. A passing schema check is not proof of behavioral equivalence, runtime conformance, successful invocation, or compatibility between two different tools.
+The engine can conservatively reject changes that accept the same values, especially when several constraints interact. A passing schema check is not proof of behavioral equivalence, runtime conformance, successful invocation, or compatibility between two different tools. To find out whether the output of one tool can be passed to the input of another tool, see <<mcp-cross-tool-compatibility_{context},Cross-tool compatibility>>.
 
 === Upgrade and sample guidance
 
 Earlier MCP tool checking compared only top-level input types, property names, and requiredness; output changes and nested constraint changes were unchecked. Version 3.4 checks the supported subset above and changes those results. Making an input optional is now backward compatible. Adding a typed optional input to an open schema is no longer automatically accepted. Stored versions are not rewritten; unsupported schemas in existing versions can prevent subsequent publication under an enabled compatibility rule.
 
-For a release-safety demonstration, publish a tool whose input `query` is a string with `maxLength: 10`, enable `BACKWARD`, and propose `maxLength: 5`. Expect HTTP 400 and unchanged old content. Propose `maxLength: 20` and expect acceptance. For an output schema, the direction is reversed. Use a disposable registry and retain the rule configuration, exact versions, responses, and retrieved content as evidence for the agent-registry graduation work (#10294). This demonstrates publication-time schema enforcement only; it is not evidence of runtime admission, authenticated invocation, or full feature graduation.
+For a release-safety demonstration, publish a tool whose input `query` is a string with `maxLength: 10`, enable `BACKWARD`, and propose `maxLength: 5`. Expect HTTP 400 and unchanged old content. Propose `maxLength: 20` and expect acceptance. For an output schema, the direction is reversed. Use a disposable registry. This demonstrates publication-time schema enforcement only; it is not evidence of runtime admission, authenticated invocation, or full feature graduation.
+
+// con-mcp-cross-tool-compatibility
+[id="mcp-cross-tool-compatibility_{context}"]
+== Cross-tool compatibility
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+Cross-tool compatibility tells you whether an MCP tool can take the output of another MCP tool as its input. {registry} compares the `outputSchema` of the tool that produces the output, the producer, with the `inputSchema` of each other MCP tool, the consumer, as if the whole output object were passed to the consumer as its input.
+
+Cross-tool compatibility is a different question from version compatibility. Version compatibility compares successive versions of one tool when you publish a new version, and a `COMPATIBILITY` rule rejects a version that breaks it. Cross-tool compatibility compares two different tools when you ask for it, through the `compatible` and `compatibility` well-known endpoints or the *Compatible tools* tab of the web console, and never rejects or changes any content.
+
+Each comparison has one of the following verdicts:
+
+`COMPATIBLE`:: The comparison proves that the consumer accepts every output that the `outputSchema` of the producer permits.
+`INCOMPATIBLE`:: The producer can emit an output that the consumer rejects. The result lists each mismatch in `reasons`.
+`INDETERMINATE`:: The comparison cannot decide, for example because a schema uses a keyword that the comparison does not evaluate. The result lists what prevented a decision in `limitations`. An indeterminate consumer might accept every output, or might reject some, so it is never treated as compatible.
+
+A consumer is compatible only when all of the following conditions hold:
+
+* Every input that the consumer requires is also required by the `outputSchema`. A property that the producer declares but does not require might be missing from an output.
+* The type of each property in the output, and of everything nested inside it, is accepted by the consumer.
+* Any property that the output can contain, but that the consumer does not declare, is allowed by the `additionalProperties` of the consumer. Such properties are accepted unless the consumer restricts them, for example with `additionalProperties: false`.
+
+`null` is a value like any other. A property that can be `null` is accepted only by a consumer that also accepts `null`, so an output property of type `["string", "null"]` is not accepted where the consumer declares `string`.
+
+An object in the `outputSchema` that declares `properties`, but does not set `additionalProperties`, can emit properties that it does not declare, with any value. When the verdict depends on the producer emitting only the properties that the object declares, the comparison does not assume that it does. It reports a `PRODUCER_OBJECT_OPEN` limitation on that object, and the verdict is never `COMPATIBLE`: it is `INDETERMINATE`, or `INCOMPATIBLE` when another mismatch rules the consumer out. To get a decided verdict, set `additionalProperties` on the objects of the `outputSchema`, for example to `false`.
+
+An `outputSchema` that declares no `type` permits values other than objects, because `properties`, `required`, and `additionalProperties` apply only to objects. A consumer whose `inputSchema` declares a `type` rejects those values, so it is not compatible with such a producer. The same applies to any node nested inside the schema that declares object or array keywords without a `type`.
+
+An output that leaves its structure unconstrained is not accepted by a consumer that constrains it. A node that declares `type: array` without `items` permits elements of any type, and a node that declares `type: object` without `properties` or `additionalProperties` permits properties with any value, so a consumer that constrains the elements or the properties of that node is not compatible. The reverse is compatible: a consumer that leaves them unconstrained accepts an output that constrains them.
+
+// ref-mcp-cross-tool-compatibility-reference
+[id="mcp-cross-tool-compatibility-reference_{context}"]
+== Cross-tool compatibility reference
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+The cross-tool comparison evaluates part of each schema, and reports what it found and what it could not evaluate. The following sections describe the evaluated keywords, the reasons and limitations in a result, and the fields of the `compatibility` response.
+
+=== Evaluated keywords
+
+The comparison evaluates `type`, `properties`, `required`, `additionalProperties`, and an `items` given as a single schema, at every level of each schema. Annotations, such as `title`, `description`, `default`, `examples`, and `$comment`, do not affect the result. Any other keyword, such as `enum`, `minimum`, `oneOf`, or `$ref`, is not evaluated. It is reported as an `UNSUPPORTED_KEYWORD` limitation at its JSON Pointer rather than ignored. The only exceptions are `$schema` on the schema root, which declares the dialect, and a `format` in the `outputSchema` of the producer, as described in <<mcp-cross-tool-compatibility-limitations_{context},Known limitations of cross-tool compatibility>>.
+
+The comparison evaluates these keywords as follows:
+
+* A node that declares `integer` is accepted where the consumer declares `number`, but a node that declares `number` is not accepted where the consumer declares `integer`.
+* A `type` given as an array, which lists several types, is evaluated on every node inside a schema, but not on the schema root. A union of every JSON type accepts any value.
+* A `type` array that lists no types, that lists a name that is not a JSON type, or that lists the same type twice is not valid JSON Schema. It is reported as an `UNSUPPORTED_KEYWORD` limitation rather than repaired.
+* `items` is evaluated as a single schema, including `true` and `false`. An array of schemas is reported as an `UNSUPPORTED_KEYWORD` limitation.
+* Objects and arrays are compared to five levels below the schema root. A `properties`, `items`, or `additionalProperties` that nests deeper is not evaluated, and is reported as a `DEPTH_LIMIT_REACHED` limitation.
+* A schema that does not declare `$schema` is treated as JSON Schema 2020-12, which is the default dialect in the MCP specification. A schema that declares JSON Schema draft-04, draft-06, draft-07, 2019-09, or 2020-12 is compared. A `$schema` that is not a string, or that declares any other dialect, is reported as an `UNSUPPORTED_DIALECT` limitation, and nothing in that schema is compared.
+
+=== Reasons
+
+An `INCOMPATIBLE` result lists in `reasons` each mismatch that rules the consumer out. Each reason has the following fields:
+
+* `code`: one of the codes in the following table. Later versions of {registry} can add codes.
+* `producerPointer`: a JSON Pointer into the producer tool definition, starting with `/outputSchema`, to the part of the output that the consumer does not accept.
+* `consumerPointer`: a JSON Pointer into the consumer tool definition, starting with `/inputSchema`, to the part of the input that rejects it.
+* `message`: a description of the mismatch.
+
+.Reason codes
+[cols="1,3",options="header"]
+|===
+|Code |Meaning
+
+|`REQUIRED_NOT_GUARANTEED`
+|The consumer requires an input that the producer does not guarantee to emit, because the `outputSchema` does not require it.
+
+|`TYPE_NOT_ACCEPTED`
+|The producer can emit a value of a type that the consumer does not accept.
+
+|`ADDITIONAL_PROPERTY_NOT_ACCEPTED`
+|The producer can emit a property that the `additionalProperties` of the consumer rejects.
+
+|`VALUE_NOT_ACCEPTED`
+|The producer can emit a value that the consumer does not accept, for a reason that no other code describes. The message is the description of the difference that the comparison engine reports.
+|===
+
+=== Limitations
+
+An `INDETERMINATE` result lists in `limitations` what prevented the comparison from deciding. An `INCOMPATIBLE` result can list limitations too, when a mismatch outside them rules the consumer out. Each limitation has the following fields:
+
+* `code`: one of the codes in the following table. Later versions of {registry} can add codes.
+* `side`: `PRODUCER` when the limitation is in the producer tool definition, or `CONSUMER` when it is in the consumer tool definition.
+* `pointer`: a JSON Pointer into the tool definition on that side, for example `/inputSchema/properties/currency/enum`.
+* `message`: a description of the limitation.
+
+.Limitation codes
+[cols="1,3",options="header"]
+|===
+|Code |Meaning
+
+|`UNSUPPORTED_DIALECT`
+|The schema declares a `$schema` that is not a string, or a dialect that is not supported. Nothing in that schema is compared.
+
+|`UNSUPPORTED_KEYWORD`
+|The schema uses a keyword that the comparison does not evaluate, or gives `type` or `items` in a form that the comparison does not evaluate.
+
+|`PRODUCER_OBJECT_OPEN`
+|The verdict depends on the producer emitting only the properties that an object declares, and that object does not set `additionalProperties`.
+
+|`DEPTH_LIMIT_REACHED`
+|The schema nests objects or arrays more than five levels below its root.
+
+|`COMPARISON_FAILED`
+|A tool definition or a schema could not be read or compared, for example because a tool definition is not valid JSON, or because a tool declares no `inputSchema` object.
+
+|`SOURCE_HAS_NO_OUTPUT_SCHEMA`
+|The specified tool declares no `outputSchema`, so no tool is compared with it. This limitation appears only in the top-level `limitations` field.
+|===
+
+An `UNSUPPORTED_DIALECT`, `UNSUPPORTED_KEYWORD`, or `DEPTH_LIMIT_REACHED` limitation covers the schema node that carries it. A mismatch at or below that node is not reported as a reason, because the part of the schema that was not evaluated could change it. A mismatch elsewhere is still reported, and makes the verdict `INCOMPATIBLE`.
+
+=== Response fields
+
+The `compatibility` endpoint returns the following fields:
+
+.`McpToolCompatibilityResults` fields
+[cols="1,3",options="header"]
+|===
+|Field |Description
+
+|`candidateTotal`
+|The number of MCP tools in {registry}, including the specified tool.
+
+|`evaluated`
+|The number of tools compared with the specified tool. Each tool is compared at its latest enabled or deprecated version. A tool that has no enabled or deprecated version, or that is deleted during the scan, is skipped.
+
+|`scanLimit`
+|The maximum number of MCP tools that are scanned, the newest by creation date.
+
+|`complete`
+|`true` when every MCP tool other than the specified tool was scanned, and `false` when older MCP tools were not compared because only the newest `scanLimit` tools are scanned. A `true` value reports the coverage of the scan, not that every verdict is conclusive.
+
+|`totals`
+|The number of compared tools with each verdict, in `compatible`, `incompatible`, and `indeterminate`, before the `verdict` filter.
+
+|`count`
+|The number of compared tools that match the `verdict` filter, before pagination.
+
+|`limitations`
+|Why no tool was compared, when the `outputSchema` of the specified tool is absent or cannot be compared, for example `SOURCE_HAS_NO_OUTPUT_SCHEMA`. No scan runs in that case, so `candidateTotal`, `evaluated`, and every count are 0. Otherwise, the field is empty.
+
+|`results`
+|One page of the compared tools that match the `verdict` filter, newest first. Each result has the `tool`, with the same fields as a search result, its `verdict`, and its `reasons` and `limitations`.
+|===
+
+When per-resource authorization is enabled, {registry} scans and counts only the MCP tools that the caller can read, so `candidateTotal`, `evaluated`, `totals`, `count`, and the results of the `compatible` endpoint leave out the other tools. If the read access of a caller to artifacts uses a `matching` rule, search cannot evaluate it, so the access rules contribute no tools to the scan, and only tools that the caller owns can still be compared through the owner bypass. For more information, see the *Search and regular expressions* note in xref:getting-started/assembly-configuring-resource-authorization.adoc#resource-authorization-use-cases_{context}[Access rules examples for common use cases].
+
+// ref-mcp-cross-tool-compatibility-limitations
+[id="mcp-cross-tool-compatibility-limitations_{context}"]
+== Known limitations of cross-tool compatibility
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+Cross-tool compatibility answers a bounded question. Consider the following limitations when you rely on its results.
+
+Scan window:: The `compatible` and `compatibility` endpoints compare the specified tool with at most the newest `scanLimit` MCP tools, 500, by creation date. As newer tools are registered, an older tool can leave this window and stop appearing in the results, although neither tool changed. The `complete` field of the `compatibility` response is then `false`. A `true` value reports that every other MCP tool was scanned, not that every verdict is conclusive, because `INDETERMINATE` results can remain. The `compatible` endpoint does not report its coverage, so use the `compatibility` endpoint to check it.
+
+Bounded comparison:: The comparison evaluates a bounded projection of each schema: the keywords that <<mcp-cross-tool-compatibility-reference_{context},Cross-tool compatibility reference>> lists, to five levels below the root. It compares the projection as JSON Schema draft-07, in which these keywords mean the same as in every supported dialect. It is not general JSON Schema 2020-12 compatibility support, even for schemas that declare 2020-12. Any other keyword, except an annotation or a `format` in the `outputSchema` of the producer, is reported as a limitation rather than ignored, so a pair whose schemas use one is never reported as `COMPATIBLE`.
+
+Producer `format`:: A `format` in the `outputSchema` of the producer is not evaluated, and is not reported as a limitation, so it does not prevent a `COMPATIBLE` verdict. This is safe because `format` only narrows the strings that the producer emits, and no keyword that the comparison evaluates constrains the contents of a string, so no verdict depends on it. A `format` in the `inputSchema` of the consumer is reported as an `UNSUPPORTED_KEYWORD` limitation, because it might reject values that the comparison accepts.
+
+`$ref`:: A `$ref` is not resolved in either schema, and no referenced schema is fetched. Each `$ref` is reported as an `UNSUPPORTED_KEYWORD` limitation, which covers the schema node that carries it. Keywords next to a `$ref` are ignored in JSON Schema draft-07 and earlier, but apply in 2019-09 and 2020-12, the MCP default, so no mismatch at or below that node decides the verdict in either case.
+
+Unsatisfiable producer:: When a property that the `outputSchema` requires has a subschema that no value satisfies, such as `false`, the producer cannot emit any output, so every consumer accepts all of its outputs. The comparison does not detect this, and can report such a pair as `INCOMPATIBLE`.
+
+// proc-mcp-finding-compatible-tools
+[id="mcp-finding-compatible-tools_{context}"]
+== Finding the tools that can take the output of a tool
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can find the MCP tools that can take the output of a tool as their input, and see why the other tools cannot, by using the `compatible` and `compatibility` well-known endpoints. In this example, an order tool returns an order, and three other tools might take that order as their input.
+
+.Prerequisites
+* {registry} is installed and running.
+* MCP tools support is enabled (`apicurio.mcp-tools.enabled=true` and `apicurio.features.experimental.enabled=true`).
+
+.Procedure
+. Create the tool that produces the output, with an `outputSchema`:
++
+[source,bash]
+----
+curl -X POST "http://localhost:8080/apis/registry/v3/groups/orders/artifacts" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "artifactId": "get-order",
+    "artifactType": "MCP_TOOL",
+    "firstVersion": {
+      "content": {
+        "contentType": "application/json",
+        "content": "{\"name\": \"get_order\", \"description\": \"Get an order by its ID\", \"inputSchema\": {\"type\": \"object\", \"properties\": {\"orderId\": {\"type\": \"string\"}}, \"required\": [\"orderId\"]}, \"outputSchema\": {\"type\": \"object\", \"properties\": {\"orderId\": {\"type\": \"string\"}, \"total\": {\"type\": \"number\"}, \"currency\": {\"type\": \"string\"}}, \"required\": [\"orderId\", \"total\", \"currency\"], \"additionalProperties\": false}}"
+      }
+    }
+  }'
+----
++
+The `outputSchema` sets `additionalProperties` to `false`, so an order contains only the properties that it declares, and the comparison can decide without a `PRODUCER_OBJECT_OPEN` limitation.
+
+. Create the tools that might take an order as their input, in the same way. Use the artifact IDs `send-receipt`, `schedule-delivery`, and `convert-currency`, with the following tool definitions:
++
+.`send-receipt`
+[source,json]
+----
+{
+  "name": "send_receipt",
+  "description": "Email the receipt of an order",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "orderId": {
+        "type": "string"
+      },
+      "total": {
+        "type": "number"
+      }
+    },
+    "required": [
+      "orderId"
+    ]
+  }
+}
+----
++
+.`schedule-delivery`
+[source,json]
+----
+{
+  "name": "schedule_delivery",
+  "description": "Schedule the delivery of an order",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "orderId": {
+        "type": "string"
+      },
+      "address": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "orderId",
+      "address"
+    ]
+  }
+}
+----
++
+.`convert-currency`
+[source,json]
+----
+{
+  "name": "convert_currency",
+  "description": "Convert an amount to another currency",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "total": {
+        "type": "number"
+      },
+      "currency": {
+        "type": "string",
+        "enum": [
+          "EUR",
+          "USD",
+          "GBP"
+        ]
+      }
+    },
+    "required": [
+      "total",
+      "currency"
+    ]
+  }
+}
+----
+
+. List the tools that can take an order as their input:
++
+[source,bash]
+----
+curl "http://localhost:8080/.well-known/mcp-tools/orders/get-order/compatible"
+----
++
+Only `send-receipt` is returned. It requires only the `orderId`, which every order contains, and it accepts the `currency` that it does not declare, because it does not set `additionalProperties`.
+
+. Find out why the other tools cannot take an order:
++
+[source,bash]
+----
+curl "http://localhost:8080/.well-known/mcp-tools/orders/get-order/compatibility?verdict=INCOMPATIBLE&verdict=INDETERMINATE"
+----
++
+For the full response, see <<mcp-well-known-endpoints_{context},Well-known endpoints>>. It lists the following results:
++
+* `schedule-delivery` is `INCOMPATIBLE` with a `REQUIRED_NOT_GUARANTEED` reason. It requires an `address`, which an order does not contain.
+* `convert-currency` is `INDETERMINATE` with an `UNSUPPORTED_KEYWORD` limitation at `/inputSchema/properties/currency/enum`. The comparison does not evaluate `enum`, so it cannot decide whether every `currency` in an order is one of the listed values.
+
+.Verification
+* Request the `compatibility` endpoint without the `verdict` parameter. The tools that it reports as `COMPATIBLE` are the tools that the `compatible` endpoint returns.
+
+// proc-mcp-viewing-compatible-tools
+[id="mcp-viewing-compatible-tools_{context}"]
+== Viewing compatible tools in the web console
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can see which MCP tools can take the output of a tool version, and why the others cannot or might not, on the *Compatible tools* tab of the version in the {registry} web console.
+
+.Prerequisites
+* MCP tools support is enabled.
+* You are logged in to the {registry} web console, and an `MCP_TOOL` artifact exists.
+
+.Procedure
+. Browse to the artifact, and click a version, as described in xref:getting-started/assembly-managing-registry-artifacts-ui.adoc#browsing-artifacts-using-console_{context}[Viewing artifacts using the {registry} web console].
+
+. Click the *Compatible tools* tab. The tab is available only for versions of `MCP_TOOL` artifacts, and is hidden for disabled versions. A link to the tab of a version that does not have it opens the *Overview* tab instead.
++
+The tab states how many other MCP tools were compared with the version. When older MCP tools were not compared, it also states that only the newest 500 MCP tools were compared. The tab shows a message instead of the list in the following cases:
++
+* *Not compared*, with the reason, when the version cannot be compared, for example because it declares no `outputSchema`.
+* *No other MCP tools were compared with this tool.*, when {registry} has no other MCP tool to compare.
+* *Compatibility information is unavailable for this tool.*, when MCP tools support is disabled or the tool cannot be found.
+
+. Click *Compatible*, *Incompatible*, or *Indeterminate* to list the tools with that verdict. Each button shows how many compared tools have that verdict, and *Compatible* is selected by default. Use the pagination controls to list more than one page of tools. Each row links to the tool, and shows its verdict and details:
++
+* For an incompatible tool, each reason, with the pointer into the `outputSchema` of this version and the pointer into the `inputSchema` of the other tool.
+* For an indeterminate tool, each limitation, with its pointer.
 
 // proc-mcp-importing-tools
 [id="mcp-importing-tools_{context}"]
@@ -488,6 +1009,7 @@ curl -X POST http://localhost:8080/apis/registry/v3/groups/my-servers/artifacts/
 * `headers`: HTTP headers to send to the MCP server, for example credentials. They are sent to the MCP server only, and are never stored, returned, logged, or audited. Headers that the transport sets itself, such as `Host`, `Content-Type`, `Accept`, and `Mcp-Session-Id`, are refused.
 * `toolGroupId`: the group for the `MCP_TOOL` artifacts. Defaults to the group of the `MCP_SERVER` artifact.
 * `dryRun`: when `true`, the server is contacted and the report is returned, but nothing is written.
+* `async`: when `true`, the import runs in the background, for servers with many tools whose import can take longer than an HTTP client or gateway waits. See xref:mcp-importing-tools-async_{context}[Importing in the background]. Cannot be combined with `dryRun`.
 
 . Read the report. For example:
 +
@@ -512,6 +1034,9 @@ curl -X POST http://localhost:8080/apis/registry/v3/groups/my-servers/artifacts/
 [id="mcp-importing-tools-results_{context}"]
 === Import results
 
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
 Each tool, and the `MCP_SERVER` artifact, has one of the following statuses:
 
 [%header,cols="1,3"]
@@ -528,35 +1053,79 @@ Each tool, and the `MCP_SERVER` artifact, has one of the following statuses:
 |A stored version already matches the tool's definition. For the server, the latest version already has the same references, so no version was added.
 
 |`REJECTED`
-|A rule, such as `COMPATIBILITY`, rejected the new definition, and the causes list the violations. Nothing was written for the tool, and the new server version does not reference it, because no stored version matches what the server offers. A tool is also rejected when an artifact with its ID exists and is not an `MCP_TOOL`.
+|A rule, such as `COMPATIBILITY`, rejected the new definition, and the causes list the violations. Nothing was written for the tool, and the new server version does not reference it, because no stored version matches what the server offers. A tool is also rejected when an artifact with its ID exists and is not an `MCP_TOOL`. A tool is also rejected when its name is not 1 to 128 ASCII letters, digits, `_`, `-` or `.`, the form the MCP specification recommends, because the name becomes part of the tool's artifact ID.
 
 |`REMOVED`
 |The previous server version referenced the tool, but the server no longer lists it. The tool's artifact is not changed or deleted, and the new server version does not reference it.
 |===
 
+A tool is `UNCHANGED` only when a stored version has exactly the content that the import would store: the tool's `name`, `title`, `description`, `inputSchema`, `outputSchema`, and `annotations`, in that order, as compact JSON. Formatting is not ignored, because a canonical comparison could hide a change to a numeric bound. A version that you registered by hand with the same definition but different formatting is therefore not matched, and the first import adds a new version with the same content.
+
 Each tool is published like any other version: rules, write hooks, authorization, and auditing apply to each tool. Before any tool is written, the import checks that the server lists no tool name twice and that you can write every existing tool artifact, so these failures leave nothing imported. A rule rejecting one tool does not stop the others. Tools are otherwise not imported atomically: if another error occurs partway through, tools that were already accepted stay stored. In a dry run, the report states whether a new server version would be added, but the server version is not checked against rules, because the tools it would reference do not exist yet.
 
 The new server version references exactly the imported tools. References that you added to an earlier version by hand are not carried over.
 
+[id="mcp-importing-tools-async_{context}"]
+=== Importing in the background
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+With `"async": true`, the request is checked as a synchronous import is (the feature, the storage, the `MCP_SERVER` artifact, write access, the headers, the URL, and the concurrent import limit), and a refused import returns the same error. The import then runs in the background, as the caller, and the response is HTTP 202 with the status of the import and a `Location` header naming its status URL:
+
+[source,bash]
+----
+curl http://localhost:8080/apis/registry/v3/groups/my-servers/artifacts/weather/mcp-import/status
+----
+
+[source,json]
+----
+{ "state": "COMPLETED", "startedOn": "2026-11-20T10:15:30Z", "finishedOn": "2026-11-20T10:16:12Z",
+  "version": "2", "counts": { "CREATED": 498, "UNCHANGED": 2 } }
+----
+
+The `state` is `RUNNING`, `COMPLETED`, or `FAILED`. A completed import reports the server version and the number of tools by status, but not the per-tool report: read the tool artifacts or the server version references for the details. A failed import reports a fixed `reason`; tools written before the failure stay stored.
+
+The status URL reports the last import into the artifact, synchronous or not; dry runs are not recorded. While the recorded import into an artifact is running, another import into it, synchronous or not, returns HTTP 409 with `An import into this MCP server is already running.`; dry runs are allowed. The check reads the labels before writing them, so two registry instances that start imports into one artifact at the same moment can both start; each then records only its own status. It needs read access to the artifact, and returns HTTP 404 when no import was recorded. The status is kept in labels of the `MCP_SERVER` artifact under `apicurio.mcp-import.`, so every registry instance reports the same status. Editing the artifact labels keeps them unless you send them. An import still `RUNNING` that has not reported progress for longer than `apicurio.mcp-import.total-timeout.seconds` plus `apicurio.mcp-import.timeout.seconds`, for example because the registry instance running it stopped, is reported as `FAILED`.
+
+A background import has no HTTP request, so it cannot read roles from a request header: with `apicurio.auth.role-source=header`, use synchronous imports.
+
 [id="mcp-importing-tools-security_{context}"]
 === Outbound connection security
 
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
 The registry applies the following restrictions before and while it connects to the MCP server:
 
-* The URL must use HTTPS, unless `apicurio.mcp-import.insecure-http.enabled=true`, and must not contain user information.
+* The URL must use HTTPS, unless `apicurio.mcp-import.insecure-http.enabled=true` (which defaults to `apicurio.outbound.insecure-http.enabled`, shared with federation), and must not contain user information.
 * The host must be allowed by `apicurio.mcp-import.allowed-hosts`. Each entry is a hostname (`mcp.example.com`), a domain wildcard (`*.example.com`, which does not match `example.com`), `*` for any host, an IP address, or a CIDR range (`10.0.0.0/8`). A CIDR entry allows a host when every address the host resolves to is in a listed range.
-* Every address that the host resolves to must not be a loopback, link-local, unspecified, multicast, reserved, or cloud metadata address, even when the allow-list permits the host. Loopback is allowed only with `apicurio.mcp-import.loopback.enabled=true`, for development and tests.
+* Every address that the host resolves to must not be a loopback, link-local, unspecified, multicast, reserved, or cloud metadata address, even when the allow-list permits the host. Loopback is allowed only with `apicurio.mcp-import.loopback.enabled=true` (which defaults to `apicurio.outbound.loopback.enabled`, shared with federation), for development and tests.
 * Redirects are never followed.
-* Each request times out after `apicurio.mcp-import.timeout.seconds`. Each message is limited to `apicurio.mcp-import.response.max-size` bytes, and the number of tools to `apicurio.mcp-import.tools.max-size`.
+* Each request times out after `apicurio.mcp-import.timeout.seconds`, and listing all the tools must finish within `apicurio.mcp-import.total-timeout.seconds`. Each message is limited to `apicurio.mcp-import.response.max-size` bytes, the listed tool definitions together to `apicurio.mcp-import.tools.max-total-size` bytes, and the number of tools to `apicurio.mcp-import.tools.max-size`.
 
-Every refused host gets the same error message, so the endpoint does not reveal which hosts exist or resolve. A refused URL returns HTTP 400. An MCP server that cannot be reached, times out, sends a response that is too large or invalid, or lists too many tools returns HTTP 502. Read-only storage, such as GitOps or KubernetesOps, returns HTTP 409 before any connection is made, as does an import when the feature is disabled.
+Every refused host gets the same error message, so the endpoint does not reveal which hosts exist or resolve. A refused URL returns HTTP 400. At most `apicurio.mcp-import.max-concurrent` imports (4 by default) run at the same time; an import started while that many are running returns HTTP 429 without contacting the MCP server. An MCP server that cannot be reached, times out, sends a response that is too large or invalid, or lists too many tools returns HTTP 502. Read-only storage, such as GitOps or KubernetesOps, returns HTTP 409 before any connection is made, as does an import when the feature is disabled.
+
+WARNING: Private network addresses, such as `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `100.64.0.0/10` and `fc00::/7`, are allowed when the allow-list permits the host. If you list `*`, any user who can write the MCP server artifact can make {registry} connect to services on its internal network. List the hostnames or CIDR ranges of your MCP servers instead.
+
+Each connection attempt is recorded in the audit log as the `mcpImportTarget` action, with the group, the artifact, the target host and port, the outcome and, on failure, the reason. The URL path and query and the request headers are not recorded, because they can contain credentials.
+
+By default, the import trusts the certificate authorities in the JVM default trust store. To import from an MCP server whose certificate is issued by an internal certificate authority, define a named TLS configuration in the Quarkus TLS registry and reference it with `apicurio.mcp-import.tls-configuration.name`, rather than enabling `apicurio.mcp-import.insecure-http.enabled`. It applies to MCP imports only. For example:
+
+[source,properties]
+----
+quarkus.tls.mcp-import.trust-store.pem.certs=/deployments/certs/internal-ca.pem
+apicurio.mcp-import.tls-configuration.name=mcp-import
+----
+
+When `apicurio.mcp-import.tls-configuration.name` names a TLS configuration that does not exist, the registry does not start.
 
 NOTE: The HTTP client resolves the host again when it connects, so a host whose DNS answer changes between the check and the connection (DNS rebinding) is not detected. To limit this, allow hostnames whose DNS you control, or CIDR ranges.
 
 The registry records the following Micrometer counters. They have no URL, host, or header values as tags, and dry runs are not counted in `apicurio.mcp.import.tools`.
 
 * `apicurio.mcp.import.tools`, tagged `result` (`created`, `new-version`, `unchanged`, `rejected`, `removed`).
-* `apicurio.mcp.import.failures`, tagged `reason` (`host-denied`, `timeout`, `oversize`, `too-many-tools`, `protocol`).
+* `apicurio.mcp.import.failures`, tagged `reason` (`host-denied`, `timeout`, `oversize`, `busy`, `too-many-tools`, `protocol`).
 
 // ref-mcp-automatic-label-extraction
 [id="mcp-automatic-label-extraction_{context}"]

@@ -62,18 +62,24 @@ Capabilities:
 [role="_abstract"]
 You can control A2A features by using the following configuration properties.
 
+TIP: To enable all the agent registry discovery features at once (A2A, MCP tools, the MCP Registry API, the AI Catalog, ARD, and the web console's *Agents* tab), set `apicurio.features.experimental.enabled=true` and `apicurio.agents.enabled=true`. A feature's own property, such as `apicurio.a2a.enabled`, still takes precedence, so you can turn a single feature off. Features that connect to other servers, such as importing tools from MCP servers, are not included and must be enabled separately.
+
 .A2A configuration properties
 [cols="2,1,3",options="header"]
 |===
 |Property |Default |Description
 
 |`apicurio.a2a.enabled`
-|`false`
+|Value of `apicurio.agents.enabled`, `false` by default
 |Enable or disable A2A protocol support
 
-|`apicurio.a2a.agent.name`
+|`apicurio.instance.name`
 |`Apicurio Registry`
-|Name of the registry as an A2A agent
+|Name of the registry as an A2A agent, and in the AI Catalog
+
+|`apicurio.a2a.agent.name`
+|_Not set_
+|Deprecated since 3.4.0. Use `apicurio.instance.name`, which takes precedence when both are set.
 
 |`apicurio.a2a.agent.description`
 |`API and Schema Registry with A2A Agent support`
@@ -104,8 +110,8 @@ You can control A2A features by using the following configuration properties.
 |Whether push notifications are supported
 
 |`apicurio.a2a.agent.protocol-version`
-|`1.0`
-|A2A protocol version reported in the Agent Card and in its supported interfaces
+|_Not set_
+|Deprecated since 3.4.0. The property has no effect. The Agent Card reports A2A protocol version `1.0`, the version that {registry} implements.
 
 |`apicurio.a2a.agent.documentation-url`
 |_not set_
@@ -219,6 +225,10 @@ Searches for registered Agent Cards with filtering support. This endpoint requir
 |`limit`
 |integer
 |Pagination limit (default: 20, maximum: 500)
+
+|`publicOnly`
+|boolean
+|When `true`, return only Agent Cards with `public` visibility, whoever the caller is, even when authentication is disabled (default: `false`)
 |===
 +
 .Example request
@@ -258,6 +268,8 @@ curl "http://localhost:8080/.well-known/agents?skill=translation&capability=stre
 ----
 +
 The `count` field is the total number of matching Agent Cards, not the number of entries in the current page. The `skills` array lists skill IDs only. To get skill names and descriptions, retrieve the full Agent Card from `/.well-known/agents/\{groupId}/\{artifactId}`.
++
+When {registry} applies `publicOnly=true`, the response contains the `publicOnly` field with the value `true`. A registry version that does not support the parameter ignores it and omits the field, so check for the field if you depend on the filter.
 
 GET /.well-known/agents/\{groupId}/\{artifactId}::
 Retrieves a specific registered Agent Card.
@@ -328,12 +340,344 @@ curl -X PUT "http://localhost:8080/apis/registry/v3/groups/my-agents/artifacts/m
 
 |`apicurio.a2a.default-visibility`
 |`entitled`
-|Default visibility for new Agent Card artifacts (`public`, `entitled`, or `private`)
+|Visibility of an Agent Card that has no `apicurio.agent.visibility` label (`public`, `entitled`, or `private`). {registry} applies the value when it filters discovery results and does not add the label to the artifact. A change to this property therefore changes the visibility of every unlabeled Agent Card, including existing ones.
 |===
 
 Visibility labels control which Agent Cards appear in `/.well-known/agents` search results and in the AI Catalog and ARD responses. When you retrieve a card by ID through `/.well-known/agents/\{groupId}/\{artifactId}` or the core REST API, only read authorization applies. {registry} does not check the visibility label.
 
-NOTE: When no authentication mechanism is configured (OIDC, basic, proxy header, Kubernetes, or form), {registry} skips visibility filtering and all agents are visible to all users.
+NOTE: When no authentication mechanism is configured (OIDC, basic, proxy header, Kubernetes, or form), {registry} skips visibility filtering and all agents are visible to all users, unless a `GET /.well-known/agents` request sets `publicOnly=true`.
+
+NOTE: This visibility model applies only to Agent Cards. MCP tool definitions are not subject to `apicurio.agent.visibility` or `apicurio.a2a.default-visibility`; see
+ifndef::service-registry-downstream[]
+xref:getting-started/assembly-mcp-tool-features.adoc#mcp-tool-visibility_{context}[MCP tool visibility]
+endif::[]
+ifdef::service-registry-downstream[]
+xref:mcp-tool-visibility_{context}[MCP tool visibility]
+endif::[]
+for details.
+
+// ref-a2a-federated-agent-search
+[id="a2a-federated-agent-search_{context}"]
+== Federated agent search
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+With federated agent search, one request searches the Agent Cards of this registry and of its enabled peer registries. The response names the source of each agent and reports an outcome for every source, so a slow or unavailable peer does not fail the search.
+
+A peer registry is another registry that an administrator registers with this registry, for example through the `/apis/registry/v3/admin/peers` REST API. {registry} searches only the peers that are enabled.
+
+To use federated agent search, enable A2A protocol support and set `apicurio.federation.enabled=true`. The `apicurio.agents.enabled` property does not enable federation.
+
+NOTE: `apicurio.federation.enabled` is an experimental property. You must also set `apicurio.features.experimental.enabled=true` to use it.
+
+The `GET /apis/registry/v3/search/federated` endpoint requires read-level authorization. It accepts the `name`, `skill`, `capability`, `inputMode`, and `outputMode` parameters of `GET /.well-known/agents` and applies them to every source. It does not accept `offset` or `limit`. The `perSourceLimit` parameter sets the maximum number of agents that each source returns, and defaults to 20. {registry} lowers a value above `apicurio.federation.search.per-source-limit.max` to that maximum.
+
+.Example request
+[source,bash]
+----
+curl "http://localhost:8080/apis/registry/v3/search/federated?skill=translation&perSourceLimit=10"
+----
+
+.Example response: FederatedAgentSearchResults
+[source,json]
+----
+{
+  "agents": [
+    {
+      "source": "local",
+      "groupId": "ai-agents",
+      "artifactId": "translator-agent",
+      "name": "Translation Agent",
+      "skills": ["translation"],
+      "owner": "alice"
+    },
+    {
+      "source": "eu-registry",
+      "groupId": "ai-agents",
+      "artifactId": "translator-agent",
+      "name": "Translation Agent",
+      "skills": ["translation"]
+    }
+  ],
+  "sources": [
+    {
+      "source": "local",
+      "outcome": "ok",
+      "count": 1,
+      "truncated": false
+    },
+    {
+      "source": "eu-registry",
+      "outcome": "ok",
+      "count": 1,
+      "truncated": false
+    },
+    {
+      "source": "us-registry",
+      "outcome": "failed",
+      "reason": "timeout",
+      "count": 0,
+      "truncated": false
+    }
+  ]
+}
+----
+
+Each entry in `agents` has a `source` field and the agent fields that `GET /.well-known/agents` returns, which are `groupId`, `artifactId`, `name`, `description`, `supportedInterfaces`, `skills`, `capabilities`, `createdOn`, and `owner`. The example shows only some of them. The agents of this registry come first, with the source `local`, followed by the agents of each peer in peer ID order. An agent from a peer has no `owner` field. If two sources return an agent with the same group ID and artifact ID, the response contains both.
+
+The search of this registry applies the visibility rules of the caller. {registry} calls each peer at `/.well-known/agents` with `publicOnly=true` and without credentials, so a peer returns only Agent Cards with `public` visibility. An Agent Card without the `apicurio.agent.visibility` label is public only if the peer sets `apicurio.a2a.default-visibility` to `public`. A peer that keeps the default value, `entitled`, returns only the Agent Cards whose label has the value `public`, even when authentication is disabled on the peer. {registry} never sends the credentials of the caller to a peer.
+
+The `sources` array has one entry for this registry and one for each enabled peer.
+
+.Fields of a `sources` entry
+[cols="1,3",options="header"]
+|===
+|Field |Description
+
+|`source`
+|`local` for this registry, or the ID of the peer
+
+|`outcome`
+|`ok`, `deadline_exceeded`, `unsupported`, or `failed`
+
+|`reason`
+|Why {registry} could not search the peer. Present only when the outcome is `failed`.
+
+|`count`
+|Number of agents from this source in the response
+
+|`truncated`
+|`true` when the source reported more matching agents than it returned
+|===
+
+Only an administrator sees which peer is which and why a peer failed. The example response is what an administrator receives. For federated search, an administrator is a caller that has the administrator role while role-based authorization is enabled, or a caller that the admin override (`apicurio.auth.admin-override.*`) identifies as an administrator. For any other caller, the `source` of a peer is `peer-1`, `peer-2`, and so on, numbered in peer ID order within the response, and the `reason` field is absent. When authentication is disabled, every caller sees the peer IDs and the reasons.
+
+.Source outcomes
+[cols="1,3",options="header"]
+|===
+|Outcome |Description
+
+|`ok`
+|The source answered, and its agents are in the response.
+
+|`deadline_exceeded`
+|The search reached `apicurio.federation.search.deadline-ms` before the peer answered.
+
+|`unsupported`
+|The peer has no agent search endpoint, or its response did not confirm the `publicOnly` filter. {registry} discards the response.
+
+|`failed`
+|{registry} could not search the peer. The `reason` field says why.
+|===
+
+.Failure reasons
+[cols="1,3",options="header"]
+|===
+|Reason |Description
+
+|`unauthorized`
+|The peer answered with HTTP 401 or 403.
+
+|`unreachable`
+|{registry} could not connect to the peer, or the address of the peer is not allowed.
+
+|`timeout`
+|The peer did not answer within `apicurio.federation.search.peer-timeout-ms`.
+
+|`peer_error`
+|The peer answered with a server error or with a redirect. {registry} does not follow redirects.
+
+|`invalid_response`
+|The response of the peer was malformed, too large, inconsistent, or not JSON. {registry} also reports this reason when the peer answers with an HTTP status that no other reason or outcome covers, for example 400 or 429.
+
+|`circuit_open`
+|The circuit breaker of the peer is open, and {registry} did not call the peer.
+
+|`capacity_exceeded`
+|{registry} did not call the peer because a limit on peer calls was reached. The configuration properties table describes the limits that you can set.
+|===
+
+{registry} calls the peers in parallel while it searches its own Agent Cards. The endpoint returns HTTP 200 whenever the search of this registry succeeds, even if some or all peers fail, so check `sources` to see which peers answered.
+
+Each peer has its own circuit breaker, which counts connection failures, timeouts, and server error or redirect responses as failures. While the circuit breaker of a peer is open, {registry} does not call that peer.
+
+.Error responses
+[cols="1,3",options="header"]
+|===
+|Status |Cause
+
+|400
+|`perSourceLimit` is below 1, or the request carries the `X-Federation-Hop` header that {registry} adds to its calls to peers
+
+|404
+|A2A protocol support is not enabled
+
+|409
+|Federation is not enabled
+
+|503
+|The search of this registry did not finish within `apicurio.federation.search.deadline-ms`
+|===
+
+.Federated search configuration properties
+[cols="2,1,3",options="header"]
+|===
+|Property |Default |Description
+
+|`apicurio.federation.search.deadline-ms`
+|`5000`
+|Time in milliseconds that a federated search can take in total
+
+|`apicurio.federation.search.peer-timeout-ms`
+|`3000`
+|Time in milliseconds that one peer has to answer. The value must be lower than `apicurio.federation.search.deadline-ms`.
+
+|`apicurio.federation.search.per-source-limit.max`
+|`100`
+|Highest value that `perSourceLimit` can have
+
+|`apicurio.federation.search.max-peers`
+|`16`
+|Maximum number of peers that one search queries. The peer management API refuses to enable more peers. If more peers are enabled anyway, for example after you lower this value, a search queries the first ones in peer ID order and reports the others as `failed` with the reason `capacity_exceeded`.
+
+|`apicurio.federation.search.max-searches-per-caller`
+|`2`
+|Maximum number of federated searches that one caller can have in progress at once. A search beyond the limit still searches this registry, but calls no peer and reports every peer as `failed` with the reason `capacity_exceeded`. {registry} identifies an authenticated caller by principal name and an anonymous caller by network address.
+
+|`apicurio.federation.search.max-concurrent-calls`
+|`64`
+|Maximum number of calls to peers in progress at once, across all federated searches. {registry} reports a peer whose call exceeds the limit as `failed` with the reason `capacity_exceeded`.
+
+|`apicurio.federation.search.max-response-bytes`
+|`1048576`
+|Maximum size in bytes of the response that {registry} accepts from one peer
+
+|`apicurio.federation.search.breaker.request-volume-threshold`
+|`4`
+|Number of recent calls to a peer that {registry} must have made before the circuit breaker of the peer can open
+
+|`apicurio.federation.search.breaker.failure-ratio`
+|`0.5`
+|Share of the recent calls to a peer that must have failed for the circuit breaker of the peer to open
+
+|`apicurio.federation.search.breaker.delay-ms`
+|`30000`
+|Time in milliseconds that an open circuit breaker waits before it lets a call through to the peer again
+|===
+
+When federation is enabled, {registry} checks these values at startup and does not start if a value is out of range.
+
+// ref-a2a-peer-registries
+[id="a2a-peer-registries_{context}"]
+== Peer registries for federated agent search
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+As an administrator, you manage the peer registries through the `/apis/registry/v3/admin/peers` REST API. A registry that uses GitOps or KubernetesOps storage loads its peers from the `peers` list of the registry configuration instead.
+
+The peer management API requires `apicurio.federation.enabled=true`, and every operation returns HTTP 409 without it. xref:a2a-federated-agent-search_{context}[Federated agent search] describes how to enable federation and how {registry} searches the peers.
+
+.Peer fields
+[cols="1,1,4",options="header"]
+|===
+|Field |Required |Description
+
+|`peerId`
+|Yes
+|Unique ID of the peer. Lowercase letters, digits, `.`, `_`, and `-` only, at most 256 characters. The ID cannot be `.` or `..`, and the ID `local` is reserved.
+
+|`url`
+|Yes
+|Base URL of the peer registry, for example `\https://registry.eu.example.com`. To search the peer, {registry} adds `/.well-known/agents` to this URL.
+
+|`name`
+|No
+|Display name of the peer, at most 512 characters.
+
+|`description`
+|No
+|Description of the peer, at most 1024 characters.
+
+|`enabled`
+|On update
+|Whether federated agent search queries the peer. When you create a peer without this field, the peer is enabled.
+
+|`credentialSecretRef`
+|No
+|Name that refers to a credential for the peer. Uppercase and lowercase letters, digits, `.`, `_`, and `-` only, at most 253 characters. The name cannot be a single period or begin with two periods. {registry} stores this name and returns it in API responses, but does not use it when it calls the peer. Do not enter a credential value.
+|===
+
+{registry} checks the `url` when you create or update a peer, and when it loads a peer from GitOps or KubernetesOps data. When a URL fails the check, the peer management API returns HTTP 400, and a load from GitOps or KubernetesOps data fails. The URL must meet the following conditions:
+
+* The URL is an absolute `https` URL with a host. {registry} accepts plain `http` only when `apicurio.federation.peer.insecure-http.enabled` is `true`.
+* The URL has no user information, query, or fragment. A port, if present, is in the range 1 to 65535. The URL is at most 1024 characters long.
+* The host is not a link-local, unspecified, multicast, reserved, or cloud metadata address. {registry} accepts a loopback address or a `localhost` name only when `apicurio.federation.peer.loopback.enabled` is `true`.
+
+Before each call to a peer, {registry} checks the scheme and the host again. When the host is a name, the address conditions apply to every address that the name resolves to.
+
+.Peer URL configuration properties
+[cols="2,1,3",options="header"]
+|===
+|Property |Default |Description
+
+|`apicurio.federation.peer.insecure-http.enabled`
+|Value of `apicurio.outbound.insecure-http.enabled`, `false` by default
+|Allow peer URLs that use plain `http` instead of `https`
+
+|`apicurio.federation.peer.loopback.enabled`
+|Value of `apicurio.outbound.loopback.enabled`, `false` by default
+|Allow peer URLs that point at a loopback address or a `localhost` name, for development and tests
+|===
+
+Both properties apply to every peer, including the peers that {registry} loads from GitOps or KubernetesOps data. The `apicurio.outbound.*` properties are also the defaults for imports from MCP servers.
+
+.Peer management operations
+[cols="3,1,4",options="header"]
+|===
+|Endpoint |Method |Description
+
+|`/apis/registry/v3/admin/peers`
+|GET
+|List the peers, including disabled peers, ordered by `peerId`. The `limit` and `offset` query parameters page the result, and default to 20 and 0. The response contains the `peers` of the page and the total `count`.
+
+|`/apis/registry/v3/admin/peers`
+|POST
+|Create a peer. The request body is the peer definition. Returns HTTP 409 when a peer with the same `peerId` exists.
+
+|`/apis/registry/v3/admin/peers/\{peerId}`
+|GET
+|Get the definition of a peer.
+
+|`/apis/registry/v3/admin/peers/\{peerId}`
+|PUT
+|Replace the definition of a peer. The request body must contain `url` and `enabled`. {registry} clears the optional fields that you omit.
+
+|`/apis/registry/v3/admin/peers/\{peerId}`
+|DELETE
+|Delete a peer.
+|===
+
+The peer operations require admin-level authorization. An operation on a single peer returns HTTP 404 when the peer does not exist. The create, update, and delete operations return HTTP 409 when the storage is read-only. The create and update operations also return HTTP 409 when the peer is enabled and the number of other enabled peers has reached `apicurio.federation.search.max-peers`.
+
+.Example: creating a peer
+[source,bash]
+----
+curl -X POST "http://localhost:8080/apis/registry/v3/admin/peers" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "peerId": "eu-registry",
+    "url": "https://registry.eu.example.com",
+    "name": "EU registry",
+    "description": "Registry serving the EU region.",
+    "enabled": true
+  }'
+----
+
+ifndef::service-registry-downstream[]
+For the format of the `peers` list in GitOps and KubernetesOps data, see xref:getting-started/assembly-configuring-gitops-storage.adoc#gitops-repository-data-format_{context}[GitOps repository data format] and xref:getting-started/assembly-configuring-kubernetesops-storage.adoc#kubernetesops-field-reference_{context}[KubernetesOps field reference].
+endif::[]
 
 // ref-a2a-agent-card-artifact-type
 [id="a2a-agent-card-artifact-type_{context}"]
@@ -356,65 +700,79 @@ curl -X POST "http://localhost:8080/apis/registry/v3/groups/ai-agents/artifacts"
       "version": "1.0.0",
       "content": {
         "contentType": "application/json",
-        "content": "{\"name\": \"My Agent\", \"skills\": [{\"id\": \"task\", \"name\": \"Task Execution\"}]}"
+        "content": "{\"name\": \"My Agent\", \"description\": \"Executes tasks on request\", \"version\": \"1.0.0\", \"supportedInterfaces\": [{\"url\": \"https://my-agent.example.com\", \"protocolBinding\": \"http+json\", \"protocolVersion\": \"1.0\"}], \"capabilities\": {\"streaming\": false, \"pushNotifications\": false}, \"skills\": [{\"id\": \"task\", \"name\": \"Task Execution\", \"description\": \"Runs a task and returns the result\", \"tags\": [\"task\"]}], \"defaultInputModes\": [\"text/plain\"], \"defaultOutputModes\": [\"text/plain\"]}"
       }
     }
   }'
 ----
 
-Agent Cards must conform to the A2A specification:
+{registry} expects Agent Cards in the A2A protocol v1.0 format. A v1.0 Agent Card declares its endpoints in `supportedInterfaces` and its authentication in `securitySchemes`, not in a top-level `url` or `authentication` field. At the `FULL` level, the `VALIDITY` rule checks the required fields and the field types, as described in xref:a2a-validation-rules_{context}[Agent Card validation rules].
 
-.Agent Card JSON schema
-[source,json]
-----
-{
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "type": "object",
-  "required": ["name"],
-  "properties": {
-    "name": {"type": "string"},
-    "description": {"type": "string"},
-    "version": {"type": "string"},
-    "url": {"type": "string", "format": "uri"},
-    "provider": {
-      "type": "object",
-      "properties": {
-        "organization": {"type": "string"},
-        "url": {"type": "string", "format": "uri"}
-      }
-    },
-    "capabilities": {
-      "type": "object",
-      "properties": {
-        "streaming": {"type": "boolean"},
-        "pushNotifications": {"type": "boolean"}
-      }
-    },
-    "skills": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "required": ["id", "name"],
-        "properties": {
-          "id": {"type": "string"},
-          "name": {"type": "string"},
-          "description": {"type": "string"},
-          "tags": {"type": "array", "items": {"type": "string"}},
-          "examples": {"type": "array", "items": {"type": "string"}}
-        }
-      }
-    },
-    "defaultInputModes": {"type": "array", "items": {"type": "string"}},
-    "defaultOutputModes": {"type": "array", "items": {"type": "string"}},
-    "authentication": {
-      "type": "object",
-      "properties": {
-        "schemes": {"type": "array", "items": {"type": "string"}}
-      }
-    }
-  }
-}
-----
+.Agent Card fields
+[cols="2,1,4",options="header"]
+|===
+|Field |Required |Description
+
+|`name`
+|Yes
+|Name of the agent. A non-empty string.
+
+|`description`
+|Yes
+|Description of what the agent does. A non-empty string.
+
+|`version`
+|Yes
+|Version of the agent, as a string.
+
+|`protocolVersion`
+|No
+|A2A protocol version that the agent supports, for example `1.0`.
+
+|`supportedInterfaces`
+|Yes
+|Array with at least one interface. Each interface has an `http` or `https` `url`, a `protocolBinding` such as `http+json`, and a `protocolVersion`. An interface can also have a `tenant`.
+
+|`provider`
+|No
+|Organization that provides the agent. When present, the object must contain `organization` and an `http` or `https` `url`.
+
+|`capabilities`
+|Yes
+|Object with the optional boolean fields `streaming`, `pushNotifications`, and `extendedAgentCard`, and an optional `extensions` array.
+
+|`skills`
+|Yes
+|Array with at least one skill. Each skill has an `id`, a `name`, a `description`, and a `tags` array with at least one tag. The optional skill fields are `examples`, `inputModes`, `outputModes`, and `securityRequirements`.
+
+|`defaultInputModes`
+|Yes
+|Array of the input modes that the agent supports, for example `text/plain` or `application/json`.
+
+|`defaultOutputModes`
+|Yes
+|Array of the output modes that the agent supports.
+
+|`securitySchemes`
+|No
+|Object that maps each scheme name to a security scheme definition.
+
+|`securityRequirements`
+|No
+|Array of objects that map security scheme names to the required scopes.
+
+|`iconUrl`
+|No
+|URL of an icon for the agent.
+
+|`documentationUrl`
+|No
+|URL of the agent documentation.
+
+|`signatures`
+|No
+|Array of JSON Web Signature (JWS) signatures of the Agent Card. Each signature has a `protected` string and a `signature` string, and can have a `header` object.
+|===
 
 // ref-a2a-openapi-agent-card
 [id="a2a-openapi-agent-card_{context}"]
@@ -534,10 +892,10 @@ Agent Cards have three validation levels that control how much validation occurs
 a|Complete schema validation including:
 
 * Required `name` field (non-empty string)
-* `description` and `version` fields
-* `supportedInterfaces` array, where each interface has `url`, `protocolBinding`, and `protocolVersion`
-* `provider` object with `organization` and `url`
-* `skills` array, where each skill has `id` and `name`
+* `description` (non-empty string) and `version` (string) fields
+* `supportedInterfaces` array with at least one interface, where each interface has `url`, `protocolBinding`, and `protocolVersion`
+* `provider` object with `organization` and `url`, when present
+* `skills` array with at least one skill, where each skill has `id`, `name`, `description`, and a non-empty `tags` array
 * `capabilities` object with boolean values
 * `defaultInputModes` and `defaultOutputModes` arrays
 * Authentication and security scheme validation
@@ -755,49 +1113,47 @@ Agent Cards can reference their schemas and prompts by using URN references:
 :_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
-You can chain context across multiple agents in a pipeline. The `a2a-real-world-integration` example in the {registry} repository demonstrates this pattern.
+You can chain context across multiple agents in a pipeline: each agent's output becomes part of the next agent's input. The `agent-registry` example in the {registry} repository runs such a pipeline with Quarkus LangChain4j applications:
 
-.Context chaining pipeline
+.Briefing pipeline in the agent-registry example
 [cols="1,3,3",options="header"]
 |===
 |Step
-|Input context
+|Input
 |Output
 
-|1. Sentiment agent
-|`+{{original}}+`
-|`{"sentiment": "very_negative", "urgency": "critical"}`
+|1. Weather tool (MCP)
+|A city
+|Fictional weather data
 
-|2. Issue analyzer
-|`+{{original}}+` + `+{{sentiment}}+`
-|`{"priority": "P1", "issue_type": "delayed_delivery"}`
+|2. Summarizer agent (A2A)
+|The weather data
+|A short factual paragraph
 
-|3. Response generator
-|`+{{original}}+` + `+{{sentiment}}+` + `+{{analysis}}+`
-|`{"response": "Dear customer, I sincerely apologize..."}`
-
-|4. Translation agent
-|`+{{response}}+`
-|`{"translated": "Estimado cliente, le pido disculpas..."}`
+|3. Translator agent (A2A)
+|The summary
+|The summary in French
 |===
 
+The orchestrator does not know the agents' URLs: the summarizer and translator publish their Agent Cards to {registry} when they start, and the orchestrator discovers them, and the MCP server, by role.
+
 ifndef::service-registry-downstream[]
-To run the example application locally, clone the {registry} repository and run the following commands:
+To run the example locally, clone the {registry} repository and follow its guide:
 
 .Example commands
 [source,bash]
 ----
-cd examples/a2a-real-world-integration
-docker-compose up -d
-mvn clean compile exec:java
+cd examples/agent-registry
+docker compose up -d
+./demo.sh
 ----
 
-The Web UI is available at `localhost:9000`.
+The orchestrator's dashboard is available at `localhost:11020`.
 endif::[]
 
 [role="_additional-resources"]
 .Additional resources
-* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/a2a-real-world-integration[a2a-real-world-integration example]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/agent-registry[agent-registry example]
 
 // ref-a2a-java-sdk-usage
 [id="a2a-java-sdk-usage_{context}"]
@@ -817,12 +1173,14 @@ RegistryClient client = RegistryClientFactory.create(
 // Search for agents with specific skill
 var agents = client.wellKnown().agents()
     .get(config -> {
-        config.queryParameters.skill = List.of("translation");
+        config.queryParameters.skill = new String[] { "translation" };
         config.queryParameters.limit = 10;
     });
 
 for (var agent : agents.getAgents()) {
-    System.out.println("Found: " + agent.getName() + " @ " + agent.getUrl());
+    var interfaces = agent.getSupportedInterfaces();
+    String url = (interfaces == null || interfaces.isEmpty()) ? "no interface" : interfaces.get(0).getUrl();
+    System.out.println("Found: " + agent.getName() + " @ " + url);
 }
 ----
 
@@ -897,18 +1255,20 @@ client.groups().byGroupId("ai-agents").artifacts()
 Use the following information to troubleshoot common issues with A2A features in {registry}.
 
 A2A endpoints return 404::
-Set `apicurio.a2a.enabled=true` in your configuration:
+Set `apicurio.agents.enabled=true`, which enables all agent discovery features, or `apicurio.a2a.enabled=true` alone. Check that `apicurio.a2a.enabled` is not set to `false`, which takes precedence:
 +
 [source,properties]
 ----
-apicurio.a2a.enabled=true
+apicurio.features.experimental.enabled=true
+apicurio.agents.enabled=true
 ----
 
 Agent Card validation fails::
 Verify the following conditions:
 +
-* The `name` field is present and non-empty.
-* Skills have both `id` and `name` fields.
+* The `name` and `description` fields are present and non-empty, and the `version` field is a string.
+* The `supportedInterfaces`, `capabilities`, `defaultInputModes`, and `defaultOutputModes` fields are present, and `supportedInterfaces` contains at least one interface.
+* The `skills` array contains at least one skill, and each skill has `id`, `name`, `description`, and a non-empty `tags` array.
 * Capabilities are boolean values.
 * The JSON is well-formed.
 

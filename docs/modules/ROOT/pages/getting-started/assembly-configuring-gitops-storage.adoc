@@ -123,9 +123,9 @@ Content files are plain schema files that metadata files reference by a path rel
 
 When `artifactType` is omitted, the registry determines the type in the following order:
 
-. *Unambiguous file extension* — extensions listed in the table below are mapped directly to a single artifact type. An explicit `artifactType` always takes precedence over the extension. A mapped extension is treated like a declared `artifactType`: the content is not checked against it, so an OpenAPI document saved as `api.avsc` is stored as AVRO unless a validity rule rejects it.
-. *Content-based detection* — for ambiguous extensions (`.json`, `.yaml`, `.yml`, `.xml`) where multiple artifact types are possible, the registry inspects the file content to determine the type.
-. *Error* — if neither the extension nor the content identifies a type, the load fails with an error listing the supported extensions.
+. *Unambiguous file extension*: extensions listed in the table below are mapped directly to a single artifact type. An explicit `artifactType` always takes precedence over the extension. A mapped extension is treated like a declared `artifactType`: the content is not checked against it, so an OpenAPI document saved as `api.avsc` is stored as AVRO unless a validity rule rejects it.
+. *Content-based detection*: for ambiguous extensions (`.json`, `.yaml`, `.yml`, `.xml`) where multiple artifact types are possible, the registry inspects the file content to determine the type.
+. *Error*: if neither the extension nor the content identifies a type, the load fails with an error listing the supported extensions.
 
 All versions of an artifact must share the same type. When `artifactType` is omitted and versions resolve to different types from their extensions, the load fails with an error asking you to set `artifactType` explicitly.
 
@@ -174,12 +174,15 @@ The following additional rules apply:
 * If `registryIds` is omitted or empty on a group or artifact, any registry instance loads it.
 * The `createdOn` and `modifiedOn` timestamps on groups, artifacts, and versions are optional. When omitted, the registry uses the Git commit time. Supported formats are ISO 8601, with or without a time zone or as a date only, and Unix milliseconds.
 * The optional `validatedUpTo` field on an artifact controls rule validation during a load. When unset, only the latest version is validated, against all preceding versions. When set to a version identifier, versions up to and including that version are not re-validated. When the value matches no version, all versions are validated.
+* A group with no artifacts is loaded with its metadata and rules. This is useful for reserving a group namespace or applying group-level rules before any artifacts are added.
+* An artifact with no versions is loaded with its metadata and rules, but `artifactType` must be set explicitly. Without it, the load fails with an error because the type cannot be inferred from content. In previous versions, versionless artifacts were silently skipped.
 * The optional `peers` list on the registry configuration declares peer registries. Each entry has `peerId` (lowercase letters, digits, `.`, `_`, and `-` only; must be unique and cannot be `local`, which is reserved), `url`, optional `name` and `description`, `enabled` (defaults to `true` when omitted), and an optional `credentialSecretRef`, which is a reference to a credential and never a secret value itself. The full `peers` list is replaced on every load: omitting the key, or setting it to an empty list, removes all previously loaded peers.
 
 [role="_additional-resources"]
 .Additional resources
 ifndef::service-registry-downstream[]
 * xref:getting-started/assembly-configuring-kubernetesops-storage.adoc#kubernetesops-field-reference_{context}[]
+* xref:getting-started/assembly-a2a-features.adoc#a2a-peer-registries_{context}[Peer registries for federated agent search]
 endif::[]
 ifdef::service-registry-downstream[]
 * xref:kubernetesops-field-reference_{context}[]
@@ -314,6 +317,10 @@ APICURIO_GITOPS_REPO_URL=https://github.com/my-org/my-registry-data.git
 ----
 +
 The sync container clones the repository and then updates it every 30 seconds. You can change the interval with the `APICURIO_GITOPS_PULL_INTERVAL` environment variable.
++
+For a private repository, use an SSH URL and provide the keys as described in the next step. The sync container has no setting for HTTPS credentials. A private HTTPS repository requires credentials in the URL itself, for example `+https://<token>@github.com/my-org/my-registry-data.git+`. Git saves that URL, including the credentials, in the configuration of the clone on the shared volume, which the registry container also mounts.
++
+With the {operator}, you set the URL in the `ApicurioRegistry3` custom resource, and the Operator copies it unchanged into the Deployment as an environment variable of the sync container. Anyone who can read the custom resource, the Deployment, or the pod can read the token. The sync container clones a repository only if the clone does not exist, and it fetches updates from the URL that Git saved in the clone. A changed token therefore takes effect only when the sync container creates the clone again. The Operator uses an `emptyDir` volume by default, so each new pod starts without a clone. If you use a persistent volume instead, delete the clone before you restart the sync container.
 . Optional: For SSH remotes, provide the private key and the known hosts file:
 +
 [source,bash]
@@ -431,6 +438,62 @@ ifndef::service-registry-downstream[]
 [role="_additional-resources"]
 .Additional resources
 * link:https://github.com/Apicurio/apicurio-registry-gitops-example[Example GitOps repository with a CI validation workflow]
+endif::[]
+
+
+[id="gitops-storage-sizing_{context}"]
+== GitOps storage sizing considerations
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+With GitOps storage, each registry instance holds all of its data in memory and reloads all of it when a repository changes. Memory use and load time therefore grow with the total amount of data in your repositories, not with the size of a commit.
+
+Each registry instance has two in-memory databases. The active database serves requests, and the inactive database receives the next load. The registry clears the inactive database only when the next load or dry-run validation starts, so both databases can hold a full copy of the data at the same time. Plan memory for at least two copies of the registry data. While a load runs, the registry also holds in memory the files that it reads from the repositories.
+
+A load reads all of the data from every configured repository, not only the files that changed. Because the registry is not ready until the first load succeeds, startup time also grows with the amount of data.
+
+The shared volume holds one clone of each repository. In pull mode, the clone is shallow by default and contains only the configured branch. In push mode, the repository on the volume keeps the full history that clients push to it, so the volume grows with that history. While a dry-run validation task runs, the volume also holds a shallow clone of the reference that the task validates.
+
+
+[id="gitops-storage-limitations-troubleshooting_{context}"]
+== GitOps storage limitations and troubleshooting
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+GitOps storage is read-only and produces no change events. This section lists these limitations and the checks to make when a registry instance does not become ready or does not show a commit.
+
+GitOps storage has the following limitations:
+
+* The storage is read-only. REST API calls that modify data return an HTTP `409` response.
+* The registry produces no change events for the data that it loads from Git.
+
+To find the cause of a problem, get the synchronization status from the `/admin/gitops/status` endpoint and read the `syncState`, `errors`, and `sources` fields. The `acr gitops status` command shows the same values in the `Sync State`, `Errors`, and `Sources` rows. The registry logs `gitops update published` after each successful load. After a load that it rejects, the registry logs `gitops update failed to load`, followed by the errors.
+
+.GitOps storage problems and their causes
+[cols="2,3", options="header"]
+|===
+| Problem
+| Cause and resolution
+
+| The registry does not become ready.
+| The registry is ready only after the first successful load. If `syncState` is `INITIALIZING` and `errors` is empty, the registry has not yet read a commit from every configured repository. Check that the clone of each repository exists at the path that the registry reads and that the sync container, if you use one, is running. The registry logs `GitOps repository directory does not exist` while the directory is missing. If `syncState` is `ERROR`, the `errors` field lists what failed.
+
+| A load fails with the error `Data source does not contain a registry configuration matching ID`.
+| The registry found no registry configuration file with a `registryId` value that matches the `apicurio.polling-storage.id` property of the registry instance. The registry rejects such a load when the `apicurio.polling-storage.require-registry-config` property is `true`, which is the default. Add a registry configuration file with a matching `registryId` value, or set the `apicurio.polling-storage.id` property to the `registryId` value of an existing file. If a file with a matching `registryId` value exists, check its file name suffix and its `$type` value. The registry reads a file as a registry configuration only if the file has a metadata file suffix and the registry configuration `$type` value.
+
+| A commit does not appear in the registry.
+| Compare the `sources` field with the latest commit in the remote repository. If `syncState` stays `IDLE` and `sources` keeps showing an earlier commit, the new commit has not reached the local clone. The sync container logs `Fetch failed` when it cannot update the clone. If `syncState` is `ERROR`, a load or a poll failed, and the registry serves the last successfully loaded data. The registry does not load a commit again after a data error, so push a new commit that fixes the errors that the `errors` field lists.
+|===
+
+[role="_additional-resources"]
+.Additional resources
+* xref:gitops-repository-data-format_{context}[]
+* xref:gitops-management-api_{context}[]
+ifndef::service-registry-downstream[]
+* xref:getting-started/assembly-registry-events.adoc#registry-events-overview_{context}[Overview of {registry} change events]
+* xref:getting-started/assembly-managing-registry-artifacts-cli.adoc#synchronizing-gitops-using-registry-cli_{context}[Checking and synchronizing GitOps storage using the CLI]
 endif::[]
 
 

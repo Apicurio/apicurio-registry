@@ -137,6 +137,44 @@ public class ProtobufSerdeTest extends AbstractClientFacadeTestBase {
         }
     }
 
+    /**
+     * A dereferenced Protobuf schema is returned by the registry as a binary descriptor, which the client
+     * must read as bytes (#11157). Global ID lookups request the dereferenced schema.
+     */
+    @ParameterizedTest(name = "testProtobufSchemaWithReferencesDereferencedByGlobalId [{0}]")
+    @MethodSource("isolatedClientFacadeProvider")
+    public void testProtobufSchemaWithReferencesDereferencedByGlobalId(ClientFacadeSupplier clientFacadeSupplier) {
+        RegistryClientFacade clientFacade = clientFacadeSupplier.getFacade(this);
+
+        try (Serializer<TableNotification> serializer = new ProtobufKafkaSerializer<>(clientFacade);
+                Deserializer<DynamicMessage> deserializer = new ProtobufKafkaDeserializer(clientFacade)) {
+
+            Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class);
+            config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
+            config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
+            config.put(SerdeConfig.FALLBACK_ARTIFACT_GROUP_ID, groupId);
+            config.put(SerdeConfig.USE_ID, "globalId");
+            serializer.configure(config, false);
+            Map<String, Object> deserializerConfig = new HashMap<>(config);
+            deserializerConfig.put(SerdeConfig.DEREFERENCE_SCHEMA, "true");
+            deserializer.configure(deserializerConfig, false);
+
+            TableNotification record = TableNotification.getDefaultInstance();
+            String topic = generateArtifactId();
+            byte[] data = serializer.serialize(topic, record);
+            DynamicMessage message = deserializer.deserialize(topic, data);
+
+            Descriptors.Descriptor expected = TableNotification.getDescriptor();
+            Descriptors.Descriptor actual = message.getDescriptorForType();
+            assertEquals(expected.getFullName(), actual.getFullName());
+            assertEquals(expected.getFields().stream().map(Descriptors.FieldDescriptor::getName).toList(),
+                    actual.getFields().stream().map(Descriptors.FieldDescriptor::getName).toList());
+            assertEquals(expected.getFields().stream().map(f -> f.getType().name()).toList(),
+                    actual.getFields().stream().map(f -> f.getType().name()).toList());
+        }
+    }
+
     @Test
     public void testProtobufReferencesRegisteredInPackageGroup() {
         String group = TestUtils.generateGroupId();

@@ -4,6 +4,12 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.cdi.Current;
+import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.utils.impexp.v3.ArtifactEntity;
+import io.apicurio.registry.utils.impexp.v3.GroupEntity;
+import io.apicurio.registry.utils.impexp.v3.GroupRuleEntity;
+import jakarta.inject.Inject;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
 import io.apicurio.registry.rest.client.models.CreateVersion;
@@ -44,8 +50,10 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static io.apicurio.registry.storage.StorageEventType.ARTIFACT_CREATED;
 import static io.apicurio.registry.storage.StorageEventType.ARTIFACT_DELETED;
@@ -75,6 +83,10 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
     private static final Logger log = LoggerFactory.getLogger(RegistryEventsTest.class);
 
     protected KafkaConsumer<String, String> consumer;
+
+    @Inject
+    @Current
+    RegistryStorage storage;
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -163,6 +175,55 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         Assertions.assertEquals(1, deleteEvents.size());
         Assertions.assertEquals(groupId, deleteEvent.get("groupId").asText());
         Assertions.assertEquals(GROUP_DELETED.name(), deleteEvent.get("eventType").asText());
+    }
+
+    @Test
+    public void deleteArtifactsInGroupEvents() throws Exception {
+        final String groupId = "deleteArtifactsInGroupEvents";
+        final String artifactA = generateArtifactId();
+        final String artifactB = generateArtifactId();
+        ensureArtifactCreated(groupId, artifactA, "1", "a", "a");
+        ensureArtifactCreated(groupId, artifactB, "1", "b", "b");
+
+        clientV3.groups().byGroupId(groupId).artifacts().delete();
+
+        List<JsonNode> deleteEvents = lookupEvents(consumer, ARTIFACT_DELETED, Map.of("groupId", groupId), 2);
+        assertEquals(Set.of(artifactA, artifactB),
+                deleteEvents.stream().map(e -> e.get("artifactId").asText()).collect(Collectors.toSet()));
+    }
+
+    @Test
+    public void importEvents() throws Exception {
+        final String groupId = "importEvents";
+        final String artifactId = generateArtifactId();
+
+        GroupEntity group = new GroupEntity();
+        group.groupId = groupId;
+        group.createdOn = System.currentTimeMillis();
+        group.modifiedOn = group.createdOn;
+        storage.importGroup(group);
+
+        GroupRuleEntity groupRule = new GroupRuleEntity();
+        groupRule.groupId = groupId;
+        groupRule.type = RuleType.VALIDITY;
+        groupRule.configuration = ValidityLevel.FULL.name();
+        storage.importGroupRule(groupRule);
+
+        ArtifactEntity artifact = new ArtifactEntity();
+        artifact.groupId = groupId;
+        artifact.artifactId = artifactId;
+        artifact.artifactType = ArtifactType.JSON;
+        artifact.name = "importedName";
+        artifact.createdOn = System.currentTimeMillis();
+        artifact.modifiedOn = artifact.createdOn;
+        storage.importArtifact(artifact);
+
+        // One poll loop for all three, so events of one type consumed while waiting for another are kept.
+        List<JsonNode> events = lookupEvents(consumer, null, Map.of("groupId", groupId), 3);
+        assertEquals(List.of(GROUP_CREATED.name(), GROUP_RULE_CONFIGURED.name(), ARTIFACT_CREATED.name()),
+                events.stream().map(e -> e.get("eventType").asText()).toList());
+        assertEquals("FULL", events.get(1).get("rule").asText());
+        assertEquals("importedName", events.get(2).get("name").asText());
     }
 
     @Test
@@ -1305,6 +1366,27 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         versionContent.setContentType(ContentTypes.APPLICATION_JSON);
         createVersion.setContent(versionContent);
         return createVersion;
+    }
+
+    /**
+     * Polls Kafka until at least {@code expectedCount} events of the given type (any type if null) match
+     * the lookups, and returns them in the order they were consumed.
+     */
+    private List<JsonNode> lookupEvents(KafkaConsumer<String, String> consumer, StorageEventType eventType,
+                                        Map<String, String> lookups, int expectedCount) {
+        List<JsonNode> matching = new ArrayList<>();
+        Unreliables.retryUntilTrue(20, TimeUnit.SECONDS, () -> {
+            consumer.poll(Duration.ofMillis(200)).iterator().forEachRemaining(record -> {
+                JsonNode event = readEventPayload(record);
+                if ((eventType == null || event.get("eventType").asText().equals(eventType.name()))
+                        && lookups.keySet().stream()
+                        .allMatch(fieldName -> checkField(event, fieldName, lookups.get(fieldName)))) {
+                    matching.add(event);
+                }
+            });
+            return matching.size() >= expectedCount;
+        });
+        return matching;
     }
 
     protected KafkaConsumer<String, String> getConsumer(String bootstrapServers) {

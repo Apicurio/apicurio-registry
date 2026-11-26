@@ -1,0 +1,12 @@
+{
+  "name": "registry-clients-typescript-sdk",
+  "private": true,
+  "type": "module",
+  "description": "The registry-clients scenario with the TypeScript SDK",
+  "scripts": {
+    "scenario": "node --no-warnings order-scenario.ts"
+  },
+  "dependencies": {
+    "@apicurio/apicurio-registry-sdk": "file:../../../typescript-sdk"
+  }
+}

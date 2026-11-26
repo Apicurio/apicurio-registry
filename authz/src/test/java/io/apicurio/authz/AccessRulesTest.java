@@ -237,9 +237,7 @@ class AccessRulesTest {
                 "from io.apicurio.authz import Artifact, Group;\n"
                         + "allow Group with name = \"u\" to READ Artifact with name = \"x\";\n" + end,
                 "from io.apicurio.authz import Artifact, Role;\n"
-                        + "allow User with name = \"u\" to READ Role with name = \"x\";\n" + end,
-                // The grammar lexes a block comment as a regex literal, so it is a syntax error
-                "/* comment */\n" + header + end)) {
+                        + "allow User with name = \"u\" to READ Role with name = \"x\";\n" + end)) {
             assertThrows(IllegalArgumentException.class, () -> AccessRules.parse(invalid), invalid);
             RuntimeException theirs = assertThrows(RuntimeException.class, () -> kroxyliciousAuthorizer(invalid),
                     invalid);
@@ -250,7 +248,7 @@ class AccessRulesTest {
     /**
      * Rules after {@code otherwise deny;} would never apply, so the file is rejected rather than read
      * as if they were not there: a deny rule appended at the end would otherwise be silently ignored.
-     * Kroxylicious's {@code AclAuthorizerService} (0.25.1) ignores them; Registry is stricter, and this
+     * Kroxylicious's {@code AclAuthorizerService} (0.26.0) ignores them; Registry is stricter, and this
      * pins the difference so an upstream change is noticed.
      */
     @Test
@@ -293,7 +291,9 @@ class AccessRulesTest {
                 "from io.apicurio.authz import Artifact as A, Role as R;\n"
                         + "allow R with name = \"r\" to READ A with name = \"x\";\n" + end,
                 "// a comment\n" + header
-                        + "allow User with name * to READ Artifact with name *;\n" + end)) {
+                        + "allow User with name * to READ Artifact with name *;\n" + end,
+                // Since Kroxylicious 0.26.0 the grammar lexes a block comment as a comment
+                "/* comment */\n" + header + end)) {
             assertDoesNotThrow(() -> AccessRules.parse(valid), valid);
             assertDoesNotThrow(() -> kroxyliciousAuthorizer(valid), valid);
         }
@@ -308,7 +308,7 @@ class AccessRulesTest {
         assertEquals(Set.of("team-a/"), bob.allowPrefix());
         assertEquals(Set.of("team-a/secret"), bob.denyExact());
         // ADMIN implies READ, so the ADMIN pattern is part of the read scope
-        assertEquals(Set.of("team-(b|c)/[a-z]+", "dot.only"), bob.allowPatterns());
+        assertEquals(Set.of("team-(b|c)/[a-z]+", "dot\\.only"), bob.allowPatterns());
         assertTrue(bob.hasPatterns());
 
         // The deny of WRITE on every group also denies READ, which WRITE implies
@@ -322,19 +322,20 @@ class AccessRulesTest {
     }
 
     /**
-     * The rules parser removes every backslash in a regex literal, so {@code /dot\.only/} is the
-     * regex {@code dot.only}. Pinned so a change upstream is noticed: search must keep reading
-     * patterns exactly as point access does.
+     * The rules parser unescapes only {@code \/} and {@code \\} in a regex literal and keeps every
+     * other backslash, so {@code /dot\.only/} is the regex {@code dot\.only}. Pinned so a change
+     * upstream is noticed: search must keep reading patterns exactly as point access does.
      */
     @Test
     void regexEscapesAreReadAsTheRulesParserReadsThem() throws Exception {
         AccessRulesAuthorizer rules = load();
         Subject bob = subject(new User("bob"));
         ResourceScope scope = scope(rules, bob, Artifact.READ);
-        for (String name : List.of("dot.only", "dotxonly")) {
-            assertTrue(scope.matches(name), name);
-            assertEquals(Decision.ALLOW, rules.authorize(bob, List.of(new Action(Artifact.READ, name)))
-                    .toCompletableFuture().join().decision(Artifact.READ, name), name);
-        }
+        assertTrue(scope.matches("dot.only"));
+        assertEquals(Decision.ALLOW, rules.authorize(bob, List.of(new Action(Artifact.READ, "dot.only")))
+                .toCompletableFuture().join().decision(Artifact.READ, "dot.only"));
+        assertFalse(scope.matches("dotxonly"));
+        assertEquals(Decision.DENY, rules.authorize(bob, List.of(new Action(Artifact.READ, "dotxonly")))
+                .toCompletableFuture().join().decision(Artifact.READ, "dotxonly"));
     }
 }

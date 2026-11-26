@@ -3,8 +3,8 @@
 - **Status:** Accepted (documents the current implementation).
 - **Decision date:** 2026-11-12.
 - **Author:** Apicurio Registry maintainers.
-- **Tracking:** [#11079](https://github.com/Apicurio/apicurio-registry/issues/11079),
-  [#11080](https://github.com/Apicurio/apicurio-registry/issues/11080).
+- **Tracking:** [#11079](https://github.com/Apicurio/apicurio-registry/issues/11079) and
+  [#11080](https://github.com/Apicurio/apicurio-registry/issues/11080) (both fixed).
 - **Scope:** How the registry stores its data: the storage variants, how one is selected, the
   decorator chain around it, and what each variant guarantees (consistency, replicas, upgrades,
   read-only behaviour, events). Search indexing, events and caching details have their own records;
@@ -77,7 +77,9 @@ refuses writes, so every change goes through the source's own review.
 - Every start replays the topic (a random consumer group each time), optionally from a snapshot
   (`kafkasql-snapshots`); readiness waits for it.
 - The journal must never lose a message: the registry creates it with `cleanup.policy=delete` and
-  `retention.ms=-1`, and refuses a compacted topic or a finite retention.
+  `retention.ms=-1`, and refuses a compacted topic or a finite retention. Replicas may start
+  together: a replica that loses the race to create a topic uses the existing one, after verifying
+  its configuration.
 - The local database is `apicurio.storage.sql.kind` (H2 in memory by default).
 
 ### GitOps and KubernetesOps
@@ -87,7 +89,8 @@ refuses writes, so every change goes through the source's own review.
   a file is loaded by registries whose `apicurio.polling-storage.id` is in its `registryIds`.
 - GitOps reads a local checkout (`apicurio.gitops.workspace`, one or several repositories) and never
   fetches; a sidecar or a volume keeps it current. KubernetesOps lists labelled ConfigMaps in a
-  namespace, and watches them.
+  namespace, and watches them. A change is detected from the selected ConfigMaps' own
+  `resourceVersion`s, so an unchanged poll does nothing.
 - Each change is debounced (`debounce.quiet-period`, `max-wait-period`), loaded into the inactive of
   two databases (blue/green), validated with the registry's rules, and published by switching. A
   failed load keeps the last good data and is reported (`GET /admin/gitops/status`).
@@ -135,14 +138,9 @@ refuses writes, so every change goes through the source's own review.
 
 ## Limitations and open work
 
-1. KafkaSQL replicas starting together can fail creating the topics
-   ([#11079](https://github.com/Apicurio/apicurio-registry/issues/11079)).
-2. KubernetesOps sees a change on every poll on a live cluster, so updates wait for the debounce
-   maximum and data is reloaded continuously
-   ([#11080](https://github.com/Apicurio/apicurio-registry/issues/11080)).
-3. KafkaSQL replicas are eventually consistent: a client may not read its write on another replica.
-4. Every KafkaSQL start replays the journal; startup time grows with it unless snapshots are used.
-5. GitOps and KubernetesOps are experimental; KubernetesOps has no status endpoint.
+1. KafkaSQL replicas are eventually consistent: a client may not read its write on another replica.
+2. Every KafkaSQL start replays the journal; startup time grows with it unless snapshots are used.
+3. GitOps and KubernetesOps are experimental; KubernetesOps has no status endpoint.
 
 ## Alternatives
 
@@ -186,3 +184,4 @@ refuses writes, so every change goes through the source's own review.
 | [#3902](https://github.com/Apicurio/apicurio-registry/pull/3902) (3.0) | Storage variants simplified to SQL, KafkaSQL and GitOps, built on the SQL implementation |
 | [#7400](https://github.com/Apicurio/apicurio-registry/pull/7400) (3.2) | KubernetesOps storage |
 | This ADR | First written record, with a verified example |
+| [#11175](https://github.com/Apicurio/apicurio-registry/pull/11175) | Fixed: KafkaSQL replicas can start together without `TopicExistsException` (#11079); KubernetesOps reloads only when a selected ConfigMap changes (#11080) |

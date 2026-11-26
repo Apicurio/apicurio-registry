@@ -228,7 +228,7 @@ get_status_code() {
 
 # Extract body from curl response (with -w "\n%{http_code}")
 get_response_body() {
-    echo "$1" | head -n -1
+    echo "$1" | sed '$d'
 }
 
 # Extract header value from response

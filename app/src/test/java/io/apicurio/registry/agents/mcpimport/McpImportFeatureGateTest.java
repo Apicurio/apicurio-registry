@@ -11,6 +11,8 @@ import java.util.Map;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasKey;
+import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
@@ -30,8 +32,16 @@ public class McpImportFeatureGateTest extends AbstractResourceTestBase {
                     .post(registryV3ApiUrl + "/groups/" + group + "/artifacts/srv/mcp-import").then()
                     .statusCode(409)
                     .body("title", equalTo("Importing tools from MCP servers is not enabled."));
+            given().contentType(ContentTypes.APPLICATION_JSON).body(Map.of("url", mcp.url(), "async", true))
+                    .post(registryV3ApiUrl + "/groups/" + group + "/artifacts/srv/mcp-import").then()
+                    .statusCode(409)
+                    .body("title", equalTo("Importing tools from MCP servers is not enabled."));
+            given().get(registryV3ApiUrl + "/groups/" + group + "/artifacts/srv/mcp-import/status").then()
+                    .statusCode(409);
             assertEquals(0, mcp.requests.get());
         }
+        given().get(registryV3ApiUrl + "/groups/" + group + "/artifacts/srv").then().statusCode(200)
+                .body("labels", not(hasKey(McpImportLabels.STATE)));
     }
 
     @Test

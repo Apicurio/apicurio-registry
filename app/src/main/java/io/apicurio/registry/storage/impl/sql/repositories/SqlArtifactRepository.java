@@ -1,5 +1,6 @@
 package io.apicurio.registry.storage.impl.sql.repositories;
 
+import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
@@ -20,8 +21,11 @@ import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.event.Event;
 import org.slf4j.Logger;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -42,6 +46,9 @@ public class SqlArtifactRepository {
     public static final int MAX_ARTIFACT_DESCRIPTION_LENGTH = 1024;
     public static final int MAX_LABEL_KEY_LENGTH = 256;
     public static final int MAX_LABEL_VALUE_LENGTH = 512;
+
+    /** Bound parameters stay well under every database's limit (SQL Server allows 2100). */
+    static final int ARTIFACTS_PER_QUERY = 200;
 
     private final Logger log;
     private final SqlStatements sqlStatements;
@@ -70,6 +77,30 @@ public class SqlArtifactRepository {
             throws ArtifactNotFoundException, RegistryStorageException {
         log.debug("Selecting artifact meta-data: {} {}", groupId, artifactId);
         return handles.withHandle(handle -> getArtifactMetaDataRaw(handle, groupId, artifactId));
+    }
+
+    /**
+     * Get the metadata of many artifacts, at most {@link #ARTIFACTS_PER_QUERY} per query.
+     */
+    public List<ArtifactMetaDataDto> getArtifactsMetaData(Collection<GA> artifacts) throws RegistryStorageException {
+        List<GA> distinct = List.copyOf(new LinkedHashSet<>(artifacts));
+        if (distinct.isEmpty()) {
+            return List.of();
+        }
+        return handles.withHandle(handle -> {
+            List<ArtifactMetaDataDto> found = new ArrayList<>();
+            for (int start = 0; start < distinct.size(); start += ARTIFACTS_PER_QUERY) {
+                List<GA> chunk = distinct.subList(start, Math.min(start + ARTIFACTS_PER_QUERY, distinct.size()));
+                var query = handle.createQuery(sqlStatements.selectArtifactsMetaData(chunk.size()));
+                int index = 0;
+                for (GA ga : chunk) {
+                    query.bind(index++, normalizeGroupId(ga.getRawGroupIdWithNull()));
+                    query.bind(index++, ga.getRawArtifactId());
+                }
+                found.addAll(query.map(ArtifactMetaDataDtoMapper.instance).list());
+            }
+            return found;
+        });
     }
 
     /**
@@ -135,6 +166,8 @@ public class SqlArtifactRepository {
             handle.createUpdate(sqlStatements.deleteContractAuditEntriesByGroupId())
                     .bind(0, normalizeGroupId(groupId)).execute();
 
+            List<String> artifactIds = getArtifactIdsInGroup(groupId);
+
             // Delete all artifacts
             int rowCount = handle.createUpdate(sqlStatements.deleteArtifactsByGroupId())
                     .bind(0, normalizeGroupId(groupId)).execute();
@@ -143,7 +176,17 @@ public class SqlArtifactRepository {
                 throw new ArtifactNotFoundException(groupId, null);
             }
 
+            artifactIds.forEach(
+                    artifactId -> outboxEvent.fire(SqlOutboxEvent.of(ArtifactDeleted.of(groupId, artifactId))));
+
             return null;
+        });
+    }
+
+    public List<String> getArtifactIdsInGroup(String groupId) {
+        return handles.withHandleNoException(handle -> {
+            return handle.createQuery(sqlStatements.selectArtifactIdsByGroupId())
+                    .bind(0, normalizeGroupId(groupId)).mapTo(String.class).list();
         });
     }
 

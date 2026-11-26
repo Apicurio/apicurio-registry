@@ -93,6 +93,11 @@ public class MySQLSqlStatements extends CommonSqlStatements {
      */
     @Override
     public String releaseInitLock() {
+        // Session-scoped (GET_LOCK/RELEASE_LOCK, not transaction-scoped) and released here, before
+        // the enclosing handle's commit, unlike PostgreSQL's and SQL Server's init locks -- safe
+        // for MySQL only because CREATE TABLE and the other DDL this guards causes an implicit
+        // commit of the current transaction as it executes, so by the time this release runs the
+        // DDL is already durable regardless of the outer transaction's state.
         return "SELECT RELEASE_LOCK('apicurio_init_lock')";
     }
 

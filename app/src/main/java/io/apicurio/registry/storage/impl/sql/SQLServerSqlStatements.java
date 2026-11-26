@@ -146,7 +146,17 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
         // Use SQL Server application locks with 30 second timeout (30000 ms)
         // Returns 0 or greater if lock acquired, negative value on error/timeout
         // Wrap in DECLARE/SELECT to return result set instead of return code
-        return "DECLARE @result INT; EXEC @result = sp_getapplock @Resource='apicurio_init_lock', @LockMode='Exclusive', @LockOwner='Session', @LockTimeout=30000; SELECT @result";
+        //
+        // @LockOwner='Transaction', not 'Session': the whole initialize()/upgrade() callback runs
+        // inside one handle, which commits only after the callback returns. A session-owned lock
+        // is released by the explicit sp_releaseapplock call in that callback's `finally`, which
+        // runs *before* that commit, letting a second replica acquire the lock and race to
+        // initialize the same database before the first replica's DDL is actually durable (the
+        // PostgreSQL equivalent of this bug produced a duplicate-key error on two concurrent
+        // CREATE TABLEs). A transaction-owned lock is held until the connection's transaction
+        // commits or rolls back, so it now covers the commit; see the no-op releaseInitLock()
+        // below.
+        return "DECLARE @result INT; EXEC @result = sp_getapplock @Resource='apicurio_init_lock', @LockMode='Exclusive', @LockOwner='Transaction', @LockTimeout=30000; SELECT @result";
     }
 
     /**
@@ -154,8 +164,11 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
      */
     @Override
     public String releaseInitLock() {
-        // Wrap in DECLARE/SELECT to return result set instead of return code
-        return "DECLARE @result INT; EXEC @result = sp_releaseapplock @Resource='apicurio_init_lock', @LockOwner='Session'; SELECT @result";
+        // No-op: a transaction-owned app lock (acquireInitLock() above) is released automatically
+        // when the enclosing transaction commits or rolls back, which is exactly the point at
+        // which it must still be held. Calling sp_releaseapplock explicitly here would release it
+        // before that commit, reintroducing the race this is meant to close.
+        return "SELECT 1";
     }
 
     /**

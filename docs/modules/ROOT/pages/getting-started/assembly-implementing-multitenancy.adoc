@@ -137,12 +137,12 @@ Deploy {registry} using the namespace-per-tenant pattern (Pattern B) to provide 
 
 .Procedure
 
-. Install the operator in a dedicated {kubernetes-namespace}. By default, it watches all namespaces:
+. Install the operator in a dedicated {kubernetes-namespace}. By default, it watches all namespaces. The manifest refers to the {kubernetes-namespace} as `PLACEHOLDER_NAMESPACE`, so replace this string with the {kubernetes-namespace} name and apply the manifest with the `-n` option:
 +
 [source,bash,subs="attributes"]
 ----
 {kubernetes-client} create namespace apicurio-system
-{kubernetes-client} apply -f operator/install/install.yaml -n apicurio-system
+sed "s/PLACEHOLDER_NAMESPACE/apicurio-system/g" operator/install/install.yaml | {kubernetes-client} apply -n apicurio-system -f -
 ----
 
 . Verify that the operator is running:

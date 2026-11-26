@@ -305,4 +305,29 @@ class AgentCardStructuredContentExtractorTest {
 
         assertEquals(0, elements.size());
     }
+
+    @Test
+    void testExtractClaimedSignerKids() {
+        // Protected headers: {"alg":"ES256","typ":"JOSE","kid":"key-1"}, the same kid again,
+        // {"alg":"ES256","kid":"Key:Two"}, {"alg":"ES256"} (no kid), and two malformed values.
+        String agentCard = """
+                {
+                  "name": "Signed Agent",
+                  "signatures": [
+                    { "protected": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpPU0UiLCJraWQiOiJrZXktMSJ9", "signature": "AA" },
+                    { "protected": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpPU0UiLCJraWQiOiJrZXktMSJ9", "signature": "AB" },
+                    { "protected": "eyJhbGciOiJFUzI1NiIsImtpZCI6IktleTpUd28ifQ", "signature": "AC" },
+                    { "protected": "eyJhbGciOiJFUzI1NiJ9", "signature": "AD" },
+                    { "protected": "not base64 !", "signature": "AE" },
+                    { "protected": 42, "signature": "AF" }
+                  ]
+                }
+                """;
+
+        List<StructuredElement> signers = extractor.extract(ContentHandle.create(agentCard)).stream()
+                .filter(e -> e.kind().equals("signer")).toList();
+
+        assertEquals(List.of(new StructuredElement("signer", "key-1"), new StructuredElement("signer", "Key:Two")),
+                signers);
+    }
 }

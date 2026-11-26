@@ -1,0 +1,5 @@
+$type: artifact-v0
+registryIds: [test]
+groupId: testgroup
+artifactId: no-type-artifact
+name: Missing Type

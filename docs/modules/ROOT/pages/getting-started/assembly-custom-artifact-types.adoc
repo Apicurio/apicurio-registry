@@ -122,6 +122,9 @@ The class must have a public no-argument constructor and must be available on th
 |An HTTP endpoint that {registry} calls with a JSON request that describes the operation, including the content, resolved references, and rule level. The endpoint returns a JSON response.
 The optional `headers` are intended to be sent with every request, for example, for authentication, but the current version does not send them: protect the endpoint at the network level.
 Webhooks work with the standard container image but add a network round trip to every operation.
+By default, each webhook call has a connect timeout of 5 seconds and a read timeout of 10 seconds.
+To change these values, set the `apicurio.artifact-types.webhooks.connect-timeout.seconds` and `apicurio.artifact-types.webhooks.read-timeout.seconds` properties.
+{registry} stops waiting for a webhook call after 10 seconds, so a timeout greater than 10 seconds has no effect.
 |===
 
 [role="_additional-resources"]

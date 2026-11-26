@@ -2,7 +2,6 @@ package io.apicurio.registry.noprofile.proxy;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.client.RegistryClientFactory;
-import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.SystemInfo;
 import io.quarkus.test.junit.QuarkusTest;
@@ -66,8 +65,7 @@ public class ProxySdkClientTest extends AbstractResourceTestBase {
     @Test
     public void testV3ClientWithProxy() throws Exception {
         RegistryClient client = RegistryClientFactory.create(
-                RegistryClientOptions.create(registryV3ApiUrl)
-                        .proxy("localhost", proxy.getPort()));
+                boundedClientOptions(registryV3ApiUrl, vertx).proxy("localhost", proxy.getPort()));
 
         SystemInfo systemInfo = client.system().info().get();
         Assertions.assertNotNull(systemInfo);
@@ -77,8 +75,7 @@ public class ProxySdkClientTest extends AbstractResourceTestBase {
 
     @Test
     public void testV3ClientWithoutProxy() throws Exception {
-        RegistryClient client = RegistryClientFactory.create(
-                RegistryClientOptions.create(registryV3ApiUrl));
+        RegistryClient client = RegistryClientFactory.create(boundedClientOptions(registryV3ApiUrl, vertx));
 
         SystemInfo systemInfo = client.system().info().get();
         Assertions.assertNotNull(systemInfo);
@@ -88,10 +85,10 @@ public class ProxySdkClientTest extends AbstractResourceTestBase {
     @Test
     public void testProxyConfigurationValidation() {
         Assertions.assertThrows(IllegalArgumentException.class, () -> {
-            RegistryClientOptions.create(registryV3ApiUrl).proxy("localhost", -1);
+            boundedClientOptions(registryV3ApiUrl, vertx).proxy("localhost", -1);
         });
         Assertions.assertThrows(IllegalArgumentException.class, () -> {
-            RegistryClientOptions.create(registryV3ApiUrl).proxy(null, 8080);
+            boundedClientOptions(registryV3ApiUrl, vertx).proxy(null, 8080);
         });
     }
 }

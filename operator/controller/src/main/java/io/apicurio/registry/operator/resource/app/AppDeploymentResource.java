@@ -25,6 +25,8 @@ import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.EnvVarBuilder;
 import io.fabric8.kubernetes.api.model.PodTemplateSpec;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
+import io.fabric8.kubernetes.client.dsl.base.PatchContext;
+import io.fabric8.kubernetes.client.dsl.base.PatchType;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
 import io.javaoperatorsdk.operator.processing.dependent.kubernetes.CRUDKubernetesDependentResource;
 import io.javaoperatorsdk.operator.processing.dependent.kubernetes.KubernetesDependent;
@@ -51,6 +53,29 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
 
     public AppDeploymentResource() {
         super(Deployment.class);
+    }
+
+    @Override
+    public Deployment update(Deployment actual, Deployment desired, ApicurioRegistry3 primary,
+            Context<ApicurioRegistry3> context) {
+        // When switching to Recreate, the live Deployment may still have a rollingUpdate field
+        // that no field manager owns (defaulted by the API server on Deployments created by
+        // earlier operator versions). SSA cannot remove unowned fields, so we clear it with a
+        // JSON patch before the SSA apply. Once the operator owns the strategy field (after
+        // this reconcile), SSA handles every subsequent switch by itself.
+        if ("Recreate".equals(desired.getSpec().getStrategy().getType())
+                && actual.getSpec().getStrategy() != null
+                && actual.getSpec().getStrategy().getRollingUpdate() != null) {
+            final var patch = "[{\"op\":\"replace\",\"path\":\"/spec/strategy/type\",\"value\":\"Recreate\"},"
+                    + "{\"op\":\"remove\",\"path\":\"/spec/strategy/rollingUpdate\"}]";
+            context.getClient().apps().deployments()
+                    .inNamespace(actual.getMetadata().getNamespace())
+                    .withName(actual.getMetadata().getName())
+                    .patch(PatchContext.of(PatchType.JSON), patch);
+            log.info("Cleared rollingUpdate from Deployment {} before switching to Recreate strategy",
+                    actual.getMetadata().getName());
+        }
+        return super.update(actual, desired, primary, context);
     }
 
     @Override

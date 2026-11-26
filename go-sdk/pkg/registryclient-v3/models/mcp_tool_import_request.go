@@ -11,6 +11,8 @@ import (
 type McpToolImportRequest struct {
 	// Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
 	additionalData map[string]any
+	// When `true`, the import runs in the background and the response is `202 Accepted`: read its outcome from `/groups/{groupId}/artifacts/{artifactId}/mcp-import/status`. Cannot be combined with `dryRun`. Defaults to `false`.
+	async *bool
 	// When `true`, the server is contacted and the report is returned, but nothing is written.
 	dryRun *bool
 	// HTTP headers to send to the MCP server, for example `Authorization`. Sent to the MCP server only: never stored, returned or logged.
@@ -40,6 +42,12 @@ func (m *McpToolImportRequest) GetAdditionalData() map[string]any {
 	return m.additionalData
 }
 
+// GetAsync gets the async property value. When `true`, the import runs in the background and the response is `202 Accepted`: read its outcome from `/groups/{groupId}/artifacts/{artifactId}/mcp-import/status`. Cannot be combined with `dryRun`. Defaults to `false`.
+// returns a *bool when successful
+func (m *McpToolImportRequest) GetAsync() *bool {
+	return m.async
+}
+
 // GetDryRun gets the dryRun property value. When `true`, the server is contacted and the report is returned, but nothing is written.
 // returns a *bool when successful
 func (m *McpToolImportRequest) GetDryRun() *bool {
@@ -50,6 +58,16 @@ func (m *McpToolImportRequest) GetDryRun() *bool {
 // returns a map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error when successful
 func (m *McpToolImportRequest) GetFieldDeserializers() map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 	res := make(map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error)
+	res["async"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetBoolValue()
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetAsync(val)
+		}
+		return nil
+	}
 	res["dryRun"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 		val, err := n.GetBoolValue()
 		if err != nil {
@@ -114,6 +132,12 @@ func (m *McpToolImportRequest) GetUrl() *string {
 // Serialize serializes information the current object
 func (m *McpToolImportRequest) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.SerializationWriter) error {
 	{
+		err := writer.WriteBoolValue("async", m.GetAsync())
+		if err != nil {
+			return err
+		}
+	}
+	{
 		err := writer.WriteBoolValue("dryRun", m.GetDryRun())
 		if err != nil {
 			return err
@@ -151,6 +175,11 @@ func (m *McpToolImportRequest) SetAdditionalData(value map[string]any) {
 	m.additionalData = value
 }
 
+// SetAsync sets the async property value. When `true`, the import runs in the background and the response is `202 Accepted`: read its outcome from `/groups/{groupId}/artifacts/{artifactId}/mcp-import/status`. Cannot be combined with `dryRun`. Defaults to `false`.
+func (m *McpToolImportRequest) SetAsync(value *bool) {
+	m.async = value
+}
+
 // SetDryRun sets the dryRun property value. When `true`, the server is contacted and the report is returned, but nothing is written.
 func (m *McpToolImportRequest) SetDryRun(value *bool) {
 	m.dryRun = value
@@ -174,10 +203,12 @@ func (m *McpToolImportRequest) SetUrl(value *string) {
 type McpToolImportRequestable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable
+	GetAsync() *bool
 	GetDryRun() *bool
 	GetHeaders() McpToolImportRequest_headersable
 	GetToolGroupId() *string
 	GetUrl() *string
+	SetAsync(value *bool)
 	SetDryRun(value *bool)
 	SetHeaders(value McpToolImportRequest_headersable)
 	SetToolGroupId(value *string)

@@ -1,0 +1,13 @@
+$type: artifact-v0
+registryIds: [test]
+groupId: testgroup
+artifactId: petstore-json
+artifactType: OPENAPI
+name: Petstore JSON API
+description: JSON OpenAPI specification
+versions:
+  - version: "1"
+    state: ENABLED
+    globalId: 1003
+    content: ./content/petstore.json
+    contentMetadata: ./content/petstore.metadata.registry.yaml

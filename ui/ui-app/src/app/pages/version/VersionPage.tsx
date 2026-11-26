@@ -34,10 +34,12 @@ import { PleaseWaitModal } from "@apitomy/common-ui-components";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
+import { SearchService, useSearchService } from "@services/useSearchService.ts";
 import { DownloadService, useDownloadService } from "@services/useDownloadService.ts";
 import { ArtifactTypes } from "@services/useArtifactTypesService.ts";
 import {
     ArtifactMetaData,
+    ResourcePermissions,
     CreateVersion,
     Labels,
     RuleViolationProblemDetails,
@@ -67,6 +69,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
     const [pageError, setPageError] = useState<PageError>();
     const [loaders, setLoaders] = useState<Promise<any> | Promise<any>[] | undefined>();
     const [artifact, setArtifact] = useState<ArtifactMetaData>();
+    const [permissions, setPermissions] = useState<ResourcePermissions>();
     const [artifactVersion, setArtifactVersion] = useState<VersionMetaData>();
     const [draft, setDraft] = useState<Draft | undefined>();
     const [versionContent, setArtifactContent] = useState("");
@@ -90,6 +93,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
     const appNavigation: AppNavigation = useAppNavigation();
     const logger: LoggerService = useLoggerService();
     const groups: GroupsService = useGroupsService();
+    const search: SearchService = useSearchService();
     const draftsService: DraftsService = useDraftsService();
     const download: DownloadService = useDownloadService();
     const { groupId, artifactId, version }= useParams();
@@ -97,6 +101,8 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
     const referencesMatch = useMatch("/explore/:groupId/:artifactId/versions/:version/references");
     const documentationMatch = useMatch("/explore/:groupId/:artifactId/versions/:version/documentation");
     const compatibilityMatch = useMatch("/explore/:groupId/:artifactId/versions/:version/compatibility");
+    // Versions without the compatible tools tab show their overview on the compatibility route
+    const isCompatibleToolsTabShown: boolean = showCompatibleToolsTab(artifact?.artifactType, artifactVersion?.state);
 
     let activeTabKey: string = "overview";
     if (contentMatch) {
@@ -105,7 +111,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
         activeTabKey = "references";
     } else if (documentationMatch) {
         activeTabKey = "documentation";
-    } else if (compatibilityMatch) {
+    } else if (compatibilityMatch && isCompatibleToolsTabShown) {
         activeTabKey = "compatibility";
     }
 
@@ -126,6 +132,9 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
                 .catch(guard.wrap((error: any) => {
                     setPageError(toPageError(error, "Error loading page data."));
                 })),
+            // Versions are authorized through their artifact. Never fails: without permissions, the
+            // UI shows the actions and lets the server decide
+            search.artifactPermissions(groupId as string, artifactId as string).then(guard.wrap(setPermissions)),
             groups.getArtifactVersionMetaData(gid, artifactId as string, version as string)
                 .then(guard.wrap(setArtifactVersion))
                 .catch(guard.wrap((error: any) => {
@@ -440,12 +449,13 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
         <Tab data-testid="version-overview-tab" eventKey="overview" title="Overview" key="overview" tabContentId="tab-overview">
             <VersionOverviewTabContent
                 artifact={artifact as ArtifactMetaData}
+                permissions={permissions}
                 version={artifactVersion as VersionMetaData}
                 onEditMetaData={openEditMetaDataModal}
                 onChangeState={openChangeStateModal}
             />
         </Tab>,
-        <Tab data-testid="version-documentation-tab" eventKey="documentation" title="Documentation" key="documentation" className="documentation-tab" tabContentId="tab-documentation">
+        showDocumentationTab() && <Tab data-testid="version-documentation-tab" eventKey="documentation" title="Documentation" key="documentation" className="documentation-tab" tabContentId="tab-documentation">
             <DocumentationTabContent
                 versionContent={versionContent}
                 artifactType={artifact?.artifactType as string}
@@ -460,18 +470,10 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
         <Tab data-testid="version-references-tab" eventKey="references" title="References" key="references" tabContentId="tab-references">
             <ReferencesTabContent version={artifactVersion as VersionMetaData} />
         </Tab>,
-    ];
-    if (!showDocumentationTab()) {
-        tabs.splice(1, 1);
-    }
-    // Appended after the index-based removal above, so that the removal still targets the documentation tab
-    if (showCompatibleToolsTab(artifact?.artifactType, artifactVersion?.state)) {
-        tabs.push(
-            <Tab data-testid="version-compatibility-tab" eventKey="compatibility" title="Compatible tools" key="compatibility" tabContentId="tab-compatibility">
-                <McpToolCompatibilityPanel groupId={groupId as string} artifactId={artifactId as string} version={version as string} />
-            </Tab>
-        );
-    }
+        isCompatibleToolsTabShown && <Tab data-testid="version-compatibility-tab" eventKey="compatibility" title="Compatible tools" key="compatibility" tabContentId="tab-compatibility">
+            <McpToolCompatibilityPanel groupId={groupId as string} artifactId={artifactId as string} version={version as string} />
+        </Tab>,
+    ].filter(tab => tab);
 
     const gid: string = groupId || "default";
     const breadcrumbs = (
@@ -496,6 +498,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
                 </IfFeature>
                 <PageSection hasBodyWrapper={false} className="ps_artifact-version-header" >
                     <VersionPageHeader
+                        permissions={permissions}
                         onEdit={onEditDraft}
                         onEditAgentCard={() => setIsEditAgentCardModalOpen(true)}
                         onDelete={onDeleteVersion}

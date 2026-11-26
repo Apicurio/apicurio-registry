@@ -71,3 +71,4 @@ Stop and remove everything with `docker compose down -v`.
 - *Introduction to registry rules*, *Registry rule reference* and *Registry compatibility modes* in
   the Registry documentation ([source](../../docs/modules/ROOT/pages/getting-started/)).
 - [ADR-0006](../../adr/0006-rules-engine.md): how rules are implemented.
+- [ADR-0024](../../adr/0024-data-model.md): version states and drafts.

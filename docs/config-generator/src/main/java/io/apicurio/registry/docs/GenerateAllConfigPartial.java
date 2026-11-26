@@ -375,7 +375,9 @@ public class GenerateAllConfigPartial {
                                 opt.experimental
                         ));
             } else {
-                if (key.startsWith("apicurio.")) {
+                if (key.endsWith(".dynamic.allow")) {
+                    // Per-property switches for dynamic config, governed by apicurio.config.dynamic.allow-all
+                } else if (key.startsWith("apicurio.")) {
                     allConfiguration.put(key,
                             new Option(
                                     key,

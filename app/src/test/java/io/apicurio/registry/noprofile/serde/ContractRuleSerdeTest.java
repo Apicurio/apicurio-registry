@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.AbstractClientFacadeTestBase;
 import io.apicurio.registry.client.RegistryClientFactory;
-import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.resolver.client.RegistryClientFacadeImpl;
 import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
 import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
@@ -93,7 +92,7 @@ public class ContractRuleSerdeTest extends AbstractClientFacadeTestBase {
 
         // Unreachable registry: an exception, never "no rules"
         RegistryClientFacadeImpl unreachable = new RegistryClientFacadeImpl(RegistryClientFactory.create(
-                RegistryClientOptions.create().registryUrl("http://localhost:1/apis/registry/v3").vertx(vertx)));
+                boundedClientOptions("http://localhost:1/apis/registry/v3", vertx)));
         IllegalStateException e = Assertions.assertThrows(IllegalStateException.class,
                 () -> unreachable.getContractRuleset("g", "a"));
         Assertions.assertTrue(e.getMessage().startsWith("Failed to fetch the contract ruleset of g/a"),

@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Proxy;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -55,6 +56,8 @@ class ConsumerContractRuleCoordinatesTest {
                     }
                     return switch (name) {
                         case "getSchemaByContentId", "getSchemaByGlobalId", "getSchemaByContentHash" -> "{}";
+                        case "getSchemaBytesByContentId", "getSchemaBytesByGlobalId", "getSchemaBytesByContentHash" ->
+                                "{}".getBytes(StandardCharsets.UTF_8);
                         case "getReferencesByContentId", "getReferencesByGlobalId", "getReferencesByContentHash" -> List.of();
                         case "getVersionCoordinatesByGlobalId", "getVersionCoordinatesByContentId" -> coordinates;
                         case "getGlobalContractRuleset", "getVersionContractRuleset" -> null;

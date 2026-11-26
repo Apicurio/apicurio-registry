@@ -21,7 +21,10 @@ import java.nio.file.Path;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.delete;
+import static com.github.tomakehurst.wiremock.client.WireMock.deleteRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
@@ -142,6 +145,8 @@ public class GitOpsCommandTest {
                 }
               ]
             }""";
+
+    private static final String ROUTE_COOKIE = "route=replica-1";
 
     private static WireMockServer wireMock;
 
@@ -520,5 +525,71 @@ public class GitOpsCommandTest {
                 .contains("\"taskId\"")
                 .contains("\"result\"")
                 .contains("success");
+    }
+
+    @Test
+    void validateSendsBackCookieSetOnPost() {
+        stubValidateSettingRouteCookie();
+
+        assertThat(cmd.execute("gitops", "validate", "--repo", "my-repo", "--ref", "main")).isZero();
+
+        assertRouteCookieSentAfterPost();
+    }
+
+    @Test
+    void validateWithBasicAuthSendsBackCookieSetOnPost() {
+        assertThat(cmd.execute("login", "--username", "alice", "--password", "secret")).isZero();
+        stubValidateSettingRouteCookie();
+
+        assertThat(cmd.execute("gitops", "validate", "--repo", "my-repo", "--ref", "main")).isZero();
+
+        assertRouteCookieSentAfterPost();
+        wireMock.verify(1, getRequestedFor(urlEqualTo(VALIDATE_PATH + "/task-001"))
+                .withHeader("Authorization", equalTo("Basic YWxpY2U6c2VjcmV0")));
+    }
+
+    @Test
+    void validateWithOAuth2SendsBackCookieSetOnPost() {
+        assertThat(cmd.execute("login", "--token-endpoint", "http://localhost:" + wireMock.port() + "/token",
+                "--client-id", "acr", "--client-secret", "secret")).isZero();
+        wireMock.stubFor(post(urlEqualTo("/token"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("""
+                                {"access_token":"token-123","token_type":"Bearer","expires_in":300}""")));
+        stubValidateSettingRouteCookie();
+
+        assertThat(cmd.execute("gitops", "validate", "--repo", "my-repo", "--ref", "main")).isZero();
+
+        assertRouteCookieSentAfterPost();
+        wireMock.verify(1, getRequestedFor(urlEqualTo(VALIDATE_PATH + "/task-001"))
+                .withHeader("Authorization", equalTo("Bearer token-123")));
+    }
+
+    private void stubValidateSettingRouteCookie() {
+        wireMock.stubFor(post(urlEqualTo(VALIDATE_PATH))
+                .willReturn(aResponse()
+                        .withStatus(202)
+                        .withHeader("Content-Type", "application/json")
+                        .withHeader("Set-Cookie", ROUTE_COOKIE + "; Path=/; HttpOnly")
+                        .withBody(VALIDATE_TASK_PENDING)));
+
+        wireMock.stubFor(get(urlEqualTo(VALIDATE_PATH + "/task-001"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody(VALIDATE_TASK_SUCCESS)));
+
+        wireMock.stubFor(delete(urlEqualTo(VALIDATE_PATH + "/task-001"))
+                .willReturn(aResponse().withStatus(204)));
+    }
+
+    private void assertRouteCookieSentAfterPost() {
+        wireMock.verify(1, postRequestedFor(urlEqualTo(VALIDATE_PATH)).withoutHeader("Cookie"));
+        wireMock.verify(1, getRequestedFor(urlEqualTo(VALIDATE_PATH + "/task-001"))
+                .withHeader("Cookie", equalTo(ROUTE_COOKIE)));
+        wireMock.verify(1, deleteRequestedFor(urlEqualTo(VALIDATE_PATH + "/task-001"))
+                .withHeader("Cookie", equalTo(ROUTE_COOKIE)));
     }
 }

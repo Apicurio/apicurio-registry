@@ -74,6 +74,7 @@ import org.slf4j.Logger;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -609,10 +610,10 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 // The artifact was successfully created! Create the version as well, if one was included.
                 ImmutablePair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> pair;
                 if (versionContent != null) {
-                    // Index the structured content BEFORE creating the version: createArtifactVersionRaw
-                    // locks the shared globalId sequence row until commit, so any work after it
-                    // serializes every concurrent create in the registry. For a new artifact the
-                    // result is identical to refreshing afterwards: its first version is the 'latest'
+                    // Index the structured content BEFORE creating the version. This ordering used to
+                    // keep work out of the legacy globalId sequence-row lock; native ID sequences no
+                    // longer hold a lock until commit, so the order is retained only because it is
+                    // equivalent. For a new artifact the result is identical to refreshing afterwards: its first version is the 'latest'
                     // branch head and is ENABLED unless it is a draft (in which case nothing is
                     // indexed), its content is exactly versionContent, and there are no prior rows.
                     if (!versionIsDraft) {
@@ -933,8 +934,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     /**
      * Updates the structured-content index for a version that is about to be created on an existing,
-     * already-locked artifact. Must run BEFORE createArtifactVersionRaw, which locks the shared globalId
-     * sequence row until commit (every concurrent create in the registry queues on it). Equivalent to
+     * already-locked artifact. Runs BEFORE createArtifactVersionRaw (originally to stay outside the legacy
+     * globalId sequence-row lock; native ID sequences no longer lock until commit). Equivalent to
      * refreshing afterwards: a non-draft version is appended to the end of the 'latest' branch as an
      * ENABLED version, so it becomes the indexed tip with exactly this content; a draft version is only
      * added to the 'drafts' branch and leaves the index unchanged. The stored artifact type is used,
@@ -978,6 +979,11 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             throws ArtifactNotFoundException, RegistryStorageException {
 
         return artifactRepository.getArtifactMetaData(groupId, artifactId);
+    }
+
+    @Override
+    public List<ArtifactMetaDataDto> getArtifactsMetaData(Collection<GA> artifacts) throws RegistryStorageException {
+        return artifactRepository.getArtifactsMetaData(artifacts);
     }
 
     /**
@@ -1381,6 +1387,12 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             throws VersionNotFoundException, RegistryStorageException {
 
         return versionRepository.getArtifactVersionMetaData(globalId);
+    }
+
+    @Override
+    public VersionWithArtifactMetaDataDto getArtifactVersionWithArtifactMetaData(Long globalId)
+            throws VersionNotFoundException, RegistryStorageException {
+        return versionRepository.getArtifactVersionWithArtifactMetaData(globalId);
     }
 
     @Override
@@ -1833,6 +1845,15 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public void deleteAllExpiredDownloads() throws RegistryStorageException {
 
         downloadRepository.deleteAllExpiredDownloads();
+    }
+
+    /**
+     * Removes consumed MySQL sequence ticket rows. No-op for other databases or before initialization.
+     */
+    public void pruneSequenceTickets() {
+        if (sequenceRepository != null) {
+            sequenceRepository.pruneSequenceTickets();
+        }
     }
 
     @Override

@@ -43,7 +43,6 @@ import io.apicurio.registry.storage.error.InvalidVersionStateException;
 import io.apicurio.registry.storage.error.NotFoundException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.types.VersionState;
-import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.util.ArtifactTypeUtil;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
@@ -54,7 +53,6 @@ import java.math.BigInteger;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -527,24 +525,6 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
         } else {
             throw new ArtifactNotFoundException(groupId, artifactId);
         }
-    }
-
-    /**
-     * Applies the default format if configured and no format was explicitly provided.
-     */
-    private String resolveEffectiveFormat(String format, String artifactType) {
-        String effectiveFormat = format;
-        if (effectiveFormat == null || effectiveFormat.isBlank()) {
-            Optional<String> configuredDefault = restConfig.getDefaultReferenceHandling();
-            if (configuredDefault.isPresent() && !configuredDefault.orElseThrow().trim().isEmpty()
-                    && "DEREFERENCE".equals(configuredDefault.orElseThrow())) {
-                // Apply RESOLVED format for Avro and Protobuf when DEREFERENCE is configured
-                if (ArtifactType.AVRO.equals(artifactType) || ArtifactType.PROTOBUF.equals(artifactType)) {
-                    effectiveFormat = "RESOLVED";
-                }
-            }
-        }
-        return effectiveFormat;
     }
 
     /**

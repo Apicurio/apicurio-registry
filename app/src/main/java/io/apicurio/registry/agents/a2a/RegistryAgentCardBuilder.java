@@ -34,7 +34,7 @@ public class RegistryAgentCardBuilder {
                 .name(a2aConfig.getAgentName())
                 .description(a2aConfig.getAgentDescription())
                 .version(a2aConfig.getAgentVersion().orElse(system.getVersion()))
-                .protocolVersion(a2aConfig.getProtocolVersion())
+                .protocolVersion(A2AConfig.PROTOCOL_VERSION)
                 .supportedInterfaces(buildInterfaces(agentUrl))
                 .provider(buildProvider())
                 .capabilities(buildCapabilities())
@@ -51,7 +51,7 @@ public class RegistryAgentCardBuilder {
 
     private List<AgentInterface> buildInterfaces(String agentUrl) {
         return List.of(
-                AgentInterface.builder().url(agentUrl).protocolBinding("http+json").protocolVersion(a2aConfig.getProtocolVersion()).build()
+                AgentInterface.builder().url(agentUrl).protocolBinding("http+json").protocolVersion(A2AConfig.PROTOCOL_VERSION).build()
         );
     }
 

@@ -3,6 +3,7 @@ import "./GroupPageHeader.css";
 import { Button, Flex, FlexItem, Content, ContentVariants } from "@patternfly/react-core";
 import { IfAuth, IfFeature } from "@app/components";
 import { If } from "@apitomy/common-ui-components";
+import { ResourcePermissions } from "@sdk/lib/generated-client/models";
 
 
 /**
@@ -11,6 +12,7 @@ import { If } from "@apitomy/common-ui-components";
 export type GroupPageHeaderProps = {
     title: string;
     groupId: string;
+    permissions?: ResourcePermissions;
     onDeleteGroup: () => void;
 };
 
@@ -27,7 +29,7 @@ export const GroupPageHeader: FunctionComponent<GroupPageHeaderProps> = (props: 
             </FlexItem>
             <FlexItem align={{ default: "alignRight" }}>
                 <If condition={props.groupId !== "default"}>
-                    <IfAuth isDeveloper={true}>
+                    <IfAuth isDeveloper={true} permissions={props.permissions}>
                         <IfFeature feature="readOnly" isNot={true}>
                             <IfFeature feature="deleteGroup" is={true}>
                                 <Button id="delete-artifact-button" variant="danger"

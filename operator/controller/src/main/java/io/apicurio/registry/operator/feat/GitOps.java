@@ -4,6 +4,8 @@ import io.apicurio.registry.operator.Configuration;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
 import io.apicurio.registry.operator.api.v1.spec.AppSpec;
+import io.apicurio.registry.operator.api.v1.spec.AutoscalingSpec;
+import io.apicurio.registry.operator.api.v1.spec.ComponentSpec;
 import io.apicurio.registry.operator.api.v1.spec.GitOpsMode;
 import io.apicurio.registry.operator.api.v1.spec.GitOpsPullSpec;
 import io.apicurio.registry.operator.api.v1.spec.GitOpsPushSpec;
@@ -11,6 +13,8 @@ import io.apicurio.registry.operator.api.v1.spec.GitOpsRepoSpec;
 import io.apicurio.registry.operator.api.v1.spec.GitOpsSpec;
 import io.apicurio.registry.operator.api.v1.spec.StorageSpec;
 import io.apicurio.registry.operator.api.v1.spec.StorageType;
+import io.apicurio.registry.operator.status.StatusManager;
+import io.apicurio.registry.operator.status.ValidationErrorConditionManager;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
 import io.fabric8.kubernetes.api.model.ContainerPortBuilder;
@@ -24,6 +28,7 @@ import io.fabric8.kubernetes.api.model.EnvVarBuilder;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
+import io.fabric8.kubernetes.api.model.apps.DeploymentStrategyBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,6 +78,10 @@ public class GitOps {
 
                     var repos = ofNullable(gitOps.getRepos()).orElse(List.of());
                     var mode = ofNullable(gitOps.getMode()).orElse(GitOpsMode.PULL);
+
+                    if (mode == GitOpsMode.PUSH) {
+                        enforcePushModeSingleReplica(primary, deployment);
+                    }
 
                     configureRegistryRepoEnvVars(repos, env);
                     configureVolume(deployment);
@@ -311,6 +320,52 @@ public class GitOps {
                     .withName("APICURIO_GITOPS_PUSH_SSH_HOST_KEY")
                     .withValue(hostKey.getSecretVolumeKeyPath()).build());
         }
+    }
+
+    public static final String ERROR_PUSH_MODE_MULTI_REPLICA =
+            "GitOps push mode supports a single replica, so the operator runs one replica "
+                    + "and ignores spec.app.replicas. "
+                    + "Set spec.app.replicas to 1, or switch to pull mode.";
+
+    public static final String ERROR_PUSH_MODE_AUTOSCALING =
+            "GitOps push mode supports a single replica, so the operator runs one replica "
+                    + "and does not create a HorizontalPodAutoscaler. "
+                    + "Disable spec.app.autoscaling, or switch to pull mode.";
+
+    private static void enforcePushModeSingleReplica(ApicurioRegistry3 primary,
+            Deployment deployment) {
+        final int replicas = ofNullable(primary.getSpec())
+                .map(ApicurioRegistry3Spec::getApp)
+                .map(ComponentSpec::getReplicas)
+                .orElse(1);
+
+        final boolean autoscalingEnabled = ofNullable(primary.getSpec())
+                .map(ApicurioRegistry3Spec::getApp)
+                .map(ComponentSpec::getAutoscaling)
+                .map(AutoscalingSpec::getEnabled)
+                .orElse(false);
+
+        final var validationManager = StatusManager.get(primary)
+                .getConditionManager(ValidationErrorConditionManager.class);
+
+        if (replicas > 1) {
+            validationManager.recordError(ERROR_PUSH_MODE_MULTI_REPLICA);
+            if (!validationManager.hadPreviousError(ERROR_PUSH_MODE_MULTI_REPLICA)) {
+                log.error(ERROR_PUSH_MODE_MULTI_REPLICA);
+            }
+        }
+
+        if (autoscalingEnabled) {
+            validationManager.recordError(ERROR_PUSH_MODE_AUTOSCALING);
+            if (!validationManager.hadPreviousError(ERROR_PUSH_MODE_AUTOSCALING)) {
+                log.error(ERROR_PUSH_MODE_AUTOSCALING);
+            }
+        }
+
+        deployment.getSpec().setReplicas(1);
+        deployment.getSpec().setStrategy(new DeploymentStrategyBuilder()
+                .withType("Recreate")
+                .build());
     }
 
     public static boolean isEnabled(ApicurioRegistry3 primary) {

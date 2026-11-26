@@ -4,10 +4,11 @@
 
 CREATE TABLE apicurio (propName VARCHAR(255) NOT NULL, propValue VARCHAR(255));
 ALTER TABLE apicurio ADD PRIMARY KEY (propName);
-INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 114);
+INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 115);
 
-CREATE TABLE sequences (seqName VARCHAR(32) NOT NULL, seqValue BIGINT NOT NULL);
-ALTER TABLE sequences ADD PRIMARY KEY (seqName);
+CREATE SEQUENCE globalid_seq START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE contentid_seq START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE commentid_seq START WITH 1 INCREMENT BY 1;
 
 CREATE TABLE config (propName VARCHAR(255) NOT NULL, propValue VARCHAR(1024) NOT NULL, modifiedOn BIGINT NOT NULL);
 ALTER TABLE config ADD PRIMARY KEY (propName);

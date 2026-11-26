@@ -211,6 +211,18 @@ class KubernetesOpsSmokeTest {
         });
     }
 
+    @Test
+    void defaultGroupIsImplicitWithoutConfigMap() throws Exception {
+        var configMapStore = KubernetesTestResourceManager.getConfigMapStore();
+
+        configMapStore.load("git/ambiguous-extension");
+        await().atMost(Duration.ofSeconds(30)).until(
+                () -> withContext(() -> storage.getArtifactIds(10)),
+                equalTo(Set.of("openapi-yaml")));
+
+        assertEquals("OPENAPI", storage.getArtifactMetaData("default", "openapi-yaml").getArtifactType());
+    }
+
     private void assertPeerLoadedBeforeTheRefusedRevision() {
         var peers = storage.getPeers();
         assertEquals(1, peers.size());

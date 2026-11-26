@@ -369,6 +369,217 @@ public class GitOpsSmokeTest {
         assertEquals("OPENAPI", storage.getArtifactMetaData("default", "openapi-yaml").getArtifactType());
     }
 
+    @Test
+    void defaultGroupIsImplicitWithoutGroupFile() throws Exception {
+        final var testRepository = GitTestRepositoryManager.getTestRepository();
+
+        testRepository.commitFiles(Map.of(
+                "registry.registry.yaml", """
+                        $type: registry-v0
+                        registryId: test
+                        """,
+                "artifact-default.registry.yaml", """
+                        $type: artifact-v0
+                        groupId: default
+                        artifactId: implicit-default-art
+                        artifactType: JSON
+                        """
+        ));
+
+        await().atMost(Duration.ofSeconds(60)).untilAsserted(() -> {
+            assertEquals(Set.of("implicit-default-art"), withContext(() -> storage.getArtifactIds(10)));
+        });
+
+        var meta = storage.getArtifactMetaData("default", "implicit-default-art");
+        assertNotNull(meta);
+        assertEquals("JSON", meta.getArtifactType());
+    }
+
+    @Test
+    void defaultGroupFileIsRejected() throws Exception {
+        final var testRepository = GitTestRepositoryManager.getTestRepository();
+
+        // First load valid data so we can verify no swap occurs on failure
+        testRepository.load("git/smoke01");
+        await().atMost(Duration.ofSeconds(60)).untilAsserted(() -> {
+            assertEquals(Set.of("petstore"), withContext(() -> storage.getArtifactIds(10)));
+        });
+
+        // Any group file for default group must be rejected (the default group is implicit and can't be configured)
+        testRepository.commitFiles(Map.of(
+                "registry.registry.yaml", """
+                        $type: registry-v0
+                        registryId: test
+                        """,
+                "group-default.registry.yaml", """
+                        $type: group-v0
+                        groupId: default
+                        description: An invalid default group file
+                        """,
+                "artifact-default.registry.yaml", """
+                        $type: artifact-v0
+                        groupId: default
+                        artifactId: art-with-group-file
+                        artifactType: JSON
+                        """
+        ));
+
+        await().pollDelay(Duration.ofSeconds(3)).untilAsserted(() -> {
+            // Previous data should still be served (failure prevents swap)
+            assertEquals(Set.of("petstore"), withContext(() -> storage.getArtifactIds(10)));
+        });
+
+        await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
+            get("/apis/registry/v3/admin/gitops/status")
+                    .then()
+                    .statusCode(200)
+                    .body("syncState", equalTo("ERROR"))
+                    .body("errors[0].detail", containsString(
+                            "The default group is implicit and can't be configured; remove this file, and use global rules in the registry file for rules that apply to it."));
+        });
+    }
+
+    @Test
+    void artifactWithoutVersionsAndExplicitTypeIsAccepted() throws Exception {
+        final var testRepository = GitTestRepositoryManager.getTestRepository();
+
+        testRepository.commitFiles(Map.of(
+                "registry.registry.yaml", """
+                        $type: registry-v0
+                        registryId: test
+                        """,
+                "artifact-meta-only.registry.yaml", """
+                        $type: artifact-v0
+                        groupId: default
+                        artifactId: metadata-only-art
+                        artifactType: OPENAPI
+                        description: An artifact with no versions
+                        """
+        ));
+
+        await().atMost(Duration.ofSeconds(60)).untilAsserted(() -> {
+            assertEquals(Set.of("metadata-only-art"), withContext(() -> storage.getArtifactIds(10)));
+        });
+
+        var meta = storage.getArtifactMetaData("default", "metadata-only-art");
+        assertNotNull(meta);
+        assertEquals("OPENAPI", meta.getArtifactType());
+        assertEquals("An artifact with no versions", meta.getDescription());
+    }
+
+    @Test
+    void artifactWithoutVersionsAndWithoutTypeIsRejected() throws Exception {
+        final var testRepository = GitTestRepositoryManager.getTestRepository();
+
+        // First load valid data
+        testRepository.load("git/smoke01");
+        await().atMost(Duration.ofSeconds(60)).untilAsserted(() -> {
+            assertEquals(Set.of("petstore"), withContext(() -> storage.getArtifactIds(10)));
+        });
+
+        testRepository.commitFiles(Map.of(
+                "registry.registry.yaml", """
+                        $type: registry-v0
+                        registryId: test
+                        """,
+                "artifact-invalid.registry.yaml", """
+                        $type: artifact-v0
+                        groupId: default
+                        artifactId: no-type-no-versions
+                        """
+        ));
+
+        await().pollDelay(Duration.ofSeconds(3)).untilAsserted(() -> {
+            // Previous data should still be served
+            assertEquals(Set.of("petstore"), withContext(() -> storage.getArtifactIds(10)));
+        });
+
+        await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
+            get("/apis/registry/v3/admin/gitops/status")
+                    .then()
+                    .statusCode(200)
+                    .body("syncState", equalTo("ERROR"))
+                    .body("errors[0].detail", containsString("artifactType is required when there are no versions"));
+        });
+    }
+
+    @Test
+    void metadataOnlyArtifactWithInvalidTypeIsRejected() throws Exception {
+        final var testRepository = GitTestRepositoryManager.getTestRepository();
+
+        // First load valid data
+        testRepository.load("git/smoke01");
+        await().atMost(Duration.ofSeconds(60)).untilAsserted(() -> {
+            assertEquals(Set.of("petstore"), withContext(() -> storage.getArtifactIds(10)));
+        });
+
+        testRepository.commitFiles(Map.of(
+                "registry.registry.yaml", """
+                        $type: registry-v0
+                        registryId: test
+                        """,
+                "artifact-invalid-type.registry.yaml", """
+                        $type: artifact-v0
+                        groupId: default
+                        artifactId: invalid-type-art
+                        artifactType: NOT_A_REAL_TYPE
+                        """
+        ));
+
+        await().pollDelay(Duration.ofSeconds(3)).untilAsserted(() -> {
+            // Previous data should still be served
+            assertEquals(Set.of("petstore"), withContext(() -> storage.getArtifactIds(10)));
+        });
+
+        await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
+            get("/apis/registry/v3/admin/gitops/status")
+                    .then()
+                    .statusCode(200)
+                    .body("syncState", equalTo("ERROR"))
+                    .body("errors[0].detail", containsString("invalid artifactType 'NOT_A_REAL_TYPE'"));
+        });
+    }
+
+    @Test
+    void emptyContentFileIsRejected() throws Exception {
+        final var testRepository = GitTestRepositoryManager.getTestRepository();
+
+        // First load valid data
+        testRepository.load("git/smoke01");
+        await().atMost(Duration.ofSeconds(60)).untilAsserted(() -> {
+            assertEquals(Set.of("petstore"), withContext(() -> storage.getArtifactIds(10)));
+        });
+
+        testRepository.commitFiles(Map.of(
+                "registry.registry.yaml", """
+                        $type: registry-v0
+                        registryId: test
+                        """,
+                "content/empty.json", "",
+                "artifact-empty.registry.yaml", """
+                        $type: artifact-v0
+                        groupId: default
+                        artifactId: empty-content-art
+                        versions:
+                          - version: '1'
+                            content: content/empty.json
+                        """
+        ));
+
+        await().pollDelay(Duration.ofSeconds(3)).untilAsserted(() -> {
+            // Previous data should still be served
+            assertEquals(Set.of("petstore"), withContext(() -> storage.getArtifactIds(10)));
+        });
+
+        await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
+            get("/apis/registry/v3/admin/gitops/status")
+                    .then()
+                    .statusCode(200)
+                    .body("syncState", equalTo("ERROR"))
+                    .body("errors[0].detail", containsString("Empty content is not allowed"));
+        });
+    }
+
     @ActivateRequestContext
     public <T> T withContext(Supplier<T> supplier) {
         return supplier.get();

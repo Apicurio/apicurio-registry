@@ -11,6 +11,7 @@ import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 
 import static java.util.Objects.requireNonNull;
 
@@ -62,6 +63,30 @@ public class GitTestRepository implements AutoCloseable {
             throw new RuntimeException(e);
         }
 
+    }
+
+    public void commitFiles(Map<String, String> filesToCommit) {
+        try {
+            var files = FileUtils.listFiles(git.getRepository().getWorkTree(), null, true);
+            for (File f : files) {
+                var prefix = Path.of(git.getRepository().getWorkTree().getPath(), ".git");
+                if (!f.toPath().startsWith(prefix)) {
+                    FileUtils.delete(f);
+                }
+            }
+            for (Map.Entry<String, String> entry : filesToCommit.entrySet()) {
+                Path filePath = git.getRepository().getWorkTree().toPath().resolve(entry.getKey());
+                if (filePath.getParent() != null) {
+                    Files.createDirectories(filePath.getParent());
+                }
+                Files.writeString(filePath, entry.getValue(), StandardCharsets.UTF_8);
+            }
+            git.add().setUpdate(true).addFilepattern(".").call();
+            git.add().addFilepattern(".").call();
+            git.commit().setMessage("test dynamic commit").call();
+        } catch (IOException | GitAPIException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

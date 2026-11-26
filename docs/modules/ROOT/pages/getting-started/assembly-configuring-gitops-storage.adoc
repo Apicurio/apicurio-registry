@@ -79,10 +79,10 @@ Each metadata file declares its kind with a `$type` discriminator:
 | Registry configuration. Fields: `registryId`, `globalRules` (list of `ruleType` and `config` pairs), `properties`, and `peers` (list of peer registries; see below). The `registryId` value must match the `apicurio.polling-storage.id` property of the registry instance.
 
 | `group-v0`
-| An artifact group. Fields: `registryIds` (list), `groupId`, `description`, `labels`, `owner`, `artifactsType`, `rules`, `createdOn`, and `modifiedOn`. Every group that an artifact references must be declared by a `group-v0` file; the registry does not create groups automatically.
+| An artifact group. Fields: `registryIds` (list), `groupId`, `description`, `labels`, `owner`, `artifactsType`, `rules`, `createdOn`, and `modifiedOn`. Non-default groups referenced by an artifact must be declared in a `group-v0` file; no group file is allowed for the default group (rules that apply to the default group must be configured as global rules in the registry configuration file).
 
 | `artifact-v0`
-| An artifact with its versions declared inline. Fields: `registryIds`, `groupId`, `artifactId`, `artifactType` (optional), `name`, `description`, `labels`, `owner`, `createdOn`, `modifiedOn`, `rules`, `validatedUpTo`, and `versions`. Each version has `version`, `state`, and `content`, where `content` is a relative path to a schema file. A version can also have `name`, `description`, `labels`, `owner`, `globalId`, `createdOn`, `modifiedOn`, and `contentMetadata`, which is a relative path to a `content-v0` file.
+| An artifact with its versions declared inline. Fields: `registryIds`, `groupId` (optional; defaults to `default`), `artifactId`, `artifactType` (required when `versions` is omitted or empty), `name`, `description`, `labels`, `owner`, `createdOn`, `modifiedOn`, `rules`, `validatedUpTo`, and `versions` (optional). Each version has `version`, `state`, and `content`, where `content` is a relative path to a schema file. A version can also have `name`, `description`, `labels`, `owner`, `globalId`, `createdOn`, `modifiedOn`, and `contentMetadata`, which is a relative path to a `content-v0` file.
 
 | `content-v0`
 | Optional content metadata, for explicit content identifiers and references. Fields: `contentId`, `content` (relative path to the schema file), and `references` (list of entries with `groupId`, `artifactId`, `version`, and `name`).
@@ -90,7 +90,7 @@ Each metadata file declares its kind with a `$type` discriminator:
 
 GitOps storage and KubernetesOps storage share one data format. The KubernetesOps field reference lists the type and description of each field except `createdOn`, `modifiedOn`, and `validatedUpTo`. The rules later in this section describe those three fields.
 
-The following example declares a registry configuration, a group, and an artifact. All three files are required: a load that references an undeclared group fails, and the registry does not become ready.
+The following example declares a registry configuration, a group, and an artifact. Non-default groups must be declared in a `group-v0` file: a load that references an undeclared non-default group fails, and the registry does not become ready. (No group file is allowed for the default group.)
 
 [source,yaml]
 ----
@@ -184,6 +184,71 @@ endif::[]
 ifdef::service-registry-downstream[]
 * xref:kubernetesops-field-reference_{context}[]
 endif::[]
+
+
+[id="gitops-accepted-repository-states_{context}"]
+== Accepted repository states and validation rules
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+The GitOps loader accepts a repository state if a user could produce the same registry state deliberately through the REST API. It rejects anything that the REST API would not allow a user to produce.
+
+When the registry rejects a repository state:
+
+* The entire load fails.
+* No blue-green database swap occurs.
+* The registry keeps serving the last successfully loaded, known-good registry data.
+* No partially imported state becomes visible to users or API clients.
+* The registry status reports `syncState: ERROR` with structured error details identifying the source repository, the offending file path, and a description of the error.
+
+=== Core acceptance rules and loader behaviors
+
+The following rules define which repository states the GitOps loader accepts or rejects:
+
+Default group::
+The `default` group in {registry} is implicit and cannot be configured. Artifacts that omit `groupId` or specify `groupId: default` belong to the default group.
+* No `group-v0` file is allowed for the default group. If a `group-v0` file whose `groupId` is `default` (or empty) is present in the repository, the load fails with an error stating that the default group is implicit and cannot be configured.
+* Rules that apply to the default group must be configured as global rules in the registry configuration file (`registry-v0`).
+* Non-default groups must be declared in a `group-v0` file. A reference to an undeclared non-default group fails the load.
+
+Artifacts without versions::
+An artifact can be defined with zero versions (for example, metadata-only artifacts):
+* An artifact with no versions is valid if `artifactType` is explicitly provided.
+* An artifact with no versions and no explicit `artifactType` is rejected, because {registry} requires an artifact type when there is no schema content from which to infer it (matching REST API semantics).
+* When versions are declared, `artifactType` is optional and can be inferred from unambiguous file extensions or content inspection.
+
+Content validation and empty content::
+Content files referenced by version definitions must exist, be readable, and contain valid content:
+* Empty (zero-byte) content files are rejected (matching the REST API rule `Empty content is not allowed`).
+* Versions pointing to missing or unreadable content files fail the load.
+
+Metadata file validity::
+All metadata files (`$type: *-v0`) must be well-formed YAML or JSON conforming to the schema.
+* Malformed metadata, unparseable YAML or JSON, and invalid field types cause the load to fail. Invalid files are never skipped silently.
+
+Version states::
+Allowed version states are `ENABLED`, `DISABLED`, `DEPRECATED`, and `DRAFT`.
+* Unknown or invalid version states cause the load to fail.
+* Versions in `DRAFT` state are excluded from the system-defined `latest` branch tip.
+
+Artifact references and integrity::
+Artifact versions can reference schemas in other artifacts (using `content-v0` or references in content):
+* References are validated according to the registry rules in effect.
+* For versions selected for validation, an `INTEGRITY` rule configured with `REFS_EXIST` or `FULL` (globally, at the group level, or at the artifact level) requires references to resolve to valid target artifacts and versions.
+* If no `INTEGRITY` rule applies (or if configured with levels that permit dangling references, such as `NO_DUPLICATES`), references to non-existent artifacts are permitted (matching REST API semantics).
+
+Custom branches::
+The `v0` repository data format does not support custom branch declarations.
+* The loader automatically maintains the system-defined `latest` branch for each artifact, pointing to the highest non-draft version.
+
+Duplicate artifact coordinates::
+When multiple repositories are configured for a single registry instance, each artifact (`groupId:artifactId`) must be defined in exactly one repository. Defining the same artifact coordinates across multiple repositories causes the load to fail. Within a single repository, each artifact must be defined in a single metadata file.
+
+Rule validation and `validatedUpTo`::
+When rules (`VALIDITY`, `COMPATIBILITY`, `INTEGRITY`) are configured, the loader evaluates them before switching to the new data:
+* Rules are applied to versions at write time, not retroactively across historical versions. By default, the loader validates only the latest version of an artifact against its predecessors.
+* You can set `validatedUpTo` to a version identifier on an artifact to indicate that versions up to and including that version have already passed rule validation. The loader then validates only subsequent versions. If `validatedUpTo` does not match any declared version, all versions are validated.
 
 
 [id="configuring-gitops-storage-single-repository_{context}"]

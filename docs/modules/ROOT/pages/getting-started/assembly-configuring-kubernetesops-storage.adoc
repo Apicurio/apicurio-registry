@@ -425,6 +425,24 @@ data:
 [role="_additional-resources"]
 .Additional resources
 * xref:kubernetesops-field-reference_{context}[]
+* xref:kubernetesops-accepted-states_{context}[]
+
+
+[id="kubernetesops-accepted-states_{context}"]
+== Accepted repository states and validation rules
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+KubernetesOps storage follows the same acceptance rule and data format as GitOps storage.
+
+The KubernetesOps loader accepts a ConfigMap repository state if a user could produce the same registry state deliberately through the REST API. It rejects anything that the REST API would not allow a user to produce:
+
+* When a state is rejected, the entire load fails, no blue-green database swap occurs, and the registry continues serving the last known-good state.
+* The `default` group is implicit and cannot be configured. No `group-v0` ConfigMap is allowed for the default group. Rules that apply to the default group must be configured as global rules in the registry configuration (`registry-v0`).
+* Artifacts without versions are accepted if `artifactType` is explicitly provided, and rejected if `artifactType` is omitted.
+* Empty (zero-byte) content files are rejected.
+* For full details on accepted repository states, validation rules, and error handling, see xref:getting-started/assembly-configuring-gitops-storage.adoc#gitops-accepted-repository-states_{context}[Accepted repository states and validation rules].
 
 
 [id="kubernetesops-field-reference_{context}"]
@@ -520,7 +538,7 @@ Each KubernetesOps entity type (`registry-v0`, `group-v0`, `artifact-v0`, `conte
 
 |`groupId`
 |string
-|*Required*. Parent group ID.
+|Parent group ID. If omitted or set to `default`, the artifact belongs to the implicit default group.
 
 |`artifactId`
 |string
@@ -528,7 +546,7 @@ Each KubernetesOps entity type (`registry-v0`, `group-v0`, `artifact-v0`, `conte
 
 |`artifactType`
 |string
-|*Required*. Artifact type: `AVRO`, `PROTOBUF`, `JSON`, `OPENAPI`, `ASYNCAPI`, `GRAPHQL`, `KCONNECT`, `THRIFT`, `WSDL`, `XSD`, `XML`.
+|Artifact type (for example, `AVRO`, `PROTOBUF`, `JSON`, `OPENAPI`, `ASYNCAPI`, `GRAPHQL`, `KCONNECT`, `THRIFT`, `WSDL`, `XSD`, `XML`). Required when `versions` is omitted or empty. Optional when versions exist, in which case the type is inferred from the file extension or content.
 
 |`name`
 |string
@@ -548,7 +566,7 @@ Each KubernetesOps entity type (`registry-v0`, `group-v0`, `artifact-v0`, `conte
 
 |`versions`
 |list of versions
-|*Required*. At least one version. See version fields below.
+|List of versions. Optional. An artifact can be defined with no versions if `artifactType` is explicitly provided. See version fields below.
 
 |`rules`
 |list of rules

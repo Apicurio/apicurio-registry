@@ -321,9 +321,10 @@ class JdkSslContextFactoryTest {
     @ValueSource(strings = {"JKS", "PKCS12"})
     void testCreateSslContextWithoutSeparateKeyPasswordThrows(String type, @TempDir Path dir) throws Exception {
         Path keystore = writeKeyStore(type, dir);
+        RegistryClientOptions options = withKeyStore(type, keystore, null);
 
         RuntimeException ex = assertThrows(RuntimeException.class, () ->
-                JdkSslContextFactory.createSslContext(withKeyStore(type, keystore, null)));
+                JdkSslContextFactory.createSslContext(options));
 
         assertInstanceOf(UnrecoverableKeyException.class, ex.getCause());
     }
@@ -332,9 +333,10 @@ class JdkSslContextFactoryTest {
     @ValueSource(strings = {"JKS", "PKCS12"})
     void testCreateSslContextWithWrongKeyPasswordThrows(String type, @TempDir Path dir) throws Exception {
         Path keystore = writeKeyStore(type, dir);
+        RegistryClientOptions options = withKeyStore(type, keystore, "wrong");
 
         RuntimeException ex = assertThrows(RuntimeException.class, () ->
-                JdkSslContextFactory.createSslContext(withKeyStore(type, keystore, "wrong")));
+                JdkSslContextFactory.createSslContext(options));
 
         assertInstanceOf(UnrecoverableKeyException.class, ex.getCause());
     }

@@ -14,13 +14,13 @@ import java.util.Map;
 public final class SignatureVerificationProfiles {
 
     static final String VERIFY_JWKS = "/verify/jwks";
-    static final String REQUIRE_JWKS = "/require/jwks";
+    public static final String REQUIRE_JWKS = "/require/jwks";
     static final String OFF_JWKS = "/off/jwks";
 
     private SignatureVerificationProfiles() {
     }
 
-    static Map<String, String> overrides(String mode, String jwksPath) {
+    public static Map<String, String> overrides(String mode, String jwksPath) {
         Map<String, String> props = new HashMap<>();
         props.put("apicurio.features.experimental.enabled", "true");
         props.put("apicurio.a2a.enabled", "true");
@@ -29,6 +29,7 @@ public final class SignatureVerificationProfiles {
         // Only 127.0.0.1: a jku naming "localhost", the same server, must not be followed.
         props.put("apicurio.a2a.signature-verification.jku-allowlist", "127.0.0.1");
         props.put("apicurio.a2a.signature-verification.cache-ttl.seconds", "2");
+        props.put("apicurio.a2a.signature-verification.fetch.timeout.seconds", "2");
         props.put("apicurio.outbound.insecure-http.enabled", "true");
         props.put("apicurio.outbound.loopback.enabled", "true");
         return props;

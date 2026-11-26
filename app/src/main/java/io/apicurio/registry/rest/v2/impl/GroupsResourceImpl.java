@@ -1,6 +1,7 @@
 package io.apicurio.registry.rest.v2.impl;
 
 import com.google.common.hash.Hashing;
+import io.apicurio.registry.extensions.ArtifactContentPolicies;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedResource;
@@ -92,6 +93,9 @@ public class GroupsResourceImpl implements GroupsResource {
     private static final String EMPTY_CONTENT_ERROR_MESSAGE = "Empty content is not allowed.";
     @SuppressWarnings("unused")
     private static final Integer GET_GROUPS_LIMIT = 1000;
+
+    @Inject
+    ArtifactContentPolicies contentPolicies;
 
     @Inject
     RulesService rulesService;
@@ -652,6 +656,7 @@ public class GroupsResourceImpl implements GroupsResource {
                                                                                               // not supported
                                                                                               // for testing
                                                                                               // update
+        contentPolicies.check(artifactType, typedContent);
     }
 
     /**
@@ -1118,6 +1123,7 @@ public class GroupsResourceImpl implements GroupsResource {
             rulesService.applyRulesForNewVersion(defaultGroupIdToNull(groupId), artifactId,
                     xRegistryVersion != null ? xRegistryVersion : "1", artifactType, typedContent,
                     RuleApplicationType.CREATE, toV3Refs(references), resolvedReferences);
+            contentPolicies.check(artifactType, typedContent);
 
             // Extract metadata from content, then override extracted values with provided values.
             EditableArtifactMetaDataDto metaData = extractMetaData(artifactType, content);
@@ -1270,6 +1276,7 @@ public class GroupsResourceImpl implements GroupsResource {
         rulesService.applyRulesForNewVersion(defaultGroupIdToNull(groupId), artifactId, xRegistryVersion,
                 artifactType, typedContent, RuleApplicationType.UPDATE, toV3Refs(references),
                 resolvedReferences);
+        contentPolicies.check(artifactType, typedContent);
         EditableVersionMetaDataDto metaData = getEditableVersionMetaData(artifactName, artifactDescription);
         ContentWrapperDto contentDto = ContentWrapperDto.builder().content(content).contentType(ct)
                 .references(referencesAsDtos).build();
@@ -1379,6 +1386,7 @@ public class GroupsResourceImpl implements GroupsResource {
         TypedContent typedContent = TypedContent.create(content, contentType);
         rulesService.applyRulesForNewVersion(defaultGroupIdToNull(groupId), artifactId, version, artifactType,
                 typedContent, RuleApplicationType.UPDATE, toV3Refs(references), resolvedReferences);
+        contentPolicies.check(artifactType, typedContent);
 
         // Extract metadata from content, then override extracted values with provided values.
         EditableArtifactMetaDataDto artifactMD = extractMetaData(artifactType, content);

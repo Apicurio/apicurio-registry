@@ -1,6 +1,7 @@
 package io.apicurio.registry.agents.a2a.signature;
 
 import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.extensions.ArtifactContentPolicy;
 import io.apicurio.registry.extensions.ArtifactVersionWriteHook;
 import io.apicurio.registry.extensions.VersionWriteContext;
 import io.apicurio.registry.rules.violation.RuleViolation;
@@ -20,12 +21,16 @@ import java.util.Set;
  * rules, so disabling or never enabling a rule does not bypass it. Dry runs are rejected exactly like real
  * writes.
  * <p>
+ * The same policy is applied, through {@link ArtifactContentPolicy}, to the v2 REST API and the
+ * Confluent-compatible API, which do not run write hooks.
+ * </p>
+ * <p>
  * A rejection is a {@link RuleViolationException} with one cause per signature, naming its claimed
  * {@code kid} and the reason; never key material or signature bytes.
  * </p>
  */
 @ApplicationScoped
-public class AgentCardSignatureWriteHook implements ArtifactVersionWriteHook {
+public class AgentCardSignatureWriteHook implements ArtifactVersionWriteHook, ArtifactContentPolicy {
 
     static final String REJECTED = "The Agent Card signatures do not satisfy the registry's signature policy.";
     private static final int MAX_KID_LENGTH = 128;
@@ -38,9 +43,15 @@ public class AgentCardSignatureWriteHook implements ArtifactVersionWriteHook {
 
     @Override
     public Runnable beforePublish(VersionWriteContext context, TypedContent content) {
+        check(context.getArtifactType(), content);
+        return null;
+    }
+
+    @Override
+    public void check(String artifactType, TypedContent content) {
         AgentCardSignatureConfig.Mode mode = config.getMode();
-        if (mode == AgentCardSignatureConfig.Mode.OFF || !ArtifactType.AGENT_CARD.equals(context.getArtifactType())) {
-            return null;
+        if (mode == AgentCardSignatureConfig.Mode.OFF || !ArtifactType.AGENT_CARD.equals(artifactType)) {
+            return;
         }
         AgentCardSignatureVerifier.Result result = signatureService.verify(content.getContent().content());
         if (!result.signed()) {
@@ -48,10 +59,10 @@ public class AgentCardSignatureWriteHook implements ArtifactVersionWriteHook {
                 throw rejection(mode, Set.of(new RuleViolation(
                         "The Agent Card is not signed: no verifiable signature", "/signatures")));
             }
-            return null;
+            return;
         }
         if (result.anyVerified()) {
-            return null;
+            return;
         }
         Set<RuleViolation> causes = new LinkedHashSet<>();
         if (!result.canonicalizable()) {

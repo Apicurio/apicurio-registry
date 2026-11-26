@@ -186,4 +186,41 @@ public class McpRegistryListRegressionTest extends AbstractResourceTestBase {
                 .get(BASE + "/servers").then().statusCode(200).body("servers", hasSize(0))
                 .body("metadata.count", equalTo(0)).body("metadata.nextCursor", nullValue());
     }
+
+    @Test
+    public void searchIsCaseInsensitiveAndEscapesLikeWildcards() {
+        String ns = namespace();
+        String unique = UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+        publish(ns + "/alpha-" + unique, "1.0.0", "Has 100% match_token");
+        publish(ns + "/beta-" + unique, "1.0.0", "Has 100X matchYtoken");
+
+        // Case-insensitive search on description
+        given().queryParam("search", "MATCH_TOKEN").get(BASE + "/servers").then().statusCode(200)
+                .body("servers.server.name", equalTo(List.of(ns + "/alpha-" + unique)))
+                .body("metadata.count", equalTo(1));
+
+        // Literal '%' in search must not act as a SQL wildcard
+        given().queryParam("search", "100%").get(BASE + "/servers").then().statusCode(200)
+                .body("servers.server.name", equalTo(List.of(ns + "/alpha-" + unique)))
+                .body("metadata.count", equalTo(1));
+    }
+
+    @Test
+    public void concreteVersionWithSearchAndUpdatedSinceFiltersInSql() {
+        String ns = namespace();
+        String first = publish(ns + "/a-server", "1.0.0", "Weather forecast")
+                .extract().path(META + ".updatedAt");
+        await().atMost(Duration.ofSeconds(5)).untilAsserted(() ->
+                assertTrue(Instant.now().toEpochMilli() > Instant.parse(first).toEpochMilli()));
+        String watermark = Instant.ofEpochMilli(System.currentTimeMillis()).toString();
+        publish(ns + "/b-server", "1.0.0", "Weather alerts");
+        publish(ns + "/c-server", "1.0.0", "Stock ticker");
+        publish(ns + "/b-server", "2.0.0", "Weather alerts v2");
+
+        given().queryParam("search", "WEATHER").queryParam("updated_since", watermark)
+                .queryParam("version", "1.0.0").get(BASE + "/servers").then().statusCode(200)
+                .body("servers.server.name", equalTo(List.of(ns + "/b-server")))
+                .body("servers.server.version", equalTo(List.of("1.0.0")))
+                .body("metadata.count", equalTo(1));
+    }
 }

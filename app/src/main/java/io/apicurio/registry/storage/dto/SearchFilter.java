@@ -81,6 +81,24 @@ public class SearchFilter {
         return new SearchFilter(SearchFilterType.description, value);
     }
 
+    /**
+     * Creates a case-insensitive substring filter matching either the name/artifactId or description.
+     *
+     * @param value the substring to match
+     */
+    public static SearchFilter ofNameOrDescription(String value) {
+        return new SearchFilter(SearchFilterType.nameOrDescription, value);
+    }
+
+    /**
+     * Creates a filter matching artifacts or versions modified at or after {@code epochMillis}.
+     *
+     * @param epochMillis lower bound (inclusive) on {@code modifiedOn} in epoch milliseconds
+     */
+    public static SearchFilter ofModifiedSince(long epochMillis) {
+        return new SearchFilter(SearchFilterType.modifiedSince, epochMillis);
+    }
+
     public static SearchFilter ofGroupId(String value) {
         return new SearchFilter(SearchFilterType.groupId, value);
     }

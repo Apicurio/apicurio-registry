@@ -212,8 +212,8 @@ public class McpRegistryApiResourceImpl implements ApisResource {
                 OrderDirection.asc, offset, pageSize, false);
         List<Server> servers = new ArrayList<>();
         for (SearchedArtifactDto artifact : results.getArtifacts()) {
-            Server server = tryLoadServer(new McpServerName(artifact.getGroupId(), artifact.getArtifactId()),
-                    version);
+            McpServerName name = new McpServerName(artifact.getGroupId(), artifact.getArtifactId());
+            Server server = tryLoadServer(name, version, latestVersionOrNull(name), true);
             if (server != null && !isDeleted(server)) {
                 servers.add(server);
             }
@@ -224,20 +224,27 @@ public class McpRegistryApiResourceImpl implements ApisResource {
 
     private ServerList scanServersAtVersion(Set<SearchFilter> filters, int offset, int pageSize,
             String fingerprint, String search, Date updatedSince, String version, boolean includeDeleted) {
-        // Artifact metadata is not the version exposed by this API: status changes update only the
-        // version timestamp, and descriptions can differ across versions. Filter the resolved server
-        // documents before slicing the response, rather than dropping rows from an artifact page.
-        // TODO: Push this projection/filter/sort into a batched storage operation. Until then this is
-        // an O(N) scan; the page cap bounds the response and each storage batch, not total scan work.
+        if (!LATEST_VERSION.equals(version)) {
+            return listServersAtConcreteVersion(offset, pageSize, fingerprint, search, updatedSince, version,
+                    includeDeleted);
+        }
+        // For 'latest', version-level descriptions and status timestamps can differ from artifact
+        // metadata, so we only push updatedSince into SQL (via versions.modifiedOn) and filter the
+        // resolved branch-tip server documents for search/visibility.
+        if (updatedSince != null) {
+            filters.add(SearchFilter.ofModifiedSince(updatedSince.getTime()));
+        }
         List<Server> servers = new ArrayList<>();
         String query = search == null ? "" : search.trim().toLowerCase(Locale.ROOT);
+        Map<String, String> latestVersionCache = new HashMap<>();
         int scanOffset = 0;
         while (true) {
             ArtifactSearchResultsDto results = searchAuthorizer.searchArtifacts(filters, OrderBy.name,
                     OrderDirection.asc, scanOffset, pageSize, false);
             for (SearchedArtifactDto artifact : results.getArtifacts()) {
                 McpServerName name = new McpServerName(artifact.getGroupId(), artifact.getArtifactId());
-                Server server = tryLoadServer(name, version, latestVersionOrNull(name, includeDeleted));
+                String latestVersion = cachedLatestVersion(name, includeDeleted, latestVersionCache);
+                Server server = tryLoadServer(name, version, latestVersion, true);
                 if (isVisibleAtVersion(server, includeDeleted, query, updatedSince)) {
                     servers.add(server);
                 }
@@ -259,6 +266,13 @@ public class McpRegistryApiResourceImpl implements ApisResource {
                 end < servers.size() ? end : -1, fingerprint);
     }
 
+    private ServerList listServersAtConcreteVersion(int offset, int pageSize, String fingerprint,
+            String search, Date updatedSince, String version, boolean includeDeleted) {
+        Set<SearchFilter> filters = buildVersionFilters(search, updatedSince, includeDeleted);
+        filters.add(SearchFilter.ofVersion(version));
+        return queryServerVersions(filters, offset, pageSize, fingerprint, updatedSince, includeDeleted);
+    }
+
     private boolean isVisibleAtVersion(Server server, boolean includeDeleted, String query, Date updatedSince) {
         return server != null && (includeDeleted || !isDeleted(server)) && matchesSearch(server, query)
                 && (updatedSince == null || !updatedAt(server).isBefore(updatedSince.toInstant()));
@@ -266,40 +280,55 @@ public class McpRegistryApiResourceImpl implements ApisResource {
 
     private ServerList listAllServerVersions(int offset, int pageSize, String fingerprint, String search,
             Date updatedSince, boolean includeDeleted) {
+        Set<SearchFilter> filters = buildVersionFilters(search, updatedSince, includeDeleted);
+        return queryServerVersions(filters, offset, pageSize, fingerprint, updatedSince, includeDeleted);
+    }
+
+    private Set<SearchFilter> buildVersionFilters(String search, Date updatedSince, boolean includeDeleted) {
         Set<SearchFilter> filters = new HashSet<>();
         filters.add(SearchFilter.ofArtifactType(ArtifactType.MCP_SERVER));
         if (!includeDeleted) {
             filters.add(SearchFilter.ofState(VersionState.DISABLED).negated());
         }
         filters.add(SearchFilter.ofState(VersionState.DRAFT).negated());
-        String query = search == null ? "" : search.trim().toLowerCase(Locale.ROOT);
-        List<Server> matches = new ArrayList<>();
-        int scanOffset = 0;
-        while (true) {
-            VersionSearchResultsDto results = searchAuthorizer.searchVersions(filters, OrderBy.globalId,
-                    OrderDirection.asc, scanOffset, pageSize, false);
-            for (SearchedVersionDto found : results.getVersions()) {
-                McpServerName name = new McpServerName(found.getGroupId(), found.getArtifactId());
-                Server server = tryLoadServer(name, found.getVersion(), latestVersionOrNull(name, includeDeleted));
-                if (server != null && matchesSearch(server, query)
-                        && (updatedSince == null || !updatedAt(server).isBefore(updatedSince.toInstant()))) {
-                    matches.add(server);
-                }
-            }
-            scanOffset += results.getVersions().size();
-            if (results.getVersions().isEmpty() || scanOffset >= results.getCount()) {
-                break;
-            }
+        if (search != null && !search.isBlank()) {
+            filters.add(SearchFilter.ofNameOrDescription(search.trim()));
         }
-        Comparator<Server> order = Comparator.comparing(Server::getName).thenComparing(Server::getVersion);
         if (updatedSince != null) {
-            order = Comparator.comparing(this::updatedAt).reversed().thenComparing(order);
+            filters.add(SearchFilter.ofModifiedSince(updatedSince.getTime()));
         }
-        matches.sort(order);
-        int start = Math.min(offset, matches.size());
-        int end = start + Math.min(pageSize, matches.size() - start);
-        return buildServerList(new ArrayList<>(matches.subList(start, end)),
-                end < matches.size() ? end : -1, fingerprint);
+        return filters;
+    }
+
+    private ServerList queryServerVersions(Set<SearchFilter> filters, int offset, int pageSize,
+            String fingerprint, Date updatedSince, boolean includeDeleted) {
+        OrderBy orderBy = updatedSince != null ? OrderBy.modifiedOn : OrderBy.name;
+        OrderDirection direction = updatedSince != null ? OrderDirection.desc : OrderDirection.asc;
+        VersionSearchResultsDto results = searchAuthorizer.searchVersions(filters, orderBy, direction,
+                offset, pageSize, false);
+        Map<String, String> latestVersionCache = new HashMap<>();
+        List<Server> servers = new ArrayList<>();
+        for (SearchedVersionDto found : results.getVersions()) {
+            McpServerName name = new McpServerName(found.getGroupId(), found.getArtifactId());
+            String latestVersion = cachedLatestVersion(name, includeDeleted, latestVersionCache);
+            Server server = tryLoadServer(name, found.getVersion(), latestVersion, true);
+            if (server != null) {
+                servers.add(server);
+            }
+        }
+        boolean hasMore = (long) offset + pageSize < results.getCount();
+        return buildServerList(servers, hasMore ? offset + pageSize : -1, fingerprint);
+    }
+
+    private String cachedLatestVersion(McpServerName name, boolean includeDeleted,
+            Map<String, String> latestVersionCache) {
+        String key = name.full();
+        if (latestVersionCache.containsKey(key)) {
+            return latestVersionCache.get(key);
+        }
+        String latest = latestVersionOrNull(name, includeDeleted);
+        latestVersionCache.put(key, latest);
+        return latest;
     }
 
     private boolean matchesSearch(Server server, String query) {
@@ -352,7 +381,7 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         String latestVersion = latestVersionOrNull(name, includeDeleted);
         List<Server> servers = new ArrayList<>();
         for (SearchedVersionDto searched : results.getVersions()) {
-            Server server = tryLoadServer(name, searched.getVersion(), latestVersion);
+            Server server = tryLoadServer(name, searched.getVersion(), latestVersion, true);
             if (server != null) {
                 servers.add(server);
             }
@@ -614,7 +643,14 @@ public class McpRegistryApiResourceImpl implements ApisResource {
      * @throws NotFoundException if no such server or version exists
      */
     private Server loadServer(McpServerName name, String version, String latestVersion) {
-        requireServerArtifact(name);
+        return loadServer(name, version, latestVersion, false);
+    }
+
+    private Server loadServer(McpServerName name, String version, String latestVersion,
+            boolean skipArtifactTypeCheck) {
+        if (!skipArtifactTypeCheck) {
+            requireServerArtifact(name);
+        }
         String resolved = version == null || version.isBlank() || LATEST_VERSION.equals(version)
                 ? requireVersion(name, latestVersion)
                 : version;
@@ -642,13 +678,14 @@ public class McpRegistryApiResourceImpl implements ApisResource {
 
     /** Null instead of throwing, so one unresolvable server does not fail a whole page. */
     private Server tryLoadServer(McpServerName name, String version) {
-        return tryLoadServer(name, version, latestVersionOrNull(name));
+        return tryLoadServer(name, version, latestVersionOrNull(name), false);
     }
 
-    /** @see #loadServer(McpServerName, String, String) */
-    private Server tryLoadServer(McpServerName name, String version, String latestVersion) {
+    /** @see #loadServer(McpServerName, String, String, boolean) */
+    private Server tryLoadServer(McpServerName name, String version, String latestVersion,
+            boolean skipArtifactTypeCheck) {
         try {
-            return loadServer(name, version, latestVersion);
+            return loadServer(name, version, latestVersion, skipArtifactTypeCheck);
         } catch (ArtifactNotFoundException | VersionNotFoundException | NotFoundException e) {
             return null;
         }

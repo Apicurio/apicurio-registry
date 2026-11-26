@@ -46,7 +46,8 @@ public class ElasticsearchSearchService {
     private static final Logger log = LoggerFactory.getLogger(ElasticsearchSearchService.class);
 
     private static final Set<SearchFilterType> UNSUPPORTED_FILTER_TYPES = EnumSet.of(
-            SearchFilterType.contentHash, SearchFilterType.canonicalHash);
+            SearchFilterType.contentHash, SearchFilterType.canonicalHash,
+            SearchFilterType.nameOrDescription, SearchFilterType.modifiedSince);
 
     /**
      * Filter types that can only be handled by the search index and have no SQL fallback.

@@ -225,6 +225,16 @@ public class SqlSearchRepository {
                     query.bind(idx, "%" + filter.getStringValue() + "%");
                 });
                 break;
+            case nameOrDescription:
+                appendNameOrDescriptionClause(where, "a.name", A_ARTIFACT_ID, "a.description", filter, binders);
+                break;
+            case modifiedSince:
+                where.append(filter.isNot() ? "NOT " : "")
+                        .append("EXISTS(SELECT v.* FROM versions v WHERE v.groupId = a.groupId AND v.artifactId = a.artifactId AND v.modifiedOn >= ?)");
+                binders.add((query, idx) -> {
+                    query.bind(idx, new java.sql.Timestamp(getRequiredNumberValue(filter)));
+                });
+                break;
             case name:
                 buildNameClause(where, "a.name", A_ARTIFACT_ID, filter.getStringValue(),
                         filter.isNot(), false, binders);
@@ -499,6 +509,17 @@ public class SqlSearchRepository {
                     query.bind(idx, "%" + filter.getStringValue() + "%");
                 });
                 break;
+            case nameOrDescription:
+                appendNameOrDescriptionClause(where, "v.name", V_ARTIFACT_ID, "v.description", filter, binders);
+                break;
+            case modifiedSince:
+                where.append("v.modifiedOn ")
+                        .append(filter.isNot() ? "<" : ">=")
+                        .append(" ?");
+                binders.add((query, idx) -> {
+                    query.bind(idx, new java.sql.Timestamp(getRequiredNumberValue(filter)));
+                });
+                break;
             case labels:
                 appendVersionLabelsClause(where, binders, filter);
                 break;
@@ -711,6 +732,35 @@ public class SqlSearchRepository {
                 query.bind(idx, bound);
             });
         }
+    }
+
+    /**
+     * Builds a case-insensitive substring WHERE clause matching name, artifactId, or description.
+     */
+    private void appendNameOrDescriptionClause(StringBuilder where, String nameColumn,
+            String artifactIdColumn, String descriptionColumn, SearchFilter filter,
+            List<SqlStatementVariableBinder> binders) {
+        String rawValue = filter.getStringValue();
+        String searchValue = rawValue == null ? "" : rawValue.toLowerCase(Locale.ROOT);
+        String pattern = "%" + escapeLikePattern(searchValue) + "%";
+        String escape = " ESCAPE '" + LIKE_ESCAPE_CHAR + "'";
+        boolean idCanMatch = !cannotMatchIdColumn(searchValue);
+        if (filter.isNot()) {
+            where.append("NOT ");
+        }
+        where.append("(COALESCE(LOWER(").append(nameColumn).append("), '') LIKE ?").append(escape).append(" OR ");
+        if (idCanMatch) {
+            where.append("LOWER(").append(artifactIdColumn).append(") LIKE ?").append(escape);
+        } else {
+            appendNoMatch(where, false);
+        }
+        where.append(" OR COALESCE(LOWER(").append(descriptionColumn).append("), '') LIKE ?").append(escape)
+                .append(")");
+        binders.add((query, idx) -> query.bind(idx, pattern));
+        if (idCanMatch) {
+            binders.add((query, idx) -> query.bind(idx, pattern));
+        }
+        binders.add((query, idx) -> query.bind(idx, pattern));
     }
 
     private static String stripWildcardMarkers(String value, boolean startsWithWildcard,

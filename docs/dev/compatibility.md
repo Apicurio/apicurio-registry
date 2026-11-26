@@ -386,6 +386,11 @@ binary-incompatible change to them.
   did this with `ArtifactTypeUtilProviderFactory.getFileExtensionToTypeMap()`.
 - Don't rename or remove a method that a serdes property can name a class for
   without a deprecation period.
+- A field a subclass can set but that stops being read is a quieter version of the
+  same problem: nothing fails, but the override silently stops having an effect.
+  3.4.0 did this to `AbstractSchemaResolver.resolveDereferenced`, superseded by the
+  per-serializer/deserializer `dereference-schema` properties; deprecate the field
+  and say so on the version's upgrade page, the same as a method removal.
 - New SPI-style interfaces should say in their Javadoc that they are meant to be
   implemented outside Registry, so the next person changing them knows.
 

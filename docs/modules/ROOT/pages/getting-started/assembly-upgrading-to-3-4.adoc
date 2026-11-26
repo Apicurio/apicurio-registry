@@ -23,8 +23,8 @@ For the general upgrade procedure, backups, and rollbacks, see the versioning an
 :_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
-With SQL storage, {registry} 3.4 upgrades the database schema to version 114 when it starts. {registry} 3.3 uses version 109.
-The upgrade runs automatically, but two of its steps can need your attention.
+With SQL storage, {registry} 3.4 upgrades the database schema to version 115 when it starts. {registry} 3.3 uses version 109.
+The upgrade runs automatically, but three of its steps can need your attention.
 
 Duplicate version order values stop the upgrade (schema version 113)::
 +
@@ -63,6 +63,14 @@ On a registry with many such artifacts, this makes the first startup of 3.4 take
 The other two steps add a table for peer registries (version 111), and remove versions that are no longer drafts from the `drafts` branch (version 112).
 
 On MySQL, version 114 also widens names, labels, and principals from ASCII to UTF-8 (`utf8mb4`), so non-ASCII values are accepted. Principal comparisons stay case-insensitive but now tell accented letters apart, so `jose` no longer matches the role mappings or artifacts of `josé`.
+
+Native ID sequences replace the row-locked sequences table (schema version 115)::
+The upgrade replaces the row-locked `sequences` table, which allocated global IDs, content IDs, and comment IDs, with native database sequences on PostgreSQL and SQL Server, and with `AUTO_INCREMENT` ticket tables on MySQL. H2 and KafkaSQL storage are not affected. This step has real upgrade impact, covered in full in xref:getting-started/assembly-registry-high-availability.adoc#ha-upgrade-native-id-sequences_{context}[Upgrading SQL storage to native ID sequences]:
++
+* *Rolling upgrades*: the schema upgrade deliberately drops the `sequences` table, so replicas still running a release earlier than schema version 115 fail every write request as soon as any upgraded replica has migrated the schema. Read requests are unaffected. Complete a rolling rollout promptly, rather than leaving mixed-version replicas running.
+* *SQL Server 2017 or later is required*, because {registry} reads `sys.sequences.last_used_value`.
+* *New database privileges* if {registry} connects at runtime with a less privileged user than the one that runs the schema upgrade: PostgreSQL needs `USAGE`, `SELECT`, and `UPDATE` on the three ID sequences; SQL Server needs `UPDATE` on them; MySQL needs `INSERT`, `DELETE`, and `SELECT` on the ID ticket tables.
+* *`globalId` ordering*: a `globalId` value stays unique, but under concurrent writes it no longer strictly follows commit order, and a rolled-back write leaves a gap. Use the version order, not `globalId` comparisons, to determine the newest version of an artifact.
 
 
 // ref-upgrading-to-3-4-json-schema-compatibility
@@ -161,6 +169,9 @@ For a label, the size is the number of UTF-8 bytes of its key and value together
 `apicurio.limits.config.max-property-key-size.bytes` and `apicurio.limits.config.max-property-value-size.bytes`, which separately bound a label's key and value, now count UTF-8 bytes instead of characters.
 A non-ASCII key or value that fit under the character count can now exceed the byte limit and start failing with HTTP 409.
 
+`quarkus.http.enable-compression` now defaults to `false`.
+This setting never compressed REST responses, which {registry} compresses separately through `apicurio.rest.compression.enabled`; nothing that was compressed before 3.4 stops being compressed.
+
 
 // ref-upgrading-to-3-4-clients
 [id="upgrading-to-3-4-clients_{context}"]
@@ -169,7 +180,7 @@ A non-ASCII key or value that fit under the character count can now exceed the b
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-The core REST API in {registry} 3.4 only adds endpoints and fields, with the following changes to existing behavior.
+The core REST API in {registry} 3.4 only adds endpoints, fields, and enum values, with the following changes to existing behavior.
 
 Replacing the versions of a branch::
 `+PUT /groups/{groupId}/artifacts/{artifactId}/branches/{branchId}/versions+` returns HTTP 404 when a listed version does not exist, and HTTP 409 when the same version is listed more than once.
@@ -209,6 +220,10 @@ Before 3.4, it failed with HTTP 500 and exception text in the response.
 Disabled versions through the v2 API::
 `GET /apis/registry/v2/ids/globalIds/\{id\}` for a version in state `DISABLED` now returns HTTP 404, matching the v3 API.
 Before 3.4, the v2 API returned the content of a disabled version.
+
+New `GOVERNANCE` rule type::
+`RuleType` gets a new value, `GOVERNANCE`, for a rule that checks `contract.*` labels on data contract artifacts.
+A client built against an earlier version's enum, including older SDKs and the v2 API, sees an unknown value if a `GOVERNANCE` rule is configured on a registry it talks to.
 
 
 // ref-upgrading-to-3-4-artifact-types
@@ -258,5 +273,7 @@ In 3.3, it returned the AI Catalog format, with the next page in `nextPageToken`
 
 Setting an experimental feature through the dynamic configuration API::
 `+PUT /admin/config/properties/{propertyName}+` now returns HTTP 409, and leaves the stored value unchanged, when it would set an experimental feature's dynamic property to `true` while `apicurio.features.experimental.enabled` is `false`.
-Before 3.4, the request succeeded but the feature stayed off, which could look like a configuration bug.
+Before 3.4, the request succeeded, and `+GET /system/uiConfig+` reported the stored value even with the gate off, so the UI showed the feature as enabled.
+From 3.4, a value stored this way before the upgrade is also ignored while the gate is off: a deployment that turned a feature on through this API, without setting the gate, stops showing it after the upgrade.
+Set `apicurio.features.experimental.enabled=true` to keep it enabled.
 Today the only property this affects is `apicurio.ui.features.agents.enabled`, which controls whether the UI shows the Agents tab.

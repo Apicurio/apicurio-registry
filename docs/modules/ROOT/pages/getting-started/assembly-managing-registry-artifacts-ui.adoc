@@ -367,6 +367,8 @@ The web console generates the example from the default values, examples, constan
 [role="_abstract"]
 You can use the {registry} web console to upload schema and API artifacts to {registry}.
 
+If per-resource authorization is enabled and {registry} reports that you do not have write access to a group or an artifact, the web console hides actions such as *Create artifact*, *Edit*, and *Create version* for that group or artifact.
+
 .Prerequisites
 
 * {registry} is installed and running in your environment.
@@ -448,6 +450,9 @@ You can also add zero or more labels (name + value) for categorizing and searchi
 * xref:deleting-artifacts-using-console_{context}[]
 * xref:configuring-rules-using-console_{context}[]
 * {registry-rule-reference}
+ifndef::service-registry-downstream[]
+* xref:getting-started/assembly-configuring-resource-authorization.adoc[]
+endif::[]
 
 
 

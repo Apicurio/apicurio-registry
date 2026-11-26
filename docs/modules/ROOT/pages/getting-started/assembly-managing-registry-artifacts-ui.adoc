@@ -713,6 +713,49 @@ IMPORTANT: This feature is experimental and subject to backwards-incompatible ch
 
 * The dialog lists each tool with its result: `CREATED`, `NEW_VERSION`, `UNCHANGED`, `REJECTED`, or `REMOVED`. For a rejected tool, it shows the rule violations. When you close the dialog after an import, the artifact page shows the new version.
 
+[id="browsing-agent-cards-using-console_{context}"]
+== Browsing and registering agent cards using the {registry} web console
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can use the *Agents* tab of the {registry} web console to find the Agent-to-Agent (A2A) agent cards that are stored as `AGENT_CARD` artifacts, and to register agent cards by entering their content or by importing them from a URL.
+
+IMPORTANT: This feature is experimental and subject to backwards-incompatible change or removal.
+
+.Prerequisites
+
+* {registry} runs with `apicurio.features.experimental.enabled=true` and `apicurio.agents.enabled=true`. The `apicurio.agents.enabled` property enables the *Agents* tab and A2A protocol support, which the tab uses to search for agent cards. If `apicurio.ui.features.agents.enabled` is set, it takes precedence for the tab and must be `true`.
+* To register or edit agent cards, the web console is not in read-only mode and you have write access.
+
+.Procedure
+
+. In the {registry} web console, click the *Agents* tab.
++
+The tab shows a card for each agent. Each card shows the agent name, version, and description. It also shows the URL and protocol binding of the first supported interface, the capabilities and skills, and the group, creation time, and owner of the artifact.
+
+. To narrow the list, enter a name in *Search by name* or a skill ID in *Filter by skill*, and click *Search*. To show only the agents with a capability, select *Streaming* or *Push Notifications* from the *All Capabilities* list.
+
+. To open the `AGENT_CARD` artifact of an agent, click its card.
+
+. To register an agent card by entering its content, click *Create Agent* and complete the *Create Agent Card* wizard:
+.. On the *Agent Coordinates* page, enter the *Group ID*, the *Artifact ID*, and the initial *Version*. If you leave the group ID empty, the web console uses the `default` group. If you leave the artifact ID empty, {registry} generates one.
+.. On the *Agent Card Content* page, enter the agent card. You can continue only when the card has a name, a description, a version, capabilities, at least one skill, and at least one supported interface. Each supported interface must have a URL, a protocol binding, and a protocol version.
+.. Optional: On the *Metadata* page, enter the artifact *Name* and *Description*. If you leave these fields empty, the web console uses the name and description of the agent card.
+.. Click *Create*.
+
+. To import the agent card that an agent publishes, click *Import Agent* and complete the *Import Agent from URL* wizard:
+.. On the *Agent Card URL* page, enter the URL of the agent card, for example `\https://agent.example.com/.well-known/agent.json`, and click *Fetch*. The web console rejects content that is not a JSON object with a `name` string, or that has two skills with the same ID.
+.. On the *Preview* page, review the agent card.
+.. Optional: On the *Import Settings* page, enter the *Group ID* and the *Artifact ID*. If you leave these fields empty, the web console uses the `default` group and {registry} generates an artifact ID.
+.. Click *Import*.
+
+. To edit an agent card, open a version of the `AGENT_CARD` artifact and select *Edit Agent Card* from the Action menu (three vertical dots) in the version page header. Change the agent card and click *Save as New Version*.
+
+.Verification
+
+* The web console opens the page of the new artifact or the new version, and the agent card appears on the *Agents* tab.
+
 [id="changing-artifact-owner-using-console_{context}"]
 == Changing an artifact owner using the {registry} web console
 :_mod-docs-content-type: PROCEDURE

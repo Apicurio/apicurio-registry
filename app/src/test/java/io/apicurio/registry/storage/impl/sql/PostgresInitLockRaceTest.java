@@ -15,6 +15,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -105,7 +106,12 @@ class PostgresInitLockRaceTest {
                         stmt.execute(releaseSql);
                     }
                     replicaOneReleased.countDown();
-                    replicaOneMayCommit.await(10, TimeUnit.SECONDS);
+                    // Fails loudly rather than committing anyway, so a coordination failure (the
+                    // test itself never signalling) cannot silently shrink the controlled
+                    // pre-commit window the assertions below depend on.
+                    if (!replicaOneMayCommit.await(10, TimeUnit.SECONDS)) {
+                        throw new AssertionError("replica one was never told it may commit");
+                    }
                     conn.commit();
                     return created;
                 }
@@ -114,11 +120,15 @@ class PostgresInitLockRaceTest {
             assertTrue(replicaOneReleased.await(10, TimeUnit.SECONDS),
                     "replica one did not reach its release call in time");
 
+            CountDownLatch replicaTwoConnected = new CountDownLatch(1);
+            AtomicInteger replicaTwoPid = new AtomicInteger(-1);
             Future<Boolean> replicaTwoSawUninitialized = pool.submit(() -> {
                 try (Connection conn = postgres.getPostgresDatabase().getConnection()) {
                     conn.setAutoCommit(false);
                     boolean sawUninitialized;
                     try (Statement stmt = conn.createStatement()) {
+                        replicaTwoPid.set(backendPid(conn));
+                        replicaTwoConnected.countDown();
                         // Blocks here for the fixed, transaction-scoped lock (replica one still
                         // holds it); returns promptly for the old, session-scoped one (replica one
                         // already released it, above).
@@ -131,6 +141,9 @@ class PostgresInitLockRaceTest {
                 }
             });
 
+            assertTrue(replicaTwoConnected.await(10, TimeUnit.SECONDS),
+                    "replica two did not connect in time");
+
             if (expectReplicaTwoToGetIn) {
                 assertTrue(replicaTwoSawUninitialized.get(5, TimeUnit.SECONDS),
                         "expected the old session-scoped lock to let replica two acquire and wrongly "
@@ -138,8 +151,16 @@ class PostgresInitLockRaceTest {
                 replicaOneMayCommit.countDown();
                 assertTrue(replicaOneCreated.get(10, TimeUnit.SECONDS), "replica one must have created the table");
             } else {
+                // A plain timeout on replicaTwoSawUninitialized.get() would also pass if replica
+                // two were merely slow to connect or schedule, without ever touching the lock --
+                // not proof the fix is what's blocking it. Instead, confirm from pg_locks that
+                // replica two's own backend is specifically waiting on an ungranted advisory lock
+                // before trusting that the timeout means the lock held it back.
+                assertTrue(waitingOnAdvisoryLock(replicaTwoPid.get(), 2, TimeUnit.SECONDS),
+                        "expected replica two's backend to be waiting on an ungranted advisory lock, "
+                                + "not just slow to reach it");
                 assertThrows(TimeoutException.class,
-                        () -> replicaTwoSawUninitialized.get(2, TimeUnit.SECONDS),
+                        () -> replicaTwoSawUninitialized.get(500, TimeUnit.MILLISECONDS),
                         "expected the transaction-scoped lock to block replica two's acquire until "
                                 + "replica one's commit");
 
@@ -152,6 +173,37 @@ class PostgresInitLockRaceTest {
             }
         } finally {
             pool.shutdownNow();
+        }
+    }
+
+    private int backendPid(Connection conn) throws java.sql.SQLException {
+        try (Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery("SELECT pg_backend_pid()")) {
+            rs.next();
+            return rs.getInt(1);
+        }
+    }
+
+    /**
+     * Polls {@code pg_locks} (from a separate, unrelated connection -- advisory lock waits don't
+     * show up in the waiting backend's own session) for an ungranted advisory lock held by
+     * {@code pid}, for up to the given timeout. This is what actually distinguishes "blocked on
+     * the lock" from "merely hasn't gotten there yet".
+     */
+    private boolean waitingOnAdvisoryLock(int pid, long timeout, TimeUnit unit) throws Exception {
+        long deadline = System.nanoTime() + unit.toNanos(timeout);
+        try (Connection observer = postgres.getPostgresDatabase().getConnection()) {
+            while (System.nanoTime() < deadline) {
+                try (Statement stmt = observer.createStatement();
+                        ResultSet rs = stmt.executeQuery("SELECT 1 FROM pg_locks WHERE pid = " + pid
+                                + " AND locktype = 'advisory' AND NOT granted")) {
+                    if (rs.next()) {
+                        return true;
+                    }
+                }
+                Thread.sleep(20);
+            }
+            return false;
         }
     }
 

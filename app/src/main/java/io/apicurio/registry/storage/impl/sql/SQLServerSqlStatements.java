@@ -156,7 +156,19 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
         // CREATE TABLEs). A transaction-owned lock is held until the connection's transaction
         // commits or rolls back, so it now covers the commit; see the no-op releaseInitLock()
         // below.
-        return "DECLARE @result INT; EXEC @result = sp_getapplock @Resource='apicurio_init_lock', @LockMode='Exclusive', @LockOwner='Transaction', @LockTimeout=30000; SELECT @result";
+        //
+        // BEGIN TRANSACTION is required before @LockOwner='Transaction' will even be accepted:
+        // the JDBC driver's autoCommit(false) alone does not start a real server-side transaction
+        // (@@TRANCOUNT stays 0) until a data-modification statement runs, and EXEC of a stored
+        // procedure doesn't count as one, even though sp_getapplock itself writes internally.
+        // Without it, sp_getapplock fails immediately with -999 ("not within a transaction"),
+        // which DatabaseLockMapper doesn't distinguish from success, so the lock would silently
+        // never be held at all. A connection already inside a transaction (@@TRANCOUNT > 0) gets
+        // a nested transaction, which SQL Server supports and commits/rolls back together with
+        // the outer one, so this is safe to run unconditionally.
+        return "BEGIN TRANSACTION; DECLARE @result INT; EXEC @result = sp_getapplock "
+                + "@Resource='apicurio_init_lock', @LockMode='Exclusive', @LockOwner='Transaction', "
+                + "@LockTimeout=30000; SELECT @result";
     }
 
     /**

@@ -22,7 +22,7 @@ import java.util.function.Function;
 public class RegistryLimitsService {
 
     private static final String MAX_TOTAL_SCHEMAS_EXCEEDED_MSG =
-            "Maximum number of artifact versions exceeded (limit: %d)";
+            "Maximum total number of artifact versions (schemas) exceeded (limit: %d)";
     private static final String MAX_SCHEMA_SIZE_EXCEEDED_MSG =
             "Maximum size of artifact version exceeded (limit: %d bytes, actual: %d bytes)";
     private static final String MAX_ARTIFACTS_EXCEEDED_MSG =

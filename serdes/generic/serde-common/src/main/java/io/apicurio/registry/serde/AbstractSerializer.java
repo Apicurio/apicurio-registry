@@ -137,7 +137,16 @@ public abstract class AbstractSerializer<T, U> implements AutoCloseable {
         }
     }
 
+    @FunctionalInterface
+    public interface RecordWriter<T, U> {
+        byte[] write(SchemaLookupResult<T> schema, U data) throws IOException;
+    }
+
     public byte[] serializeData(String topic, U data) {
+        return serializeData(topic, null, data, this::writeRecord);
+    }
+
+    public byte[] serializeData(String topic, SerdeMetadata metadata, U data, RecordWriter<T, U> writer) {
         if (data == null) {
             return null;
         }
@@ -146,7 +155,8 @@ public abstract class AbstractSerializer<T, U> implements AutoCloseable {
                 SchemaLookupResult<T> schema = null;
                 SchemaCacheKey cacheKey = null;
 
-                Object schemaKey = getSchemaCacheKey(data);
+                boolean canUseFastPath = metadata == null || metadata.isFastPathSafe();
+                Object schemaKey = canUseFastPath ? getSchemaCacheKey(data) : null;
                 if (schemaKey != null) {
                     cacheKey = new SchemaCacheKey(topic, schemaKey);
                     schema = fastPathCache.get(cacheKey);
@@ -155,14 +165,7 @@ public abstract class AbstractSerializer<T, U> implements AutoCloseable {
                 boolean cacheHit = schema != null;
 
                 if (schema == null) {
-                    DefaultSchemaResolver.currentOperation.set("SERIALIZE");
-                    try {
-                        SerdeMetadata resolverMetadata = new SerdeMetadata(topic, baseSerde.isKey());
-                        schema = tracer.traceSchemaResolve(topic, "serialize", resolveSpan -> baseSerde
-                                .getSchemaResolver().resolveSchema(new SerdeRecord<>(resolverMetadata, data)));
-                    } finally {
-                        DefaultSchemaResolver.currentOperation.remove();
-                    }
+                    schema = resolveSchema(topic, metadata, data);
 
                     if (cacheKey != null) {
                         fastPathCache.put(cacheKey, schema);
@@ -173,13 +176,25 @@ public abstract class AbstractSerializer<T, U> implements AutoCloseable {
 
                 U toWrite = applyContractRulesForWrite(topic, schema, data);
 
-                byte[] result = writeRecord(schema, toWrite);
+                byte[] result = writer.write(schema, toWrite);
                 span.setAttribute(SerDesAttributes.DATA_SIZE, (long) result.length);
                 return result;
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
         });
+    }
+
+    private SchemaLookupResult<T> resolveSchema(String topic, SerdeMetadata metadata, U data) {
+        DefaultSchemaResolver.currentOperation.set("SERIALIZE");
+        try {
+            SerdeMetadata resolverMetadata = metadata != null ? metadata
+                    : new SerdeMetadata(topic, baseSerde.isKey());
+            return tracer.traceSchemaResolve(topic, "serialize", resolveSpan -> baseSerde
+                    .getSchemaResolver().resolveSchema(new SerdeRecord<>(resolverMetadata, data)));
+        } finally {
+            DefaultSchemaResolver.currentOperation.remove();
+        }
     }
 
     private byte[] writeRecord(SchemaLookupResult<T> schema, U data) throws IOException {

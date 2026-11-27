@@ -67,4 +67,9 @@ public class KafkaSerdeMetadata extends SerdeMetadata {
         this.explicitSchemaType = explicitSchemaType;
     }
 
+    @Override
+    public boolean isFastPathSafe() {
+        return super.isFastPathSafe() && (headers == null || !headers.iterator().hasNext());
+    }
+
 }

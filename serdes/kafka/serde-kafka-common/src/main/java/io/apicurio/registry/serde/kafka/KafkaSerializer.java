@@ -2,13 +2,11 @@ package io.apicurio.registry.serde.kafka;
 
 import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.resolver.ParsedSchema;
-import io.apicurio.registry.resolver.SchemaLookupResult;
 import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.serde.AbstractSerializer;
 import io.apicurio.registry.serde.Default4ByteIdHandler;
 import io.apicurio.registry.serde.config.SerdeConfig;
-import io.apicurio.registry.serde.data.SerdeRecord;
 import io.apicurio.registry.serde.kafka.config.BaseKafkaSerDeConfig;
 import io.apicurio.registry.serde.kafka.data.KafkaSerdeMetadata;
 import io.apicurio.registry.serde.kafka.headers.DefaultHeadersHandler;
@@ -20,7 +18,6 @@ import org.apache.kafka.common.serialization.Serializer;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.UncheckedIOException;
 import java.util.Map;
 
 public class KafkaSerializer<T, U> implements Serializer<U> {
@@ -95,18 +92,15 @@ public class KafkaSerializer<T, U> implements Serializer<U> {
                     }
                 }
 
-                SchemaLookupResult<T> schema = delegatedSerializer.getSerdeConfigurer().getSchemaResolver()
-                        .resolveSchema(new SerdeRecord<>(resolverMetadata, data));
-                ByteArrayOutputStream out = new ByteArrayOutputStream();
-                U toWrite = delegatedSerializer.applyContractRulesForWrite(topic, schema, data);
-                headersHandler.writeHeaders(headers, schema.toArtifactReference());
-                this.serializeData(headers, schema.getParsedSchema(), toWrite, out);
-                return out.toByteArray();
+                return delegatedSerializer.serializeData(topic, resolverMetadata, data, (schema, toWrite) -> {
+                    headersHandler.writeHeaders(headers, schema.toArtifactReference());
+                    ByteArrayOutputStream out = new ByteArrayOutputStream();
+                    this.serializeData(headers, schema.getParsedSchema(), toWrite, out);
+                    return out.toByteArray();
+                });
             } else {
                 return delegatedSerializer.serializeData(topic, data);
             }
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
         } catch (RuntimeException e) {
             throw toSerializationException(e);
         }

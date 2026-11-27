@@ -38,4 +38,7 @@ public class SerdeMetadata implements Metadata {
         return isKey;
     }
 
+    public boolean isFastPathSafe() {
+        return explicitSchemaContent() == null;
+    }
 }

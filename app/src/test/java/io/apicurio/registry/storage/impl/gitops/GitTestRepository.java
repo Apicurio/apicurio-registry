@@ -31,7 +31,7 @@ public class GitTestRepository implements AutoCloseable {
             git = Git.init().setDirectory(gitDir.toFile()).setInitialBranch(gitRepoBranch).call();
             Files.write(gitDir.resolve(".init"), "init".getBytes(StandardCharsets.UTF_8));
             Files.write(gitDir.resolve("registry.registry.yaml"),
-                    "$type: registry-v0\nregistryId: test\nglobalRules: []\nproperties: []\n"
+                    "$type: registry-v1\nregistryId: test\nglobalRules: []\nproperties: []\n"
                             .getBytes(StandardCharsets.UTF_8));
             git.add().addFilepattern(".").call();
             git.commit().setMessage("Initial commit").call();

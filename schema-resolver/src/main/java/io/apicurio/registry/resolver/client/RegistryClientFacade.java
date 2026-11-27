@@ -74,6 +74,31 @@ public interface RegistryClientFacade {
     }
 
     /**
+     * Gets a schema by content ID as the raw bytes returned by the registry. Use it instead of
+     * {@link #getSchemaByContentId(Long, boolean)} when the content may be binary: a dereferenced
+     * Protobuf schema is a binary {@code FileDescriptorProto}, which is corrupted when read as text.
+     *
+     * @param contentId the content ID
+     * @param dereferenced whether to ask the registry to dereference the schema
+     * @return the schema content
+     */
+    default byte[] getSchemaBytesByContentId(Long contentId, boolean dereferenced) {
+        return getSchemaByContentId(contentId, dereferenced).getBytes(StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Gets a schema by content hash as the raw bytes returned by the registry. See
+     * {@link #getSchemaBytesByContentId(Long, boolean)}.
+     *
+     * @param contentHash the content hash
+     * @param dereferenced whether to ask the registry to dereference the schema
+     * @return the schema content
+     */
+    default byte[] getSchemaBytesByContentHash(String contentHash, boolean dereferenced) {
+        return getSchemaByContentHash(contentHash, dereferenced).getBytes(StandardCharsets.UTF_8);
+    }
+
+    /**
      * Whether {@link #getSchemaByContentId(Long, boolean)} and {@link #getSchemaByContentHash(String, boolean)}
      * can return dereferenced content.
      *

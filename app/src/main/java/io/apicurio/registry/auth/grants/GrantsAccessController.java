@@ -177,6 +177,8 @@ public class GrantsAccessController extends AbstractAccessController {
             LOG.error("Per-resource authorization is enabled but not initialized, denying access.");
             return false;
         }
+        // Canonicalizing looks up each artifact: read them all at once
+        lookups().prefetchArtifacts(storage, resources);
         // One action per distinct stored name: two spellings of one artifact are one decision
         Map<Action, String> actions = new LinkedHashMap<>();
         for (AuthorizedResource resource : resources) {

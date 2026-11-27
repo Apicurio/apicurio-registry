@@ -23,7 +23,7 @@ Configure {registry} to use a Git repository as the source of registry data. Wit
 [role="_abstract"]
 GitOps storage is a read-only storage variant that loads registry data from a Git repository. You declare the desired state of the registry in files, and the registry serves that state, so all changes flow through your Git workflow with reviews, history, and rollbacks.
 
-IMPORTANT: GitOps storage is an *experimental* feature. You must enable the experimental features gate (`APICURIO_FEATURES_EXPERIMENTAL_ENABLED=true`) to use it. The data format (`*-v0`) might change in future releases.
+IMPORTANT: GitOps storage is an *experimental* feature. You must enable the experimental features gate (`APICURIO_FEATURES_EXPERIMENTAL_ENABLED=true`) to use it.
 
 *Architecture*
 
@@ -67,7 +67,7 @@ A GitOps repository contains metadata files that describe registry content, and 
 
 No fixed directory structure is required. The registry discovers metadata files anywhere in the repository by file name suffix. By default, files ending in `.registry` or `.ar`, combined with the `.yaml`, `.yml`, or `.json` extensions, are treated as metadata files, for example `order-event.registry.yaml`. You can change the suffixes with the `apicurio.polling-storage.file-suffixes` property.
 
-Each metadata file declares its kind with a `$type` discriminator:
+Each metadata file declares its kind and the version of the data format with a `$type` discriminator, for example `$type: artifact-v1`. The current version is `v1`. For the versions that the registry reads, see xref:gitops-data-format-versions_{context}[].
 
 .Metadata file types
 [cols="1,3", options="header"]
@@ -75,16 +75,16 @@ Each metadata file declares its kind with a `$type` discriminator:
 | Type
 | Purpose and main fields
 
-| `registry-v0`
+| `registry-v1`
 | Registry configuration. Fields: `registryId`, `globalRules` (list of `ruleType` and `config` pairs), `properties`, and `peers` (list of peer registries; see below). The `registryId` value must match the `apicurio.polling-storage.id` property of the registry instance.
 
-| `group-v0`
-| An artifact group. Fields: `registryIds` (list), `groupId`, `description`, `labels`, `owner`, `artifactsType`, `rules`, `createdOn`, and `modifiedOn`. Every group that an artifact references must be declared by a `group-v0` file; the registry does not create groups automatically.
+| `group-v1`
+| An artifact group. Fields: `registryIds` (list), `groupId`, `description`, `labels`, `owner`, `artifactsType`, `rules`, `createdOn`, and `modifiedOn`. Every group that an artifact references must be declared by a `group-v1` file; the registry does not create groups automatically.
 
-| `artifact-v0`
-| An artifact with its versions declared inline. Fields: `registryIds`, `groupId`, `artifactId`, `artifactType` (optional), `name`, `description`, `labels`, `owner`, `createdOn`, `modifiedOn`, `rules`, `validatedUpTo`, and `versions`. Each version has `version`, `state`, and `content`, where `content` is a relative path to a schema file. A version can also have `name`, `description`, `labels`, `owner`, `globalId`, `createdOn`, `modifiedOn`, and `contentMetadata`, which is a relative path to a `content-v0` file.
+| `artifact-v1`
+| An artifact with its versions declared inline. Fields: `registryIds`, `groupId`, `artifactId`, `artifactType` (optional), `name`, `description`, `labels`, `owner`, `createdOn`, `modifiedOn`, `rules`, `validatedUpTo`, and `versions`. Each version has `version`, `state`, and `content`, where `content` is a relative path to a schema file. A version can also have `name`, `description`, `labels`, `owner`, `globalId`, `createdOn`, `modifiedOn`, and `contentMetadata`, which is a relative path to a `content-v1` file.
 
-| `content-v0`
+| `content-v1`
 | Optional content metadata, for explicit content identifiers and references. Fields: `contentId`, `content` (relative path to the schema file), and `references` (list of entries with `groupId`, `artifactId`, `version`, and `name`).
 |===
 
@@ -94,7 +94,7 @@ The following example declares a registry configuration, a group, and an artifac
 
 [source,yaml]
 ----
-$type: registry-v0
+$type: registry-v1
 registryId: main
 globalRules:
   - ruleType: VALIDITY
@@ -103,13 +103,13 @@ globalRules:
 
 [source,yaml]
 ----
-$type: group-v0
+$type: group-v1
 groupId: my-schemas
 ----
 
 [source,yaml]
 ----
-$type: artifact-v0
+$type: artifact-v1
 groupId: my-schemas
 artifactId: order-event
 artifactType: AVRO
@@ -123,9 +123,9 @@ Content files are plain schema files that metadata files reference by a path rel
 
 When `artifactType` is omitted, the registry determines the type in the following order:
 
-. *Unambiguous file extension* — extensions listed in the table below are mapped directly to a single artifact type. An explicit `artifactType` always takes precedence over the extension. A mapped extension is treated like a declared `artifactType`: the content is not checked against it, so an OpenAPI document saved as `api.avsc` is stored as AVRO unless a validity rule rejects it.
-. *Content-based detection* — for ambiguous extensions (`.json`, `.yaml`, `.yml`, `.xml`) where multiple artifact types are possible, the registry inspects the file content to determine the type.
-. *Error* — if neither the extension nor the content identifies a type, the load fails with an error listing the supported extensions.
+. *Unambiguous file extension*: extensions listed in the table below are mapped directly to a single artifact type. An explicit `artifactType` always takes precedence over the extension. A mapped extension is treated like a declared `artifactType`: the content is not checked against it, so an OpenAPI document saved as `api.avsc` is stored as AVRO unless a validity rule rejects it.
+. *Content-based detection*: for ambiguous extensions (`.json`, `.yaml`, `.yml`, `.xml`) where multiple artifact types are possible, the registry inspects the file content to determine the type.
+. *Error*: if neither the extension nor the content identifies a type, the load fails with an error listing the supported extensions.
 
 All versions of an artifact must share the same type. When `artifactType` is omitted and versions resolve to different types from their extensions, the load fails with an error asking you to set `artifactType` explicitly.
 
@@ -174,16 +174,77 @@ The following additional rules apply:
 * If `registryIds` is omitted or empty on a group or artifact, any registry instance loads it.
 * The `createdOn` and `modifiedOn` timestamps on groups, artifacts, and versions are optional. When omitted, the registry uses the Git commit time. Supported formats are ISO 8601, with or without a time zone or as a date only, and Unix milliseconds.
 * The optional `validatedUpTo` field on an artifact controls rule validation during a load. When unset, only the latest version is validated, against all preceding versions. When set to a version identifier, versions up to and including that version are not re-validated. When the value matches no version, all versions are validated.
+* A group with no artifacts is loaded with its metadata and rules. This is useful for reserving a group namespace or applying group-level rules before any artifacts are added.
+* An artifact with no versions is loaded with its metadata and rules, but `artifactType` must be set explicitly. Without it, the load fails with an error because the type cannot be inferred from content. In previous versions, versionless artifacts were silently skipped.
 * The optional `peers` list on the registry configuration declares peer registries. Each entry has `peerId` (lowercase letters, digits, `.`, `_`, and `-` only; must be unique and cannot be `local`, which is reserved), `url`, optional `name` and `description`, `enabled` (defaults to `true` when omitted), and an optional `credentialSecretRef`, which is a reference to a credential and never a secret value itself. The full `peers` list is replaced on every load: omitting the key, or setting it to an empty list, removes all previously loaded peers.
 
 [role="_additional-resources"]
 .Additional resources
 ifndef::service-registry-downstream[]
 * xref:getting-started/assembly-configuring-kubernetesops-storage.adoc#kubernetesops-field-reference_{context}[]
+* xref:getting-started/assembly-a2a-features.adoc#a2a-peer-registries_{context}[Peer registries for federated agent search]
 endif::[]
 ifdef::service-registry-downstream[]
 * xref:kubernetesops-field-reference_{context}[]
 endif::[]
+
+
+[id="gitops-data-format-versions_{context}"]
+== GitOps data format versions
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+The data format of GitOps and KubernetesOps metadata files is versioned. The version is the suffix of the `$type` value, for example `v1` in `artifact-v1`, and it applies to the whole file.
+
+.Data format versions
+[cols="1,1,3", options="header"]
+|===
+| Version
+| Status in {registry} 3.4
+| Behavior
+
+| `v1`
+| Current
+| Read. The export to GitOps format writes this version.
+
+| `v0`
+| Deprecated
+| Read. A load that contains `v0` files logs one warning with the number of files and an example path. `v1` has the same fields as `v0`, so only the `$type` values differ.
+|===
+
+The registry reads at most two versions: the current one and at most one deprecated one. A deprecated version stays readable for at least two minor releases after the release that deprecated it, or until the next major release. A newer version of the data format is introduced only together with the removal of the oldest one.
+
+A file with a version that the registry doesn't read fails the load, and the registry keeps serving the last successfully loaded data:
+
+* A removed version: the error names the version and the version to convert to.
+* A newer version, written for a later {registry} release: the error says that the file requires a newer registry.
+
+A metadata file that fails to parse (invalid YAML or JSON, or an unusable `$type` field) fails the load the same way, naming the file. This applies to every registry instance that polls the repository, including one whose `registryIds` excludes the broken file: the load can't tell which registries the file was meant for until it parses.
+
+Within a version, the format changes only by adding optional fields. The registry rejects fields that it doesn't know, so use a new field only when every registry that reads the repository supports it.
+
+*Converting a repository to the current version*
+
+A repository can contain files of both readable versions, so you can convert it in one commit or file by file. To convert from `v0` to `v1`, change the `$type` values, for example:
+
+[source,bash]
+----
+grep -rlZE '^\$type: (registry|group|artifact|content)-v0' --include='*.registry.yaml' . \
+  | xargs -0 sed -i -E 's/^\$type: (registry|group|artifact|content)-v0$/$type: \1-v1/'
+----
+
+Adjust the file pattern if you changed `apicurio.polling-storage.file-suffixes`, or if your metadata
+files use the `.yml` extension. For `.json` files, match `"\$type": "(registry|group|artifact|content)-v0"`
+instead, since JSON quotes the field and its value.
+
+This uses GNU `sed`. On macOS or another BSD `sed`, pass an empty string to `-i` (`sed -i '' -E ...`).
+
+Before you convert, check which registry instances read the repository:
+
+* Convert only after every registry instance that reads the repository runs {registry} 3.4 or later. {registry} 3.3 and earlier skip `v1` files, so the converted artifacts disappear from those instances.
+* If you convert file by file, convert the registry configuration file first. With the default `apicurio.polling-storage.require-registry-config=true`, a registry that can't read it rejects the whole load and keeps serving its last data, instead of serving data without the converted files. With that property set to `false`, the registry instead logs a warning and loads without the registry file.
+* To roll back to a {registry} release that doesn't read `v1`, revert the conversion commit.
 
 
 [id="configuring-gitops-storage-single-repository_{context}"]
@@ -195,7 +256,7 @@ endif::[]
 You can configure {registry} to load its data from a single Git repository that is available as a local clone on a mounted volume.
 
 .Prerequisites
-* You have a Git repository that contains a registry configuration file (`registry-v0`) and registry content.
+* You have a Git repository that contains a registry configuration file (`registry-v1`) and registry content.
 * You have a local clone of the repository, or a sync container that maintains one.
 
 .Procedure
@@ -205,8 +266,8 @@ You can configure {registry} to load its data from a single Git repository that 
 [source,bash]
 ----
 APICURIO_STORAGE_KIND=gitops
-APICURIO_FEATURES_EXPERIMENTAL_ENABLED=true
 APICURIO_POLLING_STORAGE_ID=main
+APICURIO_FEATURES_EXPERIMENTAL_ENABLED=true
 ----
 . Mount the local clone of the repository into the registry container at `/repos/default`. A read-only mount is sufficient for serving content, because the registry does not write to the repository. If you use dry-run validation, mount the workspace writable instead, because the registry writes validation request files under the workspace directory. The mount path is the workspace directory (`apicurio.gitops.workspace`, default `/repos`) combined with the repository directory name (`apicurio.gitops.repo.dir`, default `default`).
 +
@@ -258,6 +319,10 @@ APICURIO_GITOPS_REPO_URL=https://github.com/my-org/my-registry-data.git
 ----
 +
 The sync container clones the repository and then updates it every 30 seconds. You can change the interval with the `APICURIO_GITOPS_PULL_INTERVAL` environment variable.
++
+For a private repository, use an SSH URL and provide the keys as described in the next step. The sync container has no setting for HTTPS credentials. A private HTTPS repository requires credentials in the URL itself, for example `+https://<token>@github.com/my-org/my-registry-data.git+`. Git saves that URL, including the credentials, in the configuration of the clone on the shared volume, which the registry container also mounts.
++
+With the {operator}, you set the URL in the `ApicurioRegistry3` custom resource, and the Operator copies it unchanged into the Deployment as an environment variable of the sync container. Anyone who can read the custom resource, the Deployment, or the pod can read the token. The sync container clones a repository only if the clone does not exist, and it fetches updates from the URL that Git saved in the clone. A changed token therefore takes effect only when the sync container creates the clone again. The Operator uses an `emptyDir` volume by default, so each new pod starts without a clone. If you use a persistent volume instead, delete the clone before you restart the sync container.
 . Optional: For SSH remotes, provide the private key and the known hosts file:
 +
 [source,bash]
@@ -375,6 +440,62 @@ ifndef::service-registry-downstream[]
 [role="_additional-resources"]
 .Additional resources
 * link:https://github.com/Apicurio/apicurio-registry-gitops-example[Example GitOps repository with a CI validation workflow]
+endif::[]
+
+
+[id="gitops-storage-sizing_{context}"]
+== GitOps storage sizing considerations
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+With GitOps storage, each registry instance holds all of its data in memory and reloads all of it when a repository changes. Memory use and load time therefore grow with the total amount of data in your repositories, not with the size of a commit.
+
+Each registry instance has two in-memory databases. The active database serves requests, and the inactive database receives the next load. The registry clears the inactive database only when the next load or dry-run validation starts, so both databases can hold a full copy of the data at the same time. Plan memory for at least two copies of the registry data. While a load runs, the registry also holds in memory the files that it reads from the repositories.
+
+A load reads all of the data from every configured repository, not only the files that changed. Because the registry is not ready until the first load succeeds, startup time also grows with the amount of data.
+
+The shared volume holds one clone of each repository. In pull mode, the clone is shallow by default and contains only the configured branch. In push mode, the repository on the volume keeps the full history that clients push to it, so the volume grows with that history. While a dry-run validation task runs, the volume also holds a shallow clone of the reference that the task validates.
+
+
+[id="gitops-storage-limitations-troubleshooting_{context}"]
+== GitOps storage limitations and troubleshooting
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+GitOps storage is read-only and produces no change events. This section lists these limitations and the checks to make when a registry instance does not become ready or does not show a commit.
+
+GitOps storage has the following limitations:
+
+* The storage is read-only. REST API calls that modify data return an HTTP `409` response.
+* The registry produces no change events for the data that it loads from Git.
+
+To find the cause of a problem, get the synchronization status from the `/admin/gitops/status` endpoint and read the `syncState`, `errors`, and `sources` fields. The `acr gitops status` command shows the same values in the `Sync State`, `Errors`, and `Sources` rows. The registry logs `gitops update published` after each successful load. After a load that it rejects, the registry logs `gitops update failed to load`, followed by the errors.
+
+.GitOps storage problems and their causes
+[cols="2,3", options="header"]
+|===
+| Problem
+| Cause and resolution
+
+| The registry does not become ready.
+| The registry is ready only after the first successful load. If `syncState` is `INITIALIZING` and `errors` is empty, the registry has not yet read a commit from every configured repository. Check that the clone of each repository exists at the path that the registry reads and that the sync container, if you use one, is running. The registry logs `GitOps repository directory does not exist` while the directory is missing. If `syncState` is `ERROR`, the `errors` field lists what failed.
+
+| A load fails with the error `Data source does not contain a registry configuration matching ID`.
+| The registry found no registry configuration file with a `registryId` value that matches the `apicurio.polling-storage.id` property of the registry instance. The registry rejects such a load when the `apicurio.polling-storage.require-registry-config` property is `true`, which is the default. Add a registry configuration file with a matching `registryId` value, or set the `apicurio.polling-storage.id` property to the `registryId` value of an existing file. If a file with a matching `registryId` value exists, check its file name suffix and its `$type` value. The registry reads a file as a registry configuration only if the file has a metadata file suffix and the registry configuration `$type` value.
+
+| A commit does not appear in the registry.
+| Compare the `sources` field with the latest commit in the remote repository. If `syncState` stays `IDLE` and `sources` keeps showing an earlier commit, the new commit has not reached the local clone. The sync container logs `Fetch failed` when it cannot update the clone. If `syncState` is `ERROR`, a load or a poll failed, and the registry serves the last successfully loaded data. The registry does not load a commit again after a data error, so push a new commit that fixes the errors that the `errors` field lists.
+|===
+
+[role="_additional-resources"]
+.Additional resources
+* xref:gitops-repository-data-format_{context}[]
+* xref:gitops-management-api_{context}[]
+ifndef::service-registry-downstream[]
+* xref:getting-started/assembly-registry-events.adoc#registry-events-overview_{context}[Overview of {registry} change events]
+* xref:getting-started/assembly-managing-registry-artifacts-cli.adoc#synchronizing-gitops-using-registry-cli_{context}[Checking and synchronizing GitOps storage using the CLI]
 endif::[]
 
 
@@ -620,3 +741,286 @@ ifndef::service-registry-downstream[]
 * {registry-rules}
 * link:https://github.com/Apicurio/apicurio-registry/tree/main/distro/gitops[GitOps sync container README]
 endif::[]
+
+
+[id="gitops-multi-replica-deployments_{context}"]
+== Multi-replica deployments
+
+:_mod-docs-content-type: ASSEMBLY
+
+[role="_abstract"]
+This section describes how GitOps storage behaves in a multi-replica deployment: the per-replica volume model, synchronization modes, the convergence window, validation tasks across replicas, and sticky routing configuration.
+
+
+[id="gitops-multi-replica-deployment_{context}"]
+=== Deployment model
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+In a {kubernetes} deployment, a *replica* is one copy of the registry pod. A Deployment with `replicas: 3` runs three identical pods, and a Service spreads incoming requests across them. When you run GitOps storage with multiple replicas, each replica operates independently with its own volume and its own sync sidecar.
+
+*Architecture*
+
+Each replica has:
+
+* Its own `emptyDir` volume, created empty when the pod starts and deleted with the pod.
+* Its own sync sidecar (`apicurio-registry-gitops-sync`), which clones the configured repositories into that volume.
+
+No replica reads another replica's volume. Every sidecar independently clones and fetches the same remote repositories, so all replicas converge on the same data. For a few seconds after a change, different replicas can serve different commits. This is the *convergence window*, described below.
+
+In pull mode, this design avoids any single point of failure: if one pod is lost, its replacement clones the repositories again from the remote. No `ReadWriteMany` storage or cross-pod coordination is required. In push mode, an `emptyDir` volume is deleted with the pod, and the sidecar has no remote to clone from, so a pod replacement starts with an empty repository. See <<gitops-modes-and-replicas_{context}>> for details.
+
+
+[id="gitops-volume-strategy_{context}"]
+=== Volume strategy
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+GitOps storage uses an `emptyDir` volume per pod. This is the default and the only volume type that the {operator} configures.
+
+`emptyDir`:: Each pod gets its own volume that is created empty on startup and deleted with the pod. Nothing outside the pod can see it. The {operator} configures this automatically.
+
+A `PersistentVolumeClaim` (PVC) with `ReadWriteOnce` access mode is not suitable for multi-replica Deployments:
+
+* *Pods on different nodes:* A `ReadWriteOnce` PVC can only be mounted by pods on a single node. When {kubernetes} schedules a replica onto a different node, the pod remains in `ContainerCreating` with a `Multi-Attach` error because the volume is already attached to another node.
+* *Pods on the same node:* {kubernetes} can mount the volume into multiple pods on the same node, but the sidecars all write to the same directory. This causes conflicts and is not supported.
+
+A PVC must never be shared by more than one pod. A PVC per pod would require a StatefulSet with `volumeClaimTemplates`, but the {operator} uses a Deployment. A shared volume accessible to all replicas is planned (link:https://github.com/Apicurio/apicurio-registry/issues/10610[#10610]).
+
+
+[id="gitops-modes-and-replicas_{context}"]
+=== Synchronization modes and replicas
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+The synchronization mode determines whether multiple replicas can run.
+
+Pull mode (recommended for high availability):: Every sidecar pulls from the same remote repository independently. Any replica can serve requests, and losing one does not lose data because the replacement clones the repository again from the remote. Pull mode is the default.
+
+Push mode (single replica only):: In push mode, CI runs `git push` to an SSH server in the sidecar, reached through a Service. A Service sends each connection to one of its pods, so the push lands in one pod's volume and the other replicas never receive it. Their data silently diverges. For this reason, *push mode supports a single replica only*.
++
+Because push mode uses an `emptyDir` volume and the sidecar has no remote repository to clone from, a pod replacement (by a rollout, node drain, or eviction) starts with an empty repository. The registry has no data until CI pushes again, and with a single replica nothing serves in the meantime. To mitigate this, CI should push on a schedule as well as on change. Operator support for a persistent volume in this case is tracked in link:https://github.com/Apicurio/apicurio-registry/issues/11132[#11132].
++
+NOTE: An `emptyDir` survives container restarts within the same pod. Only a full pod replacement deletes the volume.
+
+IMPORTANT: Do not configure `replicas > 1` with push mode. Running push mode with multiple replicas causes silent data divergence across replicas. In push mode, the {operator} always runs one replica with the `Recreate` deployment strategy, and creates no HorizontalPodAutoscaler or PodDisruptionBudget. `Recreate` matters even with a single replica: every rollout has a short outage while the old pod terminates and the new one starts. If `replicas > 1` or autoscaling is set, the {operator} also records a `ValidationError` condition on the CR explaining that the setting is ignored.
+
+
+[id="gitops-convergence-window_{context}"]
+=== Convergence window
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+In pull mode, each sidecar fetches updates from the remote independently. After a new commit is pushed to the remote, each sidecar picks it up on its next pull cycle. Until all sidecars have fetched the new commit and their registries have loaded it, different replicas can serve data from different commits.
+
+This period is the *convergence window*. With the default pull interval of 30 seconds and the default poll and debounce settings, convergence typically takes around 60 seconds under healthy, lightly loaded conditions: the sidecar that pulls last is at most one pull interval behind, and the registry needs an additional poll-plus-debounce cycle to load the new data. Under load or with slow Git fetches, convergence can take longer.
+
+*Detecting the convergence window*
+
+Use the GitOps status endpoint to check which commit each repository is serving:
+
+[source,bash]
+----
+$ curl http://localhost:8080/apis/registry/v3/admin/gitops/status
+----
+
+The `sources` field in the response maps each repository identifier to the abbreviated commit that the replica has loaded. When you query different replicas (for example, by targeting individual pod IPs), the commit values can differ during the convergence window.
+
+To verify that all replicas have loaded a specific commit, compare the `sources` values against the expected target commit. Equal values alone do not confirm convergence: all replicas initially report the previous commit, and a failed load retains the old commit in the status. Also check the `syncState` field for errors. Only when every replica reports the expected commit with no errors has the convergence window closed.
+
+
+[id="gitops-validation-across-replicas_{context}"]
+=== Validation tasks across replicas
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+Dry-run validation is asynchronous. The client sends a `POST` request to create a task and receives a task ID, then polls a `GET` endpoint until the task finishes. The pod that receives the `POST` writes a request file to its volume, its sidecar fetches the reference, and that same pod runs the validation.
+
+*Self-describing task IDs and cross-replica polling*
+
+The task ID encodes the validation request itself (the repository ID, reference, and type), signed with an HMAC key. Any replica that receives a `GET` for an unknown task ID can decode it, start the same validation on its own volume, and return its own result. No replica needs anything from another.
+
+For this to work across replicas, all replicas must share the same HMAC key via `apicurio.gitops.validate.hmac-key`. Without a shared key, each replica generates its own random key at startup, and a `GET` on another replica returns `404` instead of decoding the task ID. The key must be at least 32 bytes. Supply it from a {kubernetes} Secret:
+
+[source,yaml]
+----
+env:
+  - name: APICURIO_GITOPS_VALIDATE_HMAC_KEY
+    valueFrom:
+      secretKeyRef:
+        name: registry-gitops-hmac
+        key: hmac-key
+----
+
+With the {operator}, place the same `env` entry under `spec.app.env` in the ApicurioRegistry CR:
+
+[source,yaml]
+----
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: my-registry
+spec:
+  app:
+    env:
+      - name: APICURIO_GITOPS_VALIDATE_HMAC_KEY
+        valueFrom:
+          secretKeyRef:
+            name: registry-gitops-hmac
+            key: hmac-key
+----
+
+Operator-managed HMAC key distribution is tracked in link:https://github.com/Apicurio/apicurio-registry/issues/11189[#11189].
+
+*Grace period*
+
+When a replica receives a `GET` for an unknown task ID, it waits `apicurio.gitops.validate.grace-period.seconds` (5 seconds by default) before starting its own validation. This gives the creating replica time to finish first. Without sticky routing, or when repeated work is too frequent, increase the grace period. The cost is a later result if the creating replica is lost. Keep the grace period well below how long clients wait for a result, such as the CLI's `--timeout`.
+
+*Duplicate requests*
+
+If a replica receives a `POST` for a validation that it already has pending or submitted, it returns the existing task instead of creating a duplicate.
+
+This design has the following characteristics:
+
+Repeated work:: Without sticky routing, a client polling every few seconds can reach every replica, and each one runs the validation independently. Each replica limits how many validations it runs concurrently via the `max-tasks` setting (default 5). Use sticky routing (described below) to keep a client's polls on the same pod and avoid repeated work. If sticky routing is not feasible, increase the grace period (described above) to reduce repeated work.
+Listing:: The `GET /admin/gitops/validate` (list) endpoint returns tasks from the replica that receives the request only. A task created on one replica is not listed on another.
+Deleting:: `DELETE /admin/gitops/validate/\{taskId}` removes the task's in-memory entry on the receiving replica, but only if the task is `pending`, `completed`, or `failed`. If the task is still in flight (`submitted`, `fetching`, or `validating`), the `DELETE` returns `409 Conflict`. Wait for the task to finish or let it expire. Because the task ID is self-describing, a subsequent `GET` on any replica (including the one that deleted it) decodes the ID and starts the validation again. A task is fully gone only after it expires, controlled by `apicurio.gitops.validate.task.ttl.seconds` (3600 seconds by default).
+Commit SHA vs. branch:: CI should validate a full commit SHA (40 hexadecimal characters), not a branch name or abbreviated SHA. A branch can move while replicas are fetching it, and different replicas can end up validating different commits. An abbreviated SHA does not work because the sidecar's fetch fallback requires the full SHA. The Git server must also allow fetching a commit by its SHA directly; GitHub and GitLab allow this by default, but other servers might not.
++
+.Example validation request with a commit SHA
+[source,bash]
+----
+$ curl -X POST -H "Content-Type: application/json" \
+  -d '{"type": "pull", "repoId": "default", "ref": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0"}' \
+  http://localhost:8080/apis/registry/v3/admin/gitops/validate
+----
+
+TIP: Use sticky routing (described below) to keep a client's polls on the same pod. This avoids repeated work and makes listing and deleting tasks consistent.
+
+
+[id="gitops-sticky-routing_{context}"]
+=== Configuring sticky routing
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+*Sticky routing*, or *session affinity*, keeps a load balancer sending the same client to the same pod. This is an optimization, not a correctness mechanism: without it, self-describing task IDs still produce the right answer, with some repeated work. You can configure sticky routing to reduce repeated validation work across replicas.
+
+How to configure sticky routing depends on where the client's requests enter the cluster.
+
+*Clients inside the cluster*
+
+Clients inside the cluster (for example, Tekton, Argo Workflows, or CI runners on the cluster) call the registry's Service directly. Configure `sessionAffinity: ClientIP` on the Service:
+
+[source,yaml]
+----
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-registry-service
+spec:
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 3600
+----
+
+{kubernetes} remembers which pod the client pod's IP was sent to and keeps sending it there for up to the configured timeout (default 3 hours). The client pod's IP does not change during a CI job, so this works well.
+
+NOTE: The {operator} does not set `sessionAffinity` by default, because pinning clients to pods can unbalance load when a few clients produce most of the traffic. Enable it when you need it.
+
+*Operator-managed deployments*
+
+The {operator} creates the registry Service and Ingress automatically. The CR cannot configure `sessionAffinity` on the Service or affinity annotations on the Ingress today (link:https://github.com/Apicurio/apicurio-registry/issues/11187[#11187]). To use sticky routing with operator-managed deployments:
+
+. Set `spec.app.ingress.enabled: false` in the ApicurioRegistry CR to disable the operator-managed Ingress.
+. Create your own Service with `sessionAffinity: ClientIP` that selects the registry pods. Use the labels the operator sets, for example `app.kubernetes.io/instance: <CR name>` and `app.kubernetes.io/component: app`:
++
+[source,yaml]
+----
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-registry-affinity
+spec:
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 3600
+  selector:
+    app.kubernetes.io/instance: my-registry
+    app.kubernetes.io/component: app
+  ports:
+    - port: 8080
+      targetPort: 8080
+----
++
+The operator's own Service still exists, so in-cluster clients must call your new Service by name to get affinity.
+. Create your own Ingress or Route pointing at your Service, with the affinity annotations from the examples below.
+
+NOTE: The {operator} does not manage these resources, so you must keep them in step with the CR manually, for example updating ports when TLS is enabled.
+
+*Clients outside the cluster through OpenShift Routes*
+
+OpenShift Routes use cookie-based affinity by default: the router sets a cookie on the first response and uses it to route subsequent requests to the same pod. For this to work, the client must send the cookie back.
+
+IMPORTANT: Cookie-based affinity works only with HTTP, edge-terminated, and re-encrypt Routes. For TLS passthrough Routes, the router cannot read or set HTTP cookies inside the encrypted connection. Use source-IP-based affinity instead (`haproxy.router.openshift.io/balance: source`).
+
+The `apicurio-registry` CLI keeps cookies within a command (link:https://github.com/Apicurio/apicurio-registry/pull/11155[#11155]), so cookie-based affinity from the Route's default configuration works for `gitops validate` polling. For TLS passthrough Routes (where cookie-based affinity does not work), configure source-IP-based affinity:
+
+[source,yaml]
+----
+kind: Route
+metadata:
+  annotations:
+    haproxy.router.openshift.io/balance: source
+----
+
+For other clients that support cookies, such as `curl`:
+
+[source,bash]
+----
+# Create the task and save cookies
+$ curl -c cookies.txt -X POST -H "Content-Type: application/json" \
+  -d '{"type": "pull", "repoId": "default", "ref": "refs/pull/42/head"}' \
+  https://registry.example.com/apis/registry/v3/admin/gitops/validate
+
+# Poll with the same cookies
+$ curl -b cookies.txt \
+  https://registry.example.com/apis/registry/v3/admin/gitops/validate/TASK_ID
+----
+
+*Clients outside the cluster through nginx-ingress*
+
+For nginx-ingress, configure cookie-based or IP-based affinity with annotations on the Ingress resource:
+
+[source,yaml]
+----
+# Cookie-based affinity
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/session-cookie-name: REGISTRY_AFFINITY
+    nginx.ingress.kubernetes.io/session-cookie-max-age: "3600"
+----
+
+[source,yaml]
+----
+# IP-based affinity (alternative)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/upstream-hash-by: $remote_addr
+----
+
+*Hosted CI runners*
+
+Hosted CI runners such as GitHub-hosted runners reach the internet through cloud NAT. Their outgoing IP can change during a job, so IP-based stickiness is best-effort for them. Cookie-based stickiness is more reliable if the CI tool supports it.

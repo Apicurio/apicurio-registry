@@ -26,12 +26,12 @@ public class McpImportConfig {
     @Info(category = CATEGORY_MCP, description = "Hosts the registry may connect to when importing from an MCP server, as a comma-separated list. Each entry is a hostname (mcp.example.com), a domain wildcard (*.example.com, which does not match example.com itself), an IP address, or a CIDR range (10.0.0.0/8) that every address the host resolves to must be in. When empty, every host is refused. Loopback, link-local, and cloud metadata addresses are refused even when listed", availableSince = "3.4.0")
     Optional<List<String>> allowedHosts;
 
-    @ConfigProperty(name = "apicurio.mcp-import.insecure-http.enabled", defaultValue = "false")
-    @Info(category = CATEGORY_MCP, description = "Allow MCP server URLs that use plain HTTP instead of HTTPS when importing", availableSince = "3.4.0")
+    @ConfigProperty(name = "apicurio.mcp-import.insecure-http.enabled")
+    @Info(category = CATEGORY_MCP, description = "Allow MCP server URLs that use plain HTTP instead of HTTPS when importing. Defaults to apicurio.outbound.insecure-http.enabled", availableSince = "3.4.0")
     boolean insecureHttpEnabled;
 
-    @ConfigProperty(name = "apicurio.mcp-import.loopback.enabled", defaultValue = "false")
-    @Info(category = CATEGORY_MCP, description = "Allow MCP server URLs that point at a loopback address or a localhost name when importing, for development and tests. The host must still be allowed by apicurio.mcp-import.allowed-hosts", availableSince = "3.4.0")
+    @ConfigProperty(name = "apicurio.mcp-import.loopback.enabled")
+    @Info(category = CATEGORY_MCP, description = "Allow MCP server URLs that point at a loopback address or a localhost name when importing, for development and tests. The host must still be allowed by apicurio.mcp-import.allowed-hosts. Defaults to apicurio.outbound.loopback.enabled", availableSince = "3.4.0")
     boolean loopbackEnabled;
 
     @ConfigProperty(name = "apicurio.mcp-import.timeout.seconds", defaultValue = "10")

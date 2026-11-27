@@ -1,5 +1,6 @@
 package io.apicurio.registry.auth;
 
+import io.apicurio.registry.model.GA;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
@@ -9,8 +10,11 @@ import io.quarkus.arc.Arc;
 import io.quarkus.arc.ManagedContext;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.validation.ValidationException;
 
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -42,7 +46,7 @@ public class AuthorizationLookups {
 
     /** @return the artifact's metadata, or empty if it does not exist */
     public Optional<ArtifactMetaDataDto> artifact(RegistryStorage storage, String groupId, String artifactId) {
-        return remember(RequestAuthorizationLookups::artifacts, Arrays.asList(groupKey(groupId), artifactId),
+        return remember(RequestAuthorizationLookups::artifacts, artifactKey(groupId, artifactId),
                 () -> find(() -> storage.getArtifactMetaData(groupId, artifactId)));
     }
 
@@ -52,10 +56,76 @@ public class AuthorizationLookups {
                 () -> find(() -> storage.getGroupMetaData(groupId)));
     }
 
-    /** @return the metadata of the version with this global ID, or empty if there is none */
+    /**
+     * @return the metadata of the version with this global ID, or empty if there is none. Its
+     *         artifact's metadata is read in the same query and remembered too, so authorizing a
+     *         global ID (which needs the artifact's stored IDs and owner) costs one read, and the
+     *         endpoint can reuse the version's metadata.
+     */
     public Optional<ArtifactVersionMetaDataDto> version(RegistryStorage storage, long globalId) {
         return remember(RequestAuthorizationLookups::versions, globalId,
-                () -> find(() -> storage.getArtifactVersionMetaData(globalId)));
+                () -> find(() -> storage.getArtifactVersionWithArtifactMetaData(globalId)).map(read -> {
+                    ArtifactMetaDataDto artifact = read.artifact();
+                    ArtifactVersionMetaDataDto version = read.version();
+                    Optional<ArtifactMetaDataDto> present = Optional.of(artifact);
+                    rememberIfAbsent(RequestAuthorizationLookups::artifacts,
+                            artifactKey(artifact.getGroupId(), artifact.getArtifactId()), present);
+                    rememberIfAbsent(RequestAuthorizationLookups::artifacts,
+                            artifactKey(version.getGroupId(), version.getArtifactId()), present);
+                    return version;
+                }));
+    }
+
+    /**
+     * Forgets any remembered lookup for this artifact in the current request, so a subsequent
+     * authorization check re-reads storage (for example after a concurrent creation).
+     */
+    public void forgetArtifact(String groupId, String artifactId) {
+        if (perRequest != null && requestContextActive()) {
+            perRequest.artifacts().remove(artifactKey(groupId, artifactId));
+        }
+    }
+
+    /**
+     * Reads the metadata of these artifacts together, and remembers exact matches for the current
+     * request, so that the {@link #artifact} lookups that follow need no read each. Resources other
+     * than artifacts, and artifacts already looked up, are skipped. Does nothing without an active
+     * request context.
+     */
+    public void prefetchArtifacts(RegistryStorage storage, Collection<AuthorizedResource> resources) {
+        if (perRequest == null || !requestContextActive()) {
+            return;
+        }
+        Map<List<String>, GA> wanted = new LinkedHashMap<>();
+        for (AuthorizedResource resource : resources) {
+            if (resource.kind() != AuthorizedResource.Kind.ARTIFACT) {
+                continue;
+            }
+            List<String> key = artifactKey(resource.groupId(), resource.artifactId());
+            if (!perRequest.artifacts().containsKey(key) && !wanted.containsKey(key)) {
+                try {
+                    wanted.put(key, new GA(resource.groupId(), resource.artifactId()));
+                } catch (ValidationException e) {
+                    // Not a valid ID, so no stored artifact: the lookup itself answers that
+                }
+            }
+        }
+        if (wanted.size() < 2) {
+            return;
+        }
+        List<ArtifactMetaDataDto> found = storage.getArtifactsMetaData(wanted.values());
+        for (Map.Entry<List<String>, GA> entry : wanted.entrySet()) {
+            List<String> key = entry.getKey();
+            Optional<ArtifactMetaDataDto> exact = found.stream()
+                    .filter(a -> artifactKey(a.getGroupId(), a.getArtifactId()).equals(key)).findFirst();
+            if (exact.isPresent()) {
+                rememberIfAbsent(RequestAuthorizationLookups::artifacts, key, exact);
+            }
+            // Leave every other key to its own artifact() lookup: databases whose equality is looser
+            // than Java's (e.g. case-insensitive or ignoring trailing spaces on MySQL/SQL Server) may
+            // resolve a requested spelling to a stored artifact that did not match exactly here, so we
+            // must not cache Optional.empty() for it.
+        }
     }
 
     /** @return the versions using this content, or empty if the content does not exist */
@@ -73,11 +143,8 @@ public class AuthorizationLookups {
      *         request against the wrong artifact, on this or any other replica.
      */
     public Optional<GlobalIdCoordinates> coordinates(RegistryStorage storage, long globalId) {
-        return remember(RequestAuthorizationLookups::coordinates, globalId,
-                () -> find(() -> {
-                    ArtifactVersionMetaDataDto vmd = storage.getArtifactVersionMetaData(globalId);
-                    return new GlobalIdCoordinates(vmd.getGroupId(), vmd.getArtifactId(), vmd.getVersion());
-                }));
+        return version(storage, globalId)
+                .map(vmd -> new GlobalIdCoordinates(vmd.getGroupId(), vmd.getArtifactId(), vmd.getVersion()));
     }
 
     /**
@@ -88,10 +155,25 @@ public class AuthorizationLookups {
         return groupId == null || "default".equals(groupId) ? "\0default" : groupId;
     }
 
+    private static List<String> artifactKey(String groupId, String artifactId) {
+        return Arrays.asList(groupKey(groupId), artifactId);
+    }
+
+    private static boolean requestContextActive() {
+        ManagedContext requestContext = Arc.container() == null ? null : Arc.container().requestContext();
+        return requestContext != null && requestContext.isActive();
+    }
+
+    private <K, V> void rememberIfAbsent(Function<RequestAuthorizationLookups, Map<K, Optional<V>>> cache, K key,
+            Optional<V> value) {
+        if (perRequest != null && requestContextActive()) {
+            cache.apply(perRequest).putIfAbsent(key, value);
+        }
+    }
+
     private <K, V> Optional<V> remember(Function<RequestAuthorizationLookups, Map<K, Optional<V>>> cache,
             K key, Supplier<Optional<V>> loader) {
-        ManagedContext requestContext = Arc.container() == null ? null : Arc.container().requestContext();
-        if (perRequest == null || requestContext == null || !requestContext.isActive()) {
+        if (perRequest == null || !requestContextActive()) {
             return loader.get();
         }
         Map<K, Optional<V>> map = cache.apply(perRequest);

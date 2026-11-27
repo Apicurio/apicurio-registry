@@ -1,5 +1,6 @@
 package io.apicurio.registry.extensions;
 
+import io.apicurio.registry.rest.v3.beans.McpToolImportJobStatus;
 import io.apicurio.registry.rest.v3.beans.McpToolImportRequest;
 import io.apicurio.registry.rest.v3.beans.McpToolImportResult;
 
@@ -25,6 +26,20 @@ public interface McpToolImportHandler {
      * @return the result for the server and for each tool
      */
     McpToolImportResult importTools(String groupId, String artifactId, McpToolImportRequest request);
+
+    /**
+     * Checks the request as {@link #importTools} does, then runs the import in the background.
+     *
+     * @return the status of the started import, {@code RUNNING}
+     */
+    McpToolImportJobStatus startImport(String groupId, String artifactId, McpToolImportRequest request);
+
+    /**
+     * Read access to the artifact has already been checked by the caller.
+     *
+     * @return the status of the last import into the given {@code MCP_SERVER} artifact
+     */
+    McpToolImportJobStatus getImportStatus(String groupId, String artifactId);
 
     /**
      * @return whether importing is enabled on this server, so the UI can offer it

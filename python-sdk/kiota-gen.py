@@ -1,10 +1,11 @@
-import requests
+import urllib.request
 import zipfile
 import io
 import os
 import stat
 import sys
 import shutil
+import subprocess
 import platform
 from pathlib import Path
 import xml.etree.ElementTree as ET
@@ -49,8 +50,8 @@ def generate_kiota_client_files(setup_kwargs):
     tmpdir = os.path.join(sys.path[0], "kiota_tmp", kiota_version)
     if not os.path.exists(tmpdir):
         print(f"Downloading Kiota from URL: {url}")
-        response = requests.get(url)
-        zip_archive = zipfile.ZipFile(io.BytesIO(response.content))
+        with urllib.request.urlopen(url) as response:
+            zip_archive = zipfile.ZipFile(io.BytesIO(response.read()))
         os.makedirs(tmpdir)
         zip_archive.extractall(tmpdir)
     else:
@@ -80,10 +81,24 @@ def generate_kiota_client_files(setup_kwargs):
 
     output = Path(__file__).parent.joinpath("apicurioregistrysdk", "client")
 
-    command = f'{kiota_bin} generate --language=python --openapi="{openapi_doc}" --output="{output}" --class-name=RegistryClient --namespace-name=client --clean-output --clear-cache'
-    print(f"Executing kiota command: {command}")
+    command = [
+        kiota_bin,
+        "generate",
+        "--language=python",
+        f"--openapi={openapi_doc}",
+        f"--output={output}",
+        "--class-name=RegistryClient",
+        "--namespace-name=client",
+        "--clean-output",
+        "--clear-cache",
+    ]
+    print(f"Executing kiota command: {' '.join(command)}")
 
-    os.system(command)
+    subprocess.run(command, check=True)
+    # Kiota can exit 0 without generating anything (for example on an invalid document)
+    if not output.joinpath("registry_client.py").exists():
+        print("Kiota client generation failed: no client was generated")
+        sys.exit(1)
     print("Kiota client generation has been successful")
     return setup_kwargs
 

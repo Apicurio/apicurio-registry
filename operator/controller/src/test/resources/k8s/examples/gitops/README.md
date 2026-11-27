@@ -46,13 +46,13 @@ gitops:
 
 Then your `registry.registry.yaml` must contain:
 ```yaml
-$type: registry-v0
+$type: registry-v1
 registryId: prod
 ```
 
 And your group/artifact files should include `prod` in their `registryIds` list:
 ```yaml
-$type: group-v0
+$type: group-v1
 registryIds: [prod]
 ```
 

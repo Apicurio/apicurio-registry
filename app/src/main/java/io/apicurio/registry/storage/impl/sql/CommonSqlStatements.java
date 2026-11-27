@@ -3,7 +3,11 @@ package io.apicurio.registry.storage.impl.sql;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+
+import io.apicurio.registry.storage.impl.sql.repositories.SqlSequenceRepository;
 
 /**
  * Shared base class for all sql statements.
@@ -175,6 +179,20 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactVersionWithArtifactMetaDataByGlobalId()
+     */
+    @Override
+    public String selectArtifactVersionWithArtifactMetaDataByGlobalId() {
+        return "SELECT v.*, a.groupId AS artifactGroupId, a.artifactId AS artifactArtifactId, "
+                + "a.type, a.owner AS artifactOwner, a.createdOn AS artifactCreatedOn, "
+                + "a.name AS artifactName, a.description AS artifactDescription, a.labels AS artifactLabels, "
+                + "a.modifiedBy AS artifactModifiedBy, a.modifiedOn AS artifactModifiedOn "
+                + "FROM versions v "
+                + "JOIN artifacts a ON v.groupId = a.groupId AND v.artifactId = a.artifactId "
+                + "WHERE v.globalId = ?";
+    }
+
+    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactVersions()
      */
     @Override
@@ -230,7 +248,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String selectArtifactVersionMetaDataByContentHash() {
         return "SELECT v.*, a.type FROM versions v " + "JOIN content c ON v.contentId = c.contentId "
                 + "JOIN artifacts a ON v.groupId = a.groupId AND v.artifactId = a.artifactId "
-                + "WHERE v.groupId = ? AND v.artifactId = ? AND c.contentHash = ? ORDER BY v.globalId DESC";
+                + "WHERE v.groupId = ? AND v.artifactId = ? AND c.contentHash = ? ORDER BY v.versionOrder DESC";
     }
 
     @Override
@@ -248,7 +266,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String selectArtifactVersionMetaDataByCanonicalHash() {
         return "SELECT v.*, a.type FROM versions v " + "JOIN content c ON v.contentId = c.contentId "
                 + "JOIN artifacts a ON v.groupId = a.groupId AND v.artifactId = a.artifactId "
-                + "WHERE v.groupId = ? AND v.artifactId = ? AND c.canonicalHash = ? ORDER BY v.globalId DESC";
+                + "WHERE v.groupId = ? AND v.artifactId = ? AND c.canonicalHash = ? ORDER BY v.versionOrder DESC";
     }
 
     /**
@@ -281,6 +299,15 @@ public abstract class CommonSqlStatements implements SqlStatements {
     @Override
     public String selectArtifactMetaData() {
         return "SELECT a.* FROM artifacts a WHERE a.groupId = ? AND a.artifactId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactsMetaData(int)
+     */
+    @Override
+    public String selectArtifactsMetaData(int count) {
+        return "SELECT a.* FROM artifacts a WHERE "
+                + String.join(" OR ", Collections.nCopies(count, "(a.groupId = ? AND a.artifactId = ?)"));
     }
 
     /**
@@ -1306,16 +1333,6 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     @Override
-    public String insertSequenceValue() {
-        return "INSERT INTO sequences (seqName, seqValue) VALUES (?, ?)";
-    }
-
-    @Override
-    public String selectCurrentSequenceValue() {
-        return "SELECT seqValue FROM sequences WHERE seqName = ? ";
-    }
-
-    @Override
     public String insertVersionComment() {
         return "INSERT INTO version_comments (commentId, globalId, owner, createdOn, cvalue) VALUES (?, ?, ?, ?, ?)";
     }
@@ -1720,4 +1737,45 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String deleteAllContractAuditEntries() {
         return "DELETE FROM contract_audit_log";
     }
+
+    private static final Map<String, String> NATIVE_SEQUENCE_NAMES = Map.of(
+            SqlSequenceRepository.GLOBAL_ID_SEQUENCE, "globalid_seq",
+            SqlSequenceRepository.CONTENT_ID_SEQUENCE, "contentid_seq",
+            SqlSequenceRepository.COMMENT_ID_SEQUENCE, "commentid_seq");
+
+    /**
+     * Maps a logical sequence name to the physical database object name. Only known names are
+     * accepted, so the result is always safe to concatenate into SQL.
+     *
+     * @param sequenceName the logical sequence name
+     * @return the physical sequence (or ticket table) name
+     */
+    public static String nativeSequenceName(String sequenceName) {
+        String name = NATIVE_SEQUENCE_NAMES.get(sequenceName);
+        if (name == null) {
+            throw new IllegalArgumentException("Unknown sequence: " + sequenceName);
+        }
+        return name;
+    }
+
+    /**
+     * Not supported outside MySQL.
+     *
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectLastInsertedSequenceValue()
+     */
+    @Override
+    public String selectLastInsertedSequenceValue() {
+        throw new UnsupportedOperationException("Only applicable to MySQL.");
+    }
+
+    /**
+     * Not supported outside MySQL.
+     *
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteSequenceTicketsBelow(String)
+     */
+    @Override
+    public String deleteSequenceTicketsBelow(String sequenceName) {
+        throw new UnsupportedOperationException("Only applicable to MySQL.");
+    }
+
 }

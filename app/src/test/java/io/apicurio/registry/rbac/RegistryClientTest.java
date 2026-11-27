@@ -2,6 +2,7 @@ package io.apicurio.registry.rbac;
 
 import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.client.RegistryClientFactory;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.rest.client.models.ArtifactReference;
@@ -39,7 +40,6 @@ import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.ApplicationRbacEnabledProfile;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.registry.utils.tests.TooManyRequestsMock;
-import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
@@ -1564,10 +1564,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         TooManyRequestsMock mock = new TooManyRequestsMock();
         mock.start();
         try {
-            var adapter = new VertXRequestAdapter(vertx);
-            adapter.setBaseUrl(mock.getMockUrl());
-            io.apicurio.registry.rest.client.RegistryClient client = new io.apicurio.registry.rest.client.RegistryClient(
-                    adapter);
+            var client = RegistryClientFactory.create(boundedClientOptions(mock.getMockUrl(), vertx));
 
             var execution1 = Assertions.assertThrows(ApiException.class,
                     () -> client.groups().byGroupId("test").artifacts().byArtifactId("test").get());

@@ -2,7 +2,6 @@ package io.apicurio.registry.auth.grants;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.client.RegistryClientFactory;
-import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.EditableArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
@@ -102,8 +101,8 @@ public class GrantsInteractionsTest extends AbstractResourceTestBase {
 
     @Override
     protected RegistryClient createRestClientV3(Vertx vertx) {
-        return RegistryClientFactory.create(RegistryClientOptions.create()
-                .registryUrl(registryV3ApiUrl).vertx(vertx).basicAuth("alice", "alice"));
+        return RegistryClientFactory.create(
+                boundedClientOptions(registryV3ApiUrl, vertx).basicAuth("alice", "alice"));
     }
 
     private static RequestSpecification as(String user) {

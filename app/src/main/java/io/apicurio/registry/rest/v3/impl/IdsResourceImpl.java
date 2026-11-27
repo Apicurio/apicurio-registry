@@ -1,5 +1,6 @@
 package io.apicurio.registry.rest.v3.impl;
 
+import io.apicurio.registry.auth.AuthorizationLookups;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
@@ -22,6 +23,7 @@ import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.ContentNotFoundException;
 
+import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.ReferenceType;
 import io.apicurio.registry.types.VersionState;
@@ -48,6 +50,9 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
 
     @Inject
     CommonResourceOperations common;
+
+    @Inject
+    AuthorizationLookups lookups;
 
     @Inject
     RestConfig restConfig;
@@ -93,18 +98,8 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
 
         final var artifactCell = cellWithLoader(() -> storage.getArtifactVersionContent(globalId));
 
-        caching(
-                EntityIdContentCacheStrategy.builder()
-                        .entityId(globalId)
-                        .references(references)
-                        .referenceTreeContentIds(() -> recursivelyResolveReferenceContentIds(artifactCell.get(),
-                                ref -> storage.getArtifactVersionContent(ref.getGroupId(), ref.getArtifactId(), ref.getVersion())
-                        ))
-                        .returnArtifactType(returnArtifactType)
-                        .build()
-        ).prepare();
-
-        ArtifactVersionMetaDataDto metaData = storage.getArtifactVersionMetaData(globalId);
+        // Read while authorizing the global ID, in this request
+        ArtifactVersionMetaDataDto metaData = versionMetaData(globalId);
         if (VersionState.DISABLED.equals(metaData.getState())
                 || (VersionState.DRAFT.equals(metaData.getState())) && !restConfig.isDraftProductionModeEnabled()) {
             throw new ArtifactNotFoundException(null, String.valueOf(globalId));
@@ -118,6 +113,18 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
         TypedContent contentToReturn = TypedContent.create(artifactCell.get().getContent(), artifactCell.get().getContentType());
         contentToReturn = handleContentReferences(references, metaData.getArtifactType(), contentToReturn,
                 artifactCell.get().getReferences());
+
+        // After the references are checked, so that a matching ETag cannot answer 304 to a caller who may not
+        // read them
+        caching(
+                EntityIdContentCacheStrategy.builder()
+                        .entityId(globalId)
+                        .references(references)
+                        .referenceTreeContentIds(() -> recursivelyResolveReferenceContentIds(artifactCell.get(),
+                                this::loadReferencedVersion))
+                        .returnArtifactType(returnArtifactType)
+                        .build()
+        ).prepare();
 
         String ext = ContentTypes.getFileExtension(contentToReturn.getContentType());
         String filename = globalId + ext;
@@ -152,6 +159,10 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
         return contentResponse(contentHash, dto, effective, contentHash);
     }
 
+    private ArtifactVersionMetaDataDto versionMetaData(long globalId) {
+        return lookups.version(storage, globalId).orElseThrow(() -> new VersionNotFoundException(globalId));
+    }
+
     /**
      * The reference handling to apply: the requested one, otherwise the admin-configured default, otherwise
      * {@code PRESERVE} (the same rules as {@link #getContentByGlobalId}).
@@ -173,19 +184,20 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
     private Response contentResponse(Object entityId, ContentWrapperDto dto, HandleReferencesType references,
             String fileBaseName) {
         boolean preserve = references == HandleReferencesType.PRESERVE;
+        TypedContent content = TypedContent.create(dto.getContent(), dto.getContentType());
+        if (!preserve) {
+            content = handleContentReferences(references, dto.getArtifactType(), content, dto.getReferences());
+        }
+        // After the references are checked, so that a matching ETag cannot answer 304 to a caller who may not
+        // read them
         caching(EntityIdContentCacheStrategy.builder()
                 .entityId(entityId)
                 // PRESERVE (explicit or by default) returns the same bytes, so it keeps the ETag it always had.
                 .references(preserve ? null : references)
                 .referenceTreeContentIds(() -> recursivelyResolveReferenceContentIds(dto.getReferences(),
-                        ref -> storage.getArtifactVersionContent(ref.getGroupId(), ref.getArtifactId(),
-                                ref.getVersion())))
+                        this::loadReferencedVersion))
                 .build()).prepare();
 
-        TypedContent content = TypedContent.create(dto.getContent(), dto.getContentType());
-        if (!preserve) {
-            content = handleContentReferences(references, dto.getArtifactType(), content, dto.getReferences());
-        }
         String filename = fileBaseName + ContentTypes.getFileExtension(content.getContentType());
         return Response.ok(content.getContent(), content.getContentType())
                 .header(HttpHeaders.CONTENT_DISPOSITION, buildContentDisposition(filename))
@@ -230,7 +242,7 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
             return artifact.getReferences().stream().map(V3ApiUtil::referenceDtoToReference)
                     .collect(Collectors.toList());
         } else {
-            ArtifactVersionMetaDataDto vmd = storage.getArtifactVersionMetaData(globalId);
+            ArtifactVersionMetaDataDto vmd = versionMetaData(globalId);
             // Inbound references point from other artifacts: only list those the caller may read
             return storage
                     .getInboundArtifactReferences(vmd.getGroupId(), vmd.getArtifactId(), vmd.getVersion())

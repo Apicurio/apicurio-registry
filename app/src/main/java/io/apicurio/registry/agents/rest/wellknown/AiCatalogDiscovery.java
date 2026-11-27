@@ -65,6 +65,9 @@ public class AiCatalogDiscovery {
 
     static final ObjectMapper mapper = new ObjectMapper();
 
+    private static final Runnable NO_CHECKPOINT = () -> {
+    };
+
     static final int MAX_VISIBILITY_FILTER_RESULTS = 10000;
 
     private static final int MAX_REPRESENTATIVE_QUERIES = 5;
@@ -300,7 +303,7 @@ public class AiCatalogDiscovery {
 
     private AiCatalog buildAiCatalog(String publisherDomain, List<AiCatalogEntry> entries) {
         return AiCatalog.builder()
-                .specVersion(aiCatalogConfig.getSpecVersion())
+                .specVersion(AiCatalogConfig.SPEC_VERSION)
                 .host(AiCatalogHost.builder()
                         .displayName(aiCatalogConfig.getHostName())
                         .identifier(publisherDomain)
@@ -325,6 +328,37 @@ public class AiCatalogDiscovery {
 
     List<AiCatalogCandidate> collectAiCatalogCandidates(String baseUrl, String publisherDomain,
             String textFilter, Set<SearchFilter> structureFilters) {
+        return collectAiCatalogCandidates(baseUrl, publisherDomain, textFilter, structureFilters, false,
+                NO_CHECKPOINT);
+    }
+
+    List<AiCatalogCandidate> collectAiCatalogCandidates(String baseUrl, String publisherDomain,
+            String textFilter, Set<SearchFilter> structureFilters, boolean publicOnly, Runnable checkpoint) {
+        List<AiCatalogCandidate> candidates = collectAgentCandidates(baseUrl, publisherDomain, textFilter,
+                structureFilters, publicOnly, checkpoint);
+
+        Set<SearchFilter> toolFilters = new HashSet<>();
+        toolFilters.add(SearchFilter.ofArtifactType(ArtifactType.MCP_TOOL));
+        if (!StringUtil.isEmpty(textFilter)) {
+            toolFilters.add(SearchFilter.ofPartialName(textFilter));
+        }
+        ArtifactSearchResultsDto toolResults = searchAuthorizer.searchArtifacts(
+                toolFilters, OrderBy.createdOn, OrderDirection.desc, 0, MAX_VISIBILITY_FILTER_RESULTS, false);
+        warnIfTruncated(toolResults);
+        for (SearchedArtifactDto artifact : toolResults.getArtifacts()) {
+            checkpoint.run();
+            candidates.add(buildToolCandidate(artifact, baseUrl, publisherDomain));
+        }
+
+        return candidates;
+    }
+
+    /**
+     * The Agent Card candidates only. Agent searches use this, so they do not read and parse the
+     * content of every MCP tool just to discard it.
+     */
+    List<AiCatalogCandidate> collectAgentCandidates(String baseUrl, String publisherDomain,
+            String textFilter, Set<SearchFilter> structureFilters, boolean publicOnly, Runnable checkpoint) {
         List<AiCatalogCandidate> candidates = new ArrayList<>();
 
         Set<SearchFilter> agentFilters = new HashSet<>();
@@ -336,20 +370,12 @@ public class AiCatalogDiscovery {
         ArtifactSearchResultsDto agentResults = searchAuthorizer.searchArtifacts(
                 agentFilters, OrderBy.createdOn, OrderDirection.desc, 0, MAX_VISIBILITY_FILTER_RESULTS, false);
         warnIfTruncated(agentResults);
-        for (SearchedArtifactDto artifact : agentVisibilityFilter.filterDtosByVisibility(agentResults.getArtifacts())) {
+        List<SearchedArtifactDto> visibleAgents = publicOnly
+                ? agentVisibilityFilter.filterDtosToPublic(agentResults.getArtifacts())
+                : agentVisibilityFilter.filterDtosByVisibility(agentResults.getArtifacts());
+        for (SearchedArtifactDto artifact : visibleAgents) {
+            checkpoint.run();
             candidates.add(buildAgentCandidate(artifact, baseUrl, publisherDomain));
-        }
-
-        Set<SearchFilter> toolFilters = new HashSet<>();
-        toolFilters.add(SearchFilter.ofArtifactType(ArtifactType.MCP_TOOL));
-        if (!StringUtil.isEmpty(textFilter)) {
-            toolFilters.add(SearchFilter.ofPartialName(textFilter));
-        }
-        ArtifactSearchResultsDto toolResults = searchAuthorizer.searchArtifacts(
-                toolFilters, OrderBy.createdOn, OrderDirection.desc, 0, MAX_VISIBILITY_FILTER_RESULTS, false);
-        warnIfTruncated(toolResults);
-        for (SearchedArtifactDto artifact : toolResults.getArtifacts()) {
-            candidates.add(buildToolCandidate(artifact, baseUrl, publisherDomain));
         }
 
         return candidates;
@@ -376,7 +402,7 @@ public class AiCatalogDiscovery {
                 .tags(formatTags(artifact.getLabels()))
                 .representativeQueries(representativeQueries)
                 .build();
-        return new AiCatalogCandidate(entry, artifact.getLabels(), artifact);
+        return new AiCatalogCandidate(entry, artifact.getLabels(), artifact, root);
     }
 
     private AiCatalogCandidate buildToolCandidate(SearchedArtifactDto artifact, String baseUrl,
@@ -397,7 +423,7 @@ public class AiCatalogDiscovery {
                 .updatedAt(formatUpdatedAt(artifact))
                 .tags(formatTags(artifact.getLabels()))
                 .build();
-        return new AiCatalogCandidate(entry, artifact.getLabels(), artifact);
+        return new AiCatalogCandidate(entry, artifact.getLabels(), artifact, root);
     }
 
     /**
@@ -761,12 +787,15 @@ public class AiCatalogDiscovery {
         final AiCatalogEntry entry;
         final Map<String, String> labels;
         final SearchedArtifactDto artifact;
+        /** The latest version's parsed content, read once, or a missing node if it could not be read. */
+        final JsonNode content;
 
         private AiCatalogCandidate(AiCatalogEntry entry, Map<String, String> labels,
-                SearchedArtifactDto artifact) {
+                SearchedArtifactDto artifact, JsonNode content) {
             this.entry = entry;
             this.labels = labels;
             this.artifact = artifact;
+            this.content = content;
         }
     }
 }

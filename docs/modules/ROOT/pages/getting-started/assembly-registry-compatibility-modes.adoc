@@ -354,42 +354,8 @@ For a description and examples of every kind of change the check reports, see th
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-Earlier versions of {registry} checked JSON Schema compatibility with a different checker, based on the everit library.
-If you used JSON Schema compatibility rules before version 3.4, note the following differences:
-
-* Artifacts in drafts 2019-09 and 2020-12 are now checked.
-The earlier checker could not load them, and the check failed with an error instead.
-
-* Rule violations are worded differently, and their `context` points at the keyword that changed.
-Update anything that matches the previous text or contexts, for example:
-+
-[%header,cols="2,3,3"]
-|===
-|Change
-|Before 3.4
-|From 3.4
-
-|Change the `type` of property `a`
-|`Subschema type changed` at `/properties/a`
-|`The declared 'type' of the schema was changed.` at `/properties/a/type`
-
-|Add a property to `required`
-|`Object type property schemas narrowed` at `/propertySchemasAdded`
-|`A property was made 'required'.` at `/required/0`
-
-|Remove a value from `enum`
-|`Combined type subschema not compatible` at `/`
-|`A value was removed from the 'enum' allowed set.` at `/enum`
-|===
-
-* A new `oneOf` subschema that can match the same values as an existing one is now reported as incompatible.
-The earlier checker compared `oneOf` like `anyOf`, and accepted such a change.
-
-* Adding a `type` inside `then` or `else` that an enclosing schema already requires is reported as incompatible, where the earlier checker accepted it.
-See *Known over-strict verdicts* in "What the JSON Schema compatibility check reports".
-
-* The `apicurio.compat.json-schema.use-apitomy` configuration property, which selected the new checker in version 3.3, no longer has any effect, and is deprecated.
-If it is set, {registry} logs a warning at startup.
+{registry} 3.4 checks JSON Schema compatibility with a different checker than earlier versions, and reports some changes differently.
+If you used JSON Schema compatibility rules before version 3.4, see the list of differences in xref:getting-started/assembly-upgrading-to-3-4.adoc#upgrading-to-3-4-json-schema-compatibility_{context}[Changes to JSON Schema compatibility checking in {registry} 3.4].
 
 
 // ref-registry-compatibility-protobuf

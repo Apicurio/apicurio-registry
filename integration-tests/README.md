@@ -43,6 +43,7 @@ any extra infrastructure.
 | `auth`                    | Authentication tests                             | Docker (Keycloak)       |
 | `migration`               | Data migration between registry versions         | Docker (two registry instances) |
 | `search`                  | Search tests                                     | Docker (Elasticsearch)  |
+| `federation`              | Federated agent search across registries         | Docker (two registry instances) |
 | `kafkasql-snapshotting`   | KafkaSQL snapshotting tests                      | Docker (Kafka)          |
 | `debezium`                | Debezium PostgreSQL CDC tests                    | Docker (Kafka, PostgreSQL, Debezium) |
 | `debezium-snapshot`       | Debezium PostgreSQL snapshot CDC tests           | Docker (Kafka, PostgreSQL, Debezium) |

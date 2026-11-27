@@ -1,5 +1,6 @@
 package io.apicurio.registry.references;
 
+import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
@@ -14,6 +15,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 public class ReferenceResolutionTest {
 
@@ -70,5 +72,84 @@ public class ReferenceResolutionTest {
         Assertions.assertThrows(ForbiddenException.class,
                 () -> ReferenceResolution.recursivelyResolveReferences(ROOTS, denyNested));
         Assertions.assertEquals(List.of("a", "b", "c"), denyNested.loaded);
+    }
+
+    @Test
+    void aLoaderExceptionPropagatesInsteadOfBeingSwallowed() {
+        RuntimeException storageError = new RuntimeException("simulated storage failure");
+        Function<ArtifactReferenceDto, ContentWrapperDto> failingLoader = ref -> {
+            throw storageError;
+        };
+
+        ArtifactReferenceDto reference = ArtifactReferenceDto.builder().groupId("default")
+                .artifactId("broken").version("1").name("broken").build();
+
+        RuntimeException thrown = Assertions.assertThrows(RuntimeException.class,
+                () -> ReferenceResolution.recursivelyResolveReferences(List.of(reference), failingLoader));
+        Assertions.assertSame(storageError, thrown);
+    }
+
+    @Test
+    void aNestedLoaderExceptionPropagates() {
+        RuntimeException storageError = new RuntimeException("nested storage failure");
+        ArtifactReferenceDto childRef = ArtifactReferenceDto.builder().groupId("default")
+                .artifactId("child").version("1").name("child").build();
+        ContentWrapperDto parentContent = ContentWrapperDto.builder()
+                .content(ContentHandle.create("{}"))
+                .contentType(ContentTypes.APPLICATION_JSON).artifactType(ArtifactType.JSON)
+                .references(List.of(childRef)).build();
+
+        Function<ArtifactReferenceDto, ContentWrapperDto> loader = ref -> {
+            if ("child".equals(ref.getArtifactId())) {
+                throw storageError;
+            }
+            return parentContent;
+        };
+
+        ArtifactReferenceDto rootRef = ArtifactReferenceDto.builder().groupId("default")
+                .artifactId("parent").version("1").name("parent").build();
+
+        RuntimeException thrown = Assertions.assertThrows(RuntimeException.class,
+                () -> ReferenceResolution.recursivelyResolveReferences(List.of(rootRef), loader));
+        Assertions.assertSame(storageError, thrown);
+    }
+
+    @Test
+    void requireDereferenceableLetsALoaderExceptionPropagate() {
+        RuntimeException storageError = new RuntimeException("simulated storage failure");
+        Function<ArtifactReferenceDto, ContentWrapperDto> failingLoader = ref -> {
+            throw storageError;
+        };
+        ArtifactReferenceDto reference = ArtifactReferenceDto.builder().groupId("default")
+                .artifactId("broken").version("1").name("broken").build();
+
+        // Not reported as a missing reference (422): the real failure reaches the caller
+        RuntimeException thrown = Assertions.assertThrows(RuntimeException.class,
+                () -> ReferenceResolution.requireDereferenceable(List.of(reference), failingLoader));
+        Assertions.assertSame(storageError, thrown);
+    }
+
+    @Test
+    void requireDereferenceableReportsAMissingReference() {
+        ArtifactReferenceDto reference = ArtifactReferenceDto.builder().groupId("default")
+                .artifactId("gone").version("1").name("gone.json").build();
+
+        UnprocessableEntityException thrown = Assertions.assertThrows(UnprocessableEntityException.class,
+                () -> ReferenceResolution.requireDereferenceable(List.of(reference), ref -> null));
+        Assertions.assertEquals("Cannot dereference the content: these references point to versions that do "
+                + "not exist: 'gone.json' (default/gone@1)", thrown.getMessage());
+    }
+
+    @Test
+    void aMissingReferenceIsSkippedWithoutError() {
+        Function<ArtifactReferenceDto, ContentWrapperDto> nullLoader = ref -> null;
+
+        ArtifactReferenceDto reference = ArtifactReferenceDto.builder().groupId("default")
+                .artifactId("gone").version("1").name("gone").build();
+
+        Map<String, TypedContent> resolved = ReferenceResolution
+                .recursivelyResolveReferences(List.of(reference), nullLoader);
+
+        Assertions.assertTrue(resolved.isEmpty());
     }
 }

@@ -93,7 +93,7 @@ schema is a header line, `id,name,email`. The registry POSTs a JSON request to e
 
 | URL | Request | Response |
 |---|---|---|
-| `/accept` | `{"typedContent": {...}}` | `true` or `false` |
+| `/accept` | `{"typedContent": {...}}` | `{"accepted": true}` or `{"accepted": false}` |
 | `/validate` | `{"function": "validate", "level": "FULL", "content": {...}}` | `{"ruleViolations": [{"description": ..., "context": ...}]}` |
 | `/compatibility` | `{"level": "BACKWARD", "existingArtifacts": [...], "proposedArtifact": {...}}` | `{"incompatibleDifferences": [...]}` |
 | `/canonicalize` | `{"content": {...}}` | `{"typedContent": {...}}` |
@@ -101,14 +101,12 @@ schema is a header line, `id,name,email`. The registry POSTs a JSON request to e
 The full contract is `common/src/main/resources/META-INF/artifact-type-webhooks.json`. `demo.sh`
 checks the same four behaviours as for MARKDOWN: `text/csv` is detected as CSV, a duplicate column
 is invalid, dropping a column is incompatible, and `ID,Name,Email` is found as `id,name,email`
-canonically. The service records the requests it receives, and every URL was called.
+canonically. The service records the requests it receives: every URL was called, and every request
+carried the `headers` configured for the webhook (here an `Authorization` header).
 
-Two differences from the contract today
-([#11151](https://github.com/Apicurio/apicurio-registry/issues/11151)):
-
-- `/accept` must return a bare `true`/`false`; the contract says `{"accepted": true}`.
-- The `headers` configured for a webhook (here an `Authorization` header) are not sent. Do not rely
-  on them to protect the service; keep it on a private network.
+A webhook written for an earlier version of the registry may return a bare `true`/`false` from
+`/accept`. The registry still accepts it, for backward compatibility, and logs at DEBUG when it does;
+new webhooks should return the `{"accepted": ...}` object.
 
 ## Step 4: When the webhook is down
 
@@ -147,5 +145,4 @@ the registry.
 |---|---|
 | MARKDOWN or CSV is missing from the types | Check the log for "Failed to load artifact type configuration file": a malformed file is ignored |
 | A request fails with "class not found" | Java providers are loaded on first use: the jar is not in `providers/`, or `build.sh` was not run after copying it |
-| Content is not detected as CSV | Send `contentType: text/csv`; `/accept` must return a bare boolean (#11151) |
-| Requests fail after about 10 seconds with "Error invoking ... webhook" | The webhook is unreachable: check the registry log for the cause |
+| Content is not detected as CSV | Send `contentType: text/csv`; `/accept` must return `{"accepted": true}` || Requests fail after about 10 seconds with "Error invoking ... webhook" | The webhook is unreachable: check the registry log for the cause |

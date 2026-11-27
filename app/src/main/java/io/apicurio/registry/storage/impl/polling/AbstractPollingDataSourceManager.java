@@ -8,6 +8,8 @@ import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.federation.PeerAddressPolicy;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.error.InvalidArtifactTypeException;
+import io.apicurio.registry.storage.impl.polling.format.FormatVersion;
+import io.apicurio.registry.storage.impl.polling.model.Any;
 import io.apicurio.registry.storage.impl.polling.model.Type;
 import io.apicurio.registry.storage.impl.polling.model.v0.Artifact;
 import io.apicurio.registry.storage.impl.polling.model.v0.ConfigurationProperty;
@@ -39,11 +41,13 @@ import jakarta.inject.Inject;
 import org.slf4j.Logger;
 
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
@@ -88,6 +92,7 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
         for (PollingDataFile file : pollResult.getFiles()) {
             state.index(file);
         }
+        warnAboutDeprecatedFormatVersions(state);
 
         log.debug("Processing {} files", state.getPathIndex().size());
         processFiles(state);
@@ -124,6 +129,28 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
             log.error("Processing failed with {} error(s)", state.getErrors().size());
         }
         return state.getResult();
+    }
+
+    /**
+     * Logs one warning per load for each deprecated data format version in use, with the number of
+     * files and an example path, rather than one warning per file: every change re-reads every file.
+     */
+    // Package-private so a unit test can call it directly with a prepared ProcessingState.
+    void warnAboutDeprecatedFormatVersions(ProcessingState state) {
+        Map<FormatVersion, List<String>> deprecated = new TreeMap<>();
+        for (PollingDataFile file : state.getPathIndex().values()) {
+            file.getAny().map(Any::getFormatVersion)
+                    .filter(v -> v.status() == FormatVersion.Status.DEPRECATED)
+                    .ifPresent(v -> deprecated.computeIfAbsent(v, k -> new ArrayList<>()).add(file.getPath()));
+        }
+        deprecated.forEach((version, paths) -> {
+            Collections.sort(paths);
+            log.warn("{} metadata file(s) (for example {}) use the GitOps data format version {}, which is"
+                            + " deprecated since {} and will be removed in a future release. Convert them to version"
+                            + " {}: change $type from '<kind>-{}' to '<kind>-{}', for example '{}'.",
+                    paths.size(), paths.get(0), version.id(), version.deprecatedIn(), FormatVersion.current().id(),
+                    version.id(), FormatVersion.current().id(), Type.ARTIFACT.getType());
+        });
     }
 
     /**
@@ -168,6 +195,16 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
                 }
 
                 processArtifact(state, file, artifact);
+            }
+
+            // Import declared groups that have no artifacts (not yet processed by processGroupRef)
+            for (PollingDataFile groupFile : state.fromTypeIndex(Type.GROUP)) {
+                if (!groupFile.isProcessed()) {
+                    Group group = groupFile.getEntityUnchecked();
+                    if (matchesRegistryId(group.getRegistryIds())) {
+                        processGroupRef(state, group.getGroupId());
+                    }
+                }
             }
         } else {
             log.debug("No registry config found for ID '{}'. requireRegistryConfig={}",
@@ -258,7 +295,10 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
         if (group != null) {
             List<Version> versions = artifact.getVersions();
             if (versions == null || versions.isEmpty()) {
-                log.debug("Artifact {} has no versions, skipping", artifact.getArtifactId());
+                importArtifactMetadata(state, artifactFile, artifact, artifactImported);
+                if (artifactImported.get()) {
+                    processArtifactRules(state, artifact);
+                }
                 artifactFile.setProcessed(true);
                 return;
             }
@@ -292,6 +332,29 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
             artifactFile.setProcessed(true);
         }
         // Note: if group is null, processGroupRef() already recorded the error
+    }
+
+    private void importArtifactMetadata(ProcessingState state, PollingDataFile artifactFile,
+                                       Artifact artifact, AtomicBoolean artifactImported) {
+        if (artifact.getArtifactType() == null) {
+            state.recordError(artifactFile,
+                    "Versionless artifact '%s:%s' must specify artifactType explicitly.",
+                    artifact.getGroupId(), artifact.getArtifactId());
+            return;
+        }
+        ArtifactEntity artifactEntity = new ArtifactEntity();
+        artifactEntity.groupId = artifact.getGroupId();
+        artifactEntity.artifactId = artifact.getArtifactId();
+        artifactEntity.artifactType = artifact.getArtifactType();
+        artifactEntity.name = artifact.getName();
+        artifactEntity.description = artifact.getDescription();
+        artifactEntity.labels = withSourceLabel(artifact.getLabels(), artifactFile.getSourceId());
+        artifactEntity.owner = artifact.getOwner();
+        artifactEntity.createdOn = TimestampParser.parse(artifact.getCreatedOn(), state.getCommitTime());
+        artifactEntity.modifiedOn = TimestampParser.parse(artifact.getModifiedOn(), state.getCommitTime());
+        state.getStorage().importArtifact(artifactEntity);
+        state.incrementArtifactCount();
+        artifactImported.set(true);
     }
 
     private void importVersion(ProcessingState state, PollingDataFile artifactFile, Artifact artifact,
@@ -458,7 +521,7 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
      * <li>Mode A (simple): Version has only {@code content} field pointing to a raw content file.
      *     contentId is generated from a hash-based sequence.</li>
      * <li>Mode B (with metadata): Version has {@code contentMetadata} field pointing to a Content entity
-     *     (*.registry.yaml with $type: content-v0) which specifies the content file path, optional explicit
+     *     (a {@code content} metadata file, e.g. {@code $type: content-v1}) which specifies the content file path, optional explicit
      *     contentId, and optional references.</li>
      * </ul>
      *
@@ -512,8 +575,11 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
                     ? artifactType : detectArtifactTypeFromExtension(dataFile.getPath());
             final String resolvedArtifactType = utils.determineArtifactType(typedContent, artifactTypeHint);
 
-            // Calculate content hash for deduplication
-            String contentHash = utils.getContentHash(typedContent, null);
+            // Build reference list from content metadata for hashing and storage
+            final List<ArtifactReferenceDto> refs = buildReferenceList(contentMetadata);
+
+            // Calculate content hash for deduplication (include references, as SQL does)
+            String contentHash = utils.getContentHash(typedContent, refs);
 
             // Check if this content was already imported (deduplication)
             Long existingContentId = state.getContentHashToId().get(contentHash);
@@ -534,7 +600,7 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
             e.canonicalHash = utils.getCanonicalContentHash(typedContent, resolvedArtifactType, null, null);
             e.artifactType = resolvedArtifactType;
             e.contentType = contentType;
-            e.serializedReferences = serializeReferences(contentMetadata);
+            e.serializedReferences = refs.isEmpty() ? null : RegistryContentUtils.serializeReferences(refs);
 
             log.trace("Importing content from {}",dataFile.getPath());
             state.getStorage().importContent(e);
@@ -574,12 +640,12 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
         }
     }
 
-    private String serializeReferences(Content contentMetadata) {
+    private List<ArtifactReferenceDto> buildReferenceList(Content contentMetadata) {
         if (contentMetadata == null || contentMetadata.getReferences() == null
                 || contentMetadata.getReferences().isEmpty()) {
-            return null;
+            return List.of();
         }
-        final List<ArtifactReferenceDto> refs = contentMetadata.getReferences().stream()
+        return contentMetadata.getReferences().stream()
                 .map(ref -> ArtifactReferenceDto.builder()
                         .groupId(ref.getGroupId())
                         .artifactId(ref.getArtifactId())
@@ -587,7 +653,6 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
                         .name(ref.getName())
                         .build())
                 .collect(Collectors.toList());
-        return RegistryContentUtils.serializeReferences(refs);
     }
 
     private Content loadContentMetadata(ProcessingState state, PollingDataFile artifactFile,
@@ -602,7 +667,8 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
             return null;
         }
         if (!metadataFile.isType(Type.CONTENT)) {
-            state.recordError(metadataFile, "Not a valid content metadata definition (expected $type: content-v0)");
+            state.recordError(metadataFile, "Not a valid content metadata definition (expected $type: %s)",
+                    Type.CONTENT.getType());
             return null;
         }
         metadataFile.setProcessed(true);

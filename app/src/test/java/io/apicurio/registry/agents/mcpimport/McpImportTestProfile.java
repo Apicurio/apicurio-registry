@@ -10,7 +10,7 @@ import java.util.Map;
  */
 public class McpImportTestProfile implements QuarkusTestProfile {
 
-    static Map<String, String> importOverrides() {
+    public static Map<String, String> importOverrides() {
         return Map.of(
                 "apicurio.features.experimental.enabled", "true",
                 "apicurio.mcp-import.enabled", "true",

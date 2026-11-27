@@ -15,6 +15,7 @@ import { ArtifactGroup } from "@app/components";
 import { If, ObjectDropdown } from "@apitomy/common-ui-components";
 import { UserService, useUserService } from "@services/useUserService.ts";
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
+import { isPermitted } from "@utils/permissions.utils.ts";
 
 /**
  * Properties
@@ -42,6 +43,9 @@ export const ExploreGroupList: FunctionComponent<ExploreGroupListProps> = (props
         return "A group with no description.";
     };
 
+    const canDelete = (group: SearchedGroup): boolean => !config.featureReadOnly() && config.featureDeleteGroup()
+        && user.isUserDeveloper(group.owner) && isPermitted(group.permissions);
+
     const groupActions: any[] = [
         {
             id: "view-group-in-explorer",
@@ -50,13 +54,13 @@ export const ExploreGroupList: FunctionComponent<ExploreGroupListProps> = (props
         },
         {
             divider: true,
-            isVisible: (group: SearchedGroup) => !config.featureReadOnly() && config.featureDeleteGroup() && user.isUserDeveloper(group.owner)
+            isVisible: (group: SearchedGroup) => canDelete(group)
         },
         {
             id: "delete-group",
             label: "Delete group",
             action: (group: SearchedGroup) => props.onDelete(group),
-            isVisible: (group: SearchedGroup) => !config.featureReadOnly() && config.featureDeleteGroup() && user.isUserDeveloper(group.owner)
+            isVisible: (group: SearchedGroup) => canDelete(group)
         }
     ];
 

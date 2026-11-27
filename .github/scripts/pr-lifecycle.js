@@ -290,11 +290,14 @@ function createApi(github, owner, repo) {
       return data.workflow_runs;
     },
 
+    // per_page: 30, not 100 — GitHub's API returns a 502 listing jobs for a
+    // large run (seen from ~76 jobs across two attempts) when asked for 100
+    // at a time, but not when asked for 30. github.paginate still fetches
+    // every job, just in smaller pages.
     listRunJobs: async (runId) => {
-      const { data } = await github.rest.actions.listJobsForWorkflowRun({
-        owner, repo, run_id: runId, per_page: 100,
+      return github.paginate(github.rest.actions.listJobsForWorkflowRun, {
+        owner, repo, run_id: runId, per_page: 30,
       });
-      return data.jobs;
     },
 
     // GitHub's own review verdict, the value Decide reads (gh pr view
@@ -401,8 +404,9 @@ async function getFullSuiteResult(github, owner, repo, headSha, core) {
     }
   }
   for (const run of latest.values()) {
-    const { data: { jobs } } = await github.rest.actions.listJobsForWorkflowRun({
-      owner, repo, run_id: run.id, per_page: 100,
+    // per_page: 30, not 100 — see the comment on api.listRunJobs.
+    const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun, {
+      owner, repo, run_id: run.id, per_page: 30,
     });
     // Verify Result is skipped, and the run succeeds, when Decide did not
     // require the full suite (author not yet trusted, PR not yet approved):
@@ -1721,8 +1725,9 @@ async function postDecisionSummary(github, owner, repo, workflowRun, prNumber, c
     }
 
     // ── Fetch actual job results ──────────────────────────────────────
-    const { data: { jobs } } = await github.rest.actions.listJobsForWorkflowRun({
-      owner, repo, run_id: workflowRun.id, per_page: 100,
+    // per_page: 30, not 100 — see the comment on api.listRunJobs.
+    const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun, {
+      owner, repo, run_id: workflowRun.id, per_page: 30,
     });
 
     const conclusion = workflowRun.conclusion === 'success' ? '✅ passed' : '❌ failed';

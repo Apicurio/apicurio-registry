@@ -255,7 +255,7 @@ final class AccessRules {
                 return new NameSelector(Match.EXACT, names(pred.nameIn()));
             }
             if (pred.nameMatch() != null) {
-                String regex = unquote(pred.nameMatch().REGEX());
+                String regex = unquoteRegex(pred.nameMatch().REGEX());
                 try {
                     Pattern.compile(regex);
                 } catch (PatternSyntaxException e) {
@@ -343,6 +343,26 @@ final class AccessRules {
     /** Removes the delimiters and the escaping backslashes, as {@code AclAuthorizerService} does. */
     private static String unquote(TerminalNode literal) {
         return unwrap(literal).replaceAll("\\\\(.)", "$1");
+    }
+
+    /**
+     * Removes the delimiters of a regex literal and unescapes only {@code \/} and {@code \\}, as
+     * {@code AclAuthorizerService} does. Every other backslash is a regex escape and is kept, so
+     * {@code /dot\.only/} is the regex {@code dot\.only}.
+     */
+    private static String unquoteRegex(TerminalNode literal) {
+        String escaped = unwrap(literal);
+        StringBuilder regex = new StringBuilder(escaped.length());
+        for (int i = 0; i < escaped.length(); i++) {
+            char ch = escaped.charAt(i);
+            if (ch == '\\' && i + 1 < escaped.length()
+                    && (escaped.charAt(i + 1) == '/' || escaped.charAt(i + 1) == '\\')) {
+                regex.append(escaped.charAt(++i));
+            } else {
+                regex.append(ch);
+            }
+        }
+        return regex.toString();
     }
 
     /**

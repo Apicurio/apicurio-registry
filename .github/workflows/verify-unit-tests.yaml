@@ -32,11 +32,11 @@ jobs:
       matrix:
         shard:
           # app-rest used to be a single shard and was the PR critical path at ~35 min
-          # (61 classes, 3x the next shard). It is now split three ways: v3 (the bulk),
-          # ccompat, and a misc shard for the remaining rest subpackages (v2, root-level classes)
-          # plus the agent registry tests (io.apicurio.registry.agents.**: A2A, MCP tools and
-          # Registry, AI Catalog, ARD), kept out of the profile-dense app-other shard.
-          # app-rest-misc must exclude everything app-rest-v3 includes; .github/scripts/verify-test-shards.py enforces the partition.
+          # (61 classes, 3x the next shard). It is now split four ways: v3 (the bulk),
+          # ccompat, app-rest-misc (remaining noprofile rest + noprofile agents), and
+          # app-agents (profiled agent registry tests: A2A, MCP tools/import, inventory,
+          # AI Catalog, ARD), preventing app-rest-misc from exhausting the 4g Surefire heap.
+          # app-rest-misc and app-agents must partition cleanly; .github/scripts/verify-test-shards.py enforces the partition.
           - name: app-rest-v3
             modules: "-pl app -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=io.apicurio.registry.noprofile.rest.v3.**"
@@ -51,7 +51,12 @@ jobs:
             surefire-opts: ""
           - name: app-rest-misc
             modules: "-pl app -am -Dfull -DcliSkipNative"
-            test-filter: "-Dtest=io.apicurio.registry.noprofile.rest.**,!io.apicurio.registry.noprofile.rest.v3.**,io.apicurio.registry.agents.**"
+            test-filter: "-Dtest=io.apicurio.registry.noprofile.rest.**,!io.apicurio.registry.noprofile.rest.v3.**,io.apicurio.registry.agents.noprofile.**"
+            maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
+            surefire-opts: ""
+          - name: app-agents
+            modules: "-pl app -am -Dfull -DcliSkipNative"
+            test-filter: "-Dtest=io.apicurio.registry.agents.**,!io.apicurio.registry.agents.noprofile.**"
             maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
             surefire-opts: ""
           - name: app-sql

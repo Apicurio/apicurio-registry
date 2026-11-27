@@ -27,7 +27,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
@@ -86,10 +85,12 @@ class OidcFailureCacheTest {
                 () -> strategy.authenticateWithClientCredentials(credentials, ctx1, idpManager),
                 "Expected ForbiddenException");
         assertEquals(1, fetchCount.get(), "First call should trigger exactly one fetch");
-        assertFalse(strategy.cachedAuthFailures.isEmpty(),
+        assertFalse(strategy.credentialStates.isEmpty(),
                 "Failure should be cached after first call");
-        assertInstanceOf(ForbiddenException.class,
-                strategy.cachedAuthFailures.values().iterator().next().getValue());
+        OidcAuthenticationStrategy.FailureState cached = assertInstanceOf(
+                OidcAuthenticationStrategy.FailureState.class,
+                strategy.credentialStates.values().iterator().next());
+        assertInstanceOf(ForbiddenException.class, cached.failure().getValue());
 
         // Second call: should throw cached ForbiddenException without fetching
         RoutingContext ctx2 = createMockRoutingContext();
@@ -168,13 +169,14 @@ class OidcFailureCacheTest {
         // Pre-populate the failure cache with an already-expired entry.
         // Using a 1ms TTL and an instant in the past ensures it is expired.
         String credentialsHash = DigestUtils.sha256Hex("recovery-clientrecovery-secret");
-        strategy.cachedAuthFailures.put(credentialsHash,
+        strategy.credentialStates.put(credentialsHash, new OidcAuthenticationStrategy.FailureState(
                 new WrappedValue<>(Duration.ofMillis(1),
                         Instant.now().minusSeconds(10),
-                        new ForbiddenException("stale cached failure")));
+                        new ForbiddenException("stale cached failure"))));
 
         // Verify the cached entry is indeed expired
-        assertTrue(strategy.cachedAuthFailures.get(credentialsHash).isExpired(),
+        assertTrue(assertInstanceOf(OidcAuthenticationStrategy.FailureState.class,
+                        strategy.credentialStates.get(credentialsHash)).failure().isExpired(),
                 "The pre-populated failure cache entry should be expired");
 
         Pair<String, String> credentials = Pair.of("recovery-client", "recovery-secret");
@@ -218,11 +220,12 @@ class OidcFailureCacheTest {
 
         // Pre-populate the failure cache with a non-expired entry
         String credentialsHash = DigestUtils.sha256Hex("blocked-clientblocked-secret");
-        strategy.cachedAuthFailures.put(credentialsHash,
+        strategy.credentialStates.put(credentialsHash, new OidcAuthenticationStrategy.FailureState(
                 new WrappedValue<>(Duration.ofMinutes(5), Instant.now(),
-                        new ForbiddenException("active cached failure")));
+                        new ForbiddenException("active cached failure"))));
 
-        assertFalse(strategy.cachedAuthFailures.get(credentialsHash).isExpired(),
+        assertFalse(assertInstanceOf(OidcAuthenticationStrategy.FailureState.class,
+                        strategy.credentialStates.get(credentialsHash)).failure().isExpired(),
                 "The pre-populated failure cache entry should NOT be expired");
 
         Pair<String, String> credentials = Pair.of("blocked-client", "blocked-secret");
@@ -265,7 +268,8 @@ class OidcFailureCacheTest {
         when(mockParent.getAccessToken(any(Pair.class), anyString()))
                 .thenAnswer(invocation -> {
                     if (fetchCount.incrementAndGet() == 1) {
-                        inFlight.set(strategy.cachedAccessTokens.get(credentialsHash));
+                        inFlight.set(assertInstanceOf(OidcAuthenticationStrategy.TokenState.class,
+                                strategy.credentialStates.get(credentialsHash)).future());
                         // An Error, not a RuntimeException: the creator's catch block
                         // does not cover it, so only a finally can clean up after it.
                         throw new SimulatedJvmError();
@@ -285,14 +289,16 @@ class OidcFailureCacheTest {
                 "The injected Error should propagate");
         assertEquals(1, fetchCount.get(), "First call should trigger exactly one fetch");
 
-        // The orphan must be gone from the map. This test is single-threaded, so the
-        // 2-arg remove cannot lose a race: a non-null value here means the cleanup
-        // did not run at all.
-        assertNull(strategy.cachedAccessTokens.get(credentialsHash),
-                "An uncompleted future was left in the token cache; every later caller "
-                        + "with these credentials would block on join() forever");
+        // The entry may remain, but it must be completed exceptionally and therefore
+        // replaceable by a later caller. An uncompleted future would make every later
+        // caller with these credentials block on join() forever.
+        OidcAuthenticationStrategy.TokenState failedState = assertInstanceOf(
+                OidcAuthenticationStrategy.TokenState.class,
+                strategy.credentialStates.get(credentialsHash));
+        assertTrue(failedState.future().isCompletedExceptionally(),
+                "An uncompleted future was left in the cache");
 
-        // Removing it from the map only rescues callers who arrive afterwards. A caller
+        // Making the entry replaceable only rescues callers who arrive afterwards. A caller
         // already parked in join() is released by completeExceptionally and by nothing
         // else, so assert the future itself was settled. Bounded get() rather than
         // join(): if this half regresses the test fails instead of hanging.
@@ -319,81 +325,55 @@ class OidcFailureCacheTest {
     }
 
     /**
-     * The failure and the future must never be out of step. Once the failed future stops being
-     * the cache entry for a key, a new request is allowed through, so the failure has to be
-     * recorded by then. Recorded after the remove, a second fetch could succeed and its token
-     * would sit unused behind a failure that lands after it.
+     * The failure and the future must never be out of step. Once the failed future is
+     * completed, waiters are released and an exceptionally completed entry is replaceable,
+     * so the failure has to be recorded by then. Recorded afterwards, a second fetch could
+     * start and its token would sit behind a failure that lands after it.
      *
-     * <p>The observer does not race the cleanup: it takes the token cache's bin lock for the
-     * key from inside the fetch, before the fetch is allowed to fail. While it holds that
-     * lock the creator's {@code remove(key, future)} cannot complete, so the observer can
-     * wait for the failure to appear and still be certain the future has not been released.
-     * With the failure written after the remove, the write can never happen while the lock is
-     * held, the observer waits out its deadline and the assertion fails.
+     * <p>The fetch registers a callback on its own future before failing. The callback runs
+     * synchronously when the future is completed, and records what the cache entry is at
+     * that moment. With the failure written after the completion, it would still see the
+     * pending token state and the assertion fails.
      */
     @Test
     void failureIsCachedBeforeTheFailedFutureIsReleased() throws Exception {
         String credentialsHash = DigestUtils.sha256Hex("gap-clientgap-secret");
-        AtomicReference<CompletableFuture<WrappedValue<String>>> entryHeld = new AtomicReference<>();
-        AtomicReference<WrappedValue<RuntimeException>> failureWhileHeld = new AtomicReference<>();
-        AtomicReference<Thread> watcher = new AtomicReference<>();
-        CountDownLatch watcherHoldsTheEntry = new CountDownLatch(1);
+        AtomicReference<OidcAuthenticationStrategy.CredentialState> stateAtCompletion =
+                new AtomicReference<>();
         AtomicInteger fetchCount = new AtomicInteger(0);
 
         AppAuthenticationMechanism mockParent = mock(AppAuthenticationMechanism.class);
-
-        AuthConfig authConfig = new AuthConfig();
-        authConfig.authServerUrl = "http://localhost/realms/test";
-        authConfig.oidcTokenPath = "http://localhost/realms/test/token";
-
-        OidcAuthenticationStrategy strategy = new OidcAuthenticationStrategy(
-                mock(OidcAuthenticationMechanism.class), authConfig, null, null,
-                LoggerFactory.getLogger(OidcFailureCacheTest.class), mockParent);
+        OidcAuthenticationStrategy strategy = newStrategy(mockParent);
 
         when(mockParent.getAccessToken(any(Pair.class), anyString()))
                 .thenAnswer(invocation -> {
                     fetchCount.incrementAndGet();
-                    watcher.set(Thread.ofPlatform().daemon().start(() -> {
-                        // Holding the bin lock: the creator's remove(key, future) cannot
-                        // return while this function is running, and it returns what it
-                        // received, leaving the entry untouched.
-                        strategy.cachedAccessTokens.computeIfPresent(credentialsHash,
-                                (key, entry) -> {
-                                    entryHeld.set(entry);
-                                    watcherHoldsTheEntry.countDown();
-                                    long deadline = System.nanoTime()
-                                            + TimeUnit.SECONDS.toNanos(10);
-                                    while (strategy.cachedAuthFailures.get(key) == null
-                                            && System.nanoTime() < deadline) {
-                                        Thread.onSpinWait();
-                                    }
-                                    failureWhileHeld.set(
-                                            strategy.cachedAuthFailures.get(key));
-                                    return entry;
-                                });
-                    }));
-                    // Fail only once the observer holds the entry, so the cleanup cannot
-                    // outrun the observation.
-                    assertTrue(watcherHoldsTheEntry.await(10, TimeUnit.SECONDS),
-                            "The observer never locked the in-flight future");
+                    OidcAuthenticationStrategy.TokenState pending = assertInstanceOf(
+                            OidcAuthenticationStrategy.TokenState.class,
+                            strategy.credentialStates.get(credentialsHash));
+                    pending.future().whenComplete((value, failure) ->
+                            stateAtCompletion.set(strategy.credentialStates.get(credentialsHash)));
                     throw new OidcAuthException("OIDC token request failed with status 500");
                 });
+        Pair<String, String> credentials = Pair.of("gap-client", "gap-secret");
+        IdentityProviderManager idpManager = mock(IdentityProviderManager.class);
 
         OidcAuthException thrown = assertThrows(OidcAuthException.class,
-                () -> strategy.authenticateWithClientCredentials(Pair.of("gap-client", "gap-secret"),
-                        createMockRoutingContext(), mock(IdentityProviderManager.class)));
-        watcher.get().join(TimeUnit.SECONDS.toMillis(15));
-        assertFalse(watcher.get().isAlive(), "The observer never released the entry");
+                () -> strategy.authenticateWithClientCredentials(credentials,
+                        createMockRoutingContext(), idpManager));
 
-        assertEquals(1, fetchCount.get(), "Exactly one fetch should have been made");
-        assertNotNull(entryHeld.get(), "The in-flight future should have been the cache entry");
-        assertNotNull(failureWhileHeld.get(),
-                "The failed future was removed before the failure was cached, so a request "
+        OidcAuthenticationStrategy.FailureState failed = assertInstanceOf(
+                OidcAuthenticationStrategy.FailureState.class, stateAtCompletion.get(),
+                "The failed future was released before the failure was cached, so a request "
                         + "arriving in between would start a second fetch");
-        assertSame(thrown, failureWhileHeld.get().getValue(),
+        assertSame(thrown, failed.failure().getValue(),
                 "The cached failure should be the exact exception the fetch threw");
-        assertNull(strategy.cachedAccessTokens.get(credentialsHash),
-                "The failed future should no longer be the cache entry");
+
+        OidcAuthException second = assertThrows(OidcAuthException.class,
+                () -> strategy.authenticateWithClientCredentials(credentials,
+                        createMockRoutingContext(), idpManager));
+        assertSame(thrown, second, "A later call should get the cached failure");
+        assertEquals(1, fetchCount.get(), "Exactly one fetch should have been made");
     }
 
     /**
@@ -427,10 +407,9 @@ class OidcFailureCacheTest {
         }
 
         assertEquals(2, fetchCount.get(), "Nothing was cached, so each call should fetch");
-        assertTrue(strategy.cachedAuthFailures.isEmpty(),
-                "A non-auth RuntimeException must not enter the failure cache");
-        assertTrue(strategy.cachedAccessTokens.isEmpty(),
-                "The failed future should have been released");
+        assertTrue(strategy.credentialStates.isEmpty(),
+                "A non-auth RuntimeException must not enter the cache, and the failed future "
+                        + "should have been released");
     }
 
     /**
@@ -516,10 +495,162 @@ class OidcFailureCacheTest {
                 "The Error should escape the creator");
         OidcAuthException seen = assertInstanceOf(OidcAuthException.class, joinerOutcome.get(),
                 "The joiner should be released with an OidcAuthException");
-        assertSame(seen, strategy.cachedAuthFailures.get(credentialsHash).getValue(),
+        OidcAuthenticationStrategy.FailureState recorded = assertInstanceOf(
+                OidcAuthenticationStrategy.FailureState.class,
+                strategy.credentialStates.get(credentialsHash),
+                "The joiner should have replaced the dead creator's future with a failure");
+        assertSame(seen, recorded.failure().getValue(),
                 "The joiner should have recorded the exception it saw");
-        assertNull(strategy.cachedAccessTokens.get(credentialsHash),
-                "The dead creator's future should have been removed");
+    }
+
+    @Test
+    void concurrentCallersShareOneFailedFetch() throws Exception {
+        verifyConcurrentFailure(true);
+    }
+
+    @Test
+    void concurrentNonCacheableFailureAllowsRetryAndRecovery() throws Exception {
+        verifyConcurrentFailure(false);
+    }
+
+    /**
+     * Verifies that concurrent callers share one failed fetch.
+     *
+     * @param cacheable true to verify that later callers reuse the failure;
+     *                  false to verify that a later caller can retry and recover
+     */
+    private void verifyConcurrentFailure(boolean cacheable) throws Exception {
+        // Keep the first fetch open until the second caller is waiting on its future.
+        CountDownLatch fetchStarted = new CountDownLatch(1);
+        CountDownLatch releaseFetch = new CountDownLatch(1);
+        AtomicInteger fetchCount = new AtomicInteger();
+
+        // Authentication failures are cached; unexpected runtime failures are not.
+        RuntimeException failure = cacheable
+                ? new OidcAuthException("Token server unavailable")
+                : new IllegalStateException("Unexpected token fetch failure");
+        AppAuthenticationMechanism parent = mock(AppAuthenticationMechanism.class);
+
+        when(parent.getAccessToken(any(Pair.class), anyString()))
+                .thenAnswer(invocation -> {
+                    int attempt = fetchCount.incrementAndGet();
+
+                    // Simulate recovery when a non-cacheable failure is retried.
+                    if (!cacheable && attempt > 1) {
+                        return new WrappedValue<>(
+                                Duration.ofMinutes(10), Instant.now(), "recovered-token");
+                    }
+
+                    fetchStarted.countDown();
+                    assertTrue(releaseFetch.await(10, TimeUnit.SECONDS),
+                            "The test did not release the fetch");
+                    throw failure;
+                });
+
+        OidcAuthenticationStrategy strategy = newStrategy(parent);
+        Pair<String, String> credentials = Pair.of("concurrent-client", "secret");
+        IdentityProviderManager manager = mock(IdentityProviderManager.class);
+
+        // Capture failures from both threads so the test thread can check them.
+        AtomicReference<Throwable> creatorOutcome = new AtomicReference<>();
+        AtomicReference<Throwable> joinerOutcome = new AtomicReference<>();
+
+        // The creator starts the fetch and owns the shared token future.
+        Thread creator = new Thread(() -> {
+            try {
+                strategy.authenticateWithClientCredentials(credentials,
+                        createMockRoutingContext(), manager);
+            } catch (Throwable ex) {
+                creatorOutcome.set(ex);
+            }
+        });
+
+        // The joiner uses the same credentials and should wait for that existing fetch.
+        Thread joiner = new Thread(() -> {
+            try {
+                strategy.authenticateWithClientCredentials(credentials,
+                        createMockRoutingContext(), manager);
+            } catch (Throwable ex) {
+                joinerOutcome.set(ex);
+            }
+        });
+
+        // A stranded thread must not prevent the test JVM from exiting
+        creator.setDaemon(true);
+        joiner.setDaemon(true);
+
+        try {
+            creator.start();
+            assertTrue(fetchStarted.await(10, TimeUnit.SECONDS),
+                    "The creator did not start fetching");
+
+            joiner.start();
+
+            // Do not release the fetch until the joiner is waiting.
+            // The mocked fetch uses a timed latch wait, while future.join() uses WAITING.
+            // The deadline makes a regression fail instead of spinning indefinitely.
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+            while (joiner.getState() != Thread.State.WAITING && joiner.isAlive()
+                    && System.nanoTime() < deadline) {
+                Thread.onSpinWait();
+            }
+
+            assertEquals(Thread.State.WAITING, joiner.getState(),
+                    "The joiner did not wait on the shared future");
+            assertEquals(1, fetchCount.get());
+
+            // Let the shared fetch fail, then give both callers time to finish.
+            releaseFetch.countDown();
+            creator.join(TimeUnit.SECONDS.toMillis(10));
+            joiner.join(TimeUnit.SECONDS.toMillis(10));
+
+            assertFalse(creator.isAlive(), "The creator did not finish");
+            assertFalse(joiner.isAlive(), "The joiner was not released");
+
+            // Both callers must receive the original exception from the same fetch.
+            assertSame(failure, creatorOutcome.get());
+            assertSame(failure, joinerOutcome.get());
+            assertEquals(1, fetchCount.get(), "Both concurrent callers must share the first fetch");
+
+            if (cacheable) {
+                // A later caller receives the cached failure without another fetch.
+                RoutingContext laterContext = createMockRoutingContext();
+
+                assertSame(failure, assertThrows(OidcAuthException.class,
+                        () -> strategy.authenticateWithClientCredentials(credentials, laterContext,
+                                manager)));
+
+                assertEquals(1, fetchCount.get(), "A cached failure must prevent another fetch");
+            } else {
+                // Neither the creator nor the joiner may cache this failure.
+                assertTrue(strategy.credentialStates.isEmpty(),
+                        "A non-cacheable failure must leave no cache entry");
+
+                // A later request should fetch again and receive the recovered token.
+                RoutingContext retryContext = createMockRoutingContext();
+                strategy.authenticateWithClientCredentials(credentials, retryContext, manager);
+
+                assertEquals(2, fetchCount.get(), "A later caller must make a fresh fetch");
+                assertEquals("Bearer recovered-token",
+                        retryContext.request().headers().get("Authorization"));
+
+                // Once recovery succeeds, subsequent callers should reuse its token
+                RoutingContext cachedContext = createMockRoutingContext();
+                strategy.authenticateWithClientCredentials(credentials, cachedContext, manager);
+
+                assertEquals(2, fetchCount.get(), "The recovered token should be reused");
+                assertEquals("Bearer recovered-token",
+                        cachedContext.request().headers().get("Authorization"));
+            }
+        } finally {
+            // Release the mocked fetch even if an assertion fails before normal release.
+            // Interrupt and briefly join both threads to clean up any remaining work.
+            releaseFetch.countDown();
+            creator.interrupt();
+            joiner.interrupt();
+            creator.join(TimeUnit.SECONDS.toMillis(2));
+            joiner.join(TimeUnit.SECONDS.toMillis(2));
+        }
     }
 
     private OidcAuthenticationStrategy newStrategy(AppAuthenticationMechanism parent) {

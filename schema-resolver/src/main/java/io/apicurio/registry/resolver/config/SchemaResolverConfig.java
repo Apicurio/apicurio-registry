@@ -61,7 +61,7 @@ public class SchemaResolverConfig extends AbstractConfig {
 
     /**
      * Optional, boolean to indicate whether serializer classes should attempt to create an artifact in the
-     * registry. Note: JsonSchema serializer does not support this feature yet.
+     * registry.
      */
     public static final String AUTO_REGISTER_ARTIFACT = "apicurio.registry.auto-register";
     public static final boolean AUTO_REGISTER_ARTIFACT_DEFAULT = false;

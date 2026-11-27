@@ -121,4 +121,69 @@ public class DefaultSchemaResolverTest {
         assertEquals(1, mockAdapter.timesGetContentByHashCalled);
     }
 
+    @Test
+    void testExplicitSchemaLocationTakesPrecedenceOverSchemaFromData() {
+        String fromDataContent = "{\"type\":\"object\",\"properties\":{\"fromData\":{\"type\":\"string\"}}}";
+        String fromLocationContent = "{\"type\":\"object\",\"properties\":{\"fromLocation\":{\"type\":\"integer\"}}}";
+
+        MockRegistryClientFacade mockFacade = new MockRegistryClientFacade(fromLocationContent);
+        DefaultSchemaResolver<String, String> resolver = new DefaultSchemaResolver<>();
+        resolver.setClientFacade(mockFacade);
+
+        ParsedSchemaImpl<String> dataSchema = new ParsedSchemaImpl<String>()
+                .setParsedSchema(fromDataContent)
+                .setRawSchema(fromDataContent.getBytes(StandardCharsets.UTF_8));
+        ParsedSchemaImpl<String> locationSchema = new ParsedSchemaImpl<String>()
+                .setParsedSchema(fromLocationContent)
+                .setRawSchema(fromLocationContent.getBytes(StandardCharsets.UTF_8));
+
+        SchemaParser<String, String> parser = new MockSchemaParser(dataSchema) {
+            @Override
+            public ParsedSchema<String> getSchemaFromLocation(String location) {
+                return locationSchema;
+            }
+
+            @Override
+            public boolean supportsGetSchemaFromLocation() {
+                return true;
+            }
+        };
+
+        Map<String, Object> configs = new HashMap<>();
+        configs.put(SchemaResolverConfig.AUTO_REGISTER_ARTIFACT, true);
+        configs.put(SchemaResolverConfig.SCHEMA_LOCATION, "/custom/location.json");
+        configs.put(SchemaResolverConfig.EXPLICIT_ARTIFACT_GROUP_ID, "default");
+        configs.put(SchemaResolverConfig.EXPLICIT_ARTIFACT_ID, "test-artifact");
+        resolver.configure(configs, parser);
+
+        resolver.setArtifactResolverStrategy(new ArtifactReferenceResolverStrategy<>() {
+            @Override
+            public ArtifactReference artifactReference(Record<String> data, ParsedSchema<String> ps) {
+                return ArtifactReference.builder().groupId("default").artifactId("test-artifact").build();
+            }
+
+            @Override
+            public boolean loadSchema() {
+                return false;
+            }
+        });
+
+        Record<String> record = new Record<>() {
+            @Override
+            public io.apicurio.registry.resolver.data.Metadata metadata() {
+                return null;
+            }
+
+            @Override
+            public String payload() {
+                return "payload";
+            }
+        };
+
+        SchemaLookupResult<String> result = resolver.resolveSchema(record);
+        assertNotNull(result);
+        assertEquals(fromLocationContent,
+                new String(result.getParsedSchema().getRawSchema(), StandardCharsets.UTF_8));
+    }
+
 }

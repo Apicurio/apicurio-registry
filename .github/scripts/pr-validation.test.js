@@ -1234,3 +1234,46 @@ test('checkCompatibilityRisk(): an unrelated file is not flagged', () => {
   const files = [{ filename: 'docs/modules/ROOT/pages/a.adoc' }];
   assert.equal(checkCompatibilityRisk(files), null);
 });
+
+// validate(): the compatibility-risk section actually reaches the posted comment, not just
+// checkCompatibilityRisk() in isolation -- a regression here would mean nothing is ever shown to
+// an author even though detection still works (Copilot, #11395).
+
+test('validate(): a risk-only PR still passes, and the comment carries the compatibility-risk section and guidance', async (t) => {
+  stubConfig(t, { auto_accept: [] });
+  const pr = {
+    number: 1, user: { login: 'contributor' }, body: 'Closes #42', labels: [], draft: false,
+  };
+  const { github, calls } = createFakeGithub({
+    commitsByPr: { 1: [SIGNED_COMMIT('aaaaaaaa1111', 'fix: a')] },
+    filesByPr: { 1: ['common/src/main/resources/META-INF/openapi.json'] },
+  });
+  const { core, getFailed } = createFakeCore();
+
+  await validate({ github, context: makeContext(pr), core });
+
+  assert.equal(getFailed(), null, 'a compatibility-risk reminder must not fail the check');
+  assert.deepEqual(calls.addedLabels, [], 'a compatibility-risk reminder must not label the PR');
+  const body = calls.createdComments[0].body;
+  assert.ok(body.includes('All validation checks passed.'));
+  assert.ok(body.includes('### Compatibility risk'));
+  assert.ok(body.includes('the REST API contract (openapi.json)'));
+  assert.ok(body.includes('docs/dev/compatibility.md'));
+  assert.ok(body.includes('.claude/rules/upgrade-impact.md'));
+});
+
+test('validate(): the compatibility-risk section is absent when no file matches', async (t) => {
+  stubConfig(t, { auto_accept: [] });
+  const pr = {
+    number: 1, user: { login: 'contributor' }, body: 'Closes #42', labels: [], draft: false,
+  };
+  const { github, calls } = createFakeGithub({
+    commitsByPr: { 1: [SIGNED_COMMIT('aaaaaaaa1111', 'fix: a')] },
+    filesByPr: { 1: ['docs/modules/ROOT/pages/a.adoc'] },
+  });
+  const { core } = createFakeCore();
+
+  await validate({ github, context: makeContext(pr), core });
+
+  assert.ok(!calls.createdComments[0].body.includes('### Compatibility risk'));
+});

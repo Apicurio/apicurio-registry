@@ -418,12 +418,13 @@ counts are missing, malformed, negative or mutually inconsistent, the summary
 says so instead of reading anything as zero.
 
 Not every run produces a decision table. When a changed file matches
-`scalpel.disableTriggers` or `scalpel.fullBuildTriggers`, or when
-`scalpel.excludePaths` removes every changed file, Scalpel writes a status
-report instead: `status`, `reason`, and, since 0.4.1, the `triggerFile`
-responsible plus `changedFiles`, `decisionId` and `timings`. The summary names
-the file and reads the reason, because the reason decides which explanation
-the run gets.
+`scalpel.disableTriggers`, or when `scalpel.excludePaths` removes every changed
+file, Scalpel writes a status report instead: `status`, `reason`, and, since
+0.4.1, the `triggerFile` responsible plus `changedFiles`, `decisionId` and
+`timings`. The summary names the file and reads the reason, because the
+reason decides which explanation the run gets. A full-build report with no
+`status` and no `reason` is the third table-less shape, described with the
+root-level files below.
 
 Two reasons would empty the reactor. They are the only two that reach Scalpel's
 `trimReactorToEmpty`: `all changed files excluded by path filters` and `no
@@ -457,8 +458,8 @@ modules match includePaths filters` and `disabled by -pl project selection`. A
 run that hits one of those writes an ordinary report here, with no `status`
 field, so it lands in the counts path rather than as a skip. The first of the
 three is reachable in this repository: a change confined to a module outside
-the default reactor, such as `operator/` or `mcp/`, or to a root-level file no
-pom names, affects no module this job's reactor builds. Its report carries a
+the default reactor, such as `operator/` or `mcp/`, affects no module this
+job's reactor builds. Its report carries a
 decision table with `buildSetSize` 0 and `skippedModules` naming all 57
 modules, but a trimming build does not perform that projection on Scalpel
 0.4.2, with `buildAllIfNoChanges` either way (verified with the operator-only
@@ -466,8 +467,8 @@ change set of commit `0b35b825b`): the reactor stays whole and every module
 builds. The summary recognizes the zero build set and says so rather than
 drawing that table.
 
-That root-level files sit in this family is why `scalpel.excludePaths` carries
-no slash-free pattern. Scalpel rewrites a pattern without a slash to match at
+`scalpel.excludePaths` carries no slash-free pattern, and 0.5.0 keeps the
+reason: Scalpel rewrites a pattern without a slash to match at
 every depth, and 0.3.10 matched the root only, so the 0.4.x bump silently
 widened the old `*.md` and `LICENSE` entries from root files to the whole
 tree. Verified by probing the same in-tree change,
@@ -476,8 +477,34 @@ tree. Verified by probing the same in-tree change,
 with the widened pattern excluded it and every other in-tree markdown file,
 111 tracked files in all. The list this branch ships drops the slash-free
 entries, which restores attribution for all of them and leaves root markdown
-and LICENSE unlisted: a change confined to those projects the zero-build-set
-report above instead, which under the pin builds every module.
+and LICENSE unlisted.
+
+Scalpel 0.5.0 moved root-level files out of that family
+([maveniverse/scalpel#229](https://github.com/maveniverse/scalpel/issues/229)).
+A changed file at the repository root that no module owns, such as `README.md`,
+`LICENSE` or `.gitignore`, now ends detection with a full build, whether it is
+the only change or sits next to module changes. In `mode=report`, `mode=shadow`
+and any run with `verifyFullBuild=true` the outcome is a `writeFullBuildReport`
+report: no `status`, `fullBuildTriggered` true, and `triggerFile` holding the
+unowned root files joined with `, `. A `scalpel.fullBuildTriggers` match writes
+the same shape with one path; none is configured here and the default `.mvn/**`
+is covered by `disableTriggers`. The report names no cause, so the summary
+reads it from `triggerFile`: a value with a slash, or `pom.xml`, which Scalpel
+classifies before root files, is a trigger match, and any other value is the
+root-file list. The shadow carrier gets a skip-status document for the same
+change sets, `full build triggered by` followed by the files. Only paths
+without a slash qualify (`ModuleMapper`, `changedFile.indexOf('/') < 0`), so
+files in a module outside the reactor keep the zero-build-set path above.
+Verified on 0.5.0 in `mode=report` against a base that pins 0.5.0: `README.md`
+alone and `README.md` with an `app` source change both report
+`fullBuildTriggered` true and `triggerFile` `README.md`, the `app` change alone
+still reports `buildSetSize` 51, and a change confined to an
+`operator/controller` source file still reports `buildSetSize` 0. The same
+`README.md` change sets on 0.4.3 report `buildSetSize` 0 and 51. Over the last
+300 first-parent commits on `main`, 12 touched a root file of this kind, but 7
+of those also matched `disableTriggers`, which Scalpel checks first, leaving 5
+whose report changes. 4 of those commits touched only root files, and 1 also
+changed modules, including the root pom.
 
 The report also sets `fullBuildTriggered` to true on the exhaustion outcome.
 Under this repository's `buildAllIfNoChanges=true` pin that is now the truth:
@@ -525,8 +552,9 @@ The shadow carrier is the `non-app` unit-test shard, which runs Scalpel in
 `target/scalpel-shadow-history.jsonl` as `scalpel-shadow-<shard>-<sha>`. A
 review run that runs the unit-test shards gets a carrier document reflecting
 the change set. A change that touches only `app` gets a skip-status document
-instead, because `app` is not in the carrier's session. A review run
-superseded while still pending starts no jobs and adds nothing.
+instead, because `app` is not in the carrier's session, and from Scalpel 0.5.0
+so does any change set that includes a root-level file no module owns. A review
+run superseded while still pending starts no jobs and adds nothing.
 
 The `<sha>` in the artifact name is the merge commit, which does not reliably
 pair runs. To pair documents, group runs by `head_sha` from the API and keep
@@ -556,6 +584,8 @@ a trimming build never applies that decision on Scalpel 0.4.2 with the flag
 either way. The rows above were counted under the pre-narrowing excludePaths
 list; under the list this branch ships the split moves to 12 exhausted and 8
 zero-build-set, and the total projecting a zero-module build stays 20 of 40.
+On the 0.5.0 pin, runs whose change set includes a root-level file that no
+module owns project a full build instead; the replay was not repeated on 0.5.0.
 The behavior statements are 0.4.2 facts; the replay rows themselves are 0.4.1
 reports, whose schema is byte-identical to 0.4.2 by the hash check recorded in
 REG-245. The mean under the shipped configuration is the trimmed row alone,
@@ -570,7 +600,7 @@ exhausting `excludePaths` used to build every module and now builds none, which
 moves 16 of the 40 runs from the worst outcome to the best one. The two
 remaining issues from that round are also closed.
 [#185](https://github.com/maveniverse/scalpel/issues/185) was the root-aggregator
-cascade, and a root-level file that no pom names now projects an empty build
+cascade, and a root-level file that no pom names then projected an empty build
 rather than the whole reactor. [#187](https://github.com/maveniverse/scalpel/issues/187)
 asked for the three-way split to be readable from the report, which is what the
 native count fields above deliver.

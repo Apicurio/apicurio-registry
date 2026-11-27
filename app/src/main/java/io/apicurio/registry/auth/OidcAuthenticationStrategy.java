@@ -48,8 +48,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.BiConsumer;
 
 /**
@@ -333,9 +335,9 @@ public class OidcAuthenticationStrategy implements AuthenticationStrategy {
                 // With no joiner nothing is cached, and the next request starts a fresh
                 // fetch.
                 //
-                // Note this covers a creator that DIES. A creator wedged inside
-                // getAccessToken never leaves the try block at all, so the join is still
-                // unbounded on that path; bounding it needs a @Timeout on the fetch.
+                // Note this covers a creator that dies on an Error, while @Timeout on
+                // getAccessToken bounds a hung creator. Joiners also wait with a bounded
+                // timeout below so a stalled creator can never park callers indefinitely.
                 if (!future.isDone()) {
                     cachedAccessTokens.remove(credentialsHash, future);
                     future.completeExceptionally(new OidcAuthException(
@@ -344,11 +346,16 @@ public class OidcAuthenticationStrategy implements AuthenticationStrategy {
             }
         }
 
-        // Join outside the lock (no-op if we are the creator and it succeeded)
+        // Join outside the lock with a bounded timeout (no-op if we are the creator and it succeeded)
         try {
-            return future.join().getValue();
-        } catch (CompletionException ce) {
-            Throwable cause = ce.getCause();
+            return future.get(tokenFetchTimeoutMillis(), TimeUnit.MILLISECONDS).getValue();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new OidcAuthException("Interrupted while waiting for access token", e);
+        } catch (TimeoutException e) {
+            throw new OidcAuthException("Timed out waiting for access token", e);
+        } catch (ExecutionException ee) {
+            Throwable cause = ee.getCause();
             if (cause instanceof RuntimeException re) {
                 throw re;
             }
@@ -357,18 +364,32 @@ public class OidcAuthenticationStrategy implements AuthenticationStrategy {
     }
 
     /**
-     * Failures worth holding for FAILURE_CACHE_TTL: auth rejections and server errors. They
-     * are cached to avoid hammering the OIDC server while still allowing quick recovery.
+     * Failures worth holding for the configured failure-cache TTL: auth rejections, server errors,
+     * and token-fetch timeouts. They are cached to avoid hammering the OIDC server while still
+     * allowing quick recovery.
      */
     private static boolean isCacheable(RuntimeException ex) {
         return ex instanceof UnauthorizedException
                 || ex instanceof ForbiddenException
-                || ex instanceof OidcAuthException;
+                || ex instanceof OidcAuthException
+                || ex instanceof org.eclipse.microprofile.faulttolerance.exceptions.TimeoutException;
     }
 
     private void cacheFailure(String credentialsHash, RuntimeException ex) {
+        long ttlSeconds = authConfig != null && authConfig.failureCacheTtlSeconds != null
+                && authConfig.failureCacheTtlSeconds > 0
+                        ? authConfig.failureCacheTtlSeconds
+                        : FAILURE_CACHE_TTL.toSeconds();
         cachedAuthFailures.put(credentialsHash,
-                new WrappedValue<>(FAILURE_CACHE_TTL, Instant.now(), ex));
+                new WrappedValue<>(Duration.ofSeconds(ttlSeconds), Instant.now(), ex));
+    }
+
+    private long tokenFetchTimeoutMillis() {
+        long timeoutSeconds = authConfig != null && authConfig.tokenFetchTimeoutSeconds != null
+                && authConfig.tokenFetchTimeoutSeconds > 0
+                        ? authConfig.tokenFetchTimeoutSeconds
+                        : 30L;
+        return TimeUnit.SECONDS.toMillis(timeoutSeconds);
     }
 
     private CompletableFuture<WrappedValue<String>> reuseOrReplace(

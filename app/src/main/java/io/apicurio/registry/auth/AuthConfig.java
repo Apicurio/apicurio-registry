@@ -60,6 +60,14 @@ public class AuthConfig {
     @Info(category = CATEGORY_AUTH, description = "Client credentials token expiration offset from JWT expiration, in seconds.", availableSince = "2.5.9.Final")
     Integer accessTokenExpirationOffset;
 
+    @ConfigProperty(name = "apicurio.authn.basic-client-credentials.failure-cache-ttl.seconds", defaultValue = "60")
+    @Info(category = CATEGORY_AUTH, description = "Time-to-live in seconds for cached OIDC client-credentials authentication failures.", availableSince = "3.4.0")
+    Integer failureCacheTtlSeconds = 60;
+
+    @ConfigProperty(name = "apicurio.authn.basic-client-credentials.token-fetch-timeout.seconds", defaultValue = "30")
+    @Info(category = CATEGORY_AUTH, description = "Maximum time in seconds to wait for an OIDC client-credentials token fetch (including retries).", availableSince = "3.4.0")
+    Integer tokenFetchTimeoutSeconds = 30;
+
     @ConfigProperty(name = "apicurio.authn.basic.scope")
     @Info(category = CATEGORY_AUTH, description = "Client credentials scope.", availableSince = "2.5.0.Final")
     Optional<String> scope;

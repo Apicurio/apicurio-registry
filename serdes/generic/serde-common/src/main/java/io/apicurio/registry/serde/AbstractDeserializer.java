@@ -146,26 +146,47 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
         return tracer.traceDeserialize(topic, span -> {
             span.setAttribute(SerDesAttributes.DATA_SIZE, (long) data.length);
 
-            ByteBuffer buffer = getByteBuffer(data);
-            ArtifactReference artifactReference = baseSerde.getIdHandler().readId(buffer);
+            try {
+                ByteBuffer buffer = getByteBuffer(data);
+                ArtifactReference artifactReference = baseSerde.getIdHandler().readId(buffer);
 
-            SchemaCacheKey cacheKey = getCacheKey(artifactReference);
-            boolean cacheHit = cacheKey != null && fastPathCache.containsKey(cacheKey);
+                SchemaCacheKey cacheKey = getCacheKey(artifactReference);
+                boolean cacheHit = cacheKey != null && fastPathCache.containsKey(cacheKey);
 
-            SchemaLookupResult<T> schema = resolve(topic, data, artifactReference);
-            SerDesTracer.setSchemaAttributes(span, schema, cacheHit);
+                SchemaLookupResult<T> schema = resolve(topic, data, artifactReference);
+                SerDesTracer.setSchemaAttributes(span, schema, cacheHit);
 
-            int length = buffer.limit() - 1 - baseSerde.getIdHandler().idSize(artifactReference, buffer);
-            int start = buffer.position() + buffer.arrayOffset();
+                int length = buffer.limit() - 1 - baseSerde.getIdHandler().idSize(artifactReference, buffer);
+                int start = buffer.position() + buffer.arrayOffset();
 
-            U result = readData(schema.getParsedSchema(), buffer, start, length);
+                U result = readData(schema.getParsedSchema(), buffer, start, length);
 
-            if (contractRulesEnabled) {
-                return executeContractRulesForRead(topic, data, artifactReference, schema, result);
+                if (contractRulesEnabled) {
+                    return executeContractRulesForRead(topic, data, artifactReference, schema, result);
+                }
+
+                return result;
+            } catch (RuntimeException e) {
+                return recoverDeserialization(topic, data, e);
             }
-
-            return result;
         });
+    }
+
+    /**
+     * Called when deserializing {@code data} in {@link #deserializeData(String, byte[])} failed, while the
+     * {@code serde.deserialize} span is still open. A subclass that can still produce a result, by
+     * falling back to another way of reading the payload, returns it here, and the span then ends
+     * successfully. Otherwise it rethrows, and the span records the error.
+     * <p>
+     * The default implementation rethrows {@code error}.
+     *
+     * @param topic the topic the payload belongs to
+     * @param data the raw payload that failed to deserialize
+     * @param error the failure
+     * @return the recovered result
+     */
+    protected U recoverDeserialization(String topic, byte[] data, RuntimeException error) {
+        throw error;
     }
 
     protected abstract U readData(ParsedSchema<T> schema, ByteBuffer buffer, int start, int length);

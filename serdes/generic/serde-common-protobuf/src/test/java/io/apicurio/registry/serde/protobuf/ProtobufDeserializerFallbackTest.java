@@ -5,6 +5,13 @@ import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.serde.protobuf.ref.RefOuterClass.Ref;
+import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.api.trace.StatusCode;
+import io.opentelemetry.sdk.OpenTelemetrySdk;
+import io.opentelemetry.sdk.testing.exporter.InMemorySpanExporter;
+import io.opentelemetry.sdk.trace.SdkTracerProvider;
+import io.opentelemetry.sdk.trace.data.SpanData;
+import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -56,6 +63,7 @@ class ProtobufDeserializerFallbackTest {
             d.close();
         }
         openDeserializers.clear();
+        GlobalOpenTelemetry.resetForTest();
     }
 
     // =========================================================================
@@ -351,8 +359,72 @@ class ProtobufDeserializerFallbackTest {
     }
 
     // =========================================================================
+    // Tracing
+    // =========================================================================
+
+    /**
+     * A record recovered by the fallback was deserialized successfully, so its
+     * {@code serde.deserialize} span must not be marked as an error. The failed schema lookup
+     * keeps its own error span.
+     */
+    @Test
+    void testSpanIsOkWhenFallbackRecoversRecord() throws Exception {
+        InMemorySpanExporter spanExporter = installSpanExporter();
+        DescriptorProtos.FileDescriptorProto testMessage = DescriptorProtos.FileDescriptorProto.newBuilder()
+                .setName("test.proto")
+                .build();
+        byte[] wireFormatBytes = buildApicurioWireFormat(testMessage.toByteArray(), 1, "Test");
+        ProtobufDeserializer<DescriptorProtos.FileDescriptorProto> deserializer = createFallbackDeserializer(
+                DescriptorProtos.FileDescriptorProto.class, registryUnreachable());
+
+        DescriptorProtos.FileDescriptorProto result = deserializer.deserializeData("test-topic", wireFormatBytes);
+
+        assertEquals("test.proto", result.getName());
+        List<SpanData> spans = spanExporter.getFinishedSpanItems();
+        assertEquals(List.of("serde.resolve_schema", "serde.deserialize"),
+                spans.stream().map(SpanData::getName).toList());
+        assertEquals(StatusCode.ERROR, spans.get(0).getStatus().getStatusCode());
+        assertEquals(StatusCode.OK, spans.get(1).getStatus().getStatusCode());
+    }
+
+    /**
+     * When the fallback cannot read the payload either, the record is lost and the
+     * {@code serde.deserialize} span must still report the error.
+     */
+    @Test
+    void testSpanIsErrorWhenFallbackFails() throws Exception {
+        InMemorySpanExporter spanExporter = installSpanExporter();
+        // Field 1, length-delimited, claims 5 bytes but only 1 follows.
+        byte[] truncatedPayload = {0x0A, 0x05, 'a'};
+        byte[] wireFormatBytes = buildApicurioWireFormat(truncatedPayload, 1, "Test");
+        ProtobufDeserializer<DescriptorProtos.FileDescriptorProto> deserializer = createFallbackDeserializer(
+                DescriptorProtos.FileDescriptorProto.class, registryUnreachable());
+
+        IllegalStateException thrown = assertThrows(IllegalStateException.class,
+                () -> deserializer.deserializeData("test-topic", wireFormatBytes));
+
+        assertTrue(thrown.getMessage().startsWith("Fallback protobuf parsing failed"),
+                "Unexpected failure: " + thrown);
+        List<SpanData> spans = spanExporter.getFinishedSpanItems();
+        assertEquals(List.of("serde.resolve_schema", "serde.deserialize"),
+                spans.stream().map(SpanData::getName).toList());
+        assertEquals(StatusCode.ERROR, spans.get(1).getStatus().getStatusCode());
+    }
+
+    // =========================================================================
     // Helpers
     // =========================================================================
+
+    /** Registers a global OpenTelemetry SDK that records finished spans in memory. */
+    private static InMemorySpanExporter installSpanExporter() {
+        GlobalOpenTelemetry.resetForTest();
+        InMemorySpanExporter spanExporter = InMemorySpanExporter.create();
+        OpenTelemetrySdk.builder()
+                .setTracerProvider(SdkTracerProvider.builder()
+                        .addSpanProcessor(SimpleSpanProcessor.create(spanExporter)).build())
+                .buildAndRegisterGlobal();
+        return spanExporter;
+    }
 
     /**
      * Creates a {@link ProtobufDeserializer} configured with fallback enabled and a specific

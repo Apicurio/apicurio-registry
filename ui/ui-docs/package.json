@@ -34,5 +34,8 @@
     "redoc": "2.5.4",
     "styled-components": "6.7.0",
     "yaml": "2.9.1"
+  },
+  "overrides": {
+    "js-yaml": "4.3.2"
   }
 }

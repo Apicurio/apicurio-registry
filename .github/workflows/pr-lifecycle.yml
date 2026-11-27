@@ -1,13 +1,18 @@
 name: PR Lifecycle
 
+# Background PR and issue automation: comment commands, workflow_run handlers
+# (test results, Verification Gate status, review relay), issue classification
+# and PR revalidation on issue edits, manual reconciliation, and stale sweeps.
+#
+# None of the triggers here are pull_request / pull_request_target /
+# pull_request_review, so none of these jobs appear as skipped checks on PRs.
+# PR-event triggers live in pr-lifecycle-events.yml (a single dispatcher job).
+
 on:
-  pull_request_target:
-    types: [opened, reopened, synchronize, ready_for_review, converted_to_draft, labeled, unlabeled]
-    branches: [main, '3.3.x']
-  pull_request_review:
-    types: [submitted]
   issue_comment:
     types: [created]
+  issues:
+    types: [opened, edited, milestoned, demilestoned, closed, reopened]
   workflow_run:
     # Review Relay (review-relay.yaml) is only for the review-relay job.
     workflows: ["Verify", "Quick Check", "Review Relay"]
@@ -19,153 +24,30 @@ on:
     types: [requested, in_progress, completed]
   workflow_dispatch:
     inputs:
+      # Typed as string rather than number so "not supplied" is unambiguously
+      # the empty string (and callers like docs-auto-approve.js pass strings).
       pr_number:
-        description: PR number to reconcile
-        required: true
-        type: number
+        description: PR number to reconcile (leave empty when classifying an issue)
+        required: false
+        default: ''
+        type: string
+      issue:
+        description: Issue number to classify (leave empty when reconciling a PR)
+        required: false
+        default: ''
+        type: string
+      dry_run:
+        description: Print classification scores without applying labels (only for issue)
+        required: false
+        default: false
+        type: boolean
   schedule:
     - cron: '17 */6 * * *'
 
 permissions:
-  actions: write
-  contents: write
-  pull-requests: write
-  issues: write
-
-concurrency:
-  group: pr-lifecycle-${{ github.event.pull_request.number || github.event.issue.number || github.run_id }}
-  cancel-in-progress: false
+  contents: read
 
 jobs:
-  # ==========================================================================
-  # PR Opened / Reopened
-  # ==========================================================================
-  pr-opened:
-    name: PR Opened
-    runs-on: ubuntu-latest
-    if: |
-      github.repository_owner == 'Apicurio' &&
-      github.event_name == 'pull_request_target' &&
-      (github.event.action == 'opened' || github.event.action == 'reopened') &&
-      !contains(github.event.pull_request.labels.*.name, 'orchestrator/disabled')
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-      - name: Convert config to JSON
-        run: yq -o json .github/pr-lifecycle.yml > .github/pr-lifecycle.json
-
-      - name: Handle PR opened
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
-        with:
-          script: |
-            const handler = require('./.github/scripts/pr-lifecycle.js');
-            await handler.handlePrOpened({ github, context, core });
-
-  # ==========================================================================
-  # PR Synchronize (new push)
-  # ==========================================================================
-  pr-synchronize:
-    name: PR Push
-    runs-on: ubuntu-latest
-    if: |
-      github.repository_owner == 'Apicurio' &&
-      github.event_name == 'pull_request_target' &&
-      github.event.action == 'synchronize' &&
-      !contains(github.event.pull_request.labels.*.name, 'orchestrator/disabled')
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-      - name: Convert config to JSON
-        run: yq -o json .github/pr-lifecycle.yml > .github/pr-lifecycle.json
-
-      - name: Handle push
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
-        with:
-          script: |
-            const handler = require('./.github/scripts/pr-lifecycle.js');
-            await handler.handlePrSynchronize({ github, context, core });
-
-  # ==========================================================================
-  # Draft -> Ready
-  # ==========================================================================
-  pr-ready-for-review:
-    name: Draft to Ready
-    runs-on: ubuntu-latest
-    if: |
-      github.repository_owner == 'Apicurio' &&
-      github.event_name == 'pull_request_target' &&
-      github.event.action == 'ready_for_review' &&
-      !contains(github.event.pull_request.labels.*.name, 'orchestrator/disabled')
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-      - name: Convert config to JSON
-        run: yq -o json .github/pr-lifecycle.yml > .github/pr-lifecycle.json
-
-      - name: Handle ready for review
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
-        with:
-          script: |
-            const handler = require('./.github/scripts/pr-lifecycle.js');
-            await handler.handlePrReadyForReview({ github, context, core });
-
-  # ==========================================================================
-  # PR Converted Back to Draft
-  # ==========================================================================
-  pr-converted-to-draft:
-    name: Ready to Draft
-    runs-on: ubuntu-latest
-    if: |
-      github.repository_owner == 'Apicurio' &&
-      github.event_name == 'pull_request_target' &&
-      github.event.action == 'converted_to_draft' &&
-      !contains(github.event.pull_request.labels.*.name, 'orchestrator/disabled')
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-      - name: Handle converted to draft
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
-        with:
-          script: |
-            const handler = require('./.github/scripts/pr-lifecycle.js');
-            await handler.handlePrConvertedToDraft({ github, context, core });
-
-  # ==========================================================================
-  # Review Submitted
-  # ==========================================================================
-  # Same-repo PRs only: pull_request_review gives GITHUB_TOKEN the same
-  # restricted, secret-less, read-only token for fork PRs that pull_request
-  # does. This job needs write access to update labels, so fork PR reviews are
-  # left to the slower but still-correct path: the review-relay job below
-  # starts the full suite once it is required, and that run's completion
-  # reconciles labels via test-result. Starting the suite is also done only by
-  # review-relay, for fork and same-repo PRs alike, so there is one path.
-  pr-review-submitted:
-    name: Review Submitted
-    runs-on: ubuntu-latest
-    if: |
-      github.repository_owner == 'Apicurio' &&
-      github.event_name == 'pull_request_review' &&
-      github.event.pull_request.head.repo.full_name == github.repository &&
-      !contains(github.event.pull_request.labels.*.name, 'orchestrator/disabled')
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-      - name: Convert config to JSON
-        run: yq -o json .github/pr-lifecycle.yml > .github/pr-lifecycle.json
-
-      - name: Handle review submitted
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
-        with:
-          script: |
-            const handler = require('./.github/scripts/pr-lifecycle.js');
-            await handler.handlePrReviewSubmitted({ github, context, core });
-
   # ==========================================================================
   # Comment Commands
   # ==========================================================================
@@ -179,6 +61,14 @@ jobs:
       github.event.issue.pull_request &&
       startsWith(github.event.comment.body, '/') &&
       !contains(github.event.issue.labels.*.name, 'orchestrator/disabled')
+    concurrency:
+      group: pr-lifecycle-pr-${{ github.event.issue.number }}
+      cancel-in-progress: false
+    permissions:
+      actions: write
+      contents: write
+      pull-requests: write
+      issues: write
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -194,33 +84,7 @@ jobs:
             await handler.handleComment({ github, context, core });
 
   # ==========================================================================
-  # Label Protection
-  # ==========================================================================
-  label-guard:
-    name: Label Guard
-    runs-on: ubuntu-latest
-    if: |
-      github.repository_owner == 'Apicurio' &&
-      github.event_name == 'pull_request_target' &&
-      (github.event.action == 'labeled' || github.event.action == 'unlabeled') &&
-      github.event.sender.login != 'github-actions[bot]' &&
-      (startsWith(github.event.label.name, 'lifecycle/') || startsWith(github.event.label.name, 'orchestrator/'))
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-      - name: Convert config to JSON
-        run: yq -o json .github/pr-lifecycle.yml > .github/pr-lifecycle.json
-
-      - name: Handle label change
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
-        with:
-          script: |
-            const handler = require('./.github/scripts/pr-lifecycle.js');
-            await handler.handleLabelChange({ github, context, core });
-
-  # ==========================================================================
-  # Test Results (Verify workflow completed)
+  # Test Results (Verify / Quick Check completed)
   # ==========================================================================
   test-result:
     name: Test Result
@@ -230,13 +94,22 @@ jobs:
       github.event_name == 'workflow_run' &&
       github.event.action == 'completed' &&
       github.event.workflow_run.name != 'Review Relay'
+    concurrency:
+      # Keyed by workflow_id + head_sha so Quick Check and Verify completions
+      # for the same commit never supersede each other while pending.
+      group: pr-lifecycle-test-${{ github.event.workflow_run.workflow_id }}-${{ github.event.workflow_run.head_sha }}
+      cancel-in-progress: false
+    permissions:
+      actions: write
+      contents: read
+      pull-requests: write
+      issues: write
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         # workflow_run handlers must NOT check out the run's head SHA: GitHub refuses
         # fork pull_request code in a workflow_run context, and the checkout fails the
-        # whole orchestrator. The orchestrator's dispatch logic lives on main once
-        # merged; for the rollout PR itself, the dispatch is bootstrapped manually.
+        # whole orchestrator.
 
       - name: Convert config to JSON
         run: yq -o json .github/pr-lifecycle.yml > .github/pr-lifecycle.json
@@ -260,14 +133,7 @@ jobs:
   #
   # Not filtered on orchestrator/disabled: branch protection requires the
   # status on every PR.
-  #
-  # Serialized per commit. Each run recomputes from the current state of all
-  # Verify runs for the commit, so a queued job superseded (and cancelled) by
-  # a newer one for the same commit loses nothing.
   gate-status:
-    # Not "Verification Gate ...": like every job here, it also shows up as a
-    # skipped check on PRs (from this workflow's pull_request_target runs),
-    # right next to the real Verification Gate status, and read like it.
     name: Sync Gate Status
     runs-on: ubuntu-latest
     if: |
@@ -298,11 +164,10 @@ jobs:
   # ==========================================================================
   # Re-runs the PR head commit's Verify run when the review made the full
   # suite required and that run skipped it (handleReviewRelay /
-  # maybeRunFullSuite). The relay workflow exists only to get the review here,
-  # into a privileged context that can re-run a workflow for fork PRs too.
-  # Like test-result, it never checks out or executes the triggering run's
-  # code, and it takes only the commit from the event: the PR, its review
-  # decision and its Verify runs are read back through the API.
+  # maybeRunFullSuite), and reconciles lifecycle display labels for both fork
+  # and same-repo PRs. The relay workflow exists to bring the review into a
+  # privileged workflow_run context where GITHUB_TOKEN can re-run workflows and
+  # update labels on fork PRs too.
   review-relay:
     name: Review Relay
     runs-on: ubuntu-latest
@@ -311,16 +176,14 @@ jobs:
       github.event_name == 'workflow_run' &&
       github.event.action == 'completed' &&
       github.event.workflow_run.name == 'Review Relay'
-    # Serialized per commit, so two reviews in quick succession don't both
-    # re-run the same run. Each recomputes from the current state, so a queued
-    # one superseded (and cancelled) by a newer one loses nothing.
     concurrency:
       group: review-relay-${{ github.event.workflow_run.head_sha }}
       cancel-in-progress: false
     permissions:
       contents: read
       actions: write
-      pull-requests: read
+      pull-requests: write
+      issues: write
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -329,12 +192,123 @@ jobs:
       - name: Convert config to JSON
         run: yq -o json .github/pr-lifecycle.yml > .github/pr-lifecycle.json
 
-      - name: Start the full suite if now required
+      - name: Start the full suite if now required and reconcile labels
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
         with:
           script: |
             const handler = require('./.github/scripts/pr-lifecycle.js');
             await handler.handleReviewRelay({ github, context, core });
+
+  # ==========================================================================
+  # Issue Classification (opened/edited or manual dispatch)
+  # ==========================================================================
+  classify-issue:
+    name: Classify Issue
+    runs-on: ubuntu-latest
+    if: |
+      github.repository_owner == 'Apicurio' &&
+      ((github.event_name == 'issues' && (github.event.action == 'opened' || github.event.action == 'edited')) ||
+       (github.event_name == 'workflow_dispatch' && inputs.issue != ''))
+    concurrency:
+      group: classify-issue-${{ github.event.issue.number || inputs.issue }}
+      cancel-in-progress: true
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up classifier
+        uses: ./.github/actions/setup-classifier
+
+      - name: Classify
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.issue.number || inputs.issue }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          case "$NUMBER" in
+            ''|*[!0-9]*) echo "::error::Issue number must be digits, got '$NUMBER'."; exit 1 ;;
+          esac
+          args=(--repo "$REPO" --issue "$NUMBER")
+          if [ "${DRY_RUN:-}" = "true" ]; then args+=(--dry-run); fi
+          python .github/scripts/label-classification/classify.py "${args[@]}"
+
+  # ==========================================================================
+  # Revalidate PRs Closing an Issue (milestone/state changed on an issue)
+  # ==========================================================================
+  # PR Validation checks every open issue a PR closes; setting that issue's
+  # milestone or closing/reopening it is an issues event, so this re-runs
+  # pr-validation.yml for each open PR closing the issue.
+  revalidate:
+    name: Revalidate PRs closing the issue
+    runs-on: ubuntu-latest
+    if: |
+      github.repository_owner == 'Apicurio' &&
+      github.event_name == 'issues' &&
+      (github.event.action == 'milestoned' || github.event.action == 'demilestoned' ||
+       github.event.action == 'closed' || github.event.action == 'reopened')
+    concurrency:
+      group: pr-validation-issue-${{ github.event.issue.number }}
+      cancel-in-progress: true
+    permissions:
+      contents: read
+      actions: write
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Convert config to JSON
+        run: yq -o json .github/pr-lifecycle.yml > .github/pr-lifecycle.json
+
+      - name: Re-run validation for PRs closing this issue
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        with:
+          script: |
+            const handler = require('./.github/scripts/pr-validation.js');
+            await handler.revalidateForIssue({ github, context, core });
+
+  # ==========================================================================
+  # Manual Reconciliation (workflow_dispatch)
+  # ==========================================================================
+  reconcile:
+    name: Reconcile
+    runs-on: ubuntu-latest
+    if: github.repository_owner == 'Apicurio' && github.event_name == 'workflow_dispatch' && inputs.pr_number != ''
+    concurrency:
+      group: pr-lifecycle-pr-${{ inputs.pr_number }}
+      cancel-in-progress: false
+    permissions:
+      actions: write
+      contents: write
+      pull-requests: write
+      issues: write
+      statuses: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Convert config to JSON
+        run: yq -o json .github/pr-lifecycle.yml > .github/pr-lifecycle.json
+
+      - name: Reconcile PR
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        env:
+          PR_NUMBER: ${{ inputs.pr_number }}
+        with:
+          script: |
+            const prNumber = Number(process.env.PR_NUMBER);
+            if (!Number.isInteger(prNumber) || prNumber <= 0) {
+              core.setFailed(`PR number must be a positive integer, got '${process.env.PR_NUMBER}'.`);
+              return;
+            }
+            const handler = require('./.github/scripts/pr-lifecycle.js');
+            await handler.handleReconcile({ github, context, core, prNumber });
 
   # ==========================================================================
   # Failure Notification
@@ -345,15 +319,22 @@ jobs:
     if: >-
       github.repository_owner == 'Apicurio' &&
       failure() &&
-      github.event_name != 'schedule'
-    needs: [pr-opened, pr-synchronize, pr-ready-for-review, pr-converted-to-draft, pr-review-submitted, command, label-guard, test-result, gate-status, review-relay, reconcile]
+      github.event_name != 'schedule' &&
+      github.event_name != 'issues'
+    needs: [command, test-result, gate-status, review-relay, reconcile]
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: write
     steps:
       - name: Post warning comment
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        env:
+          INPUT_PR_NUMBER: ${{ inputs.pr_number }}
         with:
           script: |
             const { owner, repo } = context.repo;
-            let prNumber = context.payload.pull_request?.number || context.payload.issue?.number;
+            let prNumber = context.payload.issue?.number || Number(process.env.INPUT_PR_NUMBER) || null;
 
             // For workflow_run events, resolve PR from the triggering run
             if (!prNumber && context.payload.workflow_run) {
@@ -379,42 +360,15 @@ jobs:
             });
 
   # ==========================================================================
-  # Manual Reconciliation (workflow_dispatch)
-  # ==========================================================================
-  reconcile:
-    name: Reconcile
-    runs-on: ubuntu-latest
-    if: github.repository_owner == 'Apicurio' && github.event_name == 'workflow_dispatch'
-    # The workflow-level permissions plus statuses: write, to re-sync the
-    # Verification Gate status (job-level permissions replace, not extend).
-    permissions:
-      actions: write
-      contents: write
-      pull-requests: write
-      issues: write
-      statuses: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-      - name: Convert config to JSON
-        run: yq -o json .github/pr-lifecycle.yml > .github/pr-lifecycle.json
-
-      - name: Reconcile PR
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
-        with:
-          script: |
-            const handler = require('./.github/scripts/pr-lifecycle.js');
-            await handler.handleReconcile({ github, context, core, prNumber: ${{ inputs.pr_number }} });
-
-  # ==========================================================================
   # Stale Detection and Reconciliation (every 6 hours)
   # ==========================================================================
   stale:
     name: Stale Detection
     runs-on: ubuntu-latest
     if: github.repository_owner == 'Apicurio' && github.event_name == 'schedule'
-    # As reconcile: the sweep re-syncs every open PR's Verification Gate.
+    concurrency:
+      group: pr-lifecycle-stale
+      cancel-in-progress: false
     permissions:
       actions: write
       contents: write

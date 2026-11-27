@@ -875,8 +875,8 @@ test('gate status: job listings are paginated at per_page 30, not fetched 100 at
 // A PR (author, draft, labels), GitHub's review decision for it, and the
 // Verify runs for its head commit (runs + jobs, as for gateWorld).
 function rerunWorld({ labels = [LABELS.READY_FOR_REVIEW], author = 'contributor', draft = false,
-                      decision = 'APPROVED', runs = [], jobs = {}, headSha = SHA } = {}) {
-  const w = makeWorld(labels);
+                      approved = false, decision = 'APPROVED', runs = [], jobs = {}, headSha = SHA } = {}) {
+  const w = makeWorld(labels, { approved });
   w.calls.reRuns = [];
   w.calls.decisionQueries = 0;
   const pr = () => ({
@@ -937,6 +937,42 @@ async function relay(w, opts) {
 test('review relay: an approval re-runs the skipped Verify run of the head commit', async () => {
   const w = rerunWorld({ runs: [skippedRun()], jobs: skippedJobs });
   assert.deepEqual(await relay(w), [7]);
+});
+
+test('review relay: reconciles lifecycle labels on review for fork and same-repo PRs alike', async () => {
+  const w = rerunWorld({
+    labels: [LABELS.READY_FOR_REVIEW, LABELS.TESTED, LABELS.WAITING_ON_AUTHOR],
+    approved: true,
+    runs: [verifyRun(7, { conclusion: 'success' })],
+    jobs: { 7: resultJob('success') },
+  });
+  await relay(w);
+  assert.ok(w.labels.has(LABELS.READY_TO_MERGE), 'should promote approved tested PR to ready-to-merge');
+  assert.ok(!w.labels.has(LABELS.READY_FOR_REVIEW), 'should replace ready-for-review');
+  assert.ok(!w.labels.has(LABELS.WAITING_ON_AUTHOR), 'should clear waiting-on-author');
+});
+
+test('review relay: skips reconcile when PR turns draft while maybeRunFullSuite runs', async () => {
+  const w = rerunWorld({
+    labels: [LABELS.READY_FOR_REVIEW, LABELS.TESTED],
+    approved: true,
+    runs: [skippedRun()],
+    jobs: skippedJobs,
+  });
+  let fetches = 0;
+  const origGet = w.github.rest.pulls.get;
+  w.github.rest.pulls.get = async (params) => {
+    const res = await origGet(params);
+    fetches++;
+    if (fetches >= 2) {
+      // Simulate PR converted to draft and stripped of lifecycle labels mid-flight.
+      w.labels.clear();
+      return { data: { ...res.data, draft: true, labels: [] } };
+    }
+    return res;
+  };
+  await relay(w);
+  assert.equal(w.calls.added.length, 0, 'must not re-apply lifecycle labels to a PR converted to draft mid-flight');
 });
 
 test('review relay: without an approval the skipped run is left alone', async () => {
@@ -1026,10 +1062,10 @@ test('review relay: a fork PR past the first page of open PRs is found by its he
   const forkPr = (await w.github.rest.pulls.get()).data;
   w.github.rest.pulls.list = async ({ head }) => ({ data: head === 'contributor:feature-x' ? [forkPr] : [] });
   const firstPage = Array.from({ length: 100 }, (_, i) => ({ number: 1000 + i, head: { sha: `other${i}` } }));
+  const origPaginate = w.github.paginate;
   w.github.paginate = async (fn, params) => {
     if (fn !== w.github.rest.pulls.list) {
-      const { data } = await fn(params);
-      return data.jobs ?? data;
+      return origPaginate(fn, params);
     }
     assert.equal(params.head, undefined, 'the scan is not filtered by head branch');
     return [...firstPage, forkPr];

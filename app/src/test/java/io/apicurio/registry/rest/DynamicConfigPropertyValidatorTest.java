@@ -8,8 +8,10 @@ import static org.mockito.Mockito.when;
 import io.apicurio.common.apps.config.DynamicConfigPropertyDef;
 import io.apicurio.registry.config.ExperimentalFeaturesConfig;
 import io.apicurio.registry.services.LogLevelValidator;
+import io.apicurio.registry.storage.error.InvalidPropertyValueException;
 import io.smallrye.config.SmallRyeConfigBuilder;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -56,5 +58,39 @@ class DynamicConfigPropertyValidatorTest {
     void trueIsAllowedWhenGateIsOpen() {
         when(experimentalFeatures.canEnable(PROPERTY)).thenReturn(true);
         assertDoesNotThrow(() -> validator.validate(propertyDef, "on"));
+    }
+
+    @Nested
+    class WithRealBooleanDefinition {
+
+        private DynamicConfigPropertyDef booleanDef;
+
+        @BeforeEach
+        void setupDefinition() {
+            booleanDef = new DynamicConfigPropertyDef(PROPERTY, Boolean.class, "false");
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = { "true", "TRUE" })
+        void trueIsRefusedWhileGateIsClosed(String value) {
+            assertThrows(ConflictException.class, () -> validator.validate(booleanDef, value));
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = { "on", "1", "yes", "y", "0", "no", "off" })
+        void aliasesAreRejectedAsInvalidValues(String value) {
+            assertThrows(InvalidPropertyValueException.class, () -> validator.validate(booleanDef, value));
+        }
+
+        @Test
+        void falseIsPassedWhileGateIsClosed() {
+            assertDoesNotThrow(() -> validator.validate(booleanDef, "false"));
+        }
+
+        @Test
+        void trueIsAllowedWhenGateIsOpen() {
+            when(experimentalFeatures.canEnable(PROPERTY)).thenReturn(true);
+            assertDoesNotThrow(() -> validator.validate(booleanDef, "true"));
+        }
     }
 }

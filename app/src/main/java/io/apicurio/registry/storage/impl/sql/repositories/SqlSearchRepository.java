@@ -104,9 +104,14 @@ public class SqlSearchRepository {
             appendArtifactOrderBy(orderByQuery, orderBy);
             orderByQuery.append(" ").append(orderDirection.name());
             // A unique key last, so rows that tie on the sort key come back in the same order on
-            // every query, and paging neither repeats nor skips them.
-            orderByQuery.append(", a.groupId ").append(orderDirection.name())
-                    .append(", a.artifactId ").append(orderDirection.name());
+            // every query, and paging neither repeats nor skips them. Skip the column already sorted
+            // on: SQL Server rejects a column listed twice in ORDER BY (error 169).
+            if (orderBy != OrderBy.groupId) {
+                orderByQuery.append(", a.groupId ").append(orderDirection.name());
+            }
+            if (orderBy != OrderBy.artifactId) {
+                orderByQuery.append(", a.artifactId ").append(orderDirection.name());
+            }
 
             // Query for the artifacts
             String artifactsQuerySql = sqlStatements.selectTableTemplate("a.*", "artifacts", "a",

@@ -11,6 +11,11 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
         return insertContent() + " ON CONFLICT (contentHash) DO NOTHING";
     }
 
+    @Override
+    public boolean insertContentIfAbsentIgnoresConflicts() {
+        return true;
+    }
+
     /**
      * Constructor.
      */

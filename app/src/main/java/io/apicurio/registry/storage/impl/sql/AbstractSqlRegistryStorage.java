@@ -563,25 +563,21 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         EditableArtifactMetaDataDto amd = artifactMetaData == null
             ? EditableArtifactMetaDataDto.builder().build() : artifactMetaData;
 
-        // Create the group if it doesn't exist yet.
-        ensureGroupForNewArtifact(groupId, createdOn, owner);
-
-        // Ensure the content exists. If this is a dryRun, or if the create fails, this
-        // could result in orphaned content. That's OK because we have an async process
-        // that will later delete any orphaned content.
-        long cid = -1;
-        if (versionContent != null) {
-            // Put the content in the DB and get the unique content ID back.
-            cid = ensureContentAndGetId(artifactType, versionContent, versionIsDraft);
-        }
-        final long contentId = cid;
-
         try {
+            // One transaction for the group, the content and the artifact rows, so a create that fails
+            // (or a dryRun) leaves none of them behind.
             return handles.withHandle(handle -> {
                 // Always roll back the transaction if this is a dryRun
                 if (dryRun) {
                     handle.setRollback(true);
                 }
+
+                // Create the group if it doesn't exist yet.
+                ensureGroupForNewArtifactRaw(handle, groupId, createdOn, owner);
+
+                // Put the content in the DB and get the unique content ID back.
+                final long contentId = versionContent == null ? -1
+                    : ensureContentAndGetId(artifactType, versionContent, versionIsDraft);
 
                 Map<String, String> labels = amd.getLabels();
                 String labelsStr = RegistryContentUtils.serializeLabels(labels);
@@ -638,12 +634,22 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         }
     }
 
-    private void ensureGroupForNewArtifact(String groupId, Date createdOn, String owner) {
-        if (groupId != null && !isGroupExists(groupId)) {
+    private void ensureGroupForNewArtifactRaw(Handle handle, String groupId, Date createdOn, String owner) {
+        if (groupId != null && !groupRepository.isGroupExistsRaw(handle, groupId)) {
             if (enableAutomaticGroupCreation) {
-                // Only create group metadata for non-default groups.
-                ensureGroup(GroupMetaDataDto.builder().groupId(groupId).createdOn(createdOn.getTime())
-                        .modifiedOn(createdOn.getTime()).owner(owner).modifiedBy(owner).build());
+                // Only create group metadata for non-default groups. A group created concurrently fails
+                // the insert; the savepoint keeps that from failing this transaction.
+                GroupMetaDataDto group = GroupMetaDataDto.builder().groupId(groupId)
+                        .createdOn(createdOn.getTime()).modifiedOn(createdOn.getTime()).owner(owner)
+                        .modifiedBy(owner).build();
+                try {
+                    handle.inSavepoint(h -> {
+                        createGroup(group);
+                        return null;
+                    });
+                } catch (GroupAlreadyExistsException e) {
+                    // This is OK - we're happy if the group already exists.
+                }
             } else {
                 throw new GroupNotFoundException(groupId);
             }
@@ -827,16 +833,16 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
         Date createdOn = new Date();
 
-        // Put the content in the DB and get the unique content ID back.
-        long contentId = ensureContentAndGetId(artifactType, content, isDraft);
-
         try {
-            // Create version and return
+            // Create version and return. The content is stored in the same transaction.
             return handles.withHandle(handle -> {
                 // Always roll back the transaction if this is a dryRun
                 if (dryRun) {
                     handle.setRollback(true);
                 }
+
+                // Put the content in the DB and get the unique content ID back.
+                long contentId = ensureContentAndGetId(artifactType, content, isDraft);
 
                 lockArtifactForVersionWrite(handle, groupId, artifactId);
                 boolean isFirstVersion = countArtifactVersionsRaw(handle, groupId, artifactId) == 0;
@@ -864,10 +870,10 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
 
         Date createdOn = new Date();
-        long contentId = ensureContentAndGetId(artifactType, content, isDraft);
-
         try {
             return handles.withHandle(handle -> {
+                // The content is stored in the same transaction as the version.
+                long contentId = ensureContentAndGetId(artifactType, content, isDraft);
                 // Lock a stable parent row before selecting the version set. Locking only existing
                 // versions lets a waiting statement miss a concurrently inserted version on PostgreSQL.
                 lockArtifactForVersionWrite(handle, groupId, artifactId);
@@ -1354,12 +1360,11 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
         log.debug("Updating content for artifact version: {} {} @ {}", groupId, artifactId, version);
 
-        // Put the new content in the DB and get the unique content ID back.
-        long contentId = ensureContentAndGetId(artifactType, content, true);
-
-        // Update the version content and its structured-content index in a single transaction so the
-        // index can never be left pointing at a previous version's content.
+        // Store the new content, then update the version content and its structured-content index, in a
+        // single transaction so the index can never be left pointing at a previous version's content.
         handles.withHandleNoException(handle -> {
+            // Put the new content in the DB and get the unique content ID back.
+            long contentId = ensureContentAndGetId(artifactType, content, true);
             lockArtifactForVersionWrite(handle, groupId, artifactId);
             versionRepository.updateArtifactVersionContentRaw(handle, groupId, artifactId, version,
                     contentId);
@@ -1616,14 +1621,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             throws RegistryStorageException {
 
         return configRepository.getStaleConfigProperties(lastRefresh);
-    }
-
-    private void ensureGroup(GroupMetaDataDto group) {
-        try {
-            createGroup(group);
-        } catch (GroupAlreadyExistsException e) {
-            // This is OK - we're happy if the group already exists.
-        }
     }
 
     /**

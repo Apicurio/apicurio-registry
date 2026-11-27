@@ -79,11 +79,18 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
      */
     @Override
     public String acquireInitLock() {
-        // Use PostgreSQL advisory locks with a fixed key derived from "apicurio-init"
-        // Key: 1886352239 (hash of "apicurio-init")
-        // This is a session-level lock that blocks until acquired
-        // Note: pg_advisory_lock() returns void, so we wrap it to return 1 for consistency
-        return "SELECT pg_advisory_lock(1886352239), 1";
+        // Use a PostgreSQL *transaction-level* advisory lock with a fixed key derived from
+        // "apicurio-init" (1886352239). The whole initialize()/upgrade() callback runs inside one
+        // handle, which commits only after the callback returns; a session-level lock
+        // (pg_advisory_lock/pg_advisory_unlock) is released by the explicit unlock call in that
+        // callback's `finally`, which runs *before* that commit. A second replica can then acquire
+        // the lock, see the still-uncommitted DDL as "not initialized" via a read in the same
+        // READ COMMITTED snapshot it just took the lock under, and race to create the schema too
+        // (seen as a duplicate-key error on pg_type, not "relation already exists" -- the signature
+        // of two concurrent CREATE TABLEs). pg_advisory_xact_lock is held until the transaction
+        // commits or rolls back, so the lock itself now covers the commit; see the no-op
+        // releaseInitLock() below.
+        return "SELECT pg_advisory_xact_lock(1886352239), 1";
     }
 
     /**
@@ -91,8 +98,10 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
      */
     @Override
     public String releaseInitLock() {
-        // Note: pg_advisory_unlock() returns boolean, where true = successfully unlocked
-        return "SELECT CASE WHEN pg_advisory_unlock(1886352239) THEN 1 ELSE 0 END";
+        // No-op: a transaction-level advisory lock (acquireInitLock() above) has no explicit
+        // unlock function and is released automatically when the enclosing transaction commits
+        // or rolls back, which is exactly the point at which it must still be held.
+        return "SELECT 1";
     }
 
 

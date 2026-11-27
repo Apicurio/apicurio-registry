@@ -1,0 +1,16 @@
+# Loads the canonical schema usage dashboard, which docker-compose.yml mounts read-only from
+# distro/metrics/usage/grafana. The file is the same one an operator imports into their own Grafana;
+# this example keeps no copy. Edit it there, not here.
+apiVersion: 1
+providers:
+  - name: apicurio-usage
+    orgId: 1
+    folder: Apicurio Registry
+    folderUid: apicurio-registry
+    type: file
+    # The dashboard is the mounted file: changes made in the Grafana UI are not kept and cannot be saved back
+    disableDeletion: true
+    allowUiUpdates: false
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/usage-dashboards

@@ -1,0 +1,129 @@
+# Usage monitoring example: Apicurio Registry exports an OpenTelemetry counter of schema fetches to an
+# OpenTelemetry Collector, which exposes it to Prometheus; Grafana reads Prometheus and shows the dashboard
+# of distro/metrics/usage. See README.md; ./setup.sh starts it and ./demo.sh checks it.
+#
+# For local demonstration only: plain HTTP, Grafana's admin user has a well-known password, the
+# Registry has no authentication and keeps its schemas in memory (a restart forgets them).
+#
+# Host ports (loopback only) default to 8081 (Registry API), 9090 (Prometheus), 3000 (Grafana) and
+# 13133 (Collector health check); override them with REGISTRY_PORT, PROMETHEUS_PORT, GRAFANA_PORT and
+# COLLECTOR_HEALTH_PORT. The Collector's OTLP port is not published: only the Registry talks to it.
+#
+# The Compose project is named usage-telemetry-otel; set COMPOSE_PROJECT_NAME (or use setup.sh's
+# --project) to run a second copy next to it.
+name: usage-telemetry-otel
+
+# Container logs are rotated, so a long-running stack cannot fill the disk with them
+x-logging: &bounded-logs
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: "3"
+
+services:
+  registry:
+    # The ordinary Registry image: it must contain the apicurio.usage.metrics.* properties, so a
+    # published snapshot older than that change cannot populate this stack. To build the image from
+    # this checkout, see README.md ("Build the Registry image").
+    image: ${REGISTRY_IMAGE:-apicurio/apicurio-registry:latest-snapshot}
+    environment:
+      # The usage metric is experimental and off by default
+      APICURIO_FEATURES_EXPERIMENTAL_ENABLED: "true"
+      APICURIO_USAGE_METRICS_ENABLED: "true"
+      # The SQL usage recording (admin usage API) stays off: this stack stores nothing in the Registry
+      APICURIO_USAGE_TELEMETRY_ENABLED: "false"
+      # The OpenTelemetry SDK is built in but disabled by default; this turns it on
+      QUARKUS_OTEL_SDK_DISABLED: "false"
+      QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      QUARKUS_OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      # Export metrics every 5s instead of every 60s, so the demo does not wait
+      QUARKUS_OTEL_METRIC_EXPORT_INTERVAL: 5s
+      # The per-process limit on series of the usage metric, at its default. Each demo run adds six
+      # series, so the normal demo stays far below it; lower it only to watch the overflow series appear
+      APICURIO_USAGE_METRICS_MAX_SERIES: ${APICURIO_USAGE_METRICS_MAX_SERIES:-2000}
+    ports:
+      - "127.0.0.1:${REGISTRY_PORT:-8081}:8080"
+    # Health is on the management port, 9000, which is not published
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf --max-time 3 http://localhost:9000/health/ready > /dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 10s
+    mem_limit: 1g
+    logging: *bounded-logs
+    depends_on:
+      otel-collector:
+        condition: service_started
+
+  # Receives the Registry's OTLP export and exposes the usage metric in the Prometheus format. Traces
+  # and logs, which the Registry also exports, are received and discarded (see the config file)
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.139.0
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      # OTEL_COLLECTOR_CONFIG swaps in another pipeline, for example one that exports somewhere else
+      - ${OTEL_COLLECTOR_CONFIG:-./config/otel-collector.yaml}:/etc/otelcol/config.yaml:ro
+    ports:
+      # The health_check extension, for setup.sh. The image has no shell, so Compose cannot probe it
+      - "127.0.0.1:${COLLECTOR_HEALTH_PORT:-13133}:13133"
+    mem_limit: 256m
+    logging: *bounded-logs
+
+  prometheus:
+    image: prom/prometheus:v3.16.0
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      # Bounded history: whichever limit is reached first
+      - --storage.tsdb.retention.time=15d
+      - --storage.tsdb.retention.size=1GB
+    volumes:
+      - ${PROMETHEUS_CONFIG:-./config/prometheus.yml}:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "127.0.0.1:${PROMETHEUS_PORT:-9090}:9090"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -T 3 -O /dev/null http://localhost:9090/-/ready"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    mem_limit: 512m
+    logging: *bounded-logs
+    depends_on:
+      otel-collector:
+        condition: service_started
+
+  grafana:
+    image: grafana/grafana:13.3.1
+    environment:
+      # Demonstration credentials; change them for anything but a local run
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      # No calls home
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES: "false"
+    volumes:
+      - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+      # The canonical dashboard, the same file an operator imports into their own Grafana (no copy is kept here)
+      - ../../distro/metrics/usage/grafana:/etc/grafana/usage-dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "127.0.0.1:${GRAFANA_PORT:-3000}:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -T 3 -O /dev/null http://localhost:3000/api/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    mem_limit: 512m
+    logging: *bounded-logs
+    depends_on:
+      prometheus:
+        condition: service_healthy
+
+# Telemetry history survives `./teardown.sh`; only `./teardown.sh --purge` removes it
+volumes:
+  prometheus-data:
+  grafana-data:

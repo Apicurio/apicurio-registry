@@ -8,6 +8,8 @@ name: Examples
 #   docker compose up -d   (images missing locally are pulled, with retries)
 #   ./demo.sh              must exit 0
 #   ./demo.sh              again: an example must be safe to run twice
+#   CI_SUITE script        optional (ci.env): the example's own suite, once, after both runs, with the stack still up;
+#                          its artifacts are uploaded as example-ci-<name> (see examples/TEMPLATE.md)
 #   docker compose down -v
 # Compose files select the images under test through REGISTRY_IMAGE, REGISTRY_UI_IMAGE and
 # MCP_SERVER_IMAGE (UI_IMAGE is also set for older examples), defaulting to latest-snapshot for
@@ -196,14 +198,55 @@ jobs:
       - name: Run demo.sh again (must be safe to repeat)
         run: ./demo.sh
 
+      # An example's own checks beyond its demo (CI_SUITE in ci.env, see examples/TEMPLATE.md): its unit, lifecycle, scenario and browser
+      # suites, run against this commit's images with the example's stack still up. One explicit step per job, after both demo runs.
+      # Its exit status is the step's: no continue-on-error.
+      - name: Install the browser's system packages
+        if: matrix.example.playwrightDir != ''
+        timeout-minutes: 15
+        env:
+          PLAYWRIGHT_DIR: ${{ matrix.example.playwrightDir }}
+        run: |
+          # The example's locked packages, then the operating system packages its Chromium needs, from the same pinned Playwright. This is
+          # the only privileged installation, and it is here: the example's own scripts never install system packages. sudo resets PATH,
+          # so the Node.js of the toolchain step is passed through.
+          npm ci --prefix "$PLAYWRIGHT_DIR"
+          sudo env "PATH=$PATH" "$PLAYWRIGHT_DIR/node_modules/.bin/playwright" install-deps chromium
+
+      - name: Run the example's CI suite
+        if: matrix.example.suite != ''
+        env:
+          CI_SUITE_SCRIPT: ${{ matrix.example.suite }}
+          # A new directory per job: the suite refuses a used one, so no result of an earlier run can be mixed in
+          CI_ARTIFACT_DIR: ${{ runner.temp }}/example-ci-${{ matrix.example.name }}
+          # Podman is also installed on the runner and preferred by the example's scripts; the images of this commit are loaded into Docker
+          CONTAINER_RUNTIME: docker
+        run: ./"$CI_SUITE_SCRIPT"
+
+      # Also on failure and cancellation: that is when the evidence is needed. Only publish/ leaves the runner: the suite's collector copies
+      # into it the files an allowlist names and verification accepts (screenshots, failure screenshots, a numeric summary of the run, phase and
+      # container logs, a summary; never a raw results file, a trace or the report), and never a raw run state, a stale file, a link or a file that fails its check. See
+      # the example's GUIDE.md, "In CI".
+      - name: Upload the example's CI artifacts
+        if: always() && matrix.example.suite != ''
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: example-ci-${{ matrix.example.name }}
+          path: ${{ runner.temp }}/example-ci-${{ matrix.example.name }}/publish
+          if-no-files-found: warn
+          retention-days: 14
+
       # Also on cancelled(): a job that reaches its timeout is cancelled, not failed, and a hang is
       # exactly when the logs are needed.
+      # Raw Compose logs are for examples without a CI_SUITE. An example with one has its container logs collected by its suite
+      # through the artifact allowlist (secret patterns checked, tails only), and nothing here replays them unchecked to the console
+      # or uploads them.
       - name: Stack logs
-        if: (failure() || cancelled()) && matrix.example.compose
+        if: (failure() || cancelled()) && matrix.example.compose && matrix.example.suite == ''
         run: docker compose logs --no-color > "$RUNNER_TEMP/compose.log" 2>&1; tail -300 "$RUNNER_TEMP/compose.log"
 
       - name: Upload stack logs
-        if: (failure() || cancelled()) && matrix.example.compose
+        if: (failure() || cancelled()) && matrix.example.compose && matrix.example.suite == ''
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: example-logs-${{ matrix.example.name }}${{ matrix.example.variant && format('-{0}', matrix.example.variant) || '' }}

@@ -1,0 +1,30 @@
+{
+    "compilerOptions": {
+        "target": "ES2022",
+        "module": "ESNext",
+        "moduleResolution": "Bundler",
+        "lib": [
+            "ES2022",
+            "DOM"
+        ],
+        "strict": true,
+        "noUncheckedIndexedAccess": true,
+        "noImplicitOverride": true,
+        "noFallthroughCasesInSwitch": true,
+        "forceConsistentCasingInFileNames": true,
+        "skipLibCheck": true,
+        "noEmit": true,
+        "types": [
+            "node"
+        ],
+        "allowJs": true,
+        "checkJs": true
+    },
+    "include": [
+        "playwright.config.ts",
+        "specs/**/*.ts",
+        "fixtures/**/*.ts",
+        "support/**/*.ts",
+        "lib/**/*.mjs"
+    ]
+}

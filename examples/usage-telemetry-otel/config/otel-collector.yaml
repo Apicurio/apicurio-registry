@@ -1,0 +1,75 @@
+# Collector for the usage monitoring example (otelcol-contrib 0.139.0).
+#
+# metrics: the Registry exports its whole OpenTelemetry metric set; only the schema fetch counter and
+#          one per-process heartbeat gauge are kept and exposed for Prometheus on :8889.
+# traces and logs: the Registry exports them too (that is built in), and they are received and then
+#          discarded by the nop exporter. Nothing here stores them.
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+        max_request_body_size: 4194304
+
+processors:
+  # Refuses data instead of growing when the Collector nears its memory limit (the container has 256m)
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 160
+    spike_limit_mib: 40
+  filter/usage-only:
+    error_mode: propagate
+    metrics:
+      metric:
+        - 'not (name == "apicurio.usage.schema.fetches" or name == "jvm.cpu.count")'
+  # Keeps only the identity of the Registry process, as a plain label on each point. Counters of two
+  # processes (a restart gives a new one) must never merge, because in-memory IDs start again at 1.
+  transform/source-identity:
+    error_mode: propagate
+    metric_statements:
+      - context: datapoint
+        statements:
+          - set(datapoint.attributes["service.instance.id"], resource.attributes["service.instance.id"])
+      - context: resource
+        statements:
+          - keep_keys(resource.attributes, [])
+
+exporters:
+  prometheus:
+    endpoint: 0.0.0.0:8889
+    # Samples carry the time the Registry measured them, so the age of the newest sample of a process
+    # is the age of its last export; without this, every scrape would look fresh
+    send_timestamps: true
+    metric_expiration: 5m
+    resource_to_telemetry_conversion:
+      enabled: false
+  nop:
+
+service:
+  extensions: [health_check]
+  telemetry:
+    metrics:
+      level: basic
+      readers:
+        - pull:
+            exporter:
+              prometheus:
+                host: 0.0.0.0
+                port: 8888
+  pipelines:
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, filter/usage-only, transform/source-identity]
+      exporters: [prometheus]
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter]
+      exporters: [nop]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter]
+      exporters: [nop]

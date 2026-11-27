@@ -60,6 +60,18 @@ public interface MetricsConstants {
     String USAGE_SCHEMAS_STALE_DESCRIPTION = "Number of schema versions classified as stale";
     String USAGE_SCHEMAS_DEAD = USAGE_PREFIX + "schemas.dead";
     String USAGE_SCHEMAS_DEAD_DESCRIPTION = "Number of schema versions classified as dead";
+    String USAGE_SCHEMA_FETCHES = USAGE_PREFIX + "schema.fetches";
+    String USAGE_SCHEMA_FETCHES_DESCRIPTION = "Successful schema fetch requests observed by this Registry process, "
+            + "counted before usage deduplication. A client that caches schemas can hide ongoing use. "
+            + "A content ID can be shared by several versions.";
+
+    // Usage telemetry tags/labels values
+
+    String USAGE_IDENTIFIER_TYPE_GLOBAL_ID = "global_id";
+    String USAGE_IDENTIFIER_TYPE_CONTENT_ID = "content_id";
+    String USAGE_OPERATION_SERIALIZE = "SERIALIZE";
+    String USAGE_OPERATION_DESERIALIZE = "DESERIALIZE";
+    String USAGE_OPERATION_UNKNOWN = "UNKNOWN";
 
     // Iceberg tags/labels
 

@@ -82,4 +82,15 @@ public final class OTelAttributes {
 
     /** Error type classification. */
     public static final AttributeKey<String> ATTR_ERROR_TYPE = AttributeKey.stringKey("apicurio.registry.error_type");
+
+    // -- Usage metrics attributes --
+
+    /** Self-reported client identifier from the {@code X-Registry-Client-Id} header. Never an authenticated identity. */
+    public static final AttributeKey<String> ATTR_CLIENT_ID = AttributeKey.stringKey("apicurio.registry.client_id");
+
+    /** Kind of identifier a schema was fetched by: {@code global_id} or {@code content_id}. */
+    public static final AttributeKey<String> ATTR_IDENTIFIER_TYPE = AttributeKey.stringKey("apicurio.registry.identifier_type");
+
+    /** Value of the identifier a schema was fetched by, as a decimal string without leading zeros. */
+    public static final AttributeKey<String> ATTR_IDENTIFIER_VALUE = AttributeKey.stringKey("apicurio.registry.identifier_value");
 }

@@ -547,8 +547,9 @@ function buildComment(pr, items, duplicates, compatibilityRisk) {
     lines.push('### Compatibility risk', '',
       'This PR touches: ' + compatibilityRisk.join(', ') + '. '
       + 'This is advisory only and does not affect the check result.', '',
-      'If this changes behavior users or operators can notice, consider: labeling the linked issue '
-      + '`type/breaking-change` or `type/deprecation`, and adding an entry to the next version\'s upgrade page. '
+      'If you think this changes behavior users or operators can notice, check with a maintainer: '
+      + 'they can label the linked issue `type/breaking-change` or `type/deprecation`, and an entry can be '
+      + 'added to the next version\'s upgrade page. '
       + 'See `docs/dev/compatibility.md` and `.claude/rules/upgrade-impact.md`.', '');
   }
 

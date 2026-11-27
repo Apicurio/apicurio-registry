@@ -495,7 +495,7 @@ public class SearchResourceImpl implements SearchResource {
             limit = BigInteger.valueOf(20);
         }
 
-        final OrderBy oBy = orderby != null ? OrderBy.valueOf(orderby) : OrderBy.createdOn;
+        final OrderBy oBy = toContractOrderBy(orderby);
         final OrderDirection oDir = (order == null || order == SortOrder.desc)
                 ? OrderDirection.desc : OrderDirection.asc;
 
@@ -528,6 +528,24 @@ public class SearchResourceImpl implements SearchResource {
                 false);
         otelMetrics.recordSearchRequest("contracts");
         return searchResultPermissions.addTo(V3ApiUtil.dtoToSearchResults(results));
+    }
+
+    /**
+     * Maps the {@code orderby} query parameter of {@code searchContracts} to a storage sort field. The
+     * parameter is a plain string in the API definition, so values outside the documented enum are
+     * rejected here instead of failing later in the storage layer.
+     */
+    private static OrderBy toContractOrderBy(String orderby) {
+        if (orderby == null) {
+            return OrderBy.createdOn;
+        }
+        return switch (orderby) {
+            case "name" -> OrderBy.name;
+            case "createdOn" -> OrderBy.createdOn;
+            case "modifiedOn" -> OrderBy.modifiedOn;
+            default -> throw new BadRequestException(
+                    "Invalid 'orderby' value. Allowed values are: name, createdOn, modifiedOn.");
+        };
     }
 
     /**

@@ -7,12 +7,14 @@ import { Link, useMatch, useParams } from "react-router";
 import {
     ContentTabContent,
     DocumentationTabContent,
+    ErrorTabContent,
     EXPLORE_PAGE_IDX,
     PageDataLoader,
     PageError,
     PageErrorHandler,
     PageProperties,
     toPageError,
+    TabError,
     VersionOverviewTabContent,
     VersionPageHeader
 } from "@app/pages";
@@ -33,7 +35,7 @@ import { ContentTypes } from "@models/ContentTypes.ts";
 import { PleaseWaitModal } from "@apitomy/common-ui-components";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
-import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
+import { ArtifactVersionContent, GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 import { SearchService, useSearchService } from "@services/useSearchService.ts";
 import { DownloadService, useDownloadService } from "@services/useDownloadService.ts";
 import { ArtifactTypes } from "@services/useArtifactTypesService.ts";
@@ -74,6 +76,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
     const [draft, setDraft] = useState<Draft | undefined>();
     const [versionContent, setArtifactContent] = useState("");
     const [versionContentType, setVersionContentType] = useState(ContentTypes.APPLICATION_JSON);
+    const [versionContentError, setVersionContentError] = useState<TabError>();
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isPleaseWaitModalOpen, setIsPleaseWaitModalOpen] = useState(false);
@@ -120,6 +123,31 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
     // must go through the shared isErrorStatus() helper rather than JSON.parse().
     const is404 = (e: any) => isErrorStatus(e, 404);
 
+    const isVersionContentUnavailable = (e: any): boolean => {
+        const errorName = e?.nameEscaped || e?.name;
+        return is404(e) && errorName === "VersionContentNotAvailableException";
+    };
+
+    const handleVersionContentLoaded = (artifactContent: ArtifactVersionContent): void => {
+        setArtifactContent(artifactContent.content);
+        setVersionContentType(artifactContent.contentType);
+        setVersionContentError(undefined);
+    };
+
+    const handleVersionContentError = (e: any): void => {
+        logger.warn("Failed to get artifact content: ", e);
+        if (isVersionContentUnavailable(e)) {
+            setArtifactContent("");
+            setVersionContentError({
+                errorMessage: "Content is not available while this version is disabled.",
+                error: e
+            });
+        } else {
+            const pageError: PageError = toPageError(e, "Error loading page data.");
+            setPageError(pageError);
+        }
+    };
+
     const createLoaders = (guard: LoaderGuard): Promise<any>[] => {
         let gid: string|null = groupId as string;
         if (gid == "default") {
@@ -141,20 +169,8 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
                     setPageError(toPageError(error, "Error loading page data."));
                 })),
             groups.getArtifactVersionContentWithType(gid, artifactId as string, version as string)
-                .then(guard.wrap(artifactContent => {
-                    setArtifactContent(artifactContent.content);
-                    setVersionContentType(artifactContent.contentType);
-                }))
-                .catch(guard.wrap((e: any) => {
-                    logger.warn("Failed to get artifact content: ", e);
-                    if (is404(e)) {
-                        setArtifactContent("Artifact version content not available (404 Not Found).");
-                        setVersionContentType(ContentTypes.APPLICATION_JSON);
-                    } else {
-                        const pageError: PageError = toPageError(e, "Error loading page data.");
-                        setPageError(pageError);
-                    }
-                })),
+                .then(guard.wrap(handleVersionContentLoaded))
+                .catch(guard.wrap(handleVersionContentError)),
         ];
     };
 
@@ -308,12 +324,21 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
     const doChangeState = (newState: VersionState): void => {
         onChangeStateModalClose();
         pleaseWait(true, "Changing version state, please wait...");
+        const shouldRefetchContent = artifactVersion?.state === "DISABLED" && newState !== "DISABLED";
         groups.updateArtifactVersionState(groupId as string, artifactId as string, version as string, newState).then(() => {
-            pleaseWait(false);
             setArtifactVersion({
                 ...artifactVersion,
                 state: newState
             } as VersionMetaData);
+            if (shouldRefetchContent) {
+                const gid: string | null = groupId === "default" ? null : groupId as string;
+                return groups.getArtifactVersionContentWithType(gid, artifactId as string, version as string)
+                    .then(handleVersionContentLoaded)
+                    .catch(handleVersionContentError);
+            }
+            return Promise.resolve();
+        }).then(() => {
+            pleaseWait(false);
         }).catch(error => {
             pleaseWait(false);
             if (error && (error.status === 400 || error.status === 409)) {
@@ -465,7 +490,13 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
             />
         </Tab>,
         <Tab data-testid="version-content-tab" eventKey="content" title="Content" key="content" tabContentId="tab-content">
-            <ContentTabContent versionContent={versionContent} artifactType={artifact?.artifactType as string} />
+            { versionContentError ?
+                <ErrorTabContent error={versionContentError}>
+                    Re-enable the version to view its content.
+                </ErrorTabContent>
+                :
+                <ContentTabContent versionContent={versionContent} artifactType={artifact?.artifactType as string} />
+            }
         </Tab>,
         <Tab data-testid="version-references-tab" eventKey="references" title="References" key="references" tabContentId="tab-references">
             <ReferencesTabContent version={artifactVersion as VersionMetaData} />

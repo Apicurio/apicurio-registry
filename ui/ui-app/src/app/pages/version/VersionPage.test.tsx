@@ -1,19 +1,22 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 import { ReactNode } from "react";
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { VersionMetaData } from "@sdk/lib/generated-client/models";
 import { VersionPage } from "./VersionPage";
 
 const getArtifactMetaData = vi.fn();
 const getArtifactVersionMetaData = vi.fn();
+const getArtifactVersionContentWithType = vi.fn();
+const updateArtifactVersionState = vi.fn();
 vi.mock("@services/useGroupsService.ts", () => ({
     useGroupsService: () => ({
         getArtifactMetaData,
         getArtifactVersionMetaData,
-        getArtifactVersionContentWithType: () => Promise.resolve({ content: "{}", contentType: "application/json" })
+        getArtifactVersionContentWithType,
+        updateArtifactVersionState
     })
 }));
 
@@ -34,9 +37,15 @@ vi.mock("@services/useLoggerService.ts", () => ({
     useLoggerService: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() })
 }));
 
-vi.mock("@services/useAppNavigation.ts", () => ({
-    useAppNavigation: () => ({ createLink: (path: string) => path, navigateTo: vi.fn() })
-}));
+vi.mock("@services/useAppNavigation.ts", async () => {
+    const { useNavigate } = await import("react-router");
+    return {
+        useAppNavigation: () => {
+            const navigate = useNavigate();
+            return { createLink: (path: string) => path, navigateTo: navigate };
+        }
+    };
+});
 
 vi.mock("@services/useDraftsService.ts", () => ({
     useDraftsService: () => ({})
@@ -66,9 +75,23 @@ vi.mock("@app/pages", async () => ({
     PageDataLoader: (await import("@app/pages/PageDataLoader.tsx")).PageDataLoader,
     PageErrorHandler: ({ children }: { children?: ReactNode }) => <>{ children }</>,
     VersionPageHeader: () => null,
-    VersionOverviewTabContent: ({ version }: { version: VersionMetaData }) => <p>Overview of version { version.version }</p>,
+    VersionOverviewTabContent: ({ version, onChangeState }: {
+        version: VersionMetaData,
+        onChangeState: () => void
+    }) => <>
+        <p>Overview of version { version.version }</p>
+        <button onClick={ onChangeState }>Change version state</button>
+    </>,
     DocumentationTabContent: () => null,
-    ContentTabContent: () => null
+    ContentTabContent: ({ versionContent }: { versionContent: string }) => <p>Content: { versionContent }</p>,
+    ErrorTabContent: ({ error, children }: {
+        error: { errorMessage: string, error: { detail?: string } },
+        children?: ReactNode
+    }) => <div role="alert">
+        <p>{ error.errorMessage }</p>
+        <p>{ children }</p>
+        <p>{ error.error.detail }</p>
+    </div>
 }));
 
 vi.mock("@app/pages/version/components/tabs/ReferencesTabContent.tsx", () => ({
@@ -86,7 +109,10 @@ vi.mock("@app/pages/agents/components", () => ({
 }));
 
 vi.mock("@app/components", () => ({
-    ChangeVersionStateModal: () => null,
+    ChangeVersionStateModal: ({ isOpen, onChangeState }: {
+        isOpen: boolean,
+        onChangeState: (state: string) => void
+    }) => isOpen ? <button onClick={ () => onChangeState("ENABLED") }>Enable version</button> : null,
     ConfirmDeleteModal: () => null,
     EditMetaDataModal: () => null,
     GenerateClientModal: () => null,
@@ -127,6 +153,11 @@ const renderCompatibilityRoute = async (artifactType: string, state: string): Pr
 };
 
 describe("VersionPage", () => {
+    beforeEach(() => {
+        getArtifactVersionContentWithType.mockResolvedValue({ content: "{}", contentType: "application/json" });
+        updateArtifactVersionState.mockResolvedValue(undefined);
+    });
+
     afterEach(() => {
         cleanup();
         vi.clearAllMocks();
@@ -151,5 +182,61 @@ describe("VersionPage", () => {
         expect(screen.getByText("Overview of version 1")).toBeVisible();
         expect(screen.queryByRole("tab", { name: "Compatible tools" })).not.toBeInTheDocument();
         expect(getToolCompatibility).not.toHaveBeenCalled();
+    });
+
+    it("renders disabled version content failures as an error state", async () => {
+        getArtifactMetaData.mockResolvedValue({ groupId: "g", artifactId: "a", artifactType: "JSON" });
+        getArtifactVersionMetaData.mockResolvedValue({
+            groupId: "g", artifactId: "a", version: "1", artifactType: "JSON", state: "DISABLED"
+        });
+        getArtifactVersionContentWithType.mockRejectedValue({
+            responseStatusCode: 404,
+            nameEscaped: "VersionContentNotAvailableException",
+            detail: "Content for version '1' is not available while its state is 'DISABLED'."
+        });
+
+        render(
+            <MemoryRouter initialEntries={ ["/explore/g/a/versions/1/content"] }>
+                <Routes>
+                    <Route path="/explore/:groupId/:artifactId/versions/:version/*" element={ <VersionPage /> } />
+                </Routes>
+            </MemoryRouter>
+        );
+        await flush();
+        await flush();
+
+        expect(screen.getByRole("alert")).toHaveTextContent("Content is not available while this version is disabled.");
+        expect(screen.getByRole("alert")).toHaveTextContent("Re-enable the version to view its content.");
+        expect(screen.getByRole("alert")).toHaveTextContent("Content for version '1' is not available");
+        expect(screen.queryByText(/Content: Artifact version content not available/)).not.toBeInTheDocument();
+    });
+
+    it("refetches content after re-enabling a disabled version", async () => {
+        getArtifactMetaData.mockResolvedValue({ groupId: "g", artifactId: "a", artifactType: "JSON" });
+        getArtifactVersionMetaData.mockResolvedValue({
+            groupId: "g", artifactId: "a", version: "1", artifactType: "JSON", state: "DISABLED"
+        });
+        getArtifactVersionContentWithType
+            .mockRejectedValueOnce({ responseStatusCode: 404, nameEscaped: "VersionContentNotAvailableException" })
+            .mockResolvedValueOnce({ content: "refetched content", contentType: "application/json" });
+
+        render(
+            <MemoryRouter initialEntries={ ["/explore/g/a/versions/1/content"] }>
+                <Routes>
+                    <Route path="/explore/:groupId/:artifactId/versions/:version/*" element={ <VersionPage /> } />
+                </Routes>
+            </MemoryRouter>
+        );
+        await flush();
+        await flush();
+
+        fireEvent.click(screen.getByRole("tab", { name: "Overview" }));
+        fireEvent.click(screen.getByRole("button", { name: "Change version state" }));
+        fireEvent.click(screen.getByRole("button", { name: "Enable version" }));
+
+        await waitFor(() => expect(updateArtifactVersionState).toHaveBeenCalledWith("g", "a", "1", "ENABLED"));
+        await waitFor(() => expect(getArtifactVersionContentWithType).toHaveBeenCalledTimes(2));
+        fireEvent.click(screen.getByRole("tab", { name: "Content" }));
+        expect(screen.getByText("Content: refetched content")).toBeVisible();
     });
 });

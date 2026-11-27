@@ -43,6 +43,7 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 public abstract class AbstractReadOnlyRegistryStorage implements RegistryStorage {
 
@@ -55,6 +56,14 @@ public abstract class AbstractReadOnlyRegistryStorage implements RegistryStorage
     @Override
     public boolean isReadOnly() {
         return true;
+    }
+
+    /**
+     * Runs the work as is: this storage rejects writes, so there is nothing to make atomic.
+     */
+    @Override
+    public <T> T inUnitOfWork(Supplier<T> work) {
+        return work.get();
     }
 
     @Override

@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.Savepoint;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -283,6 +284,76 @@ class AbstractHandleFactoryTest {
         verify(dataSource, times(2)).getConnection();
         verify(secondConnection).commit();
         verify(secondConnection).close();
+    }
+
+    @Test
+    void caughtFailureOfACallInsideAUnitOfWorkRollsBackToItsSavepointAndCommitsTheUnit() throws Exception {
+        AgroalDataSource dataSource = mock(AgroalDataSource.class);
+        Connection connection = mock(Connection.class);
+        Savepoint savepoint = mock(Savepoint.class);
+        when(dataSource.getConnection()).thenReturn(connection);
+        when(connection.setSavepoint()).thenReturn(savepoint);
+        AbstractHandleFactory factory = factory(dataSource);
+        HandleCallback<Void, RuntimeException> failingCall = handle -> {
+            throw new IllegalStateException("not found");
+        };
+
+        String result = factory.inUnitOfWork(() -> {
+            assertThrows(IllegalStateException.class, () -> factory.withHandle(failingCall));
+            return "done";
+        });
+
+        assertEquals("done", result);
+        verify(connection).rollback(savepoint);
+        verify(connection).commit();
+        verify(connection, never()).rollback();
+        verify(connection).close();
+    }
+
+    @Test
+    void unitOfWorkFailsWhenACaughtFailureCouldNotBeRolledBackToItsSavepoint() throws Exception {
+        AgroalDataSource dataSource = mock(AgroalDataSource.class);
+        Connection connection = mock(Connection.class);
+        Savepoint savepoint = mock(Savepoint.class);
+        when(dataSource.getConnection()).thenReturn(connection);
+        when(connection.setSavepoint()).thenReturn(savepoint);
+        doThrow(new SQLException("savepoint does not exist")).when(connection).rollback(savepoint);
+        AbstractHandleFactory factory = factory(dataSource);
+        HandleCallback<Void, RuntimeException> failingCall = handle -> {
+            throw new IllegalStateException("deadlock");
+        };
+
+        RegistryStorageException thrown = assertThrows(RegistryStorageException.class,
+                () -> factory.inUnitOfWork(() -> {
+                    assertThrows(IllegalStateException.class, () -> factory.withHandle(failingCall));
+                    return "done";
+                }));
+
+        assertEquals("The transaction was rolled back after a failed statement could not be undone on its own.",
+                thrown.getMessage());
+        verify(connection).rollback();
+        verify(connection, never()).commit();
+        verify(connection).close();
+    }
+
+    @Test
+    void callsOutsideUnitsOfWorkUseNoSavepoints() throws Exception {
+        AgroalDataSource dataSource = mock(AgroalDataSource.class);
+        Connection connection = mock(Connection.class);
+        when(dataSource.getConnection()).thenReturn(connection);
+        AbstractHandleFactory factory = factory(dataSource);
+        HandleCallback<Void, RuntimeException> failingCall = handle -> {
+            throw new IllegalStateException("not found");
+        };
+
+        factory.withHandleNoException(handle -> {
+            assertThrows(IllegalStateException.class, () -> factory.withHandle(failingCall));
+        });
+
+        // Unchanged behaviour: a failed nested call rolls back the whole transaction.
+        verify(connection, never()).setSavepoint();
+        verify(connection).rollback();
+        verify(connection, never()).commit();
     }
 
     private AbstractHandleFactory factory(AgroalDataSource dataSource) {

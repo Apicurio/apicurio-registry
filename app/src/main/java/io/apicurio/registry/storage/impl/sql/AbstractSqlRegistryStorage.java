@@ -85,6 +85,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_STORAGE;
 import static io.apicurio.registry.metrics.MetricsConstants.STORAGE_STRUCTURED_CONTENT_INDEX_FAILURES;
@@ -501,6 +502,14 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Override
     public boolean isReadOnly() {
         return false;
+    }
+
+    /**
+     * One transaction for the whole work; see {@link HandleFactory#inUnitOfWork(Supplier)}.
+     */
+    @Override
+    public <T> T inUnitOfWork(Supplier<T> work) {
+        return handles.inUnitOfWork(work);
     }
 
     @Override

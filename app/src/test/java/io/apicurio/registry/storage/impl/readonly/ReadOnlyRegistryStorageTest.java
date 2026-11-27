@@ -49,6 +49,8 @@ public class ReadOnlyRegistryStorageTest extends AbstractResourceTestBase {
                 entry("consumeDownload1", new State(true, s -> s.consumeDownload(null))),
                 entry("contentIdFromHash1", new State(false, s -> s.contentIdFromHash(null))),
                 entry("countArtifacts0", new State(false, RegistryStorage::countArtifacts)),
+                // The unit itself is not a write; writes made by the work are rejected as usual.
+                entry("inUnitOfWork1", new State(false, s -> s.inUnitOfWork(s::countArtifacts))),
                 entry("countArtifactVersions2", new State(false, s -> s.countArtifactVersions(null, null))),
                 entry("countActiveArtifactVersions2",
                         new State(false, s -> s.countActiveArtifactVersions(null, null))),

@@ -78,6 +78,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * The artifactStore layer for the registry.
@@ -114,6 +115,25 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * Is the registry storage set to read-only mode?
      */
     boolean isReadOnly();
+
+    /**
+     * Runs the work as one unit of work, and returns its result. The work makes its storage calls through
+     * this storage (or the injected one) on the calling thread.
+     * <p>
+     * On SQL storage the unit is one database transaction, so its writes commit together, and an exception
+     * escaping the work rolls all of them back. Each storage call inside the unit runs under a savepoint: a
+     * call that fails, and whose exception the work catches (for example ArtifactAlreadyExistsException from
+     * a create, or ArtifactNotFoundException from a read), has only its own changes undone, and the unit can
+     * continue. Units can be nested; a nested unit behaves like one storage call of the enclosing unit.
+     * Outside units, storage calls behave as before.
+     * <p>
+     * Other storage variants run the work as is, with no atomicity across its writes: KafkaSQL (each write
+     * is its own journal message), and the read-only GitOps and KubernetesOps storages.
+     * In read-only mode the work runs, and any write it makes is rejected as usual.
+     *
+     * @param work the storage calls to run together
+     */
+    <T> T inUnitOfWork(Supplier<T> work);
 
     /**
      * Returns true if the storage is empty (and ready for data to be imported).

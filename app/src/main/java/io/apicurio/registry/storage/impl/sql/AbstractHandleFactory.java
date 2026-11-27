@@ -11,6 +11,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Supplier;
 
 public abstract class AbstractHandleFactory implements HandleFactory {
 
@@ -39,6 +40,9 @@ public abstract class AbstractHandleFactory implements HandleFactory {
         R result = null;
         Throwable callbackFailure = null;
         RuntimeException transactionFailure;
+        // True for a call made directly inside a unit of work: it runs under a savepoint, which undoes
+        // its changes and keeps the unit's rollback status when it fails.
+        boolean savepointScoped = false;
         try {
             // Create a new handle if necessary. Increment the "level" if a handle already exists.
             if (state.handle == null) {
@@ -46,23 +50,32 @@ public abstract class AbstractHandleFactory implements HandleFactory {
                 state.level = 0;
             } else {
                 state.level++;
+                savepointScoped = state.unitLevel >= 0 && state.level == state.unitLevel + 1;
             }
 
             // Invoke the callback with the handle. This will either return a value (success)
             // or throw some sort of exception.
-            result = callback.withHandle(state.handle);
+            result = savepointScoped ? state.handle.inSavepoint(callback) : callback.withHandle(state.handle);
         } catch (SQLException e) {
-            // If a SQL exception is thrown, set the handle to rollback.
-            if (state.handle != null) {
+            // If a SQL exception is thrown, set the handle to rollback, unless the savepoint already
+            // rolled back the call's changes.
+            if (state.handle != null && !savepointScoped) {
                 state.handle.setRollback(true);
                 log.debug("Transaction will rollback.", e);
             }
             // Wrap the SQL exception.
             RegistryStorageException wrapped = new RegistryStorageException(e);
             callbackFailure = wrapped;
-        } catch (Exception | Error e) {
-            // If any other exception, or an Error such as StackOverflowError, is thrown, also set the
-            // handle to rollback. The callback did not finish, so its work must not be committed.
+        } catch (Exception e) {
+            // If any other exception is thrown, also set the handle to rollback. The callback did not
+            // finish, so its work must not be committed (a savepoint-scoped call has been undone already).
+            if (state.handle != null && !savepointScoped) {
+                state.handle.setRollback(true);
+                log.debug("Transaction will rollback.", e);
+            }
+            callbackFailure = e;
+        } catch (Error e) {
+            // An Error such as StackOverflowError always rolls back the whole transaction.
             if (state.handle != null) {
                 state.handle.setRollback(true);
                 log.debug("Transaction will rollback.", e);
@@ -122,6 +135,13 @@ public abstract class AbstractHandleFactory implements HandleFactory {
                     log.trace("Rollback: {} #{}", state.handle.getConnection(),
                             state.handle.getConnection().hashCode());
                     state.handle.getConnection().rollback();
+                    if (state.handle.isSavepointLost()) {
+                        // A failure inside a unit of work was caught, but the database could not undo
+                        // only that call, so the unit's work has been rolled back: report it.
+                        transactionFailure = new RegistryStorageException(
+                                "The transaction was rolled back after a failed statement could not be "
+                                        + "undone on its own.");
+                    }
                 } else {
                     log.trace("Commit: {} #{}", state.handle.getConnection(),
                             state.handle.getConnection().hashCode());
@@ -151,6 +171,7 @@ public abstract class AbstractHandleFactory implements HandleFactory {
         } finally {
             state.handle = null;
             state.level = 0;
+            state.unitLevel = -1;
         }
     }
 
@@ -173,6 +194,20 @@ public abstract class AbstractHandleFactory implements HandleFactory {
         });
     }
 
+    @Override
+    public <R> R inUnitOfWork(Supplier<R> work) {
+        return withHandleNoException(handle -> {
+            LocalState state = state();
+            int enclosingUnitLevel = state.unitLevel;
+            state.unitLevel = state.level;
+            try {
+                return work.get();
+            } finally {
+                state.unitLevel = enclosingUnitLevel;
+            }
+        });
+    }
+
     private LocalState state() {
         return local.get().computeIfAbsent(dataSourceId, k -> new LocalState());
     }
@@ -180,5 +215,7 @@ public abstract class AbstractHandleFactory implements HandleFactory {
     private static class LocalState {
         HandleImpl handle;
         int level = 0;
+        /** The level of the innermost unit of work, or -1 outside units. */
+        int unitLevel = -1;
     }
 }

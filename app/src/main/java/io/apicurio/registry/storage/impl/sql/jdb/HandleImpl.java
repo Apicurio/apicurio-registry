@@ -14,6 +14,13 @@ public class HandleImpl implements Handle {
     private final Connection connection;
     @Getter
     private boolean rollback;
+    /**
+     * True when the transaction could not be rolled back to a savepoint (e.g. the database already rolled
+     * the whole transaction back after a deadlock). Work that continued after that point is lost, so the
+     * outermost call must fail rather than end quietly.
+     */
+    @Getter
+    private boolean savepointLost;
 
     /**
      * Constructor.
@@ -65,31 +72,61 @@ public class HandleImpl implements Handle {
         try {
             savepoint = connection.setSavepoint();
         } catch (SQLException e) {
+            // Without a savepoint a failure here could not be undone on its own.
+            rollback = true;
             throw new RuntimeSqlException(e);
         }
         boolean rollbackBefore = rollback;
+        // Cleared so that a request to roll back made inside the scope (a failed nested call, or a dry
+        // run) can be told apart from one made before it.
+        rollback = false;
         R result;
         try {
             result = callback.withHandle(this);
         } catch (Exception e) {
-            try {
-                connection.rollback(savepoint);
-            } catch (SQLException rollbackFailure) {
-                // The transaction is in an unknown state, so it must not be committed.
-                rollback = true;
-                e.addSuppressed(rollbackFailure);
-                throw e;
+            if (rollbackTo(savepoint, e)) {
+                rollback = rollbackBefore;
             }
-            rollback = rollbackBefore;
+            throw e;
+        } catch (Error e) {
+            rollback = true;
             throw e;
         }
+        if (rollback) {
+            // The work asked to be rolled back (e.g. a dry run): undo only this scope.
+            rollbackTo(savepoint, null);
+            rollback = rollbackBefore;
+            return result;
+        }
+        rollback = rollbackBefore;
         try {
             connection.releaseSavepoint(savepoint);
         } catch (SQLFeatureNotSupportedException e) {
             // SQL Server does not release savepoints; they end with the transaction.
         } catch (SQLException e) {
+            rollback = true;
             throw new RuntimeSqlException(e);
         }
         return result;
+    }
+
+    /**
+     * Rolls back to the savepoint. On failure the transaction is marked for rollback; the failure is
+     * added to the given exception, or thrown when there is none. Returns true when the rollback worked.
+     */
+    private boolean rollbackTo(Savepoint savepoint, Exception failure) {
+        try {
+            connection.rollback(savepoint);
+            return true;
+        } catch (SQLException rollbackFailure) {
+            // The transaction is in an unknown state, so it must not be committed.
+            rollback = true;
+            savepointLost = true;
+            if (failure != null) {
+                failure.addSuppressed(rollbackFailure);
+                return false;
+            }
+            throw new RuntimeSqlException(rollbackFailure);
+        }
     }
 }

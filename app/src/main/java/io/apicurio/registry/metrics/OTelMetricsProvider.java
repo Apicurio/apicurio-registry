@@ -11,6 +11,8 @@ import jakarta.enterprise.context.ApplicationScoped;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Locale;
+
 /**
  * Provider for OpenTelemetry metrics in Apicurio Registry.
  * This class provides custom metrics using the OpenTelemetry API directly,
@@ -24,8 +26,9 @@ public class OTelMetricsProvider {
 
     private static final Logger log = LoggerFactory.getLogger(OTelMetricsProvider.class);
 
-    private static final String INSTRUMENTATION_NAME = "io.apicurio.registry";
-    private static final String METRIC_PREFIX = "apicurio.";
+    static final String INSTRUMENTATION_NAME = "io.apicurio.registry";
+    static final String METRIC_PREFIX = "apicurio.";
+    static final String SCHEMA_FETCHES_METRIC_NAME = METRIC_PREFIX + MetricsConstants.USAGE_SCHEMA_FETCHES;
 
     private static final String ICEBERG_PREFIX = METRIC_PREFIX + "iceberg.";
 
@@ -46,6 +49,7 @@ public class OTelMetricsProvider {
     private LongUpDownCounter activeSchemasGauge;
     private LongUpDownCounter staleSchemasGauge;
     private LongUpDownCounter deadSchemasGauge;
+    private LongCounter schemaFetchCounter;
     private long lastActive;
     private long lastStale;
     private long lastDead;
@@ -109,6 +113,11 @@ public class OTelMetricsProvider {
 
         deadSchemasGauge = meter.upDownCounterBuilder(METRIC_PREFIX + MetricsConstants.USAGE_SCHEMAS_DEAD)
                 .setDescription(MetricsConstants.USAGE_SCHEMAS_DEAD_DESCRIPTION)
+                .setUnit("1")
+                .build();
+
+        schemaFetchCounter = meter.counterBuilder(SCHEMA_FETCHES_METRIC_NAME)
+                .setDescription(MetricsConstants.USAGE_SCHEMA_FETCHES_DESCRIPTION)
                 .setUnit("1")
                 .build();
 
@@ -286,6 +295,38 @@ public class OTelMetricsProvider {
         safeIncrement(icebergErrorsCounter, Attributes.of(
                 OTelAttributes.ATTR_ERROR_TYPE, errorType
         ));
+    }
+
+    /**
+     * Record one successful schema fetch. The caller has already validated the client identifier and the
+     * identifier; the operation is normalized here to a finite vocabulary because it is client supplied.
+     *
+     * @param clientId the self-reported client identifier
+     * @param identifierType {@link MetricsConstants#USAGE_IDENTIFIER_TYPE_GLOBAL_ID} or
+     *            {@link MetricsConstants#USAGE_IDENTIFIER_TYPE_CONTENT_ID}
+     * @param identifierValue the global ID or content ID that was fetched
+     * @param operation the raw {@code X-Registry-Operation} header value, may be null
+     */
+    public void recordSchemaFetch(String clientId, String identifierType, long identifierValue,
+            String operation) {
+        safeIncrement(schemaFetchCounter, Attributes.of(
+                OTelAttributes.ATTR_CLIENT_ID, clientId,
+                OTelAttributes.ATTR_IDENTIFIER_TYPE, identifierType,
+                OTelAttributes.ATTR_IDENTIFIER_VALUE, Long.toString(identifierValue),
+                OTelAttributes.ATTR_OPERATION, normalizeUsageOperation(operation)
+        ));
+    }
+
+    static String normalizeUsageOperation(String operation) {
+        if (operation == null) {
+            return MetricsConstants.USAGE_OPERATION_UNKNOWN;
+        }
+        String upper = operation.toUpperCase(Locale.ROOT);
+        if (MetricsConstants.USAGE_OPERATION_SERIALIZE.equals(upper)
+                || MetricsConstants.USAGE_OPERATION_DESERIALIZE.equals(upper)) {
+            return upper;
+        }
+        return MetricsConstants.USAGE_OPERATION_UNKNOWN;
     }
 
     private void safeIncrement(LongCounter counter, Attributes attributes) {

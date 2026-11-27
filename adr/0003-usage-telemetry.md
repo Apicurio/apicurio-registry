@@ -68,6 +68,10 @@ Implement server-side usage telemetry that records schema fetch events and expos
 | `GET /admin/usage/artifacts/{g}/{a}/heatmap` | Consumer version adoption grid with drift alerts |
 | `GET /admin/usage/artifacts/{g}/{a}/versions/{v}/deprecation-readiness` | Affected consumers for a version |
 
+### OpenTelemetry fetch counter
+
+`apicurio.usage.metrics.enabled` (experimental, default `false`) adds one OTel counter, `apicurio.usage.schema.fetches`, for operators who chart usage outside the registry. `UsageTelemetryFilter` records it for a successful `GET` on exactly `/apis/registry/v3/ids/{globalIds|contentIds}/{id}` with a valid `X-Registry-Client-Id`, before the SQL deduplication, with the attributes `client_id`, `identifier_type`, `identifier_value` and `operation` (`SERIALIZE`, `DESERIALIZE` or `UNKNOWN`). It is independent of `apicurio.usage.telemetry.enabled`: with only the metric enabled nothing is buffered, written to SQL or published to the KafkaSQL journal, and no storage lookup adds labels. The number of series is limited per process by an SDK View (`apicurio.usage.metrics.max-series`, default 2000); the overflow series `otel.metric.overflow=true` keeps the total but not the detail. The SDK checks the threshold and adds a series in two unlocked steps, so concurrent first-seen combinations can exceed it slightly: it is a threshold, not a hard ceiling, and the registry adds no lock or cache of its own to make it one. A random `service.instance.id` is added to the resource while the metric is enabled and no identity was provided, so a restarted in-memory registry that reuses IDs does not continue the series of its predecessor. A content ID can be shared by several versions and the client identifier is self-reported, so the counter is neither a version-level count nor an authenticated one. The SQL records, the usage endpoints and the Micrometer metrics are unchanged.
+
 ### Classification
 
 Schemas are classified based on their most recent fetch timestamp:
@@ -113,14 +117,14 @@ A `schema_usage_summary` table was maintained by a scheduled aggregation job tha
 - Direct SQL aggregation from the raw table is simpler and always up-to-date
 - For typical deployment sizes, the aggregation queries are fast enough
 
-### OpenTelemetry-only approach (rejected)
+### OpenTelemetry-only approach (rejected as the store)
 
 Export usage data purely as OTel metrics to external dashboards.
 
-**Rejected because:**
+**Rejected as the primary store because:**
 - OTel metrics flow to external backends (Prometheus, Jaeger) — cannot be queried internally
 - The heatmap, deprecation readiness, and Active/Stale/Dead classification require data stored inside the registry
-- OTel is used complementarily for gauge export, not as the primary data store
+- OTel is used for gauge export and for the opt-in fetch counter described under "OpenTelemetry fetch counter", not as the store of the usage data behind the endpoints above; this ADR does not decide the store of any later in-registry governance feature
 
 ## Addressed Concerns
 

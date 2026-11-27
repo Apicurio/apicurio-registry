@@ -130,6 +130,16 @@ The registry server exposes the following properties to configure usage telemetr
 |duration
 |`10s`
 |How often buffered usage events are written to storage. Uses Quarkus scheduler expression syntax.
+
+|`apicurio.usage.metrics.enabled`
+|boolean
+|`false`
+|Export the `apicurio.usage.schema.fetches` OpenTelemetry counter described in <<ref-usage-telemetry-schema-fetch-metric_{context}>>. Experimental, and independent of `apicurio.usage.telemetry.enabled`: it stores nothing in the registry. It has no effect while the OpenTelemetry SDK is disabled.
+
+|`apicurio.usage.metrics.max-series`
+|int
+|`2000`
+|Threshold for the number of distinct series (combinations of client, identifier type, identifier value and operation) that the OpenTelemetry SDK keeps for the schema fetch counter in each registry process. It is not a hard ceiling: see <<ref-usage-telemetry-schema-fetch-metric_{context}>>. Must be positive. The registry does not start if the usage metric is enabled and this value is not positive.
 |===
 
 [id="ref-usage-telemetry-client-configuration_{context}"]
@@ -397,6 +407,88 @@ quarkus.otel.exporter.otlp.endpoint=http://otel-collector:4317
 quarkus.otel.metrics.enabled=true
 ----
 
+[id="ref-usage-telemetry-schema-fetch-metric_{context}"]
+== Schema fetch metric for external dashboards
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+The registry can export one OpenTelemetry counter that records which client fetched which schema identifier, without storing anything in the registry. Use it to chart schema usage in a system that reads OpenTelemetry metrics, such as a Collector with Prometheus and Grafana.
+
+The counter is experimental and disabled by default. It is switched on by `apicurio.usage.metrics.enabled=true`, which needs `apicurio.features.experimental.enabled=true` and an enabled OpenTelemetry SDK (`quarkus.otel.sdk.disabled=false`). It is independent of `apicurio.usage.telemetry.enabled`: with only the metric enabled, the registry does not buffer usage events, write usage rows to the database, publish usage records to the KafkaSQL journal, or query any monitoring backend while it serves a request. The usage endpoints under `/admin/usage/` stay disabled in that case.
+
+.OpenTelemetry counter for observed schema fetches
+[cols="2,1,3"]
+|===
+|Name |Type |Description
+
+|`apicurio.usage.schema.fetches`
+|counter, unit `1`
+|One count for every successful schema fetch request that carries a valid client identifier, recorded before any deduplication.
+|===
+
+.Attributes of the counter
+[cols="2,3"]
+|===
+|Attribute |Value
+
+|`apicurio.registry.client_id`
+|The value of the `X-Registry-Client-Id` request header. It is self-reported by the caller.
+
+|`apicurio.registry.identifier_type`
+|`global_id` or `content_id`, depending on the route the schema was fetched by.
+
+|`apicurio.registry.identifier_value`
+|The global ID or content ID from the request path, as a decimal number without leading zeros.
+
+|`apicurio.registry.operation`
+|`SERIALIZE` or `DESERIALIZE` from the `X-Registry-Operation` header, compared without regard to case. Any other value, or no header, is exported as `UNKNOWN`. The SQL usage records keep the header value unchanged.
+|===
+
+A request is counted only when all of the following hold:
+
+* It is a `GET` on `/apis/registry/v3/ids/globalIds/\{globalId}` or `/apis/registry/v3/ids/contentIds/\{contentId}` for a positive ID, with or without a trailing slash. Query parameters do not affect counting. The counter accepts ASCII decimal digits with an optional leading `+`. Requests with other ID spellings or with matrix parameters in the path (such as `;source=client`) are excluded even when the server serves them successfully. Other routes, including `/references` and the v2 API, are not counted, even where the SQL usage recording accepts them.
+* The response status is `200`.
+* `X-Registry-Client-Id` is present, at most 256 characters, and contains only letters, digits, dots, hyphens and underscores.
+
+Requests that fail these rules produce no detailed observation.
+
+.Procedure
+. For a custom build, make sure OpenTelemetry metrics are enabled at build time (`quarkus.otel.metrics.enabled=true`). The standard Registry build already enables them.
+. Enable the metric and the OpenTelemetry SDK, and point the exporter at your Collector:
++
+[source,properties]
+----
+apicurio.features.experimental.enabled=true
+apicurio.usage.metrics.enabled=true
+quarkus.otel.sdk.disabled=false
+quarkus.otel.exporter.otlp.endpoint=http://otel-collector:4317
+----
+
+. For SerDes applications that already use global IDs, set `apicurio.registry.usage-telemetry.client-id` as described in <<ref-usage-telemetry-client-configuration_{context}>>. The current v3 resolver adds these headers to global-ID fetches only. It does not add them to content-ID fetches, which the deserializer uses by default. Direct HTTP clients can supply the headers on either route. Do not change the ID mode of an existing deployment solely to enable this metric.
+
+.How to read the counter
+* An observed fetch is one HTTP request for a schema. It is not a count of Kafka messages: SerDes clients cache schemas, so one fetch can stand for any number of messages, and a client whose cache is long-lived can fetch rarely while it is in constant use. The counter shows that a client fetched a schema, never that it stopped using it, and it is not a basis for deleting a schema.
+* It is also not the SQL usage record. The SQL path keeps one event per client and identifier in a 60 second window, while the counter counts every request.
+* A content ID is shared by every version with the same content, so `content_id` series do not identify one schema version. A global ID identifies one version, but the registry does not look up its artifact, group or version to add labels.
+* The client identifier is chosen by the caller and can be spoofed. It is not an authenticated identity and must not be used for access decisions or billing.
+* The values are counts per registry process. Add the series of all processes to get the total of a deployment.
+
+.Process identity
+Global IDs and content IDs come from the registry database. A registry that uses an in-memory database starts counting again from 1 after a restart, so the same identifier can then stand for a different schema. To keep such series apart, the registry adds a random `service.instance.id` to the shared OpenTelemetry resource (metrics, traces and logs), but only while the usage metric is enabled and only when neither Quarkus nor you provided one, for example through `quarkus.otel.resource.attributes` or `OTEL_RESOURCE_ATTRIBUTES`. An identity that you set is exported unchanged and must be unique for every registry process. Select and group by it in your dashboards, together with `service.name`. How these resource attributes appear as labels depends on your OpenTelemetry pipeline. The process identity does not change when storage data is replaced within that process. If a replacement snapshot reassigns an ID, the counter cannot distinguish fetches before and after that change; preserve IDs when relying on historical attribution.
+
+.Bounded detail and overflow
+The number of series is limited by a threshold, `apicurio.usage.metrics.max-series` (default `2000`), that the OpenTelemetry SDK applies to this one counter in each registry process. When requests for new combinations arrive one at a time, the overflow series takes one of the slots, so at most `max-series - 1` combinations keep their labels. When the threshold is reached, a measurement for a combination that has no series yet is added to a single series that carries only `otel.metric.overflow=true`, with no client or identifier labels. The total over all series, overflow included, still equals the number of counted requests, but the aggregated series cannot identify the folded requests. A rising overflow series means that the threshold is too low for the number of clients and identifiers in use.
+
+The threshold limits series, not the information in an OTLP export. When metric exemplars are enabled, a sampled overflow measurement can still carry the original client and schema identifier as exemplar attributes. Do not rely on the series threshold to remove those attributes from exported data.
+
+The threshold is not a strict ceiling. The SDK checks the number of series and adds a new one in two separate steps without locking, so requests for new combinations that arrive at the same moment can each pass the check and create a few series more than the configured value. How many extra series appear depends on how many such requests race at that moment, and no count is lost. Plan memory and backend limits with this in mind, and do not depend on the exact number of series.
+
+With cumulative temporality, which is the default of the OTLP exporter, a series stays for the life of the process, so the threshold is reached once and stays reached until the registry restarts. An overflow series is not a zero: do not read a missing client as unused while the overflow series is non-zero.
+
+.Export and outages
+Counting only updates an in-memory aggregate, and the OpenTelemetry SDK exports it periodically from its own threads, so no call to the Collector happens on the request path. This removes the storage and query work of the SQL usage recording from the registry; it does not remove the CPU and memory used to count and export. If the Collector is unreachable, refuses the export or does not answer, schema fetches continue to succeed and the SDK continues to collect periodically. It can skip a collection while an export is still in flight. Later cumulative exports from the same process include the fetches counted during the outage; delta exports do not necessarily recover failed intervals, but nothing guarantees lossless telemetry: counts held by a registry process that stops before it can export again are lost, and a restart begins a new series. Treat missing data as unknown, not as zero use.
+
 [id="ref-usage-telemetry-example-grafana-query_{context}"]
 == Example Grafana query
 
@@ -423,7 +515,7 @@ No message content:: Only schema coordinates and the client identifier are recor
 No user identity:: The `clientId` is a configured application name, not a user or personal identifier.
 Client-controlled:: Each client application decides whether to set the `X-Registry-Client-Id` header.
 Zero overhead when disabled:: No headers are sent, no events are recorded, and no database writes occur.
-Automatic cleanup:: Events older than the retention period are deleted automatically.
+Retention:: Registry deletes SQL usage events according to `apicurio.usage.retention-days`. This setting does not delete exported metrics or exemplars. Set retention for those records in the monitoring backend.
 
 [id="proc-usage-telemetry-demo-script_{context}"]
 == Running the usage telemetry example

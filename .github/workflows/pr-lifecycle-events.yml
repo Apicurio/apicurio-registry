@@ -1,0 +1,90 @@
+name: PR Lifecycle Events
+
+# Handles pull_request_target events for the PR lifecycle state machine in a
+# single dispatcher job so PRs show one "PR Lifecycle" check instead of a dozen
+# skipped orchestrator jobs. Background triggers (workflow_run, issue_comment,
+# issues, schedule, workflow_dispatch) live in pr-lifecycle.yml, where they
+# create zero PR check-runs.
+#
+# Security note: pull_request_target runs with a write token so fork PRs can be
+# labelled and commented on; actions/checkout defaults to the base branch and
+# never checks out or executes PR code.
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, ready_for_review, converted_to_draft, labeled, unlabeled]
+    branches: [main, '3.3.x']
+
+permissions:
+  actions: write
+  contents: read
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: pr-lifecycle-events-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  lifecycle:
+    name: PR Lifecycle
+    runs-on: ubuntu-latest
+    # Label changes only run for human edits to lifecycle/* or orchestrator/* labels
+    # (including when orchestrator/disabled is set, since toggling it re-runs Verify).
+    # Other PR events are skipped when orchestrator/disabled is set.
+    if: |
+      github.repository_owner == 'Apicurio' && (
+        ((github.event.action == 'labeled' || github.event.action == 'unlabeled') &&
+         github.event.sender.login != 'github-actions[bot]' &&
+         (startsWith(github.event.label.name, 'lifecycle/') || startsWith(github.event.label.name, 'orchestrator/'))) ||
+        (github.event.action != 'labeled' && github.event.action != 'unlabeled' &&
+         !contains(github.event.pull_request.labels.*.name, 'orchestrator/disabled'))
+      )
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Convert config to JSON
+        run: yq -o json .github/pr-lifecycle.yml > .github/pr-lifecycle.json
+
+      - name: Handle PR event
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        with:
+          script: |
+            const handler = require('./.github/scripts/pr-lifecycle.js');
+            switch (context.payload.action) {
+              case 'opened':
+              case 'reopened':
+                await handler.handlePrOpened({ github, context, core });
+                break;
+              case 'synchronize':
+                await handler.handlePrSynchronize({ github, context, core });
+                break;
+              case 'ready_for_review':
+                await handler.handlePrReadyForReview({ github, context, core });
+                break;
+              case 'converted_to_draft':
+                await handler.handlePrConvertedToDraft({ github, context, core });
+                break;
+              case 'labeled':
+              case 'unlabeled':
+                await handler.handleLabelChange({ github, context, core });
+                break;
+              default:
+                core.info(`Unhandled pull_request_target action: ${context.payload.action}`);
+            }
+
+      - name: Post failure warning
+        if: failure()
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const prNumber = context.payload.pull_request?.number;
+            if (!prNumber) return;
+            await github.rest.issues.createComment({
+              owner, repo, issue_number: prNumber,
+              body: `**Warning:** The PR lifecycle orchestrator encountered an error while processing ` +
+                `an event for this PR. Some labels or state transitions may be incorrect.\n\n` +
+                `A maintainer or the PR author can use \`/retry\` to re-run the orchestrator.`
+            });

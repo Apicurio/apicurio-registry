@@ -183,13 +183,23 @@ run_one_example() {
     run_with_timeout "$timeout_min" ./demo.sh || rc=$?
   fi
 
+  local logs_captured=false
   if [ "$rc" -ne 0 ] && [ "$compose" = "true" ]; then
     dump_compose_logs "$example_dir" "$slug" "$variant"
+    logs_captured=true
   fi
 
   if [ "$compose" = "true" ]; then
     echo ">>> Stopping Compose stack"
-    docker compose down -v --remove-orphans || true
+    if ! docker compose down -v --remove-orphans; then
+      echo "::error::${slug}: docker compose down failed"
+      if [ "$logs_captured" != "true" ]; then
+        dump_compose_logs "$example_dir" "$slug" "$variant"
+      fi
+      if [ "$rc" -eq 0 ]; then
+        rc=1
+      fi
+    fi
   fi
 
   return "$rc"

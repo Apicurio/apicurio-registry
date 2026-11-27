@@ -89,7 +89,7 @@ runner="$dir/run-example-shard.sh"
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 
-mkdir -p "$work/bin" "$work/repo/examples/ex-a" "$work/repo/examples/ex-b" "$work/repo/examples/ex-bad" "$work/tmp"
+mkdir -p "$work/bin" "$work/repo/examples/ex-a" "$work/repo/examples/ex-b" "$work/repo/examples/ex-bad" "$work/repo/examples/ex-down-fail" "$work/tmp"
 
 # Stub docker: handles compose config/up/down/logs and prune commands
 cat > "$work/bin/docker" << 'EOF'
@@ -103,8 +103,14 @@ if [ "$1" = "compose" ]; then
         echo '{"services":{}}'
       fi
       ;;
-    up|down) exit 0 ;;
-    logs) echo "stub-compose-log-for-$(basename "$PWD")" ;;
+    up) exit 0 ;;
+    down) [ -f "${PWD}/fail-down" ] && exit 7 || exit 0 ;;
+    logs)
+      count_file="${PWD}/logs-count"
+      n=$(( $(cat "$count_file" 2>/dev/null || echo 0) + 1 ))
+      echo "$n" > "$count_file"
+      echo "stub-compose-log-for-$(basename "$PWD")-call-${n}"
+      ;;
   esac
   exit 0
 fi
@@ -123,10 +129,17 @@ echo "run" >> "$PWD/runs.log"
 EOF
 chmod +x "$work/repo/examples/ex-a/demo.sh"
 
-# ex-bad uses a stale image tag and must fail without preventing ex-b from running
+# ex-bad uses a stale image tag and also fails docker compose down; earlier failure logs must not be overwritten
 printf 'apicurio/apicurio-registry:latest-snapshot\n' > "$work/repo/examples/ex-bad/stub-images.txt"
 printf '#!/usr/bin/env bash\nexit 0\n' > "$work/repo/examples/ex-bad/demo.sh"
 chmod +x "$work/repo/examples/ex-bad/demo.sh"
+touch "$work/repo/examples/ex-bad/fail-down"
+
+# ex-down-fail passes demo.sh twice but fails docker compose down; must be reported as FAIL with logs
+printf 'apicurio/apicurio-registry:abc123\n' > "$work/repo/examples/ex-down-fail/stub-images.txt"
+printf '#!/usr/bin/env bash\nexit 0\n' > "$work/repo/examples/ex-down-fail/demo.sh"
+chmod +x "$work/repo/examples/ex-down-fail/demo.sh"
+touch "$work/repo/examples/ex-down-fail/fail-down"
 
 # ex-b asserts CUSTOM_LEAK_TEST did NOT leak from ex-a
 printf 'apicurio/apicurio-registry:abc123\n' > "$work/repo/examples/ex-b/stub-images.txt"
@@ -141,6 +154,7 @@ chmod +x "$work/repo/examples/ex-b/demo.sh"
 shard_json='[
   {"name":"ex-a","timeout":5,"build":false,"variant":"","selfManaged":false,"releasedImages":"","mutableImage":false,"compose":true,"toolchains":""},
   {"name":"ex-bad","timeout":5,"build":false,"variant":"","selfManaged":false,"releasedImages":"","mutableImage":false,"compose":true,"toolchains":""},
+  {"name":"ex-down-fail","timeout":5,"build":false,"variant":"","selfManaged":false,"releasedImages":"","mutableImage":false,"compose":true,"toolchains":""},
   {"name":"ex-b","timeout":5,"build":false,"variant":"pg","selfManaged":false,"releasedImages":"","mutableImage":false,"compose":true,"toolchains":""}
 ]'
 
@@ -155,12 +169,13 @@ PATH="$work/bin:$PATH" \
   bash "$runner" >/dev/null 2>&1
 rc=$?
 
-assert "shard exits non-zero when an example has a stale image" 1 "$rc"
+assert "shard exits non-zero when an example fails" 1 "$rc"
 assert "ex-a ran demo.sh twice" "2" "$(wc -l < "$work/repo/examples/ex-a/runs.log" | tr -d ' ')"
 assert "ex-b still ran twice after ex-bad failed and saw no leaked ci.env" "2" "$(wc -l < "$work/repo/examples/ex-b/runs.log" | tr -d ' ')"
-assert "ex-bad captured compose logs on failure" "stub-compose-log-for-ex-bad" "$(cat "$work/tmp/example-logs/ex-bad.log")"
+assert "ex-bad captured compose logs once without overwriting on cleanup failure" "stub-compose-log-for-ex-bad-call-1" "$(cat "$work/tmp/example-logs/ex-bad.log")"
+assert "ex-down-fail captured compose logs on cleanup failure" "stub-compose-log-for-ex-down-fail-call-1" "$(cat "$work/tmp/example-logs/ex-down-fail.log")"
 # shellcheck disable=SC2016 # literal markdown backticks in step summary
-assert "step summary records pass and fail rows" "true" "$(grep -q '`ex-a` | PASS' "$summary_file" && grep -q '`ex-bad` | \*\*FAIL\*\*' "$summary_file" && grep -q '`ex-b (pg)` | PASS' "$summary_file" && echo true || echo false)"
+assert "step summary records pass and fail rows (including cleanup failure)" "true" "$(grep -q '`ex-a` | PASS' "$summary_file" && grep -q '`ex-bad` | \*\*FAIL\*\*' "$summary_file" && grep -q '`ex-down-fail` | \*\*FAIL\*\*' "$summary_file" && grep -q '`ex-b (pg)` | PASS' "$summary_file" && echo true || echo false)"
 
 if [ "$failures" -gt 0 ]; then
   echo "$failures test(s) failed"

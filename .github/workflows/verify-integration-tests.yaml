@@ -142,8 +142,8 @@ jobs:
             for group in $SEQUENTIAL_GROUPS; do
               if [ "$first" != "true" ]; then
                 # RegistryDeploymentManager deletes apicurio-registry-e2e on JVM shutdown;
-                # wait for Kubernetes namespace termination to finish before the next group deploys.
-                kubectl delete namespace apicurio-registry-e2e --ignore-not-found
+                # trigger deletion asynchronously so the 180s wait bounds termination.
+                kubectl delete namespace apicurio-registry-e2e --ignore-not-found --wait=false
                 kubectl wait --for=delete namespace/apicurio-registry-e2e --timeout=180s
               fi
               first=false

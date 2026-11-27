@@ -44,6 +44,9 @@ public final class Columns {
 
     public static final String REFERENCE_NAME = "Ref Name";
 
+    public static final String BRANCH_ID = "Branch ID";
+    public static final String SYSTEM_DEFINED = "System Defined";
+
     public static final String SYNC_STATE = "Sync State";
     public static final String LAST_SUCCESSFUL_SYNC = "Last Successful Sync";
     public static final String LAST_SYNC_ATTEMPT = "Last Sync Attempt";

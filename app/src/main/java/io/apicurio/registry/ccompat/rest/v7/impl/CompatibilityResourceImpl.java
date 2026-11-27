@@ -19,16 +19,19 @@ import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.rules.violation.RuleViolationException;
 import io.apicurio.registry.rules.violation.UnprocessableSchemaException;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.RuleNotFoundException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.types.VersionState;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Interceptors({ ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class })
@@ -113,8 +116,21 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
     public CompatibilityCheckResponse checkAllCompatibility(String subject, Boolean verbose, Boolean normalize, String groupId, RegisterSchemaRequest request) {
         final GA ga = getGA(groupId, subject);
         try {
-            final List<String> versions = storage.getArtifactVersions(ga.getRawGroupIdWithNull(),
-                    ga.getRawArtifactId());
+            String artifactType = storage.getArtifactMetaData(ga.getRawGroupIdWithNull(), ga.getRawArtifactId())
+                    .getArtifactType();
+            // Validate the candidate even when there is no published version to compare it with.
+            validateSchemaContent(request.getSchema(), artifactType);
+
+            // Same baseline as the v3 rules: every version except DRAFT and DISABLED, so SUNSET
+            // versions are included. The filtered query throws when nothing matches, which here means
+            // the subject has no such versions yet.
+            List<String> versions;
+            try {
+                versions = storage.getArtifactVersions(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(),
+                        Set.of(VersionState.ENABLED, VersionState.DEPRECATED, VersionState.SUNSET));
+            } catch (ArtifactNotFoundException ex) {
+                versions = List.of();
+            }
             for (String version : versions) {
                 final ArtifactVersionMetaDataDto artifactVersionMetaData = storage.getArtifactVersionMetaData(
                         ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), version);
@@ -122,8 +138,6 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
                 if (artifactVersionMetaData.getArtifactType().equals(ArtifactType.PROTOBUF)) {
                     contentType = ContentTypes.APPLICATION_PROTOBUF;
                 }
-
-                validateSchemaContent(request.getSchema(), artifactVersionMetaData.getArtifactType());
 
                 TypedContent typedContent = TypedContent.create(ContentHandle.create(request.getSchema()),
                         contentType);

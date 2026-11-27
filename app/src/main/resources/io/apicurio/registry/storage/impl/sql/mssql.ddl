@@ -4,7 +4,7 @@
 
 CREATE TABLE apicurio (propName NVARCHAR(255) NOT NULL, propValue NVARCHAR(255));
 ALTER TABLE apicurio ADD PRIMARY KEY (propName);
-INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 115);
+INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 116);
 
 CREATE SEQUENCE globalid_seq AS BIGINT START WITH 1 INCREMENT BY 1 NO CACHE;
 CREATE SEQUENCE contentid_seq AS BIGINT START WITH 1 INCREMENT BY 1 NO CACHE;
@@ -132,7 +132,8 @@ ALTER TABLE contract_audit_log ADD PRIMARY KEY (auditId);
 CREATE INDEX IDX_contract_audit_1 ON contract_audit_log(groupId, artifactId);
 CREATE INDEX IDX_contract_audit_2 ON contract_audit_log(createdOn);
 
-CREATE TABLE schema_usage (globalId BIGINT NOT NULL, contentId BIGINT NOT NULL DEFAULT 0, clientId NVARCHAR(256) NOT NULL, operation NVARCHAR(32) NOT NULL, eventTimestamp BIGINT NOT NULL, recordedOn DATETIME2 NOT NULL DEFAULT GETDATE());
+CREATE TABLE schema_usage (usageId BIGINT IDENTITY(1,1) NOT NULL, globalId BIGINT NOT NULL, contentId BIGINT NOT NULL DEFAULT 0, clientId NVARCHAR(256) NOT NULL, operation NVARCHAR(32) NOT NULL, eventTimestamp BIGINT NOT NULL, recordedOn DATETIME2 NOT NULL DEFAULT GETDATE());
+ALTER TABLE schema_usage ADD PRIMARY KEY (usageId);
 CREATE INDEX IDX_schema_usage_1 ON schema_usage(globalId);
 CREATE INDEX IDX_schema_usage_2 ON schema_usage(clientId);
 CREATE INDEX IDX_schema_usage_3 ON schema_usage(eventTimestamp);

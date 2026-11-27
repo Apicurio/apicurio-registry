@@ -184,6 +184,21 @@ before acting on them. See [issue #9136](https://github.com/Apicurio/apicurio-re
 for background, and [quarkus-extension-analyzer](https://github.com/paoloantinori/quarkus-extension-analyzer)
 for a Quarkus-aware alternative that is being explored separately.
 
+## Database Schema Changes
+
+The SQL schema lives in `app/src/main/resources/io/apicurio/registry/storage/impl/sql/`: one base
+DDL per dialect for new databases, and `upgrades/<N>/<dialect>.upgrade.ddl` scripts that move an
+existing database from version `N-1` to `N`. A change bumps `db-version`, adds an upgrade script for
+all four dialects, and updates the `db_version` insert in the four base DDLs.
+
+Every table needs a primary key, declared inline in its `CREATE TABLE` in both the base DDL and
+the upgrade script. MySQL servers with `sql_require_primary_key=ON`, such as managed services and
+InnoDB Cluster, reject a table created without one, even if a later `ALTER TABLE` would add it. If
+the table has no natural key, add a surrogate `BIGINT` auto-increment column. The MySQL test
+container runs with `sql_require_primary_key=ON`, and `SqlSchemaConsistencyTest` checks `mysql.ddl`
+and the MySQL upgrade scripts. An upgrade from an older version runs every script, so a released
+script that creates a keyless table is fixed in place (with the `db-upgrade/change-approved` label).
+
 ## Testing
 
 Unit tests run as part of the normal build (`mvn clean install`). Integration tests

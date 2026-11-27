@@ -20,6 +20,9 @@ class SqlSchemaConsistencyTest {
     // Version that introduced the peers table. Update only if that migration is renumbered.
     private static final int PEERS_DB_VERSION = 111;
 
+    /** The oldest script in {@code upgrades/}. */
+    private static final int FIRST_UPGRADE_VERSION = 101;
+
     private static final Pattern CREATE_PEERS_TABLE = Pattern.compile("CREATE TABLE (IF NOT EXISTS )?peers \\(");
 
     // The column definitions of the peers table, from peerId through credentialSecretRef. What
@@ -86,6 +89,29 @@ class SqlSchemaConsistencyTest {
                     "Upgrade DDL for dialect '" + dialect + "' at version " + PEERS_DB_VERSION
                             + " must create the peers table with the same columns as the base DDL.");
         }
+    }
+
+    /**
+     * MySQL servers with sql_require_primary_key=ON (managed services, InnoDB Cluster) reject a
+     * CREATE TABLE without a primary key, even if a later ALTER TABLE would add one. That holds for
+     * the upgrade scripts too: a database upgraded from an older version runs every one of them.
+     */
+    @Test
+    void testEveryMysqlTableDeclaresPrimaryKeyInline() {
+        MySQLSqlStatements statements = new MySQLSqlStatements();
+        Assertions.assertEquals(List.of(), keylessTables(statements.databaseInitialization()),
+                "Every CREATE TABLE in mysql.ddl must declare its PRIMARY KEY inline.");
+        Assertions.assertEquals(List.of(),
+                keylessTables(statements.databaseUpgrade(FIRST_UPGRADE_VERSION - 1, readDbVersion())),
+                "Every CREATE TABLE in the MySQL upgrade scripts must declare its PRIMARY KEY inline.");
+    }
+
+    private static List<String> keylessTables(List<String> statements) {
+        return statements.stream()
+                .filter(statement -> statement.startsWith("CREATE TABLE"))
+                .filter(statement -> !statement.contains("PRIMARY KEY"))
+                .map(statement -> statement.substring(0, statement.indexOf('(')).trim())
+                .toList();
     }
 
     @Test

@@ -220,6 +220,8 @@ A file with a version that the registry doesn't read fails the load, and the reg
 * A removed version: the error names the version and the version to convert to.
 * A newer version, written for a later {registry} release: the error says that the file requires a newer registry.
 
+A metadata file that fails to parse (invalid YAML or JSON, or an unusable `$type` field) fails the load the same way, naming the file. This applies to every registry instance that polls the repository, including one whose `registryIds` excludes the broken file: the load can't tell which registries the file was meant for until it parses.
+
 Within a version, the format changes only by adding optional fields. The registry rejects fields that it doesn't know, so use a new field only when every registry that reads the repository supports it.
 
 *Converting a repository to the current version*

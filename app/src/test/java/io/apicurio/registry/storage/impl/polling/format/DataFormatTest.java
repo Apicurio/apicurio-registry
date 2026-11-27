@@ -13,10 +13,12 @@ import org.junit.jupiter.api.Test;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 import static io.apicurio.registry.util.YAMLObjectMapper.YAML_MAPPER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -180,6 +182,92 @@ class DataFormatTest {
         var parsed = Any.parse(state, "content/schema.json", ContentHandle.create(
                 "{\"$type\": \"artifact-v1\", \"groupId\": \"missing\", \"artifactId\": \"example\"}"));
         assertEquals(Optional.empty(), parsed.any());
+        assertEquals(Optional.empty(), parsed.formatError());
+        assertEquals(Optional.empty(), parsed.parseError());
+    }
+
+    /**
+     * The same kind of content file, but whose fields don't bind to that type's model class either.
+     * The load must not fail: only a known registry metadata file does.
+     */
+    @Test
+    void readableTypeThatFailsToBindInANonMetadataFileDoesNotFailTheLoad() {
+        var state = new ProcessingState(new TestPollingStorageConfig(), null);
+        var parsed = Any.parse(state, "content/Person.json", ContentHandle.create(
+                "{\"$type\": \"artifact-v1\", \"type\": \"object\", \"properties\": {\"name\": {}}}"));
+        assertEquals(Optional.empty(), parsed.any());
+        assertEquals(Optional.empty(), parsed.parseError());
+    }
+
+    /**
+     * The same binding failure, at a path that does look like a registry metadata file, fails the
+     * load, naming the file and the field, but not the internal model class (#11393 review).
+     */
+    @Test
+    void readableTypeThatFailsToBindInAMetadataFileFailsWithASanitizedMessage() {
+        var state = new ProcessingState(new TestPollingStorageConfig(), null);
+        var parsed = Any.parse(state, "artifact-person.registry.json", ContentHandle.create(
+                "{\"$type\": \"artifact-v1\", \"groupId\": \"g\", \"artifactId\": \"a\", \"nmae\": \"typo\"}"));
+        assertEquals(Optional.empty(), parsed.any());
+        var error = parsed.parseError().orElseThrow();
+        assertTrue(error.contains("artifact-person.registry.json"), error);
+        assertTrue(error.contains("nmae"), error);
+        assertTrue(error.toLowerCase(Locale.ROOT).contains("artifact-v1"), error);
+        assertFalse(error.contains("io.apicurio.registry"), error);
+        assertFalse(error.contains("class "), error);
+        // Binding happens on a tree already parsed into memory, with no location (JsonLocation.NA,
+        // line -1 column -1): the message must not leak that placeholder.
+        assertFalse(error.contains("-1"), error);
+    }
+
+    /**
+     * A metadata file with a YAML/JSON syntax error fails the load, naming the file and its line and
+     * column, but neither the offending file content nor Jackson's own message, which quotes the
+     * whole file (#11393 review).
+     */
+    @Test
+    void syntaxErrorInAMetadataFileFailsWithASanitizedMessage() {
+        var state = new ProcessingState(new TestPollingStorageConfig(), null);
+        var parsed = Any.parse(state, "artifact-person.registry.json",
+                ContentHandle.create("{\"$type\": \"artifact-v1\", \"groupId\": [\"secret-value\"}"));
+        assertEquals(Optional.empty(), parsed.any());
+        var error = parsed.parseError().orElseThrow();
+        assertTrue(error.contains("artifact-person.registry.json"), error);
+        assertTrue(error.contains("line"), error);
+        assertTrue(error.contains("column"), error);
+        assertFalse(error.contains("secret-value"), error);
+        assertFalse(error.contains("Source:"), error);
+    }
+
+    /**
+     * A metadata-suffix file whose $type field is present but not a string (a number, an object, or
+     * null) must fail the load, naming the file, rather than being silently skipped like a file with
+     * no $type at all.
+     */
+    @Test
+    void nonStringTypeFieldInAMetadataFileFailsTheLoad() {
+        var state = new ProcessingState(new TestPollingStorageConfig(), null);
+        for (String badType : new String[] { "1", "{\"a\": \"b\"}", "null" }) {
+            var parsed = Any.parse(state, "artifact-person.registry.json",
+                    ContentHandle.create("{\"$type\": " + badType + ", \"groupId\": \"g\"}"));
+            assertEquals(Optional.empty(), parsed.any(), badType);
+            var error = parsed.parseError().orElseThrow(() -> new AssertionError("no error for " + badType));
+            assertTrue(error.contains("artifact-person.registry.json"), error);
+            assertTrue(error.contains("not a string"), error);
+        }
+    }
+
+    /**
+     * A metadata-suffix file with no $type field at all is not a parse error: it might legitimately
+     * not be a registry file (#11111 proposal item 2 says a warning naming it is the minimum).
+     */
+    @Test
+    void noTypeFieldInAMetadataFileDoesNotFailTheLoad() {
+        var state = new ProcessingState(new TestPollingStorageConfig(), null);
+        var parsed = Any.parse(state, "artifact-person.registry.json",
+                ContentHandle.create("{\"groupId\": \"g\", \"artifactId\": \"a\"}"));
+        assertEquals(Optional.empty(), parsed.any());
+        assertEquals(Optional.empty(), parsed.parseError());
         assertEquals(Optional.empty(), parsed.formatError());
     }
 

@@ -99,6 +99,7 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
 
 import static io.apicurio.registry.storage.impl.kafkasql.KafkaSqlSubmitter.BOOTSTRAP_MESSAGE_TYPE;
 import static io.apicurio.registry.utils.ConcurrentUtil.blockOnResult;
@@ -225,6 +226,15 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
     @Override
     public boolean isReady() {
         return bootstrapped;
+    }
+
+    /**
+     * Runs the work as is. Each write is its own journal message, applied by the consumer thread, so the
+     * writes of the work are not atomic: a failure part way leaves the earlier writes in place.
+     */
+    @Override
+    public <T> T inUnitOfWork(Supplier<T> work) {
+        return work.get();
     }
 
     @Override

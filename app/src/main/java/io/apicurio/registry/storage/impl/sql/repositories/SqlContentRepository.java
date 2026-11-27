@@ -632,51 +632,67 @@ public class SqlContentRepository {
         final String finalSerializedReferences = serializedReferences;
         final List<ArtifactReferenceDto> finalReferences = references;
 
-        handles.withHandleNoException(handle -> {
-            insertContentIfAbsentRaw(handle, content, finalContentHash, finalCanonicalContentHash,
+        // One transaction (or the caller's) for the lookup, the insert and the references.
+        return handles.withHandleNoException(handle -> {
+            return insertContentIfAbsentRaw(handle, content, finalContentHash, finalCanonicalContentHash,
                     finalSerializedReferences, finalReferences);
-            return null;
         });
-
-        // Get the contentId using the unique contentHash.
-        Optional<Long> contentId = contentIdFromHash(contentHash);
-        return contentId.orElseThrow(() -> new RegistryStorageException("Failed to ensure content."));
     }
 
-    private void insertContentIfAbsentRaw(Handle handle, TypedContent content, String contentHash,
+    /**
+     * Inserts the content unless a row with the same contentHash exists, and returns the contentId of
+     * the row. Runs in the caller's transaction without failing it: PostgreSQL skips a conflicting row,
+     * and on the other databases the insert runs under a savepoint, so losing a race for the same
+     * contentHash leaves the transaction usable.
+     */
+    private long insertContentIfAbsentRaw(Handle handle, TypedContent content, String contentHash,
             String canonicalContentHash, String serializedReferences, List<ArtifactReferenceDto> references) {
         // Look the hash up first so duplicate content skips the INSERT entirely. A row inserted
         // concurrently after this check is still handled below by insertContentIfAbsent / the
         // PK-violation path.
-        boolean exists = contentIdFromHashRaw(handle, contentHash).isPresent();
+        Optional<Long> existing = contentIdFromHashRaw(handle, contentHash);
         // Always allocate so contentId allocation is unchanged from the insert-and-catch-duplicate
         // behavior; the check only avoids a failing INSERT.
         long contentId = sequenceRepository.nextContentIdRaw(handle);
-        if (exists) {
-            return;
+        if (existing.isPresent()) {
+            return existing.get();
         }
-        try {
-            int inserted = handle.createUpdate(sqlStatements.insertContentIfAbsent())
-                    .bind(0, contentId)
-                    .bind(1, canonicalContentHash)
-                    .bind(2, contentHash)
-                    .bind(3, content.getContentType())
-                    .bind(4, content.getContent().bytes())
-                    .bind(5, serializedReferences)
-                    .execute();
-            if (inserted == 0) {
-                return;
+        boolean inserted;
+        if (sqlStatements.insertContentIfAbsentIgnoresConflicts()) {
+            inserted = insertContentRowRaw(handle, contentId, content, contentHash, canonicalContentHash,
+                    serializedReferences);
+        } else {
+            try {
+                inserted = handle.inSavepoint(h -> insertContentRowRaw(h, contentId, content, contentHash,
+                        canonicalContentHash, serializedReferences));
+            } catch (Exception e) {
+                if (!sqlStatements.isPrimaryKeyViolation(e)) {
+                    throw e;
+                }
+                inserted = false;
             }
-        } catch (Exception e) {
-            if (sqlStatements.isPrimaryKeyViolation(e)) {
-                log.debug("Content with content hash {} already exists: {}", contentHash, content);
-                return;
-            } else {
-                throw e;
-            }
+        }
+        if (!inserted) {
+            log.debug("Content with content hash {} already exists: {}", contentHash, content);
+            return handle.createQuery(sqlStatements.selectContentIdByHashLatestCommitted())
+                    .bind(0, contentHash).mapTo(Long.class).findOne()
+                    .orElseThrow(() -> new RegistryStorageException("Failed to ensure content."));
         }
 
         // If we get here, then the content was inserted and we need to insert the references.
         insertReferencesRaw(handle, contentId, references);
+        return contentId;
+    }
+
+    private boolean insertContentRowRaw(Handle handle, long contentId, TypedContent content,
+            String contentHash, String canonicalContentHash, String serializedReferences) {
+        return handle.createUpdate(sqlStatements.insertContentIfAbsent())
+                .bind(0, contentId)
+                .bind(1, canonicalContentHash)
+                .bind(2, contentHash)
+                .bind(3, content.getContentType())
+                .bind(4, content.getContent().bytes())
+                .bind(5, serializedReferences)
+                .execute() > 0;
     }
 }

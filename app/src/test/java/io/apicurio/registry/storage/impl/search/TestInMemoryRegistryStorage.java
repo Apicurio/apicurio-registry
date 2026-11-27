@@ -75,6 +75,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * Minimal in-memory {@link RegistryStorage} implementation for unit testing. Contains static
@@ -247,6 +248,11 @@ public class TestInMemoryRegistryStorage implements RegistryStorage {
     @Override
     public boolean isReadOnly() {
         return true;
+    }
+
+    @Override
+    public <T> T inUnitOfWork(Supplier<T> work) {
+        return work.get();
     }
 
     // ===== Unused methods — throw UnsupportedOperationException =====

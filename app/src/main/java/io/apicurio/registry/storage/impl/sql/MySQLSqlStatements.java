@@ -37,6 +37,12 @@ public class MySQLSqlStatements extends CommonSqlStatements {
     }
 
     @Override
+    public String selectContentIdByHashLatestCommitted() {
+        // A locking read sees the latest committed row, not the REPEATABLE READ snapshot.
+        return selectContentIdByHash() + " FOR SHARE";
+    }
+
+    @Override
     public String upsertBranch() {
         return """
                 INSERT INTO branches (groupId, artifactId, branchId, description, systemDefined, owner, createdOn, modifiedBy, modifiedOn)

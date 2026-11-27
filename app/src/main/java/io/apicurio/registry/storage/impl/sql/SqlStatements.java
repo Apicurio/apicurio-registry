@@ -199,6 +199,23 @@ public interface SqlStatements {
     }
 
     /**
+     * True when {@link #insertContentIfAbsent()} skips a row whose contentHash already exists instead of
+     * failing, so the insert never needs a savepoint.
+     */
+    default boolean insertContentIfAbsentIgnoresConflicts() {
+        return false;
+    }
+
+    /**
+     * A statement to select a contentId by contentHash that sees rows committed after the current
+     * transaction started. Used after an insert lost a race for the same contentHash. Under REPEATABLE
+     * READ (the MySQL default) a plain read would still use the transaction's earlier snapshot.
+     */
+    default String selectContentIdByHashLatestCommitted() {
+        return selectContentIdByHash();
+    }
+
+    /**
      * A statement to update canonicalHash value in a row in the "content" table
      */
     public String updateContentCanonicalHash();

@@ -17,6 +17,8 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
@@ -26,6 +28,8 @@ import jakarta.ws.rs.core.Response;
  */
 @ApplicationScoped
 public class IcebergExceptionMapperService implements ExceptionMapperService {
+
+    private static final String CONTENT_HEADER_PREFIX = "Content-";
 
     @Inject
     IcebergMetricsService metricsService;
@@ -77,6 +81,11 @@ public class IcebergExceptionMapperService implements ExceptionMapperService {
                     "Version already exists: " + ((VersionAlreadyExistsException) t).getVersion());
         }
 
+        // Keep a deliberate status rather than falling through to 500.
+        if (t instanceof WebApplicationException wae) {
+            return mapWebApplicationException(wae);
+        }
+
         // Default to internal server error
         return buildErrorResponse(500, "InternalServerError",
                 t.getMessage() != null ? t.getMessage() : "An unexpected error occurred");
@@ -101,7 +110,55 @@ public class IcebergExceptionMapperService implements ExceptionMapperService {
         return null;
     }
 
+    private Response mapWebApplicationException(WebApplicationException wae) {
+        Response original = wae.getResponse();
+        int status = original.getStatus();
+        if (status < 400) {
+            // A redirect is not an error: keep it as thrown, with its Location header.
+            return original;
+        }
+        Response.ResponseBuilder builder = errorResponseBuilder(status, errorType(wae, status),
+                wae.getMessage());
+        // Forward protocol headers such as Allow (405) and Retry-After (503). The body is replaced,
+        // so headers that describe the original one are not carried over.
+        original.getHeaders().forEach((name, values) -> {
+            if (!describesBody(name)) {
+                values.forEach(value -> builder.header(name, value));
+            }
+        });
+        return builder.build();
+    }
+
+    /**
+     * The error {@code type} for an exception that carries its own status. A named subclass such as
+     * {@code ServiceUnavailableException} keeps its name. A plain or anonymous
+     * {@code WebApplicationException} has no useful name, so the type is derived from the status.
+     */
+    private static String errorType(WebApplicationException wae, int status) {
+        Class<?> exceptionClass = wae.getClass();
+        if (exceptionClass != WebApplicationException.class && !exceptionClass.isAnonymousClass()) {
+            return exceptionClass.getSimpleName();
+        }
+        if (status >= 500) {
+            return "InternalServerError";
+        }
+        Response.Status known = Response.Status.fromStatusCode(status);
+        return known != null
+                ? known.getReasonPhrase().replaceAll("[^A-Za-z0-9]", "") + "Exception"
+                : "ClientErrorException";
+    }
+
+    private static boolean describesBody(String header) {
+        return header.regionMatches(true, 0, CONTENT_HEADER_PREFIX, 0, CONTENT_HEADER_PREFIX.length())
+                || HttpHeaders.ETAG.equalsIgnoreCase(header)
+                || HttpHeaders.LAST_MODIFIED.equalsIgnoreCase(header);
+    }
+
     private Response buildErrorResponse(int code, String type, String message) {
+        return errorResponseBuilder(code, type, message).build();
+    }
+
+    private Response.ResponseBuilder errorResponseBuilder(int code, String type, String message) {
         metricsService.recordIcebergError(type);
 
         ErrorModel error = new ErrorModel();
@@ -114,7 +171,6 @@ public class IcebergExceptionMapperService implements ExceptionMapperService {
 
         return Response.status(code)
                 .type(MediaType.APPLICATION_JSON)
-                .entity(response)
-                .build();
+                .entity(response);
     }
 }

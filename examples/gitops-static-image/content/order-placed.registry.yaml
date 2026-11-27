@@ -1,0 +1,8 @@
+$type: artifact-v1
+groupId: orders
+artifactId: order-placed
+artifactType: AVRO
+versions:
+  - version: "1.0.0"
+    state: ENABLED
+    content: order-placed-v1.avsc

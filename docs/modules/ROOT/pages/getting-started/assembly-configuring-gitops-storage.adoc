@@ -351,6 +351,34 @@ In push mode, any authorized push user can access all Git repositories on the sh
 . Optional: When you configure multiple repositories, set the mode per repository with `APICURIO_GITOPS_REPOS_N_MODE`, which overrides the global `APICURIO_GITOPS_MODE` setting.
 
 
+[id="configuring-gitops-static-image_{context}"]
+== Deploying GitOps storage with a static content image
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+Instead of running the GitOps sync container at runtime, you can bake your registry metadata and schema files into a container image and load them into {registry} as a static data source.
+
+Because {registry} reads GitOps repositories through JGit, the directory mounted at `/repos/default` still requires a `.git` directory and a commit. To avoid running `git` at runtime, initialize a Git repository and create a commit inside the content image at build time, then copy that directory into a shared `emptyDir` volume with an `initContainer` (or mount the image directly on {kubernetes} clusters that support image volumes via KEP-4639).
+
+*When to use a static content image vs. the Git sync container*
+
+* *Use a static content image* when you want immutable, versioned releases tied to your CI/CD image pipeline, air-gapped deployments without runtime Git access, or simpler pods without a sync sidecar.
+* *Use the Git sync container* when you want live updates from a remote repository or `git push` without restarting pods, or when you need dry-run validation.
+
+*Trade-offs*
+
+* *Immutable for the pod's lifetime:* Updating schemas or metadata requires building a new content image and rolling the Deployment.
+* *No dry-run validation:* The `POST /admin/gitops/validate` endpoint depends on the GitOps sync container to process validation requests and times out without it.
+* *Limited sync status:* The `GET /admin/gitops/status` endpoint works in-process and reports the baked commit SHA in `sources`, but there is no live remote sync status.
+
+ifndef::service-registry-downstream[]
+[role="_additional-resources"]
+.Additional resources
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/gitops-static-image[Example static content image and Kubernetes Deployment]
+endif::[]
+
+
 [id="configuring-gitops-multiple-repositories_{context}"]
 == Configuring multiple GitOps repositories
 

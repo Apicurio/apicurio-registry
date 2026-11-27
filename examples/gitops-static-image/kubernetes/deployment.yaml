@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: apicurio-registry-gitops-static
+  labels:
+    app: apicurio-registry-gitops-static
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: apicurio-registry-gitops-static
+  template:
+    metadata:
+      labels:
+        app: apicurio-registry-gitops-static
+    spec:
+      initContainers:
+        - name: copy-content
+          image: apicurio-registry-gitops-content:latest
+          imagePullPolicy: IfNotPresent
+          command: ["sh", "-c", "cp -a /repo/. /repos/default/"]
+          volumeMounts:
+            - name: gitops-repos
+              mountPath: /repos
+      containers:
+        - name: registry
+          image: apicurio/apicurio-registry:latest-snapshot
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: APICURIO_STORAGE_KIND
+              value: "gitops"
+            - name: APICURIO_POLLING_STORAGE_ID
+              value: "main"
+            - name: APICURIO_FEATURES_EXPERIMENTAL_ENABLED
+              value: "true"
+          volumeMounts:
+            - name: gitops-repos
+              mountPath: /repos
+              readOnly: true
+      volumes:
+        - name: gitops-repos
+          emptyDir: {}
+
+# Alternative (Kubernetes 1.31+ with ImageVolume feature gate / KEP-4639):
+# Mount the content image directly without an initContainer or emptyDir.
+# Replace initContainers + volumes above with:
+#
+#       containers:
+#         - name: registry
+#           ...
+#           volumeMounts:
+#             - name: gitops-content
+#               mountPath: /repos/default
+#               subPath: repo
+#               readOnly: true
+#       volumes:
+#         - name: gitops-content
+#           image:
+#             reference: apicurio-registry-gitops-content:latest
+#             pullPolicy: IfNotPresent
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: apicurio-registry-gitops-static
+  labels:
+    app: apicurio-registry-gitops-static
+spec:
+  selector:
+    app: apicurio-registry-gitops-static
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080

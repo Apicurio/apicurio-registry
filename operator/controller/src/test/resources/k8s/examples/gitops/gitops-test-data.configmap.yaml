@@ -11,18 +11,18 @@ metadata:
   name: gitops-test-data
 data:
   registry.registry.yaml: |
-    $type: registry-v0
+    $type: registry-v1
     registryId: prod
     properties: []
 
   group-test.registry.yaml: |
-    $type: group-v0
+    $type: group-v1
     registryIds: [prod]
     groupId: test-group
     description: Test group for GitOps operator integration test
 
   artifact-greeting.registry.yaml: |
-    $type: artifact-v0
+    $type: artifact-v1
     registryIds: [prod]
     groupId: test-group
     artifactId: greeting

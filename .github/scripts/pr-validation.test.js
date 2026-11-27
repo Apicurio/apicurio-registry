@@ -15,6 +15,7 @@ const {
   checkDcoSignOff,
   checkMilestone,
   checkUpgradeScripts,
+  checkCompatibilityRisk,
 } = require('./pr-validation.js');
 
 const OWNER = 'Apicurio';
@@ -1156,4 +1157,123 @@ test('validate(): without a docs_only config section nothing is docs-only', asyn
   await validate({ github, context: makeContext(pr), core });
 
   assert.equal(getFailed(), 'PR validation failed: Issue link, Milestone');
+});
+
+// ---------------------------------------------------------------------------
+// checkCompatibilityRisk(): advisory compatibility-risk reminder (#9235, #11388).
+// ---------------------------------------------------------------------------
+
+test('checkCompatibilityRisk(): null when nothing matches', () => {
+  const files = [{ filename: 'app/src/main/java/io/apicurio/registry/Foo.java' }];
+  assert.equal(checkCompatibilityRisk(files), null);
+});
+
+test('checkCompatibilityRisk(): flags an openapi.json change', () => {
+  const files = [{ filename: 'common/src/main/resources/META-INF/openapi.json' }];
+  const reasons = checkCompatibilityRisk(files);
+  assert.deepEqual(reasons, ['the REST API contract (openapi.json)']);
+});
+
+test('checkCompatibilityRisk(): flags a CRD model change', () => {
+  const files = [{
+    filename: 'operator/model/src/main/java/io/apicurio/registry/operator/api/v1/spec/AppSpec.java',
+  }];
+  const reasons = checkCompatibilityRisk(files);
+  assert.deepEqual(reasons, ['the operator CRD model']);
+});
+
+test('checkCompatibilityRisk(): a file moved out of the SQL directory is still flagged, by its previous filename', () => {
+  const files = [{
+    filename: 'app/src/main/resources/moved-out.ddl',
+    previous_filename: 'app/src/main/resources/io/apicurio/registry/storage/impl/sql/h2.ddl',
+  }];
+  const reasons = checkCompatibilityRisk(files);
+  assert.deepEqual(reasons, ['the SQL schema']);
+});
+
+test('checkCompatibilityRisk(): flags an added @ConfigProperty line in the diff', () => {
+  const files = [{
+    filename: 'app/src/main/java/io/apicurio/registry/config/FooConfig.java',
+    patch: '@@ -1,3 +1,6 @@\n'
+      + ' class FooConfig {\n'
+      + '+    @ConfigProperty(name = "apicurio.foo.bar")\n'
+      + '+    String bar;\n'
+      + ' }',
+  }];
+  const reasons = checkCompatibilityRisk(files);
+  assert.deepEqual(reasons, ['a new or changed `@ConfigProperty`']);
+});
+
+test('checkCompatibilityRisk(): an unchanged @ConfigProperty line (context, not added) does not match', () => {
+  const files = [{
+    filename: 'app/src/main/java/io/apicurio/registry/config/FooConfig.java',
+    patch: '@@ -1,3 +1,4 @@\n'
+      + '     @ConfigProperty(name = "apicurio.foo.bar")\n'
+      + '     String bar;\n'
+      + '+    String baz;\n'
+      + ' }',
+  }];
+  assert.equal(checkCompatibilityRisk(files), null);
+});
+
+test('checkCompatibilityRisk(): a file with no patch (e.g. a binary, or a very large diff) is skipped without erroring', () => {
+  const files = [{ filename: 'app/src/main/java/io/apicurio/registry/config/FooConfig.java' }];
+  assert.equal(checkCompatibilityRisk(files), null);
+});
+
+test('checkCompatibilityRisk(): reasons are de-duplicated across files', () => {
+  const files = [
+    { filename: 'app/src/main/resources/io/apicurio/registry/storage/impl/sql/h2.ddl' },
+    { filename: 'app/src/main/resources/io/apicurio/registry/storage/impl/sql/mysql.ddl' },
+  ];
+  const reasons = checkCompatibilityRisk(files);
+  assert.deepEqual(reasons, ['the SQL schema']);
+});
+
+test('checkCompatibilityRisk(): an unrelated file is not flagged', () => {
+  const files = [{ filename: 'docs/modules/ROOT/pages/a.adoc' }];
+  assert.equal(checkCompatibilityRisk(files), null);
+});
+
+// validate(): the compatibility-risk section actually reaches the posted comment, not just
+// checkCompatibilityRisk() in isolation -- a regression here would mean nothing is ever shown to
+// an author even though detection still works (Copilot, #11395).
+
+test('validate(): a risk-only PR still passes, and the comment carries the compatibility-risk section and guidance', async (t) => {
+  stubConfig(t, { auto_accept: [] });
+  const pr = {
+    number: 1, user: { login: 'contributor' }, body: 'Closes #42', labels: [], draft: false,
+  };
+  const { github, calls } = createFakeGithub({
+    commitsByPr: { 1: [SIGNED_COMMIT('aaaaaaaa1111', 'fix: a')] },
+    filesByPr: { 1: ['common/src/main/resources/META-INF/openapi.json'] },
+  });
+  const { core, getFailed } = createFakeCore();
+
+  await validate({ github, context: makeContext(pr), core });
+
+  assert.equal(getFailed(), null, 'a compatibility-risk reminder must not fail the check');
+  assert.deepEqual(calls.addedLabels, [], 'a compatibility-risk reminder must not label the PR');
+  const body = calls.createdComments[0].body;
+  assert.ok(body.includes('All validation checks passed.'));
+  assert.ok(body.includes('### Compatibility risk'));
+  assert.ok(body.includes('the REST API contract (openapi.json)'));
+  assert.ok(body.includes('docs/dev/compatibility.md'));
+  assert.ok(body.includes('.claude/rules/upgrade-impact.md'));
+});
+
+test('validate(): the compatibility-risk section is absent when no file matches', async (t) => {
+  stubConfig(t, { auto_accept: [] });
+  const pr = {
+    number: 1, user: { login: 'contributor' }, body: 'Closes #42', labels: [], draft: false,
+  };
+  const { github, calls } = createFakeGithub({
+    commitsByPr: { 1: [SIGNED_COMMIT('aaaaaaaa1111', 'fix: a')] },
+    filesByPr: { 1: ['docs/modules/ROOT/pages/a.adoc'] },
+  });
+  const { core } = createFakeCore();
+
+  await validate({ github, context: makeContext(pr), core });
+
+  assert.ok(!calls.createdComments[0].body.includes('### Compatibility risk'));
 });

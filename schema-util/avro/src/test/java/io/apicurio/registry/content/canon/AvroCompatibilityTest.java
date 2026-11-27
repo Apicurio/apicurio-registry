@@ -72,8 +72,8 @@ class AvroCompatibilityTest {
                 "adding a field with default is a backward compatible change");
         assertFalse(checker.isCompatible(schema3, Collections.singletonList(schema1)),
                 "adding a field w/o default is not a backward compatible change");
-        assertFalse(checker.isCompatible(schema4, Collections.singletonList(schema1)),
-                "changing field name is not a backward compatible change");
+        assertTrue(checker.isCompatible(schema4, Collections.singletonList(schema1)),
+                "changing field name with alias is a backward compatible change");
         assertTrue(checker.isCompatible(schema6, Collections.singletonList(schema1)),
                 "evolving a field type to a union is a backward compatible change");
         assertFalse(checker.isCompatible(schema1, Collections.singletonList(schema6)),

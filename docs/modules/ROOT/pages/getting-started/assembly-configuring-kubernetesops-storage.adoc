@@ -216,16 +216,16 @@ The following `$type` values are supported:
 |Type
 |Description
 
-|`registry-v0`
+|`registry-v1`
 |Registry configuration including global rules, settings, and peer registries
 
-|`group-v0`
+|`group-v1`
 |Group definition
 
-|`artifact-v0`
+|`artifact-v1`
 |Artifact definition with versions
 
-|`content-v0`
+|`content-v1`
 |Content metadata linking to actual schema/API data
 |===
 
@@ -241,7 +241,7 @@ metadata:
     apicurio.io/registry-id: my-registry
 data:
   registry.registry.yaml: |
-    $type: registry-v0
+    $type: registry-v1
     registryId: my-registry
     globalRules:
       - ruleType: VALIDITY
@@ -261,7 +261,7 @@ metadata:
     apicurio.io/registry-id: my-registry
 data:
   group-events.registry.yaml: |
-    $type: group-v0
+    $type: group-v1
     registryIds: [my-registry]
     groupId: com.example.events
     description: "Event schemas for the platform"
@@ -281,7 +281,7 @@ metadata:
     apicurio.io/registry-id: my-registry
 data:
   artifact-user-event.registry.yaml: |
-    $type: artifact-v0
+    $type: artifact-v1
     registryIds: [my-registry]
     groupId: com.example.events
     artifactId: user-event
@@ -309,7 +309,7 @@ data:
 
 NOTE: The `content` field in a version uses a relative path that references another data key in the ConfigMap (or across ConfigMaps). Content data keys should *not* use a metadata suffix (for example, `.registry.yaml`) since they contain raw schema/API data, not registry metadata.
 
-For advanced use cases, you can use `content-v0` metadata to set an explicit `contentId` or define content references. The version's `contentMetadata` field points to a `content-v0` entry, which in turn points to the actual content via its own `content` field.
+For advanced use cases, you can use `content-v1` metadata to set an explicit `contentId` or define content references. The version's `contentMetadata` field points to a `content-v1` entry, which in turn points to the actual content via its own `content` field.
 
 .Example: Artifact with content metadata
 [source,yaml]
@@ -323,7 +323,7 @@ metadata:
     apicurio.io/registry-id: my-registry
 data:
   artifact-user-event.registry.yaml: |
-    $type: artifact-v0
+    $type: artifact-v1
     registryIds: [my-registry]
     groupId: com.example.events
     artifactId: user-event
@@ -335,7 +335,7 @@ data:
         contentMetadata: content-user-event.registry.yaml
 
   content-user-event.registry.yaml: |
-    $type: content-v0
+    $type: content-v1
     contentId: 1
     content: user-event.avsc
     references: []
@@ -353,7 +353,7 @@ data:
     }
 ----
 
-Content references allow one artifact to reference another (for example, an Avro schema that imports another record type). Use the `references` field in a `content-v0` entry to declare these relationships.
+Content references allow one artifact to reference another (for example, an Avro schema that imports another record type). Use the `references` field in a `content-v1` entry to declare these relationships.
 
 .Example: Content references
 [source,yaml]
@@ -367,12 +367,12 @@ metadata:
     apicurio.io/registry-id: my-registry
 data:
   group-refs.registry.yaml: |
-    $type: group-v0
+    $type: group-v1
     registryIds: [my-registry]
     groupId: com.example.refs
 
   artifact-address.registry.yaml: |
-    $type: artifact-v0
+    $type: artifact-v1
     registryIds: [my-registry]
     groupId: com.example.refs
     artifactId: address
@@ -383,7 +383,7 @@ data:
         content: address.avsc
 
   artifact-customer.registry.yaml: |
-    $type: artifact-v0
+    $type: artifact-v1
     registryIds: [my-registry]
     groupId: com.example.refs
     artifactId: customer
@@ -395,7 +395,7 @@ data:
         contentMetadata: content-customer.registry.yaml
 
   content-customer.registry.yaml: |
-    $type: content-v0
+    $type: content-v1
     content: customer.avsc
     references:
       - groupId: com.example.refs
@@ -437,9 +437,17 @@ data:
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-Each KubernetesOps entity type (`registry-v0`, `group-v0`, `artifact-v0`, `content-v0`) supports a specific set of YAML fields. Fields marked with `$type` are required for type identification, and unknown fields cause parse errors.
+Each KubernetesOps entity type (`registry-v1`, `group-v1`, `artifact-v1`, `content-v1`) supports a specific set of YAML fields. Fields marked with `$type` are required for type identification, and unknown fields cause parse errors.
 
-.registry-v0 fields
+The suffix of each type is the data format version. KubernetesOps storage uses the same versions as GitOps storage: `v1` is current, and `v0` is still read but deprecated. A `$type` such as `registry-v0` therefore also loads, with a deprecation warning in the log. For details, see
+ifndef::service-registry-downstream[]
+xref:getting-started/assembly-configuring-gitops-storage.adoc#gitops-data-format-versions_{context}[].
+endif::[]
+ifdef::service-registry-downstream[]
+xref:gitops-data-format-versions_{context}[].
+endif::[]
+
+.registry-v1 fields
 [.table-expandable,width="100%",cols="3,2,5",options="header"]
 |===
 |Field
@@ -448,7 +456,7 @@ Each KubernetesOps entity type (`registry-v0`, `group-v0`, `artifact-v0`, `conte
 
 |`$type`
 |string
-|*Required*. Must be `registry-v0`.
+|*Required*. Must be `registry-v1`.
 
 |`registryId`
 |string
@@ -467,7 +475,7 @@ Each KubernetesOps entity type (`registry-v0`, `group-v0`, `artifact-v0`, `conte
 |Peer registries for federated search. Each peer has `peerId` (required; lowercase letters, digits, `.`, `_`, and `-` only; must be unique and cannot be `local`, which is reserved), `url` (required), optional `name` and `description`, `enabled` (boolean, defaults to `true` when omitted), and an optional `credentialSecretRef` (a reference to a credential, never a secret value). The full list is replaced on every load: omitting the field, or setting it to an empty list, removes all previously loaded peers.
 |===
 
-.group-v0 fields
+.group-v1 fields
 [.table-expandable,width="100%",cols="3,2,5",options="header"]
 |===
 |Field
@@ -476,7 +484,7 @@ Each KubernetesOps entity type (`registry-v0`, `group-v0`, `artifact-v0`, `conte
 
 |`$type`
 |string
-|*Required*. Must be `group-v0`.
+|*Required*. Must be `group-v1`.
 
 |`registryIds`
 |list of strings
@@ -507,7 +515,7 @@ Each KubernetesOps entity type (`registry-v0`, `group-v0`, `artifact-v0`, `conte
 |Group-level rules. Each rule has `ruleType` and `config`.
 |===
 
-.artifact-v0 fields
+.artifact-v1 fields
 [.table-expandable,width="100%",cols="3,2,5",options="header"]
 |===
 |Field
@@ -516,7 +524,7 @@ Each KubernetesOps entity type (`registry-v0`, `group-v0`, `artifact-v0`, `conte
 
 |`$type`
 |string
-|*Required*. Must be `artifact-v0`.
+|*Required*. Must be `artifact-v1`.
 
 |`registryIds`
 |list of strings
@@ -559,7 +567,7 @@ Each KubernetesOps entity type (`registry-v0`, `group-v0`, `artifact-v0`, `conte
 |Artifact-level rules. Each rule has `ruleType` and `config`.
 |===
 
-.Version fields (nested in artifact-v0)
+.Version fields (nested in artifact-v1)
 [.table-expandable,width="100%",cols="3,2,5",options="header"]
 |===
 |Field
@@ -592,7 +600,7 @@ Each KubernetesOps entity type (`registry-v0`, `group-v0`, `artifact-v0`, `conte
 
 |`contentMetadata`
 |string
-|Relative path to a `content-v0` metadata entry for advanced content configuration.
+|Relative path to a `content-v1` metadata entry for advanced content configuration.
 
 |`globalId`
 |long
@@ -603,7 +611,7 @@ Each KubernetesOps entity type (`registry-v0`, `group-v0`, `artifact-v0`, `conte
 |Owner of this version (for example, a username or team name).
 |===
 
-.content-v0 fields
+.content-v1 fields
 [.table-expandable,width="100%",cols="3,2,5",options="header"]
 |===
 |Field
@@ -612,7 +620,7 @@ Each KubernetesOps entity type (`registry-v0`, `group-v0`, `artifact-v0`, `conte
 
 |`$type`
 |string
-|*Required*. Must be `content-v0`.
+|*Required*. Must be `content-v1`.
 
 |`contentId`
 |long
@@ -627,7 +635,7 @@ Each KubernetesOps entity type (`registry-v0`, `group-v0`, `artifact-v0`, `conte
 |Content references to other artifacts. Each reference has `groupId`, `artifactId`, `version`, and `name`.
 |===
 
-.Rule fields (nested in registry-v0, group-v0, and artifact-v0)
+.Rule fields (nested in registry-v1, group-v1, and artifact-v1)
 [.table-expandable,width="100%",cols="3,2,5",options="header"]
 |===
 |Field

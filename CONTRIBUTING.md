@@ -159,6 +159,25 @@ Integration tests are opt-in and are documented in the
 CI runs the full storage matrix as the pre-merge gate, so running every variant
 locally is not required.
 
+### Compatibility and upgrade impact
+
+Users upgrade a running Registry, with their data, configuration, clients and extensions. Before
+opening a PR, consider what your change means for them. Read the
+[developer compatibility guide](docs/dev/compatibility.md) when your change touches any of:
+
+- the REST API or the serdes, including responses that clients already receive
+- operator CRD fields
+- configuration properties or their defaults
+- database upgrades
+- Java interfaces that are implemented outside Registry, such as artifact type providers
+- experimental features, and the coupling between the operator and Registry
+
+If users who upgrade will notice the change, add an entry to the upgrade page of the version it
+ships in, for example
+[Upgrading to 3.4.0](docs/modules/ROOT/pages/getting-started/assembly-upgrading-to-3-4.adoc), in the
+same PR. Say what changed, who is affected, and what to do. A change that only adds something
+opt-in doesn't need an entry.
+
 ### Customizing Registry supported ArtifactTypes
 
 The artifact types supported by a registry instance can be configured at deployment time, without

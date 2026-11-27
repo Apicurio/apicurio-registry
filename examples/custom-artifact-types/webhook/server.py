@@ -21,10 +21,9 @@ def columns(content):
 
 
 def accept(request):
-    # The webhook contract (ContentAccepterResponse) is {"accepted": true}, but the registry reads a
-    # bare JSON boolean (https://github.com/Apicurio/apicurio-registry/issues/11151)
+    # The response is a ContentAccepterResponse, as defined by the webhook contract
     content = request["typedContent"]
-    return content.get("contentType") == "text/csv"
+    return {"accepted": content.get("contentType") == "text/csv"}
 
 
 def validate(request):

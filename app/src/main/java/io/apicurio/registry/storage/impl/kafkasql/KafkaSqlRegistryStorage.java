@@ -696,6 +696,14 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
     }
 
     @Override
+    public void mergeArtifactLabels(String groupId, String artifactId,
+            String prefix, Map<String, String> labels, Map<String, String> expected) throws RegistryStorageException {
+        var message = new MergeArtifactLabels5Message(groupId, artifactId, prefix, labels, expected);
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+    }
+
+    @Override
     public void mergeVersionLabels(String groupId, String artifactId, String version,
             String prefix, java.util.Map<String, String> labels) throws RegistryStorageException {
         var message = new io.apicurio.registry.storage.impl.kafkasql.messages

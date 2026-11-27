@@ -113,6 +113,7 @@ public class ProcessingState {
     }
 
     public void index(PollingDataFile file) {
+        file.getFormatError().ifPresent(error -> recordError(file, "%s", error));
         pathIndex.put(file.getSourceId() + ":" + file.getPath(), file);
         file.getAny().ifPresent(a -> typeIndex.computeIfAbsent(a.getType(), k -> new HashSet<>()).add(file));
     }

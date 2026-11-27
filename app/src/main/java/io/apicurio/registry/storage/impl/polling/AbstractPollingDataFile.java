@@ -33,11 +33,19 @@ public abstract class AbstractPollingDataFile implements PollingDataFile {
     @Setter
     protected boolean processed;
 
+    @Getter
+    protected final Optional<String> formatError;
+
     protected AbstractPollingDataFile(String sourceId, String path, ContentHandle data, Optional<Any> any) {
+        this(sourceId, path, data, new Any.Parsed(any, Optional.empty()));
+    }
+
+    protected AbstractPollingDataFile(String sourceId, String path, ContentHandle data, Any.Parsed parsed) {
         this.sourceId = sourceId;
         this.path = path;
         this.data = data;
-        this.any = any;
+        this.any = parsed.any();
+        this.formatError = parsed.formatError();
     }
 
     @Override

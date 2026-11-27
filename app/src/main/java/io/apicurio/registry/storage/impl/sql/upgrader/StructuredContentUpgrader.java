@@ -37,8 +37,9 @@ import static io.apicurio.registry.utils.StringUtil.sanitizeForLog;
  * populates the new table so those filters work on SQL.
  * <p>
  * The backfill reads and re-parses the latest version's content of every artifact of an extractable type
- * (agent card, MCP tool, OpenAPI, AsyncAPI), so on a large registry it adds a one-time cost to the
- * database upgrade proportional to the number of such artifacts - other artifact types are not touched.
+ * (Avro, Protobuf, JSON Schema, OpenAPI, AsyncAPI, agent card, MCP tool, ...), so on a large registry it
+ * adds a one-time cost to the database upgrade proportional to the number of such artifacts - types with
+ * no structured content extractor (KCONNECT, OPENRPC, ODCS) are not touched.
  * Progress is logged every {@link #PROGRESS_LOG_INTERVAL} artifacts so a long-running upgrade is
  * observable rather than looking hung.
  */

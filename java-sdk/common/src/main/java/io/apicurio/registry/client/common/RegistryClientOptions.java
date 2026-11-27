@@ -132,6 +132,8 @@ public class RegistryClientOptions {
     // HTTP logging config
     private boolean httpLoggingEnabled = false;
 
+    private boolean cookiesEnabled = false;
+
     private RegistryClientOptions() {
     }
 
@@ -285,6 +287,10 @@ public class RegistryClientOptions {
 
     public boolean isHttpLoggingEnabled() {
         return httpLoggingEnabled;
+    }
+
+    public boolean isCookiesEnabled() {
+        return cookiesEnabled;
     }
 
     /**
@@ -919,6 +925,21 @@ public class RegistryClientOptions {
      */
     public RegistryClientOptions enableHttpLogging() {
         this.httpLoggingEnabled = true;
+        return this;
+    }
+
+    /**
+     * Keeps the cookies set by the Registry, or by a proxy in front of it, in memory and sends them
+     * back on later requests from this client, so that cookie-based sticky routing (session
+     * affinity) keeps the client on one replica.
+     *
+     * <p>A {@link #customWebClient(WebClient) custom client} that is already a
+     * {@code WebClientSession} uses its own cookie store instead.</p>
+     *
+     * @return this builder
+     */
+    public RegistryClientOptions enableCookies() {
+        this.cookiesEnabled = true;
         return this;
     }
 }

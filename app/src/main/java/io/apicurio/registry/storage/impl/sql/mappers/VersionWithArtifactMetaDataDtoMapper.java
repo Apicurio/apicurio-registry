@@ -22,8 +22,8 @@ public class VersionWithArtifactMetaDataDtoMapper implements RowMapper<VersionWi
     @Override
     public VersionWithArtifactMetaDataDto map(ResultSet rs) throws SQLException {
         ArtifactMetaDataDto artifact = new ArtifactMetaDataDto();
-        artifact.setGroupId(RegistryContentUtils.denormalizeGroupId(rs.getString("groupId")));
-        artifact.setArtifactId(rs.getString("artifactId"));
+        artifact.setGroupId(RegistryContentUtils.denormalizeGroupId(rs.getString("artifactGroupId")));
+        artifact.setArtifactId(rs.getString("artifactArtifactId"));
         artifact.setOwner(rs.getString("artifactOwner"));
         artifact.setCreatedOn(rs.getTimestamp("artifactCreatedOn").getTime());
         artifact.setName(rs.getString("artifactName"));

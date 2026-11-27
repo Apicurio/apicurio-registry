@@ -183,7 +183,8 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectArtifactVersionWithArtifactMetaDataByGlobalId() {
-        return "SELECT v.*, a.type, a.owner AS artifactOwner, a.createdOn AS artifactCreatedOn, "
+        return "SELECT v.*, a.groupId AS artifactGroupId, a.artifactId AS artifactArtifactId, "
+                + "a.type, a.owner AS artifactOwner, a.createdOn AS artifactCreatedOn, "
                 + "a.name AS artifactName, a.description AS artifactDescription, a.labels AS artifactLabels, "
                 + "a.modifiedBy AS artifactModifiedBy, a.modifiedOn AS artifactModifiedOn "
                 + "FROM versions v "

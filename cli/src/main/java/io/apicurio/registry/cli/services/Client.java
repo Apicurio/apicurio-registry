@@ -95,6 +95,8 @@ public class Client {
     static RegistryClientOptions registryClientOptions(final String url, final Vertx vertx, final boolean logHttp,
             final boolean shortReadTimeout) {
         final var options = RegistryClientOptions.create(url, vertx);
+        // Cookies stay in memory and acr runs one command per process, so they never outlive the command.
+        options.enableCookies();
         options.requestTimeout(CONNECT_TIMEOUT_MILLIS,
                 shortReadTimeout ? REGISTRY_READ_IDLE_TIMEOUT_MILLIS : REGISTRY_LONG_REQUEST_READ_IDLE_TIMEOUT_MILLIS);
         if (logHttp) {

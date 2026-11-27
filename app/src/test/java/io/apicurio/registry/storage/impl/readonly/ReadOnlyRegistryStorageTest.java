@@ -278,6 +278,8 @@ public class ReadOnlyRegistryStorageTest extends AbstractResourceTestBase {
                         new State(false, s -> s.getDeprecationReadiness(null, null, null))),
                 entry("mergeArtifactLabels4",
                         new State(true, s -> s.mergeArtifactLabels(null, null, null, null))),
+                entry("mergeArtifactLabels5",
+                        new State(true, s -> s.mergeArtifactLabels(null, null, null, null, null))),
                 entry("mergeVersionLabels5",
                         new State(true, s -> s.mergeVersionLabels(null, null, null, null, null))),
                 entry("updateContractMetadata4",

@@ -9,6 +9,7 @@ import io.kiota.http.jdk.JDKRequestAdapter;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLParameters;
 import java.io.IOException;
+import java.net.CookieManager;
 import java.net.InetSocketAddress;
 import java.net.ProxySelector;
 import java.net.http.HttpClient;
@@ -56,6 +57,12 @@ public final class JdkAdapterFactory {
             SSLParameters sslParams = JdkSslContextFactory.createSslParameters(options);
             builder.sslContext(sslContext);
             builder.sslParameters(sslParams);
+        }
+
+        // Configure cookies: an in-memory, per-client CookieManager with the default ACCEPT_ORIGINAL_SERVER
+        // policy, which also accepts a proxy's host-only sticky-routing cookie.
+        if (options.isCookiesEnabled()) {
+            builder.cookieHandler(new CookieManager());
         }
 
         // Configure proxy

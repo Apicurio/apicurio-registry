@@ -134,7 +134,7 @@ class McpToolsClientTest {
     @Test
     void slowServerTimesOut() {
         server.tools(McpTestServer.tool("a", "string"));
-        server.delayMillis = 4000;
+        server.delayMillis = 2500;
 
         McpImportException e = assertThrows(McpImportException.class, () -> client.listTools(
                 URI.create(server.url()), Map.of(),

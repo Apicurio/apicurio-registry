@@ -9,6 +9,7 @@ import io.apicurio.registry.rest.v3.beans.McpToolImportResult;
 import io.apicurio.registry.rest.v3.beans.McpToolImportStatus;
 import io.apicurio.registry.rest.v3.beans.McpToolImportToolResult;
 import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.error.ContractStateConflictException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.NotFoundException;
@@ -57,24 +58,51 @@ public class McpImportStatusStore {
     McpImportConfig config;
 
     /**
-     * Refuses to start an import into an artifact whose recorded import is still running and not
-     * stale. Like every write below, this reads the labels and then writes them: the storage has no
-     * compare-and-set for labels, so two instances starting imports into one artifact at the same
-     * moment can both pass. The import ID then makes each import write only its own status.
+     * Fast-fail check before acquiring a concurrency permit: refuses to start an import into an
+     * artifact whose recorded import is still running and not stale. {@link #started} then enforces
+     * this atomically with a compare-and-set on the status labels.
      *
      * @throws McpImportException with {@link McpImportException.Reason#ALREADY_RUNNING}
      */
     void requireNotRunning(String groupId, String artifactId) {
         Map<String, String> labels = labels(groupId, artifactId);
-        if (state(labels.get(McpImportLabels.STATE)) == McpToolImportJobState.RUNNING && !isStale(labels)) {
-            throw new McpImportException(McpImportException.Reason.ALREADY_RUNNING,
-                    "An import into this MCP server is already running.");
+        if (isRunning(labels)) {
+            throw alreadyRunning();
         }
     }
 
-    /** Records a new running import, replacing the status of any earlier one. */
+    /**
+     * Atomically records a new running import if no non-stale import is already running, replacing
+     * the status of any earlier finished or stale import.
+     *
+     * @throws McpImportException with {@link McpImportException.Reason#ALREADY_RUNNING} if another
+     *                            import is already running or started concurrently
+     */
     void started(String groupId, String artifactId, String importId, Instant startedOn) {
-        write(groupId, artifactId, runningLabels(importId, startedOn, startedOn));
+        Map<String, String> current = labels(groupId, artifactId);
+        if (isRunning(current)) {
+            throw alreadyRunning();
+        }
+        Map<String, String> expected = new HashMap<>();
+        expected.put(McpImportLabels.ID, current.get(McpImportLabels.ID));
+        expected.put(McpImportLabels.STATE, current.get(McpImportLabels.STATE));
+        expected.put(McpImportLabels.UPDATED_ON, current.get(McpImportLabels.UPDATED_ON));
+        expected.put(McpImportLabels.STARTED_ON, current.get(McpImportLabels.STARTED_ON));
+        try {
+            storage.mergeArtifactLabels(raw(groupId), artifactId, McpImportLabels.PREFIX,
+                    runningLabels(importId, startedOn, startedOn), expected);
+        } catch (ContractStateConflictException e) {
+            throw alreadyRunning();
+        }
+    }
+
+    private boolean isRunning(Map<String, String> labels) {
+        return state(labels.get(McpImportLabels.STATE)) == McpToolImportJobState.RUNNING && !isStale(labels);
+    }
+
+    private static McpImportException alreadyRunning() {
+        return new McpImportException(McpImportException.Reason.ALREADY_RUNNING,
+                "An import into this MCP server is already running.");
     }
 
     /** Records that the import is still making progress, unless a newer import replaced it. */
@@ -117,16 +145,17 @@ public class McpImportStatusStore {
     }
 
     /**
-     * Writes only while the recorded status is still this import's, so an older import never
-     * replaces the status of a newer one. Not atomic: see {@link #requireNotRunning}.
+     * Atomically writes only while the recorded status is still this import's, so an older import
+     * never replaces the status of a newer one.
      */
     private void writeIfOwned(String groupId, String artifactId, String importId, Map<String, String> labels) {
-        if (!importId.equals(labels(groupId, artifactId).get(McpImportLabels.ID))) {
+        try {
+            storage.mergeArtifactLabels(raw(groupId), artifactId, McpImportLabels.PREFIX, labels,
+                    Map.of(McpImportLabels.ID, importId));
+        } catch (ContractStateConflictException e) {
             log.debug("Not recording the status of MCP import {} into {}/{}: a newer import replaced it", importId,
                     groupId, artifactId);
-            return;
         }
-        write(groupId, artifactId, labels);
     }
 
     /**
@@ -208,10 +237,6 @@ public class McpImportStatusStore {
         labels.put(McpImportLabels.STARTED_ON, startedOn.toString());
         labels.put(McpImportLabels.FINISHED_ON, Instant.now().toString());
         return labels;
-    }
-
-    private void write(String groupId, String artifactId, Map<String, String> labels) {
-        storage.mergeArtifactLabels(raw(groupId), artifactId, McpImportLabels.PREFIX, labels);
     }
 
     private static McpToolImportJobState state(String value) {

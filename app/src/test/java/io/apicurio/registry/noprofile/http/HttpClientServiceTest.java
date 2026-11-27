@@ -23,6 +23,7 @@ import io.apicurio.registry.http.HttpClientService;
 import io.quarkus.test.junit.QuarkusTest;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.AfterAll;
@@ -30,6 +31,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
@@ -93,6 +96,15 @@ class HttpClientServiceTest {
                     req.response().setStatusCode(202)
                             .putHeader("content-type", "application/json")
                             .end("{\"result\":\"accepted\"}");
+                    break;
+                case "/echoHeaders":
+                    req.response().setStatusCode(200)
+                            .putHeader("content-type", "application/json")
+                            .end(new JsonObject()
+                                    .put("authorization", req.getHeader("Authorization"))
+                                    .put("custom", req.getHeader("X-Custom-Header"))
+                                    .put("contentType", req.getHeader("Content-Type"))
+                                    .encode());
                     break;
                 case "/noContent204":
                     req.response().setStatusCode(204).end();
@@ -213,6 +225,49 @@ class HttpClientServiceTest {
         // A response with a body must return null without deserializing when Void.class is expected.
         Object result = httpClientService.post(baseUrl + "/ok200", "{}", Void.class);
         assertNull(result);
+    }
+
+    // --- Request header tests (injected bean, FT interceptors active) ---
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void testPostSendsConfiguredHeaders() {
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Authorization", "Bearer test-token");
+        headers.put("X-Custom-Header", "custom-value");
+
+        Map<String, Object> echoed = httpClientService.post(baseUrl + "/echoHeaders", headers, "{}", Map.class);
+
+        assertEquals("Bearer test-token", echoed.get("authorization"));
+        assertEquals("custom-value", echoed.get("custom"));
+        assertEquals("application/json", echoed.get("contentType"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void testPostKeepsJsonContentTypeAndSkipsInvalidHeaders() {
+        // A configured Content-Type must not replace application/json, and null or blank entries are skipped.
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Content-Type", "text/plain");
+        headers.put("X-Custom-Header", null);
+        headers.put(" ", "blank-name");
+        headers.put(null, "null-name");
+
+        Map<String, Object> echoed = httpClientService.post(baseUrl + "/echoHeaders", headers, "{}", Map.class);
+
+        assertEquals("application/json", echoed.get("contentType"));
+        assertNull(echoed.get("custom"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void testPostWithoutHeadersSendsNoAuthorization() {
+        Map<String, Object> echoed = httpClientService.post(baseUrl + "/echoHeaders", "{}", Map.class);
+        assertNull(echoed.get("authorization"));
+        assertEquals("application/json", echoed.get("contentType"));
+
+        Map<String, Object> echoedNullHeaders = httpClientService.post(baseUrl + "/echoHeaders", null, "{}", Map.class);
+        assertNull(echoedNullHeaders.get("authorization"));
     }
 
     // --- Behavioral abortOn and retry tests (injected bean, FT interceptors active) ---

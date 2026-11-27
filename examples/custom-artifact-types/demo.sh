@@ -77,7 +77,7 @@ check "the same document with trailing spaces is found as version 1, canonically
 # ------------------------------------------------------------------------------ CSV (webhook)
 part "Step 3: CSV, implemented by a webhook service"
 r=$(call POST /groups/data/artifacts "$(artifact_of customers "id,name,email" text/csv)")
-check "created without an artifactType: the webhook accepts text/csv as CSV" "200 CSV" \
+check "created without an artifactType: the webhook accepts text/csv as CSV ({\"accepted\": true})" "200 CSV" \
   "$(status "$r") $(body "$r" | jq -r .artifact.artifactType)"
 call POST /groups/data/artifacts/customers/rules '{"ruleType": "VALIDITY", "config": "FULL"}' > /dev/null
 r=$(call POST /groups/data/artifacts/customers/versions "$(version_of "id,name,name" text/csv)")
@@ -100,10 +100,9 @@ check "different case is found as version 1, canonically (the webhook lower-case
   "$(status "$r") $(body "$r" | jq -r .version.version)"
 paths=$(webhook_requests | jq -r '[.[].path] | unique | join(" ")')
 check "the registry called each provider's URL" "/accept /canonicalize /compatibility /validate" "$paths"
-# artifact-types.json configures "headers" for every webhook, and the documentation says they are
-# sent, for example for authentication; the registry sends none today (#11151)
-check "the configured Authorization header is not sent today (should be, #11151)" "0" \
-  "$(webhook_requests | jq '[.[] | select(.authorization == "Bearer csv-webhook-token")] | length')"
+# artifact-types.json configures "headers" for every webhook, for example for authentication
+check "every request carried the configured Authorization header" "0" \
+  "$(webhook_requests | jq '[.[] | select(.authorization != "Bearer csv-webhook-token")] | length')"
 
 part "Step 4: when the webhook is down"
 call POST /groups/data/artifacts "$(artifact_of orders "id,total" text/csv)" > /dev/null

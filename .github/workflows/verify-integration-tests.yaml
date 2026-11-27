@@ -25,34 +25,31 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # 'groups' selects JUnit 5 test tags via -Dgroups. If omitted, pom.xml default is used.
+        # 'groups' selects JUnit 5 test tags via -Dgroups in a single Maven invocation.
+        #   If omitted (and 'sequential-groups' is omitted), pom.xml default is used.
+        # 'sequential-groups' runs space-separated tag groups one after another on the same
+        #   Minikube cluster (compiling upstream modules once, waiting for apicurio-registry-e2e
+        #   namespace cleanup between groups). Used for short groups on the same storage backend
+        #   that require incompatible Registry deployments (e.g. secured auth vs unsecured migration).
+        # 'skip-minikube: true' skips Minikube for pure Testcontainers suites that deploy their own
+        #   containers on host Docker and ignore the matrix-deployed registry.
         # 'name' overrides 'groups' for the job display name when using default groups,
-        # groups contains multiple values or contains special characters.
-        # For single-group entries, name is derived from groups automatically
-        # via ${{ matrix.name || matrix.groups }}.
+        #   multiple values, or sequential-groups.
         include:
           # h2 (in-memory) storage
           - { storage: h2, name: default, remote-profile: remote-mem }
-          - { storage: h2, groups: auth, remote-profile: remote-mem }
-          - { storage: h2, groups: migration, remote-profile: remote-mem }
+          - { storage: h2, name: auth-migration-iceberg, sequential-groups: 'auth migration iceberg', remote-profile: remote-mem }
           - { storage: h2, name: debezium, groups: 'debezium,debezium-snapshot,debezium-mysql,debezium-mysql-snapshot', remote-profile: remote-mem }
-          - { storage: h2, groups: iceberg, remote-profile: remote-mem }
-          # Federated agent search across two registries deploys its own registry
-          # containers on a private network; it does not use the deployed one.
-          - { storage: h2, groups: federation, remote-profile: remote-mem }
           # postgresql storage
           - { storage: postgresql, name: default, remote-profile: remote-sql }
-          - { storage: postgresql, groups: auth, remote-profile: remote-sql }
-          - { storage: postgresql, groups: migration, remote-profile: remote-sql }
+          - { storage: postgresql, name: auth-migration, sequential-groups: 'auth migration', remote-profile: remote-sql }
           # kafkasql storage
           - { storage: kafkasql, name: default, remote-profile: remote-kafka }
-          - { storage: kafkasql, groups: auth, remote-profile: remote-kafka }
-          - { storage: kafkasql, groups: migration, remote-profile: remote-kafka }
+          - { storage: kafkasql, name: auth-migration, sequential-groups: 'auth migration', remote-profile: remote-kafka }
           - { storage: kafkasql, groups: kafkasql-snapshotting, remote-profile: remote-kafka }
-          # Startup verification (topic config checks, v2/v3 journal reuse) deploys
-          # its own Kafka + registry containers; it does not use the deployed one.
-          # Moved here from utils/extra-tests.
-          - { storage: kafkasql, groups: kafkasql-startup, remote-profile: remote-kafka }
+          # Pure Testcontainers suites (federation & kafkasql-startup) deploy their own
+          # containers on Docker and do not use Minikube or the matrix-deployed registry.
+          - { storage: docker, name: standalone, groups: 'federation,kafkasql-startup', skip-minikube: true }
           # kubernetesops storage
           - { storage: kubernetesops, groups: kubernetesops, remote-profile: remote-kubernetesops }
           # gitops storage
@@ -68,23 +65,22 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-
-
       - uses: apicurio/apicurio-github-actions/setup-minikube@bd19cbe33797325a571cd7ffd58f639b62e128a2 # v2
         id: minikube-setup
+        if: ${{ !matrix.skip-minikube }}
         continue-on-error: true
 
       # medyagh/setup-minikube (invoked by the composite action) intermittently
       # fails with transient HTTP 504s while downloading; one retry absorbs it
       # instead of failing the whole job.
       - uses: apicurio/apicurio-github-actions/setup-minikube@bd19cbe33797325a571cd7ffd58f639b62e128a2 # v2
-        if: steps.minikube-setup.outcome == 'failure'
+        if: ${{ !matrix.skip-minikube && steps.minikube-setup.outcome == 'failure' }}
 
       - uses: apicurio/apicurio-github-actions/load-docker-image@bd19cbe33797325a571cd7ffd58f639b62e128a2 # v2
         with:
           artifact-name: 'apicurio-registry-${{ inputs.image-tag }}.tar'
           image-file: '/tmp/apicurio-registry-${{ inputs.image-tag }}.tar'
-          minikube: 'true'
+          minikube: ${{ !matrix.skip-minikube && 'true' || 'false' }}
           image-name: 'apicurio/apicurio-registry'
           tag: '${{ inputs.image-tag }}'
 
@@ -97,29 +93,71 @@ jobs:
         run: docker build -t apicurio-registry-gitops-sync:test ./distro/gitops
 
       - name: Run Integration Tests
+        env:
+          SEQUENTIAL_GROUPS: ${{ matrix.sequential-groups }}
+          SINGLE_GROUPS: ${{ matrix.groups }}
+          REMOTE_PROFILE: ${{ matrix.remote-profile }}
+          IMAGE_TAG: ${{ inputs.image-tag }}
+          STORAGE: ${{ matrix.storage }}
         run: |
+          set -euo pipefail
           # -Pintegration-tests + -P<remote-profile>: select storage backend (remote-mem, remote-sql, remote-kafka, etc.)
           # -Dgroups: JUnit 5 test tags filtering (e.g., auth, migration, debezium)
-          # -Dregistry-image: Docker image built by the Build job, loaded into Minikube
+          # -Dregistry-image: Docker image built by the Build job, loaded into Minikube (or host Docker for standalone)
           # -Dfailsafe.rerunFailingTestsCount=1: automatically retry flaky integration tests once
           # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
           # -Djunit.jupiter.execution.timeout.default=10m: fail hung tests fast; environmental stalls
           #   previously kept a single test running for 30+ minutes (x2 with the flaky rerun)
           # -Djunit.jupiter.execution.parallel.enabled=true: run test classes concurrently against the
           #   deployed registry (see integration-tests/src/test/resources/junit-platform.properties)
-          ./mvnw -s ${{ github.workspace }}/.github/ci-settings.xml verify -am --no-transfer-progress \
-            -Pintegration-tests \
-            -P${{ matrix.remote-profile }} \
-            ${{ matrix.groups && format('-Dgroups={0}', matrix.groups) || '' }} \
-            -Dregistry-image=apicurio/apicurio-registry:${{ inputs.image-tag }} \
-            -Dregistry3-image=apicurio/apicurio-registry:${{ inputs.image-tag }} \
-            -pl integration-tests \
-            -Dmaven.javadoc.skip=true \
-            -Daether.syncContext.named.factory=noop \
-            -Dfailsafe.rerunFailingTestsCount=1 \
-            -Djunit.jupiter.execution.timeout.default=10m \
-            -Djunit.jupiter.execution.parallel.enabled=true \
-            ${{ matrix.storage == 'gitops' && '-Dgitops-sync-image=apicurio-registry-gitops-sync:test' || '' }}
+          common_args=(
+            -s "${{ github.workspace }}/.github/ci-settings.xml"
+            --no-transfer-progress
+            -Pintegration-tests
+            -Dregistry-image="apicurio/apicurio-registry:${IMAGE_TAG}"
+            -Dregistry3-image="apicurio/apicurio-registry:${IMAGE_TAG}"
+            -pl integration-tests
+            -Dmaven.javadoc.skip=true
+            -Daether.syncContext.named.factory=noop
+            -Dfailsafe.rerunFailingTestsCount=1
+            -Djunit.jupiter.execution.timeout.default=10m
+            -Djunit.jupiter.execution.parallel.enabled=true
+          )
+          if [ -n "$REMOTE_PROFILE" ]; then
+            common_args+=(-P"$REMOTE_PROFILE")
+          fi
+          if [ "$STORAGE" = "gitops" ]; then
+            common_args+=(-Dgitops-sync-image=apicurio-registry-gitops-sync:test)
+          fi
+
+          if [ -n "$SEQUENTIAL_GROUPS" ]; then
+            # Compile and install upstream modules once so each sequential group only runs
+            # the integration-tests module lifecycle against the shared Minikube cluster.
+            ./mvnw -s "${{ github.workspace }}/.github/ci-settings.xml" install -am --no-transfer-progress \
+              -Pintegration-tests -pl integration-tests \
+              -DskipTests -DskipITs -Dmaven.javadoc.skip=true \
+              -Daether.syncContext.named.factory=noop
+
+            first=true
+            for group in $SEQUENTIAL_GROUPS; do
+              if [ "$first" != "true" ]; then
+                # RegistryDeploymentManager deletes apicurio-registry-e2e on JVM shutdown;
+                # trigger deletion asynchronously so the 180s wait bounds termination.
+                kubectl delete namespace apicurio-registry-e2e --ignore-not-found --wait=false
+                kubectl wait --for=delete namespace/apicurio-registry-e2e --timeout=180s
+              fi
+              first=false
+              echo "::group::Integration test group: ${group}"
+              ./mvnw verify "${common_args[@]}" -Dgroups="$group"
+              echo "::endgroup::"
+            done
+          else
+            group_args=()
+            if [ -n "$SINGLE_GROUPS" ]; then
+              group_args+=(-Dgroups="$SINGLE_GROUPS")
+            fi
+            ./mvnw verify -am "${common_args[@]}" "${group_args[@]}"
+          fi
 
       - name: Parse Flaky Tests
         if: always()

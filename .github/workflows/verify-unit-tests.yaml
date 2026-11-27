@@ -32,23 +32,19 @@ jobs:
       matrix:
         shard:
           # app-rest used to be a single shard and was the PR critical path at ~35 min
-          # (61 classes, 3x the next shard). It is now split four ways: v3 (the bulk),
-          # ccompat, app-rest-misc (remaining noprofile rest + noprofile agents), and
-          # app-agents (profiled agent registry tests: A2A, MCP tools/import, inventory,
-          # AI Catalog, ARD), preventing app-rest-misc from exhausting the 4g Surefire heap.
-          # app-rest-misc and app-agents must partition cleanly; .github/scripts/verify-test-shards.py enforces the partition.
+          # (61 classes, 3x the next shard). It is split three ways: v3 + ccompat (both
+          # noprofile, sharing one Quarkus boot), app-rest-misc (remaining noprofile rest
+          # + noprofile agents), and app-agents (profiled agent registry tests: A2A, MCP
+          # tools/import, inventory, AI Catalog, ARD), keeping every shard under the 4g
+          # Surefire heap and below the ~14 min critical path.
+          # .github/scripts/verify-test-shards.py enforces the partition.
           - name: app-rest-v3
             modules: "-pl app -am -Dfull -DcliSkipNative"
-            test-filter: "-Dtest=io.apicurio.registry.noprofile.rest.v3.**"
+            test-filter: "-Dtest=io.apicurio.registry.noprofile.rest.v3.**,io.apicurio.registry.noprofile.ccompat.**"
             maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
             # Quarkus forks share target/test-classes/test-classes.idx. Concurrent
             # writers caused "Not a jandex index" during AllYamlTest discovery.
             surefire-opts: "-Dsurefire.forkCount=1"
-          - name: app-ccompat
-            modules: "-pl app -am -Dfull -DcliSkipNative"
-            test-filter: "-Dtest=io.apicurio.registry.noprofile.ccompat.**"
-            maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
-            surefire-opts: ""
           - name: app-rest-misc
             modules: "-pl app -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=io.apicurio.registry.noprofile.rest.**,!io.apicurio.registry.noprofile.rest.v3.**,io.apicurio.registry.agents.noprofile.**"
@@ -67,32 +63,24 @@ jobs:
             modules: "-pl app -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=io.apicurio.registry.storage.impl.kafkasql.**,io.apicurio.registry.event.kafkasql.**"
             maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
-          - name: app-gitops
+          - name: app-gitops-k8sops
             modules: "-pl app -am -Dfull -DcliSkipNative"
-            test-filter: "-Dtest=io.apicurio.registry.storage.impl.gitops.**"
+            test-filter: "-Dtest=io.apicurio.registry.storage.impl.gitops.**,io.apicurio.registry.storage.impl.kubernetesops.**"
             maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
-          - name: app-kubernetesops
-            modules: "-pl app -am -Dfull -DcliSkipNative"
-            test-filter: "-Dtest=io.apicurio.registry.storage.impl.kubernetesops.**"
-            maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
-          # app-auth / app-transport / app-metrics are carved out of app-other. Each @TestProfile in a
+          # app-auth and app-transport-metrics are carved out of app-other. Each @TestProfile in a
           # shard forces Quarkus to tear down and rebuild the application in the single forked JVM
           # (forkCount=1 with the default reuseForks=true), and app-other had accumulated 42 distinct
           # profiles across 147 classes -- four times the next-densest shard. That is what exhausted the
-          # heap and pushed the shard past an hour. These three groups are the profile-dense clusters.
-          # Counts come from .github/scripts/verify-test-shards.py, which is also what enforces that
-          # every class below is claimed by exactly one shard. See issue #9265.
+          # heap and pushed the shard past an hour. Keeping auth (32 profiles) separate and pairing the
+          # two small clusters (transport + metrics, 19 profiles combined) preserves the heap margin
+          # while cutting a runner. See issue #9265.
           - name: app-auth
             modules: "-pl app -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=io.apicurio.registry.auth.**,io.apicurio.registry.rbac.**,io.apicurio.registry.limits.**"
             maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
-          - name: app-transport
+          - name: app-transport-metrics
             modules: "-pl app -am -Dfull -DcliSkipNative"
-            test-filter: "-Dtest=io.apicurio.registry.tls.**,io.apicurio.registry.headers.**,io.apicurio.registry.cors.**"
-            maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
-          - name: app-metrics
-            modules: "-pl app -am -Dfull -DcliSkipNative"
-            test-filter: "-Dtest=io.apicurio.registry.metrics.**,io.apicurio.registry.search.**"
+            test-filter: "-Dtest=io.apicurio.registry.tls.**,io.apicurio.registry.headers.**,io.apicurio.registry.cors.**,io.apicurio.registry.metrics.**,io.apicurio.registry.search.**"
             maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
           # Catch-all: stays an exclusion filter so a newly added package lands here rather than in no
           # shard at all. Every exclusion below must correspond to another shard's inclusion.

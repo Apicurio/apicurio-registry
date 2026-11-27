@@ -241,33 +241,32 @@ above). Two things keep a retry from interfering with newer commits:
 
 ## Unit Test Sharding
 
-The unit tests are split into 7 parallel shards to reduce the critical path
-(see `verify-unit-tests.yaml`, the source of truth for the exact package and
-module patterns; the table below summarizes intent only). Typical durations
-are control-group measurements as of 2026-08-01 from
-[Discussion #8364](https://github.com/Apicurio/apicurio-registry/discussions/8364).
-They are illustrative, not guaranteed: actual times vary with runner load and
-cache state. The only CI-enforced budget is the 600 s per-shard warning
-threshold in `verify-unit-tests.yaml`.
+The unit tests are split into 10 parallel shards to keep the critical path around
+~14 min without excessive runner fan-out (see `verify-unit-tests.yaml`, the
+source of truth for the exact package and module patterns; the table below
+summarizes intent only). Typical durations are illustrative, not guaranteed:
+actual times vary with runner load and cache state. The only CI-enforced budget
+is the 600 s per-shard warning threshold in `verify-unit-tests.yaml`.
 
 | Shard | Intent | Typical duration |
 |-------|--------|-----------------|
-| `app-rest` | REST API and Confluent-compatibility (ccompat) endpoint tests | ~4.5 min |
-| `app-sql` | SQL storage variant tests, plus shared storage tests that aren't variant-specific (search backend, polling/blue-green, read-only decorator, DTOs) and SQL eventing | ~5 min |
-| `app-kafkasql` | KafkaSQL storage variant | ~6 min |
-| `app-gitops` | GitOps storage variant | ~4 min |
-| `app-kubernetesops` | Kubernetes ConfigMaps storage variant | ~3 min |
-| `app-auth` | Authentication, authorization and rate-limit tests (`auth`, `rbac`, `limits`) | ~4 min |
-| `app-transport` | TLS/mTLS, HTTP security headers and CORS (`tls`, `headers`, `cors`) | ~2.5 min |
-| `app-metrics` | Metrics, tracing and search-index tests (`metrics`, `search`) | ~2 min |
-| `app-other` | Catch-all for everything else in `app/`: rules, ui, services, contracts, customTypes and most of `noprofile/*` (compatibility, resolver, serde, proxy, etc.), excluding the packages claimed by every other `app-*` shard | ~9 min |
+| `app-rest-v3` | REST API v3 and Confluent-compatibility (`ccompat`) noprofile endpoint tests | ~7–8 min |
+| `app-rest-misc` | Remaining noprofile REST tests (v2, root-level) and noprofile agent registry tests | ~13 min |
+| `app-agents` | Profiled agent registry tests (A2A, MCP tools/import, inventory, AI Catalog, ARD) | ~9 min |
+| `app-sql` | SQL storage variant tests, plus shared storage tests that aren't variant-specific (search backend, polling/blue-green, read-only decorator, DTOs) and SQL eventing | ~7 min |
+| `app-kafkasql` | KafkaSQL storage variant | ~7.5 min |
+| `app-gitops-k8sops` | GitOps and Kubernetes ConfigMaps storage variants | ~9 min |
+| `app-auth` | Authentication, authorization and rate-limit tests (`auth`, `rbac`, `limits`) | ~14 min |
+| `app-transport-metrics` | TLS/mTLS, HTTP security headers, CORS, metrics, tracing and search-index tests (`tls`, `headers`, `cors`, `metrics`, `search`) | ~9 min |
+| `app-other` | Catch-all for everything else in `app/`: rules, ui, services, contracts, customTypes and most of `noprofile/*` (compatibility, resolver, serde, proxy, etc.), excluding the packages claimed by every other `app-*` shard | ~11 min |
 | `non-app` | All modules except `app/`, `distro/docker`, `docs`, `docs/config-generator`, `docs/rest-api` (schema-util, serdes, java-sdk, cli, mcp, etc.) | ~5 min |
 
 ### How sharding works
 
-- **app-rest**, **app-sql**, **app-kafkasql**, **app-gitops**,
-  **app-kubernetesops**, **app-auth**, **app-transport**, and **app-metrics**
-  each use surefire's `-Dtest=` to *include* a specific set of packages.
+- **app-rest-v3**, **app-rest-misc**, **app-agents**, **app-sql**,
+  **app-kafkasql**, **app-gitops-k8sops**, **app-auth**, and
+  **app-transport-metrics** each use surefire's `-Dtest=` to *include* a
+  specific set of packages.
 - **app-other** uses `-Dtest=!...` to *exclude* every package claimed by those
   include shards, catching everything else in `app/`. Each exclusion in its
   filter must pair with an inclusion in another shard, or tests go missing.
@@ -284,12 +283,13 @@ threshold in `verify-unit-tests.yaml`.
 Most new test classes are automatically picked up, but storage/event
 subpackages are an exception. Read this before adding one:
 
-- **In `app/`**: if the package matches `noprofile.rest` or `noprofile.ccompat`,
-  it runs in `app-rest`. A `storage.impl.*` / `event.*` subpackage that is
-  already covered by one of the storage-variant include filters
-  (`app-sql`, `app-kafkasql`, `app-gitops`, `app-kubernetesops`) runs there.
-  `auth`/`rbac`/`limits`, `tls`/`headers`/`cors`, and `metrics`/`search` run in
-  `app-auth`, `app-transport`, and `app-metrics` respectively.
+- **In `app/`**: `noprofile.rest.v3` and `noprofile.ccompat` run in
+  `app-rest-v3`; remaining `noprofile.rest` and `agents.noprofile` run in
+  `app-rest-misc`; profiled `agents` run in `app-agents`. A `storage.impl.*` /
+  `event.*` subpackage that is already covered by one of the storage-variant
+  include filters (`app-sql`, `app-kafkasql`, `app-gitops-k8sops`) runs there.
+  `auth`/`rbac`/`limits` run in `app-auth`, and
+  `tls`/`headers`/`cors`/`metrics`/`search` run in `app-transport-metrics`.
   Everything else lands in `app-other` (the exclusion-based shard).
 - **In any other module**: runs in `non-app`.
 
@@ -336,18 +336,22 @@ the only safe way to parallelize `@QuarkusTest` classes.
 
 ## Integration Tests
 
-`verify-integration-tests.yaml` runs a 15-job matrix across storage backends:
+`verify-integration-tests.yaml` runs an 11-job matrix across storage backends:
 
-| Storage | Test groups |
-|---------|------------|
-| h2 (in-memory) | default, auth, migration, debezium, iceberg, federation |
-| postgresql | default, auth, migration |
-| kafkasql | default, auth, migration, snapshotting, startup |
-| kubernetesops | kubernetesops |
+| Storage | Jobs / test groups |
+|---------|--------------------|
+| h2 (in-memory) | `default`, `auth-migration-iceberg` (sequential on one Minikube), `debezium` |
+| postgresql | `default`, `auth-migration` (sequential on one Minikube) |
+| kafkasql | `default`, `auth-migration` (sequential on one Minikube), `kafkasql-snapshotting` |
+| docker (standalone) | `federation,kafkasql-startup` (pure Testcontainers on Docker, no Minikube) |
+| kubernetesops | `kubernetesops` |
+| gitops | `gitops` |
 
-Each job sets up Minikube, loads the registry Docker image, and runs the
-failsafe integration tests with the appropriate storage profile
-(`remote-mem`, `remote-sql`, `remote-kafka`, `remote-kubernetesops`).
+Each Minikube job sets up Minikube, loads the registry Docker image, and runs
+the failsafe integration tests with the appropriate storage profile
+(`remote-mem`, `remote-sql`, `remote-kafka`, `remote-kubernetesops`,
+`remote-gitops`). Sequential multi-group jobs compile upstream modules once and
+wait for `apicurio-registry-e2e` namespace deletion between groups.
 
 The full matrix always runs when Java code changes. It is only skipped for
 non-Java changes (docs, UI).
@@ -359,12 +363,12 @@ non-Java changes (docs, UI).
 | `verify.yaml` | PR, push to main | Main orchestrator: `decide` job determines what to run, `gate` (Verify Result) aggregates the run; the orchestrator turns it into the `Verification Gate` status, the single required check | N/A |
 | `review-relay.yaml` | PR review submitted/dismissed | No-op with no permissions; exists so the review reaches `pr-lifecycle.yml` via `workflow_run`, which can re-run Verify for fork PRs too | seconds |
 | `build-java`/`build-ui` (jobs in `verify.yaml`) | Called by verify | Parallel Java (`mvnw install -T 0.5C`) + UI (`npm build`) builds. Produces Docker images and build artifacts uploaded with 1-day retention. The sole build for a commit, shared by every other job in the same run via `needs:` | ~6 min |
-| `verify-unit-tests.yaml` | Called by verify | Unit tests in 7 parallel shards (see above) | ~14 min (critical path) |
+| `verify-unit-tests.yaml` | Called by verify | Unit tests in 10 parallel shards (see above) | ~14 min (critical path) |
 | `scalpel-report` (job in `verify.yaml`) | PR with java changes | Scalpel affected-module analysis in report mode; uploads a JSON artifact plus a summary for offline analysis (see [Reading the Scalpel report](#reading-the-scalpel-report)). Not in the Verification Gate. Opt out per PR with the `ci/disable-scalpel` label, which also turns off Scalpel in the `non-app` unit-test shard | ~2 min |
-| `verify-integration-tests.yaml` | Called by verify | 13-job matrix across storage backends, each with Minikube | ~15 min per job |
-| `verify-extras.yaml` | Called by verify | 3 parallel jobs: UI Playwright tests, legacy V2 compatibility tests, TypeScript SDK tests | ~19 min |
-| `verify-examples.yaml` | Called by verify | One job per runnable example (`examples/*/demo.sh` with a Compose file, run twice against this commit's images; see `examples/TEMPLATE.md`), plus compilation of the Java examples | ~13 min |
-| `verify-sdk.yaml` | Called by verify | Go and Python SDK verification | ~2 min |
+| `verify-integration-tests.yaml` | Called by verify | 11-job matrix across storage backends (10 Minikube + 1 pure-Docker standalone job) | ~14 min (critical path) |
+| `verify-extras.yaml` | Called by verify | 2 parallel jobs: UI Playwright tests, legacy V2 compatibility tests | ~5 min |
+| `verify-examples.yaml` | Called by verify | Balanced shards of runnable examples (`discover-examples.sh` + `shard-examples.sh`, each example run twice against this commit's images; see `examples/TEMPLATE.md`), plus compilation of the Java examples | ~13 min |
+| `verify-sdk.yaml` | Called by verify | Combined Python, Go, and TypeScript SDK verification in a single job | ~3 min |
 | `verify-cli.yaml` | Called by verify | CLI native build (GraalVM) + tests on Linux and macOS. Conditional on `cli/` or `java-sdk/` changes | ~15-25 min |
 | `verify-publish.yaml` | Called by verify | Push Docker images (app, UI, MCP, GitOps) to DockerHub and Quay.io. Main branch only, one run at a time, and only a commit newer than the one `latest-snapshot` holds (see [Re-runs and snapshot publishing on main](#re-runs-and-snapshot-publishing-on-main)). Uses `reusable-docker-build.yaml` for multi-arch builds | ~30-40 min |
 

@@ -117,28 +117,3 @@ jobs:
         with:
           name: tests-logs-legacy-v2
           path: artifacts
-
-  typescript-sdk-tests:
-    name: TypeScript SDK Tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 15  # longest green run, week to 2026-10-01: 2 min
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-      - uses: apicurio/apicurio-github-actions/load-docker-image@bd19cbe33797325a571cd7ffd58f639b62e128a2 # v2
-        with:
-          artifact-name: 'apicurio-registry-${{ inputs.image-tag }}.tar'
-          image-file: '/tmp/apicurio-registry-${{ inputs.image-tag }}.tar'
-          image-name: 'apicurio/apicurio-registry'
-          tag: '${{ inputs.image-tag }}'
-
-      - name: Run SDK tests
-        run: |
-          echo "Starting Registry App (In Memory)"
-          docker run -it -p 8080:8080 -e apicurio.rest.deletion.artifact.enabled=true -d apicurio/apicurio-registry:${{ inputs.image-tag }}
-
-          cd typescript-sdk
-          npm install
-          npm run generate-sources
-          npm run test

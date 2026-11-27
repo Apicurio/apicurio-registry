@@ -3,9 +3,6 @@ name: SDK Verification
 on:
   workflow_call:
     inputs:
-      java-version:
-        type: string
-        default: '21'
       image-tag:
         type: string
         required: true
@@ -15,20 +12,13 @@ permissions:
   contents: read
 
 jobs:
-  verify-python-sdk:
-    name: Verify Python SDK
+  verify-sdks:
+    name: Verify SDKs (Python, Go, TypeScript)
     runs-on: ubuntu-latest
-    timeout-minutes: 15  # longest green run, week to 2026-10-01: 1 min
+    timeout-minutes: 20
     steps:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-      - name: Set up JDK ${{ inputs.java-version }}
-        uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6
-        with:
-          java-version: ${{ inputs.java-version }}
-          distribution: 'temurin'
-          cache: 'maven'
 
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
@@ -37,58 +27,16 @@ jobs:
       - name: Install Poetry
         uses: snok/install-poetry@d45b6d76012debf457ab49dffc7fb7b2efe8071d
 
-      - name: Install the package
-        working-directory: python-sdk
-        run: make install
-
-      - name: Check linting
-        working-directory: python-sdk
-        run: make lint-check
-
-      # PyPI rejects platform-tagged wheels; check the release build produces a pure one
-      - name: Build and verify the wheel
-        working-directory: python-sdk
-        run: |
-          make build
-          make verify-wheel
-
-      - uses: apicurio/apicurio-github-actions/load-docker-image@bd19cbe33797325a571cd7ffd58f639b62e128a2 # v2
-        with:
-          artifact-name: 'apicurio-registry-${{ inputs.image-tag }}.tar'
-          image-file: '/tmp/apicurio-registry-${{ inputs.image-tag }}.tar'
-          image-name: 'apicurio/apicurio-registry'
-          tag: '${{ inputs.image-tag }}'
-
-      - name: Run the tests
-        working-directory: python-sdk
-        run: |
-          docker run -d --name registry -p 8080:8080 apicurio/apicurio-registry:${{ inputs.image-tag }}
-          # Wait for the API rather than a fixed sleep: when the registry is not up yet, the SDK tests
-          # fall back to starting a local jar that does not exist in this job.
-          for i in $(seq 1 60); do curl -sf http://localhost:8080/apis/registry/v3/system/info > /dev/null && break; sleep 1; done
-          curl -sf http://localhost:8080/apis/registry/v3/system/info > /dev/null || { docker logs registry; exit 1; }
-          make test
-
-  verify-go-sdk:
-    name: Verify Go SDK
-    runs-on: ubuntu-latest
-    timeout-minutes: 15  # longest green run, week to 2026-10-01: 2 min
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-      - name: Set up JDK ${{ inputs.java-version }}
-        uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6
-        with:
-          java-version: ${{ inputs.java-version }}
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Go - Setup Go
+      - name: Set up Go
         uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7
         with:
           go-version: '1.27.4'
 
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '24.22.3'
+
       - uses: apicurio/apicurio-github-actions/load-docker-image@bd19cbe33797325a571cd7ffd58f639b62e128a2 # v2
         with:
           artifact-name: 'apicurio-registry-${{ inputs.image-tag }}.tar'
@@ -96,12 +44,42 @@ jobs:
           image-name: 'apicurio/apicurio-registry'
           tag: '${{ inputs.image-tag }}'
 
-      - name: Run the tests
-        working-directory: go-sdk
+      - name: Verify Python SDK
+        working-directory: python-sdk
         run: |
+          make install
+          make lint-check
+          # PyPI rejects platform-tagged wheels; check the release build produces a pure one
+          make build
+          make verify-wheel
+
+          trap 'docker rm -f registry >/dev/null 2>&1 || true' EXIT
           docker run -d --name registry -p 8080:8080 apicurio/apicurio-registry:${{ inputs.image-tag }}
           # Wait for the API rather than a fixed sleep: when the registry is not up yet, the SDK tests
           # fall back to starting a local jar that does not exist in this job.
-          for i in $(seq 1 60); do curl -sf http://localhost:8080/apis/registry/v3/system/info > /dev/null && break; sleep 1; done
+          for _ in $(seq 1 60); do curl -sf http://localhost:8080/apis/registry/v3/system/info > /dev/null && break; sleep 1; done
           curl -sf http://localhost:8080/apis/registry/v3/system/info > /dev/null || { docker logs registry; exit 1; }
           make test
+
+      - name: Verify Go SDK
+        working-directory: go-sdk
+        run: |
+          trap 'docker rm -f registry >/dev/null 2>&1 || true' EXIT
+          docker run -d --name registry -p 8080:8080 apicurio/apicurio-registry:${{ inputs.image-tag }}
+          for _ in $(seq 1 60); do curl -sf http://localhost:8080/apis/registry/v3/system/info > /dev/null && break; sleep 1; done
+          curl -sf http://localhost:8080/apis/registry/v3/system/info > /dev/null || { docker logs registry; exit 1; }
+          make test
+
+      - name: Verify TypeScript SDK
+        working-directory: typescript-sdk
+        run: |
+          npm install
+          npm run generate-sources
+
+          trap 'docker rm -f registry >/dev/null 2>&1 || true' EXIT
+          docker run -d --name registry -p 8080:8080 \
+            -e apicurio.rest.deletion.artifact.enabled=true \
+            apicurio/apicurio-registry:${{ inputs.image-tag }}
+          for _ in $(seq 1 60); do curl -sf http://localhost:8080/apis/registry/v3/system/info > /dev/null && break; sleep 1; done
+          curl -sf http://localhost:8080/apis/registry/v3/system/info > /dev/null || { docker logs registry; exit 1; }
+          npm run test

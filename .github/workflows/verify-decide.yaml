@@ -153,6 +153,8 @@ jobs:
             examples:
               - 'examples/**'
               - '.github/scripts/discover-examples.sh'
+              - '.github/scripts/shard-examples.sh'
+              - '.github/scripts/run-example-shard.sh'
             ci:
               - '.github/workflows/**'
             ci-operator:

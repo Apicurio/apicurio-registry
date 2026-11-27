@@ -26,63 +26,84 @@ export type ReconciledVariable = {
 };
 
 /**
- * Placeholder matcher used by extractTemplateVariableNames.
- * (PromptTemplateViewer highlights with its own tokenizer, not this regex.)
+ * The template syntax the backend supports, as one pattern:
+ * - group 1 is the subject of a conditional block opener, as matched by
+ *   `PromptRenderingService`: `{{#if name}}` or `{{#unless name}}`. Spaced forms
+ *   such as `{{ #if name }}` are not valid blocks.
+ * - group 2 is a substitution placeholder, as matched by
+ *   `PromptTemplateVariableUtil.VARIABLE_PATTERN`: `{{name}}`, with optional
+ *   whitespace inside the braces (`{{ name }}`).
  *
- * Captures optional block prefix (group 1) and variable name (group 2).
- * Optional whitespace inside the braces matches the backend canonical plain-
- * variable pattern from PromptTemplateVariableUtil
- * (`(?<!\{)\{\{\s*(\w+)\s*\}\}`), while still supporting handlebars-style blocks
- * (`{{#if x}}`, `{{ #if x }}`, etc.) in one expression for the UI.
+ * The placeholder's leading `(?<!\{)` mirrors the backend: without it, `{{{name}}}`
+ * still contains `{{name}}` starting at the second character, so the UI would show
+ * a `name` input whose value the backend ignores. Like the backend, there is no
+ * trailing `(?!\})`: `{{name}}}` is a placeholder followed by a literal brace.
  *
- * The leading `(?<!\{)` mirrors the backend: without it, `{{{name}}}` still
- * contains `{{name}}` starting at the second character, so the UI would show
- * a `name` input whose value the backend ignores. Like the backend, there is
- * no trailing `(?!\})`: `{{name}}}` is a placeholder followed by a literal brace.
- *
- * Deliberate scope limitations (matching backend #8977 / PromptTemplateVariableUtil):
- * - Names are `\w+` only — dotted paths like `{{user.name}}` and hyphenated
- *   names are NOT supported, same as the backend canonical pattern.
- * - Handlebars special iteration variables (`@index`, `@key`, `@first`,
- *   `@last`) are not recognized as variables (they start with `@`, outside
- *   `\w`), consistent with the backend not supporting them either. If the
- *   backend adds support later, this frontend logic will need a matching update.
+ * Deliberate scope limitations (matching the backend):
+ * - Names are `\w+` only, so dotted paths like `{{user.name}}` are not variables.
+ * - `@index`-style tokens, helper expressions such as `{{lookup obj key}}` and
+ *   `{{#each}}` / `{{#with}}` blocks name no variable.
  */
-export const TEMPLATE_VARIABLE_REGEX = /(?<!\{)\{\{\s*(#?\/?(?:if|unless|each|with)\s+)?(\w+)\s*\}\}/g;
+const TEMPLATE_REFERENCE_REGEX = /\{\{#(?:if|unless)\s+(\w+)\}\}|(?<!\{)\{\{\s*(\w+)\s*\}\}/g;
 
 /**
- * Bare tag names that are Handlebars syntax/helpers, not user variables.
- * Applied after capture so keywords that appear as the whole tag body
- * (e.g. `{{else}}`, `{{this}}`) are excluded the same way prefix keywords are.
+ * Bare tag names the backend never substitutes (`PromptTemplateVariableUtil`).
+ * Other helper names written bare, such as `{{lookup}}` or `{{log}}`, are
+ * ordinary variables there, so they are here too.
  */
-const BLOCK_KEYWORDS = new Set(["if", "unless", "each", "with", "else", "this", "lookup", "log"]);
+const CONTROL_KEYWORDS = new Set(["else", "this"]);
+
+/** How a template uses one name. */
+export type TemplateVariableReference = {
+    name: string;
+    /** Substituted somewhere as a placeholder, e.g. `{{name}}`. */
+    placeholder: boolean;
+    /** Tested somewhere as the subject of `{{#if name}}` or `{{#unless name}}`. */
+    condition: boolean;
+};
 
 /**
- * Extract de-duplicated variable names from template text in first-seen order.
- * Block keywords (if/unless/each/with) are never returned as names.
+ * Extract de-duplicated variable references from template text in first-seen
+ * order, recording for each name whether it is a placeholder, a condition
+ * subject, or both.
  */
-export function extractTemplateVariableNames(template: string): string[] {
+export function extractTemplateVariableReferences(template: string): TemplateVariableReference[] {
     if (!template) {
         return [];
     }
 
-    const seen = new Set<string>();
-    const names: string[] = [];
-    const regex = new RegExp(TEMPLATE_VARIABLE_REGEX.source, TEMPLATE_VARIABLE_REGEX.flags);
+    const references = new Map<string, TemplateVariableReference>();
+    const regex = new RegExp(TEMPLATE_REFERENCE_REGEX.source, TEMPLATE_REFERENCE_REGEX.flags);
     let match: RegExpExecArray | null;
 
     while ((match = regex.exec(template)) !== null) {
-        const name = match[2];
-        if (!name || BLOCK_KEYWORDS.has(name)) {
+        const condition = match[1] !== undefined;
+        const name = condition ? match[1] : match[2];
+        if (!condition && CONTROL_KEYWORDS.has(name)) {
             continue;
         }
-        if (!seen.has(name)) {
-            seen.add(name);
-            names.push(name);
+        let reference = references.get(name);
+        if (!reference) {
+            reference = { name, placeholder: false, condition: false };
+            references.set(name, reference);
+        }
+        if (condition) {
+            reference.condition = true;
+        } else {
+            reference.placeholder = true;
         }
     }
 
-    return names;
+    return Array.from(references.values());
+}
+
+/**
+ * Extract de-duplicated variable names from template text in first-seen order:
+ * placeholders and condition subjects alike, so every input the template reads
+ * is available (e.g. in the Test Prompt panel).
+ */
+export function extractTemplateVariableNames(template: string): string[] {
+    return extractTemplateVariableReferences(template).map(reference => reference.name);
 }
 
 /**

@@ -2,7 +2,7 @@
 import "@testing-library/jest-dom/vitest";
 import React from "react";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { render, cleanup, act } from "@testing-library/react";
+import { render, cleanup, act, fireEvent, screen } from "@testing-library/react";
 import type { editor } from "monaco-editor";
 import YAML from "yaml";
 
@@ -39,6 +39,21 @@ if (typeof window !== "undefined" && !window.matchMedia) {
         removeEventListener: () => {},
         dispatchEvent: () => false
     } as any);
+}
+// jsdom reports itself as WebKit, so Monaco writes to the clipboard on every click (Safari workaround).
+if (typeof navigator !== "undefined" && !navigator.clipboard) {
+    Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: { write: () => Promise.resolve(), writeText: () => Promise.resolve() }
+    });
+}
+if (typeof (globalThis as any).ClipboardItem === "undefined") {
+    (globalThis as any).ClipboardItem = class {
+        // Like the browser, own the pending values, so Monaco cancelling one is not an unhandled rejection.
+        constructor(items: Record<string, unknown>) {
+            Object.values(items).forEach(value => Promise.resolve(value).catch(() => undefined));
+        }
+    };
 }
 
 const monaco = await import("monaco-editor");
@@ -86,6 +101,20 @@ variables:
 const YAML_WITH_UNLESS = `templateId: unless-test
 template: "{{#unless premium}}Free plan — upgrade to unlock.{{/unless}}"`;
 
+const YAML_WITH_MISSING = `templateId: greeting
+template: "Hello, {{name}}! Your code is {{code}}."
+variables:
+  name:
+    type: string
+`;
+
+const YAML_NO_TEMPLATE = `templateId: no-template
+name: No Template
+variables:
+  name:
+    type: string
+`;
+
 const INVALID_YAML = `templateId: wip
 template: "Hello {{name
   this line is broken yaml
@@ -102,7 +131,7 @@ variables:
   name:
     type: string
 metadata:
-  author: kunal
+  author: reviewer
   createdAt: "2024-01-15"
   tags:
     - greeting
@@ -440,6 +469,228 @@ template: "{{#unless premium}}Upgrade{{/unless}}"`;
 
             await model.undo();
             expect(model.getValue()).toBe(SUPPORT_YAML);
+        });
+    });
+
+    describe("variable detection and sync (#10196)", () => {
+        it("shows synced, missing and unused counts and disables Sync Variables when nothing is missing", () => {
+            render(renderEditor(YAML_TEMPLATE));
+            mount(YAML_TEMPLATE);
+
+            expect(screen.getByTestId("badge-synced")).toHaveTextContent("2 synced");
+            expect(screen.getByTestId("badge-missing")).toHaveTextContent("0 missing");
+            expect(screen.getByTestId("badge-unused")).toHaveTextContent("0 unused");
+            expect(screen.getByTestId("btn-sync-variables")).toBeDisabled();
+        });
+
+        it("enables Sync Variables when the template uses an undeclared variable", () => {
+            render(renderEditor(YAML_WITH_MISSING));
+            mount(YAML_WITH_MISSING);
+
+            expect(screen.getByTestId("badge-synced")).toHaveTextContent("1 synced");
+            expect(screen.getByTestId("badge-missing")).toHaveTextContent("1 missing");
+            expect(screen.getByTestId("btn-sync-variables")).toBeEnabled();
+        });
+
+        it.each([
+            ["malformed YAML", INVALID_YAML, "badge-malformed", "Invalid document"],
+            ["a document without a template field", YAML_NO_TEMPLATE, "badge-no-template", "No template field"]
+        ])("disables Sync Variables for %s", (_case, source, badge, text) => {
+            render(renderEditor(source));
+            mount(source);
+
+            expect(screen.getByTestId(badge)).toHaveTextContent(text);
+            expect(screen.queryByTestId("badge-missing")).not.toBeInTheDocument();
+            expect(screen.getByTestId("btn-sync-variables")).toBeDisabled();
+        });
+
+        it("counts the variables of the text Monaco mounts with", () => {
+            render(renderEditor(YAML_NO_TEMPLATE));
+            mount(YAML_WITH_MISSING);
+
+            expect(screen.getByTestId("badge-missing")).toHaveTextContent("1 missing");
+        });
+
+        it("adds missing variables as one undoable edit and reports the new text", async () => {
+            const onChange = vi.fn();
+            render(renderDraft({ content: YAML_WITH_MISSING, contentType: "application/x-yaml" }, onChange));
+            const { model } = mount(YAML_WITH_MISSING);
+            forwardChanges(model);
+
+            fireEvent.click(screen.getByTestId("btn-sync-variables"));
+
+            const synced = YAML_WITH_MISSING + "  code:\n    type: string\n    description: \"\"\n";
+            expect(model.getValue()).toBe(synced);
+            expect(onChange).toHaveBeenCalledTimes(1);
+            expect(onChange).toHaveBeenLastCalledWith(synced);
+            expect(screen.getByTestId("badge-synced")).toHaveTextContent("2 synced");
+            expect(screen.getByTestId("badge-missing")).toHaveTextContent("0 missing");
+            expect(screen.getByTestId("btn-sync-variables")).toBeDisabled();
+
+            await act(async () => {
+                await model.undo();
+            });
+            expect(model.getValue()).toBe(YAML_WITH_MISSING);
+            expect(onChange).toHaveBeenLastCalledWith(YAML_WITH_MISSING);
+            expect(screen.getByTestId("badge-missing")).toHaveTextContent("1 missing");
+
+            await act(async () => {
+                await model.redo();
+            });
+            expect(model.getValue()).toBe(synced);
+            expect(onChange).toHaveBeenLastCalledWith(synced);
+            expect(onChange).toHaveBeenCalledTimes(3);
+        });
+
+        it("inserts only the new entry, leaving comments, blank lines and flow collections exactly as written", async () => {
+            const source = SUPPORT_YAML.replace("Greet {{customer}} politely.", "Greet {{customer}} about {{topic}}.");
+            const synced = source.replace("metadata:", "  topic:\n    type: string\n    description: \"\"\nmetadata:");
+            const onChange = vi.fn();
+            render(renderDraft({ content: source, contentType: "application/x-yaml" }, onChange));
+            const { model } = mount(source);
+            forwardChanges(model);
+            const versionBefore = model.getAlternativeVersionId();
+
+            fireEvent.click(screen.getByTestId("btn-sync-variables"));
+
+            expect(model.getValue()).toBe(synced);
+            expect(onChange).toHaveBeenCalledTimes(1);
+
+            // One undo step takes the whole sync back, and one redo reapplies it.
+            await act(async () => {
+                await model.undo();
+            });
+            expect(model.getValue()).toBe(source);
+            expect(model.getAlternativeVersionId()).toBe(versionBefore);
+            await act(async () => {
+                await model.redo();
+            });
+            expect(model.getValue()).toBe(synced);
+        });
+
+        it("shows a condition-only input as conditional, not missing, and leaves the text and history untouched", () => {
+            const source = `templateId: conditional
+template: "{{#if urgent}}Escalate. {{/if}}Hi {{name}}"
+variables:
+  name:
+    type: string
+`;
+            const onChange = vi.fn();
+            render(renderDraft({ content: source, contentType: "application/x-yaml" }, onChange));
+            const { model } = mount(source);
+            forwardChanges(model);
+            const versionBefore = model.getAlternativeVersionId();
+
+            expect(screen.getByTestId("badge-conditional")).toHaveTextContent("1 conditional");
+            expect(screen.getByTestId("badge-missing")).toHaveTextContent("0 missing");
+            expect(screen.getByTestId("badge-unused")).toHaveTextContent("0 unused");
+            expect(screen.getByTestId("btn-sync-variables")).toBeDisabled();
+
+            fireEvent.click(screen.getByTestId("btn-sync-variables"));
+
+            expect(model.getValue()).toBe(source);
+            expect(model.getAlternativeVersionId()).toBe(versionBefore);
+            expect(onChange).not.toHaveBeenCalled();
+        });
+
+        it("explains why a list-shaped variables section cannot be synchronized and leaves the text and history untouched", () => {
+            const source = `templateId: list
+template: "Hello {{name}} and {{extra}}"
+variables:
+  - name: name
+    type: string
+`;
+            const onChange = vi.fn();
+            render(renderDraft({ content: source, contentType: "application/x-yaml" }, onChange));
+            const { model } = mount(source);
+            forwardChanges(model);
+            const versionBefore = model.getAlternativeVersionId();
+
+            fireEvent.click(screen.getByTestId("btn-sync-variables"));
+
+            expect(screen.getByText("Synchronization Error")).toBeInTheDocument();
+            expect(screen.getByText(/'variables' is a list\./)).toBeInTheDocument();
+            expect(model.getValue()).toBe(source);
+            expect(model.getAlternativeVersionId()).toBe(versionBefore);
+            expect(onChange).not.toHaveBeenCalled();
+        });
+
+        it.each([
+            [
+                "an alias without an anchor",
+                "variables: *missing",
+                "The alias *missing has no anchor &missing before it. Define the anchor or remove the alias."
+            ],
+            [
+                "a variables list containing null",
+                "variables: [null]",
+                "'variables' entry 1 is empty. Each entry of a 'variables' list must be a mapping with a 'name'."
+            ]
+        ])("explains %s without breaking the editor, then detects and syncs once it is corrected", (_case, variablesLine, error) => {
+            const head = "templateId: t\ntemplate: \"Hi {{name}} {{role}}\"\n";
+            const source = `${head}${variablesLine}\n`;
+            const corrected = `${head}variables:\n  name:\n    type: string\n`;
+            const onChange = vi.fn();
+            render(renderDraft({ content: source, contentType: "application/x-yaml" }, onChange));
+            const { model } = mount(source);
+            forwardChanges(model);
+
+            expect(screen.getByTestId("badge-malformed")).toHaveTextContent("Invalid document");
+            expect(screen.getByTestId("detection-error").textContent).toBe(error);
+            expect(screen.getByTestId("btn-sync-variables")).toBeDisabled();
+            expect(model.getValue()).toBe(source);
+            expect(onChange).not.toHaveBeenCalled();
+
+            act(() => {
+                typeOver(model, variablesLine, "variables:\n  name:\n    type: string");
+            });
+
+            expect(onChange).toHaveBeenLastCalledWith(corrected);
+            expect(screen.queryByTestId("detection-error")).not.toBeInTheDocument();
+            expect(screen.getByTestId("badge-synced")).toHaveTextContent("1 synced");
+            expect(screen.getByTestId("badge-missing")).toHaveTextContent("1 missing");
+
+            fireEvent.click(screen.getByTestId("btn-sync-variables"));
+
+            expect(model.getValue()).toBe(`${corrected}  role:\n    type: string\n    description: ""\n`);
+            expect(screen.getByTestId("badge-missing")).toHaveTextContent("0 missing");
+        });
+
+        it.each(["application/x-yaml", "application/yaml"])("reads flow-style YAML by its %s content type and syncs it in flow style", (contentType) => {
+            const source = "{templateId: t, template: \"Hi {{name}} {{role}}\", variables: {name: {type: string}}}";
+            const synced = source.replace("{name: {type: string}}", "{name: {type: string}, role: {type: string, description: \"\"}}");
+            const onChange = vi.fn();
+            render(renderDraft({ content: source, contentType }, onChange));
+            const { model } = mount(source);
+            forwardChanges(model);
+
+            expect(screen.getByTestId("badge-synced")).toHaveTextContent("1 synced");
+            expect(screen.getByTestId("badge-missing")).toHaveTextContent("1 missing");
+
+            fireEvent.click(screen.getByTestId("btn-sync-variables"));
+
+            expect(model.getValue()).toBe(synced);
+            expect(onChange).toHaveBeenCalledTimes(1);
+            expect(onChange).toHaveBeenLastCalledWith(synced);
+        });
+
+        it("shows an error and leaves the text unchanged when sync fails, then clears it on the next edit", () => {
+            const onChange = vi.fn();
+            render(renderDraft({ content: YAML_WITH_MISSING, contentType: "application/x-yaml" }, onChange));
+            const { model } = mount(YAML_WITH_MISSING);
+            // Change the model without an onChange, so the toolbar still offers a sync the text can't take.
+            model.setValue(INVALID_YAML);
+
+            fireEvent.click(screen.getByTestId("btn-sync-variables"));
+
+            expect(screen.getByText("Synchronization Error")).toBeInTheDocument();
+            expect(model.getValue()).toBe(INVALID_YAML);
+            expect(onChange).not.toHaveBeenCalled();
+
+            act(() => {
+                capturedEditorProps.onChange(YAML_WITH_MISSING);
+            });
+            expect(screen.queryByText("Synchronization Error")).not.toBeInTheDocument();
         });
     });
 });

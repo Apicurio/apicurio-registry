@@ -84,8 +84,9 @@ public class MySQLSqlStatements extends CommonSqlStatements {
     @Override
     public String acquireInitLock() {
         // Use MySQL GET_LOCK with 30 second timeout
-        // Returns 1 if lock acquired, 0 if timeout, NULL on error
-        return "SELECT GET_LOCK('apicurio_init_lock', 30)";
+        // GET_LOCK returns 1 if lock acquired, 0 if timeout, NULL on error; map the failures to
+        // negative values so the caller can detect them the same way for every database
+        return "SELECT CASE GET_LOCK('apicurio_init_lock', 30) WHEN 1 THEN 1 WHEN 0 THEN -1 ELSE -999 END";
     }
 
     /**

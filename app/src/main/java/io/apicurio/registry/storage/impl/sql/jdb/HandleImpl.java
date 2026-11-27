@@ -56,4 +56,14 @@ public class HandleImpl implements Handle {
     public void setRollback(boolean rollback) {
         this.rollback = rollback;
     }
+
+    @Override
+    public void commit() throws SQLException {
+        this.connection.commit();
+    }
+
+    @Override
+    public void rollback() throws SQLException {
+        this.connection.rollback();
+    }
 }

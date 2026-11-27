@@ -232,8 +232,10 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 // Acquire database lock to prevent race conditions when multiple replicas
                 // attempt to initialize or upgrade the database simultaneously
                 log.info("Acquiring database initialization lock...");
-                handle.createQuery(this.sqlStatements.acquireInitLock()).map(DatabaseLockMapper.instance).one();
-                log.info("Database initialization lock acquired.");
+                Integer lockResult = handle.createQuery(this.sqlStatements.acquireInitLock())
+                        .map(DatabaseLockMapper.instance).one();
+                verifyInitLockAcquired(lockResult);
+                log.info("Database initialization lock acquired (result: {}).", lockResult);
 
                 try {
                     if (!isDatabaseInitializedRaw(handle)) {
@@ -247,6 +249,19 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         log.info("Old database version detected, upgrading.");
                         upgradeDatabaseRaw(handle);
                     }
+
+                    // Commit the DDL before the lock is released, so another replica that acquires the
+                    // lock next always sees the committed schema. (A transaction-scoped lock is released
+                    // by this commit; a session-scoped lock is released below, after it.)
+                    handle.commit();
+                } catch (Exception e) {
+                    // Roll back before the lock is released, so no replica sees a half-applied schema
+                    try {
+                        handle.rollback();
+                    } catch (Exception rollbackFailure) {
+                        e.addSuppressed(rollbackFailure);
+                    }
+                    throw e;
                 } finally {
                     // Always release the lock, even if initialization or upgrade fails
                     log.info("Releasing database initialization lock...");
@@ -292,6 +307,19 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
              * cumbersome, try using ManagedExecutor.
              */
             storageEvent.fireAsync(StorageEvent.builder().type(StorageEventType.READY).build());
+        }
+    }
+
+    /**
+     * Fails startup if the database initialization lock was not acquired. Each dialect's acquireInitLock()
+     * returns zero or a positive value on success (SQL Server sp_getapplock returns 0 or 1) and a negative
+     * value on timeout or error (e.g. sp_getapplock -1 timeout, -999 error). Continuing without the lock
+     * would reintroduce the initialization race between replicas.
+     */
+    static void verifyInitLockAcquired(Integer lockResult) {
+        if (lockResult == null || lockResult < 0) {
+            throw new RegistryStorageException(
+                    "Could not acquire the database initialization lock (result: " + lockResult + ").");
         }
     }
 

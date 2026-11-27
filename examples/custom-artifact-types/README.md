@@ -47,10 +47,8 @@ registry minor version.
 
 ## Notes
 
-- **Known issues**, shown by the demo:
-  - [#11151](https://github.com/Apicurio/apicurio-registry/issues/11151): webhook `headers` are not
-    sent, and the ContentAccepter webhook must return a bare boolean, not the contract's
-    `{"accepted": ...}`.
+- The configured webhook `headers` are sent with every request, and the ContentAccepter webhook
+  returns the contract's `{"accepted": ...}` object; `demo.sh` checks both.
 - With the webhook down, the rules that use it reject the change with a generic message, after about
   10 seconds of retries.
 - **Local only:** no authentication, no TLS.

@@ -17,7 +17,7 @@ public class SqlWriteTransactionMysqlTest extends SqlWriteTransactionTest {
 
     @Override
     @Test
-    @Disabled("Concurrent creates in one new group with the same content deadlock on InnoDB; also before #11412")
+    @Disabled("Concurrent creates in one new group with the same content deadlock on InnoDB; also before #11412, see #11547")
     void concurrentCreatesInANewGroupWithTheSameContentAllSucceed() {
     }
 }

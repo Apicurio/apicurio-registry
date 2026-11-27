@@ -1,5 +1,16 @@
-import { describe, expect, it } from "vitest";
-import { createEndpoint, unwrapErrorData } from "./rest.utils";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import axios from "axios";
+import { createAuthOptions, createEndpoint, httpGet, unwrapErrorData } from "./rest.utils";
+
+const { requestReauthenticationMock } = vi.hoisted(() => ({
+    requestReauthenticationMock: vi.fn()
+}));
+
+vi.mock("@services/useReauthenticationService.ts", () => ({
+    getReauthenticationService: () => ({
+        requestReauthentication: requestReauthenticationMock
+    })
+}));
 
 describe("unwrapErrorData", () => {
     it("should correctly unwrap and spread JSON object response data", () => {
@@ -154,5 +165,155 @@ describe("createEndpoint", () => {
             { limit: 5, offset: 0 }
         );
         expect(url).toBe(`${baseHref}/groups/group-1/artifacts?limit=5&offset=0`);
+    });
+});
+
+describe("axios OIDC token refresh", () => {
+    const authorization = (config: any): string | undefined => {
+        const headers = config?.headers;
+        return typeof headers?.get === "function" ? headers.get("Authorization") : headers?.["Authorization"];
+    };
+
+    // A custom adapter has to reject non-2xx itself because the built-in adapters
+    // call axios settle() before response interceptors run. This harness is used
+    // for both axios instances: httpGet uses the local AXIOS instance, while the
+    // data contracts and prompt rendering services call the default axios.get.
+    const createAdapter = (statuses: number[]) => {
+        const requests: any[] = [];
+        const adapter = vi.fn(async (config: any) => {
+            const index = requests.push(config) - 1;
+            const status = statuses[Math.min(index, statuses.length - 1)];
+            const response = {
+                data: status === 200 ? { message: "ok" } : "unauthorized",
+                status,
+                statusText: status === 200 ? "OK" : "Unauthorized",
+                headers: {},
+                config
+            };
+            if (status !== 200) {
+                return Promise.reject({
+                    message: `Request failed with status code ${status}`,
+                    config,
+                    response
+                });
+            }
+            return response;
+        });
+        return { adapter, requests };
+    };
+
+    const oidcAuth = (getToken: any, refresh: any): any => ({
+        isOidcAuthEnabled: () => true,
+        isBasicAuthEnabled: () => false,
+        getToken,
+        refresh
+    });
+
+    beforeEach(() => {
+        requestReauthenticationMock.mockReset();
+    });
+
+    it("refreshes the token and retries an unauthorized request once with the new token", async () => {
+        const auth = oidcAuth(
+            vi.fn()
+                .mockResolvedValueOnce("expired-token")
+                .mockResolvedValueOnce("fresh-token"),
+            vi.fn().mockResolvedValue(undefined)
+        );
+
+        const { adapter, requests } = createAdapter([401, 200]);
+        const options = await createAuthOptions(auth);
+        const result = await httpGet<any>("/api/test", { ...options, adapter });
+
+        expect(adapter).toHaveBeenCalledTimes(2);
+        expect(auth.refresh).toHaveBeenCalledTimes(1);
+        expect(requestReauthenticationMock).not.toHaveBeenCalled();
+        expect(authorization(requests[0])).toBe("Bearer expired-token");
+        expect(authorization(requests[1])).toBe("Bearer fresh-token");
+        expect(result).toEqual({ message: "ok" });
+    });
+
+    it("passes a 401 through unchanged when OIDC is disabled", async () => {
+        const auth = {
+            isOidcAuthEnabled: () => false,
+            isBasicAuthEnabled: () => false,
+            getToken: vi.fn(),
+            refresh: vi.fn()
+        } as any;
+
+        const { adapter } = createAdapter([401]);
+        const options = await createAuthOptions(auth);
+        await expect(httpGet<any>("/api/test", { ...options, adapter })).rejects.toMatchObject({ status: 401 });
+
+        expect(adapter).toHaveBeenCalledTimes(1);
+        expect(auth.refresh).not.toHaveBeenCalled();
+        expect(requestReauthenticationMock).not.toHaveBeenCalled();
+    });
+
+    it("starts reauthentication without retrying when the refresh rejects", async () => {
+        const auth = oidcAuth(
+            vi.fn().mockResolvedValue("expired-token"),
+            vi.fn().mockRejectedValue(new Error("refresh failed"))
+        );
+
+        const { adapter } = createAdapter([401]);
+        const options = await createAuthOptions(auth);
+        await expect(httpGet<any>("/api/test", { ...options, adapter })).rejects.toMatchObject({ status: 401 });
+
+        expect(adapter).toHaveBeenCalledTimes(1);
+        expect(requestReauthenticationMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("starts reauthentication without retrying when no token is returned after refresh", async () => {
+        const auth = oidcAuth(
+            vi.fn()
+                .mockResolvedValueOnce("expired-token")
+                .mockResolvedValueOnce(undefined),
+            vi.fn().mockResolvedValue(undefined)
+        );
+
+        const { adapter } = createAdapter([401]);
+        const options = await createAuthOptions(auth);
+        await expect(httpGet<any>("/api/test", { ...options, adapter })).rejects.toMatchObject({ status: 401 });
+
+        expect(adapter).toHaveBeenCalledTimes(1);
+        expect(requestReauthenticationMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("starts reauthentication after a second 401 and does not retry again", async () => {
+        const auth = oidcAuth(
+            vi.fn()
+                .mockResolvedValueOnce("expired-token")
+                .mockResolvedValueOnce("fresh-token"),
+            vi.fn().mockResolvedValue(undefined)
+        );
+
+        const { adapter } = createAdapter([401, 401]);
+        const options = await createAuthOptions(auth);
+        await expect(httpGet<any>("/api/test", { ...options, adapter })).rejects.toMatchObject({ status: 401 });
+
+        expect(adapter).toHaveBeenCalledTimes(2);
+        expect(auth.refresh).toHaveBeenCalledTimes(1);
+        expect(requestReauthenticationMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("refreshes and retries on the default axios instance used by data contracts", async () => {
+        const auth = oidcAuth(
+            vi.fn()
+                .mockResolvedValueOnce("expired-token")
+                .mockResolvedValueOnce("fresh-token"),
+            vi.fn().mockResolvedValue(undefined)
+        );
+
+        const { adapter, requests } = createAdapter([401, 200]);
+        const options = await createAuthOptions(auth);
+        const response = await axios.get<any>("/api/test", { ...options, adapter });
+
+        expect(adapter).toHaveBeenCalledTimes(2);
+        expect(auth.refresh).toHaveBeenCalledTimes(1);
+        expect(requestReauthenticationMock).not.toHaveBeenCalled();
+        expect(authorization(requests[0])).toBe("Bearer expired-token");
+        expect(authorization(requests[1])).toBe("Bearer fresh-token");
+        expect(response.data).toEqual({ message: "ok" });
     });
 });

@@ -1,4 +1,4 @@
-import axios, { AxiosRequestConfig } from "axios";
+import axios, { AxiosHeaders, AxiosRequestConfig, InternalAxiosRequestConfig } from "axios";
 import { ContentTypes } from "@models/ContentTypes.ts";
 import { AuthService } from "@apitomy/common-ui-components";
 import { Buffer } from "buffer";
@@ -11,6 +11,16 @@ import type { Middleware } from "@microsoft/kiota-http-fetchlibrary";
 
 const AUTH_HEADER_KEY = "Authorization";
 const BEARER_TOKEN_KEY = "Bearer";
+
+// Axios v1 keeps custom request config fields across its merge, so the OIDC auth
+// service can travel with the request instead of being stored in module state.
+// See https://axios-http.com/docs/req_config (custom config options).
+declare module "axios" {
+    interface AxiosRequestConfig {
+        authService?: AuthService;
+        authRetried?: boolean;
+    }
+}
 
 export function getErrorStatus(error: unknown): number | undefined {
     if (!error || typeof error !== "object") {
@@ -197,6 +207,77 @@ export const getRegistryClient = (config: ConfigService, auth: AuthService): Api
 
 const AXIOS = axios.create();
 
+/** Shared promise to deduplicate token refreshes across concurrent 401 responses. */
+let axiosRefreshTokensPromise: Promise<void> | null = null;
+
+function refreshAxiosTokens(auth: AuthService): Promise<void> {
+    if (!axiosRefreshTokensPromise) {
+        axiosRefreshTokensPromise = (async () => {
+            try {
+                await auth.refresh();
+            } finally {
+                axiosRefreshTokensPromise = null;
+            }
+        })();
+    }
+    return axiosRefreshTokensPromise;
+}
+
+async function requestAxiosReauthentication(auth: AuthService): Promise<void> {
+    try {
+        await getReauthenticationService().requestReauthentication(auth);
+    } catch (error) {
+        console.error("[rest.utils] Failed to start re-authentication flow", error);
+    }
+}
+
+/**
+ * Refresh the OIDC token on a 401 and replay the request once with the new token.
+ * Requests without an OIDC auth service, and a second 401 after the retry, are
+ * rejected unchanged so callers still handle those errors as before.
+ */
+async function retryOn401(error: any): Promise<any> {
+    const config: InternalAxiosRequestConfig | undefined = error?.config;
+    const auth = config?.authService;
+    if (error?.response?.status !== 401 || !config || !auth || !auth.isOidcAuthEnabled()) {
+        return Promise.reject(error);
+    }
+
+    if (config.authRetried) {
+        console.warn("[rest.utils] Request is still unauthorized after token refresh");
+        await requestAxiosReauthentication(auth);
+        return Promise.reject(error);
+    }
+
+    try {
+        await refreshAxiosTokens(auth);
+    } catch (e) {
+        console.error("[rest.utils] Token refresh failed", e);
+        await requestAxiosReauthentication(auth);
+        return Promise.reject(error);
+    }
+
+    const token = await auth.getToken();
+    if (!token) {
+        console.error("[rest.utils] No token after refresh");
+        await requestAxiosReauthentication(auth);
+        return Promise.reject(error);
+    }
+
+    const retryConfig: AxiosRequestConfig = {
+        ...config,
+        authRetried: true,
+        headers: new AxiosHeaders(config.headers).set(AUTH_HEADER_KEY, `${BEARER_TOKEN_KEY} ${token}`)
+    };
+    console.debug("[rest.utils] Retrying request after token refresh");
+    return axios.request(retryConfig);
+}
+
+// Data contracts and prompt rendering call the default axios instance directly,
+// while the admin import goes through the local instance below.
+axios.interceptors.response.use(undefined, retryOn401);
+AXIOS.interceptors.response.use(undefined, retryOn401);
+
 function createAxiosConfig(method: string, url: string, options: any, data?: any): AxiosRequestConfig {
     if (typeof data === "string") {
         data = new Blob([data]);
@@ -304,7 +385,7 @@ export function createOptions(headers: { [header: string]: string }): AxiosReque
 export async function createAuthOptions(auth: AuthService): Promise<AxiosRequestConfig> {
     if (auth.isOidcAuthEnabled()) {
         const token: string | undefined = await auth.getToken();
-        return createOptions(createHeaders(token));
+        return { ...createOptions(createHeaders(token)), authService: auth };
     } else if (auth.isBasicAuthEnabled()) {
         const creds = auth.getUsernameAndPassword();
         const base64Credentials = Buffer.from(`${creds?.username}:${creds?.password}`, "ascii").toString("base64");

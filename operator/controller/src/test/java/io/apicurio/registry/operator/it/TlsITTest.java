@@ -3,8 +3,11 @@ package io.apicurio.registry.operator.it;
 import io.apicurio.registry.operator.EnvironmentVariables;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.spec.InsecureRequests;
+import io.apicurio.registry.operator.api.v1.status.ConditionStatus;
 import io.apicurio.registry.operator.resource.ResourceFactory;
 import io.fabric8.kubernetes.api.model.HasMetadata;
+import io.fabric8.kubernetes.api.model.Secret;
+import io.fabric8.kubernetes.api.model.SecretBuilder;
 import io.fabric8.kubernetes.api.model.networking.v1.NetworkPolicyIngressRule;
 import io.fabric8.kubernetes.client.utils.Serialization;
 import io.quarkus.test.junit.QuarkusTest;
@@ -13,7 +16,9 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import java.io.InputStream;
 import java.net.URI;
+import java.util.Base64;
 import java.util.List;
 
 import static io.apicurio.registry.operator.Tags.FEATURE;
@@ -367,5 +372,58 @@ public class TlsITTest extends ITBase {
                     .then().statusCode(200);
             return true;
         });
+    }
+
+    /**
+     * Test detection and alerting of expiring TLS certificates.
+     */
+    @Test
+    void testTlsExpirationAlerting() throws Exception {
+        // Read the static future keystore (valid for 10 years)
+        InputStream is = getClass().getResourceAsStream("/k8s/examples/tls/future.p12");
+        byte[] keystoreBytes = is.readAllBytes();
+        is.close();
+        
+        String base64Keystore = Base64.getEncoder().encodeToString(keystoreBytes);
+
+        Secret secret = new SecretBuilder()
+                .withNewMetadata().withName("expiring-tls-secret").withNamespace(namespace).endMetadata()
+                .addToData("ca.p12", base64Keystore)
+                .addToData("ca.password", Base64.getEncoder().encodeToString("password".getBytes()))
+                .build();
+        client.secrets().inNamespace(namespace).resource(secret).create();
+
+        var registry = ResourceFactory.deserialize("/k8s/examples/tls/simple-with_tls.apicurioregistry3.yaml",
+                ApicurioRegistry3.class);
+        registry.getMetadata().setName("expiring-registry");
+        registry.getMetadata().setNamespace(namespace);
+        registry.getSpec().getApp().getIngress().setHost(ingressManager.getIngressHost("app-expiring"));
+        registry.getSpec().getUi().getIngress().setHost(ingressManager.getIngressHost("ui-expiring"));
+        
+        registry.getSpec().getApp().getTls().getTruststoreSecretRef().setName("expiring-tls-secret");
+        registry.getSpec().getApp().getTls().getTruststorePasswordSecretRef().setName("expiring-tls-secret");
+        registry.getSpec().getApp().getTls().setExpirationWarningDays(36500);
+
+        client.resource(registry).create();
+
+        // Wait for the status condition to be set to CertificateExpiring
+        await().ignoreExceptions().until(() -> {
+            var cr = client.resources(ApicurioRegistry3.class).inNamespace(namespace).withName("expiring-registry").get();
+            if (cr == null || cr.getStatus() == null || cr.getStatus().getConditions() == null) {
+                return false;
+            }
+            var condition = cr.getStatus().getConditions().stream()
+                    .filter(c -> "CertificateExpiring".equals(c.getType()))
+                    .findFirst();
+            return condition.isPresent() && ConditionStatus.TRUE == condition.get().getStatus();
+        });
+        
+        // Assert event
+        var events = client.v1().events().inNamespace(namespace).list().getItems();
+        boolean eventFound = events.stream().anyMatch(e -> 
+            "CertificateExpiring".equals(e.getReason()) && 
+            "expiring-registry".equals(e.getInvolvedObject().getName())
+        );
+        Assertions.assertTrue(eventFound, "Kubernetes Event should be emitted for expiring certificate.");
     }
 }

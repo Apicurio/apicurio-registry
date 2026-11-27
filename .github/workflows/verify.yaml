@@ -104,10 +104,12 @@ jobs:
       - name: Test scalpel summary script
         run: bash .github/scripts/scalpel-summary.test.sh
 
-      # Same reasoning for the example discovery suite: a discovery regression can drop an
+      # Same reasoning for the example discovery & sharding suites: a regression can drop an
       # example from verify-examples.yaml's matrix while Verify stays green.
-      - name: Test example discovery script
-        run: bash .github/scripts/discover-examples.test.sh
+      - name: Test example discovery and sharding scripts
+        run: |
+          bash .github/scripts/discover-examples.test.sh
+          bash .github/scripts/shard-examples.test.sh
 
       # Discovers the test_*.py files sitting directly in .github/scripts rather
       # than naming one of them. A test that CI does not run stops nothing:

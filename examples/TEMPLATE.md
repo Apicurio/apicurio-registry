@@ -53,14 +53,16 @@ non-obvious line.
 ## In CI
 
 Every directory under `examples/` with an executable `demo.sh` and a Compose file runs in CI
-([`verify-examples.yaml`](../.github/workflows/verify-examples.yaml)), in its own job, on every pull
-request that changes an example, the server or the UI, and on every push to `main`:
+([`verify-examples.yaml`](../.github/workflows/verify-examples.yaml)), packed into balanced shards
+by `.github/scripts/shard-examples.sh`, on every pull request that changes an example, the server
+or the UI, and on every push to `main`:
 
 1. `docker compose up -d`, with `REGISTRY_IMAGE`, `REGISTRY_UI_IMAGE` and `MCP_SERVER_IMAGE` set to
-   the images built for the pull request. The job fails first if the stack would run any other
+   the images built for the pull request. The example fails first if the stack would run any other
    Apicurio Registry image. Other images (Keycloak, Kafka, ...) are pulled, with retries.
 2. `./demo.sh`, then `./demo.sh` again. Both must exit 0.
-3. `docker compose down -v`. On failure, the Compose logs are uploaded as an artifact.
+3. `docker compose down -v`. On failure, the Compose logs are uploaded as an artifact and each
+   example's status is listed in the shard's job summary.
 
 There is nothing to register: adding the example is enough. A failure blocks the merge.
 

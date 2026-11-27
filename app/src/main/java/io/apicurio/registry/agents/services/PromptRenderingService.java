@@ -13,8 +13,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static io.apicurio.registry.util.JsonObjectMapper.MAPPER;
 import static io.apicurio.registry.util.YAMLObjectMapper.YAML_MAPPER;
@@ -37,27 +35,6 @@ import static io.apicurio.registry.util.YAMLObjectMapper.YAML_MAPPER;
 @ApplicationScoped
 public class PromptRenderingService {
 
-
-    /**
-     * Matches {{#if var}} ... {{/if}} blocks, including multi-line content.
-     * Group 1 = variable name, Group 2 = inner content.
-     */
-    private static final Pattern IF_BLOCK_PATTERN =
-            Pattern.compile("\\{\\{#if\\s+(\\w+)\\}\\}((?:(?!\\{\\{/if\\}\\})[\\s\\S])*?)\\{\\{/if\\}\\}");
-
-    /**
-     * Matches if-else blocks: opening tag, truthy branch, else tag, falsy branch, closing tag.
-     * Group 1 = variable name, Group 2 = truthy branch, Group 3 = falsy branch.
-     */
-    private static final Pattern IF_ELSE_BLOCK_PATTERN =
-            Pattern.compile("\\{\\{#if\\s+(\\w+)\\}\\}((?:(?!\\{\\{else\\}\\})[\\s\\S])*?)\\{\\{else\\}\\}((?:(?!\\{\\{/if\\}\\})[\\s\\S])*?)\\{\\{/if\\}\\}");
-
-    /**
-     * Matches unless blocks: opening tag, inner content, closing tag.
-     * Group 1 = variable name, Group 2 = inner content.
-     */
-    private static final Pattern UNLESS_BLOCK_PATTERN =
-            Pattern.compile("\\{\\{#unless\\s+(\\w+)\\}\\}((?:(?!\\{\\{/unless\\}\\})[\\s\\S])*?)\\{\\{/unless\\}\\}");
 
     private static final String TYPE_STRING = "string";
     private static final String TYPE_INTEGER = "integer";
@@ -112,7 +89,7 @@ public class PromptRenderingService {
         validateAppliedDefaults(variables, effectiveVariables, variablesSchema, validationErrors);
 
         // Process conditional blocks first, then substitute plain variables
-        String withBlocksResolved = processConditionalBlocks(templateText, effectiveVariables);
+        String withBlocksResolved = PromptTemplateVariableUtil.processConditionalBlocks(templateText, effectiveVariables);
         String rendered = substituteVariables(withBlocksResolved, effectiveVariables);
 
         return RenderPromptResponse.builder()
@@ -470,90 +447,13 @@ public class PromptRenderingService {
     }
 
     /**
-     * Determine whether a value is truthy for conditional evaluation.
-     *
-     * <p>A value is falsy when it is null, {@code Boolean.FALSE}, or an empty string.
-     * All other values are truthy. This matches the MCP render path semantics in
-     * {@code PromptTemplateConverter.processConditionalBlocks()}.</p>
-     */
-    private boolean isTruthy(Object value) {
-        return value != null
-                && !Boolean.FALSE.equals(value)
-                && !(value instanceof String s && s.isEmpty());
-    }
-
-    /**
-     * Process Handlebars-style conditional blocks before plain variable substitution.
-     *
-     * <p>Handles three forms in evaluation order:</p>
-     * <ol>
-     *   <li>{@code {{#if var}} ... {{else}} ... {{/if}}} — if/else (must be matched before plain if)</li>
-     *   <li>{@code {{#if var}} ... {{/if}}} — simple if</li>
-     *   <li>{@code {{#unless var}} ... {{/unless}}} — unless (logical complement of if)</li>
-     * </ol>
-     */
-    private String processConditionalBlocks(String template, Map<String, Object> variables) {
-        // Step 1: resolve if-else blocks first to prevent the plain-if pattern from partially matching them
-        Matcher ifElseMatcher = IF_ELSE_BLOCK_PATTERN.matcher(template);
-        StringBuilder ifElseResult = new StringBuilder();
-        while (ifElseMatcher.find()) {
-            String varName = ifElseMatcher.group(1);
-            String truthyBranch = ifElseMatcher.group(2);
-            String falsyBranch = ifElseMatcher.group(3);
-            String chosen = isTruthy(variables.get(varName)) ? truthyBranch : falsyBranch;
-            ifElseMatcher.appendReplacement(ifElseResult, Matcher.quoteReplacement(chosen));
-        }
-        ifElseMatcher.appendTail(ifElseResult);
-        template = ifElseResult.toString();
-
-        // Step 2: resolve plain if blocks
-        Matcher ifMatcher = IF_BLOCK_PATTERN.matcher(template);
-        StringBuilder ifResult = new StringBuilder();
-        while (ifMatcher.find()) {
-            String varName = ifMatcher.group(1);
-            String content = ifMatcher.group(2);
-            String chosen = isTruthy(variables.get(varName)) ? content : "";
-            ifMatcher.appendReplacement(ifResult, Matcher.quoteReplacement(chosen));
-        }
-        ifMatcher.appendTail(ifResult);
-        template = ifResult.toString();
-
-        // Step 3: resolve unless blocks (logical complement of if)
-        Matcher unlessMatcher = UNLESS_BLOCK_PATTERN.matcher(template);
-        StringBuilder unlessResult = new StringBuilder();
-        while (unlessMatcher.find()) {
-            String varName = unlessMatcher.group(1);
-            String content = unlessMatcher.group(2);
-            String chosen = isTruthy(variables.get(varName)) ? "" : content;
-            unlessMatcher.appendReplacement(unlessResult, Matcher.quoteReplacement(chosen));
-        }
-        unlessMatcher.appendTail(unlessResult);
-
-        return unlessResult.toString();
-    }
-
-    /**
      * Substitute variables in the template text using {{variable}} syntax.
      */
     private String substituteVariables(String template, Map<String, Object> variables) {
         return PromptTemplateVariableUtil.substituteVariables(template, varName -> {
             Object value = variables.get(varName);
             // Returning null keeps the original placeholder if the variable is not provided.
-            return value == null ? null : formatValue(value);
+            return value == null ? null : PromptTemplateVariableUtil.formatValue(value);
         });
-    }
-
-    /**
-     * Format a value for substitution into the template.
-     */
-    private String formatValue(Object value) {
-        if (value instanceof List || value instanceof Map) {
-            try {
-                return MAPPER.writeValueAsString(value);
-            } catch (Exception e) {
-                return String.valueOf(value);
-            }
-        }
-        return String.valueOf(value);
     }
 }

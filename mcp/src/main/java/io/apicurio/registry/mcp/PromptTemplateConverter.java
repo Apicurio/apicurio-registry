@@ -13,8 +13,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Converts PROMPT_TEMPLATE artifacts to MCP prompt format.
@@ -22,8 +20,6 @@ import java.util.regex.Pattern;
  */
 @ApplicationScoped
 public class PromptTemplateConverter {
-
-    private static final Pattern IF_BLOCK_PATTERN = Pattern.compile("\\{\\{#if\\s+(\\w+)\\}\\}([\\s\\S]*?)\\{\\{/if\\}\\}");
 
     @Inject
     ObjectMapper jsonMapper;
@@ -480,45 +476,19 @@ public class PromptTemplateConverter {
             return template;
         }
 
+        // Process conditional blocks first, matching PromptRenderingService
+        String withBlocksResolved = PromptTemplateVariableUtil.processConditionalBlocks(template, args);
+
         // Simple {{variable}} substitution, using the canonical pattern shared with the validity
         // rule and the REST render endpoint so that {{name}} and {{ name }} resolve the same way.
-        String rendered = PromptTemplateVariableUtil.substituteVariables(template, varName -> {
+        return PromptTemplateVariableUtil.substituteVariables(withBlocksResolved, varName -> {
             if (!args.containsKey(varName)) {
                 // Returning null leaves the placeholder in the output, as before.
                 return null;
             }
             Object value = args.get(varName);
-            return value != null ? String.valueOf(value) : "";
+            return value != null ? PromptTemplateVariableUtil.formatValue(value) : "";
         });
-
-        // Handle {{#if variable}} ... {{/if}} blocks
-        rendered = processConditionalBlocks(rendered, args);
-
-        return rendered;
-    }
-
-    /**
-     * Process {{#if variable}} ... {{/if}} conditional blocks
-     */
-    private String processConditionalBlocks(String template, Map<String, Object> args) {
-        Matcher matcher = IF_BLOCK_PATTERN.matcher(template);
-        StringBuilder result = new StringBuilder();
-
-        while (matcher.find()) {
-            String varName = matcher.group(1);
-            String content = matcher.group(2);
-
-            Object value = args.get(varName);
-            // Truthy check: non-null, non-empty string, non-false
-            boolean isTruthy = value != null &&
-                    !Boolean.FALSE.equals(value) &&
-                    !(value instanceof String && ((String) value).isEmpty());
-
-            matcher.appendReplacement(result, Matcher.quoteReplacement(isTruthy ? content : ""));
-        }
-        matcher.appendTail(result);
-
-        return result.toString();
     }
 
     /**

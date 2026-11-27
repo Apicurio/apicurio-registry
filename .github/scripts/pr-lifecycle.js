@@ -633,8 +633,11 @@ async function handleReviewRelay({ github, context, core }) {
     // replaced it has its own Verify run, and that run decides.
     if (pr.head.sha !== workflowRun.head_sha) continue;
     await maybeRunFullSuite(api, config, pr, core);
-    if (!hasLabel(pr, LABELS.DISABLED) && !pr.draft) {
-      await reconcile(github, api, pr, core);
+    // Re-fetch before reconciling: maybeRunFullSuite awaits API calls during
+    // which a push, draft conversion, or orchestrator/disabled change may land.
+    const freshPr = await api.getPr(pr.number);
+    if (freshPr.head.sha === workflowRun.head_sha && !hasLabel(freshPr, LABELS.DISABLED) && !freshPr.draft) {
+      await reconcile(github, api, freshPr, core);
     }
   }
 }

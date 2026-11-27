@@ -952,6 +952,29 @@ test('review relay: reconciles lifecycle labels on review for fork and same-repo
   assert.ok(!w.labels.has(LABELS.WAITING_ON_AUTHOR), 'should clear waiting-on-author');
 });
 
+test('review relay: skips reconcile when PR turns draft while maybeRunFullSuite runs', async () => {
+  const w = rerunWorld({
+    labels: [LABELS.READY_FOR_REVIEW, LABELS.TESTED],
+    approved: true,
+    runs: [skippedRun()],
+    jobs: skippedJobs,
+  });
+  let fetches = 0;
+  const origGet = w.github.rest.pulls.get;
+  w.github.rest.pulls.get = async (params) => {
+    const res = await origGet(params);
+    fetches++;
+    if (fetches >= 2) {
+      // Simulate PR converted to draft and stripped of lifecycle labels mid-flight.
+      w.labels.clear();
+      return { data: { ...res.data, draft: true, labels: [] } };
+    }
+    return res;
+  };
+  await relay(w);
+  assert.equal(w.calls.added.length, 0, 'must not re-apply lifecycle labels to a PR converted to draft mid-flight');
+});
+
 test('review relay: without an approval the skipped run is left alone', async () => {
   for (const decision of ['REVIEW_REQUIRED', 'CHANGES_REQUESTED']) {
     const w = rerunWorld({ decision, runs: [skippedRun()], jobs: skippedJobs });

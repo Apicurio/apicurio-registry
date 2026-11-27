@@ -21,8 +21,10 @@ permissions:
   pull-requests: write
   issues: write
 
+# Share the per-PR group with command and reconcile in pr-lifecycle.yml so
+# PR events and /retry or manual reconciliation serialize per PR.
 concurrency:
-  group: pr-lifecycle-events-${{ github.event.pull_request.number }}
+  group: pr-lifecycle-pr-${{ github.event.pull_request.number }}
   cancel-in-progress: false
 
 jobs:

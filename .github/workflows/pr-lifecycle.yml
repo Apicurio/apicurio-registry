@@ -95,7 +95,9 @@ jobs:
       github.event.action == 'completed' &&
       github.event.workflow_run.name != 'Review Relay'
     concurrency:
-      group: pr-lifecycle-test-${{ github.event.workflow_run.head_sha }}
+      # Keyed by workflow_id + head_sha so Quick Check and Verify completions
+      # for the same commit never supersede each other while pending.
+      group: pr-lifecycle-test-${{ github.event.workflow_run.workflow_id }}-${{ github.event.workflow_run.head_sha }}
       cancel-in-progress: false
     permissions:
       actions: write

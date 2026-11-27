@@ -5,6 +5,7 @@ import io.apicurio.registry.contracts.compatibility.CompatibilityGroupService;
 import io.apicurio.registry.metrics.OTelMetricsProvider;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.error.GroupNotFoundException;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.LazyContentList;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
@@ -115,6 +116,18 @@ public class RulesServiceImpl implements RulesService {
                 artifactRules, references, resolvedReferences);
     }
 
+    /**
+     * The group rules, or none when the group does not exist. getGroupRules already checks that the
+     * group exists, so a separate existence check would only repeat that read.
+     */
+    private static Set<RuleType> getGroupRulesIfGroupExists(RegistryStorage storageToUse, String groupId) {
+        try {
+            return new HashSet<>(storageToUse.getGroupRules(groupId));
+        } catch (GroupNotFoundException e) {
+            return Set.of();
+        }
+    }
+
     private void applyAllRules(RegistryStorage storageToUse, String groupId, String artifactId,
             String newVersion, String artifactType, List<TypedContent> currentContent,
             TypedContent updatedContent, Set<RuleType> artifactRules, List<ArtifactReference> references,
@@ -123,8 +136,7 @@ public class RulesServiceImpl implements RulesService {
         Map<RuleType, RuleConfigurationDto> allRules = new HashMap<>();
 
         // Get the group rules (we already have the artifact rules)
-        Set<RuleType> groupRules = storageToUse.isGroupExists(groupId)
-            ? new HashSet<>(storageToUse.getGroupRules(groupId)) : Set.of();
+        Set<RuleType> groupRules = getGroupRulesIfGroupExists(storageToUse, groupId);
         // Get the global rules
         Set<RuleType> globalRules = new HashSet<>(storageToUse.getGlobalRules());
         // Get the configured default global rules

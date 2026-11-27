@@ -25,4 +25,17 @@ public interface Handle extends Closeable {
      * @param rollback
      */
     void setRollback(boolean rollback);
+
+    /**
+     * Runs the callback under a JDBC savepoint of this handle's transaction. If the callback throws an
+     * exception, the transaction is rolled back to the savepoint, the rollback status is restored to its
+     * value before the callback ran, and the exception is rethrown. The caller can then catch an expected
+     * failure (e.g. a unique constraint violation) and keep using the transaction, which on PostgreSQL would
+     * otherwise be aborted by the failed statement. Nested storage calls made by the callback mark the
+     * handle for rollback when they fail; restoring the status is what keeps such a handled failure from
+     * rolling back the whole transaction. An {@link Error} is not handled and rolls back the transaction.
+     *
+     * @param callback the work to run under the savepoint
+     */
+    <R, X extends Exception> R inSavepoint(HandleCallback<R, X> callback) throws X;
 }

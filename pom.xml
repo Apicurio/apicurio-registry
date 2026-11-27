@@ -1613,11 +1613,22 @@
         <repository>
           <id>jgit-repository</id>
           <url>https://repo.eclipse.org/content/groups/releases/</url>
+          <!-- Releases only: this repo hosts no io.apicurio SNAPSHOTs, but without this Maven
+               still asks it for every reactor module's own SNAPSHOT metadata on every build, so
+               an outage here (seen for ~34h in Nov 2026, repo.eclipse.org 503) slows or times out
+               the whole build instead of being skipped. -->
+          <snapshots>
+            <enabled>false</enabled>
+          </snapshots>
         </repository>
         <repository>
           <id>confluent</id>
           <name>Confluent</name>
           <url>https://packages.confluent.io/maven/</url>
+          <!-- Releases only; see the note on jgit-repository above. -->
+          <snapshots>
+            <enabled>false</enabled>
+          </snapshots>
         </repository>
       </repositories>
     </profile>

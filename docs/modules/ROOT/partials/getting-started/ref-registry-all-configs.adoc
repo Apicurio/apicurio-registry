@@ -326,6 +326,16 @@ The following {registry} configuration options are available for each component 
 |`false`
 |`2.1.0.Final`
 |Enable basic auth client credentials
+|`apicurio.authn.basic-client-credentials.failure-cache-ttl.seconds`
+|`integer`
+|`60`
+|`3.4.0`
+|Time-to-live in seconds for cached OIDC client-credentials authentication failures.
+|`apicurio.authn.basic-client-credentials.token-fetch-timeout.seconds`
+|`integer`
+|`30`
+|`3.4.0`
+|Maximum time in seconds to wait for an OIDC client-credentials token fetch (including retries).
 |`apicurio.authn.basic.scope`
 |`optional<string>`
 |

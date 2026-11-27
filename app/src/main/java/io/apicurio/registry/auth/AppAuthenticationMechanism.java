@@ -42,6 +42,7 @@ import jakarta.inject.Inject;
 import io.apicurio.registry.logging.audit.AuditLogService;
 import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.microprofile.faulttolerance.Retry;
+import org.eclipse.microprofile.faulttolerance.Timeout;
 import org.slf4j.Logger;
 
 import java.time.Instant;
@@ -53,6 +54,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -269,6 +271,7 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
      */
     @Retry(retryOn = OidcAuthException.class, maxRetries = 4, delay = 1,
             delayUnit = ChronoUnit.SECONDS)
+    @Timeout(value = 30, unit = ChronoUnit.SECONDS)
     public WrappedValue<String> getAccessToken(Pair<String, String> clientCredentials,
             String oidcTokenUrl) {
         String clientId = clientCredentials.getLeft();
@@ -286,10 +289,11 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
 
         try {
             var response = webClient.postAbs(oidcTokenUrl)
+                    .timeout(10_000)
                     .sendForm(form)
                     .toCompletionStage()
                     .toCompletableFuture()
-                    .join();
+                    .get();
 
             int statusCode = response.statusCode();
             if (statusCode == 401) {
@@ -309,6 +313,18 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
                     OidcAuthenticationStrategy.getAccessTokenExpiration(jwtToken,
                             authConfig, jwtParser, log),
                     Instant.now(), jwtToken);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new OidcAuthException("OIDC token request interrupted", e);
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof io.quarkus.security.UnauthorizedException ue) {
+                throw ue;
+            }
+            if (cause instanceof io.quarkus.security.ForbiddenException fe) {
+                throw fe;
+            }
+            throw new OidcAuthException("Failed to obtain access token", cause);
         } catch (io.quarkus.security.UnauthorizedException
                 | io.quarkus.security.ForbiddenException ex) {
             throw ex;

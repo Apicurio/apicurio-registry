@@ -25,9 +25,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /** Verifies concurrent client-credentials requests with same credentials result in exactly one token fetch. */
@@ -112,6 +116,94 @@ class OidcTokenStampedeTest {
                         + " concurrent requests with same credentials, but got "
                         + tokenFetchCount.get()
                         + ". This indicates a cache stampede.");
+    }
+
+    @Test
+    void timeoutExceptionFromCreatorReleasesJoinersAndIsCached() throws Exception {
+        AppAuthenticationMechanism mockParent = mock(AppAuthenticationMechanism.class);
+        when(mockParent.getAccessToken(any(Pair.class), anyString()))
+                .thenThrow(new org.eclipse.microprofile.faulttolerance.exceptions.TimeoutException(
+                        "Timed out"));
+
+        AuthConfig authConfig = new AuthConfig();
+        authConfig.authServerUrl = "http://localhost/realms/test";
+        authConfig.oidcTokenPath = "http://localhost/realms/test/token";
+        authConfig.accessTokenExpiration = 10;
+        authConfig.accessTokenExpirationOffset = 10;
+        authConfig.failureCacheTtlSeconds = 30;
+
+        OidcAuthenticationMechanism oidcMech = mock(OidcAuthenticationMechanism.class);
+        OidcAuthenticationStrategy strategy = new OidcAuthenticationStrategy(
+                oidcMech, authConfig, null, null,
+                LoggerFactory.getLogger(OidcTokenStampedeTest.class), mockParent);
+
+        Pair<String, String> credentials = Pair.of("timeout-client", "secret");
+        IdentityProviderManager idpManager = mock(IdentityProviderManager.class);
+
+        assertThrows(org.eclipse.microprofile.faulttolerance.exceptions.TimeoutException.class,
+                () -> strategy.authenticateWithClientCredentials(
+                        credentials, createMockRoutingContext(), idpManager));
+
+        // Second call within failureCacheTtlSeconds should hit the failure cache, not getAccessToken.
+        assertThrows(org.eclipse.microprofile.faulttolerance.exceptions.TimeoutException.class,
+                () -> strategy.authenticateWithClientCredentials(
+                        credentials, createMockRoutingContext(), idpManager));
+
+        verify(mockParent, times(1)).getAccessToken(any(Pair.class), anyString());
+    }
+
+    @Test
+    void joinerDoesNotHangForeverWhenCreatorStalls() throws Exception {
+        CountDownLatch creatorStarted = new CountDownLatch(1);
+        CountDownLatch releaseCreator = new CountDownLatch(1);
+
+        AppAuthenticationMechanism mockParent = mock(AppAuthenticationMechanism.class);
+        when(mockParent.getAccessToken(any(Pair.class), anyString()))
+                .thenAnswer(invocation -> {
+                    creatorStarted.countDown();
+                    releaseCreator.await(10, TimeUnit.SECONDS);
+                    return new WrappedValue<>(
+                            Duration.ofMinutes(10), Instant.now(), "late-token");
+                });
+
+        AuthConfig authConfig = new AuthConfig();
+        authConfig.authServerUrl = "http://localhost/realms/test";
+        authConfig.oidcTokenPath = "http://localhost/realms/test/token";
+        authConfig.accessTokenExpiration = 10;
+        authConfig.accessTokenExpirationOffset = 10;
+        authConfig.tokenFetchTimeoutSeconds = 1;
+
+        OidcAuthenticationMechanism oidcMech = mock(OidcAuthenticationMechanism.class);
+        OidcAuthenticationStrategy strategy = new OidcAuthenticationStrategy(
+                oidcMech, authConfig, null, null,
+                LoggerFactory.getLogger(OidcTokenStampedeTest.class), mockParent);
+
+        Pair<String, String> credentials = Pair.of("hung-client", "secret");
+        IdentityProviderManager idpManager = mock(IdentityProviderManager.class);
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        try {
+            Future<?> creatorFuture = executor.submit(() -> strategy.authenticateWithClientCredentials(
+                    credentials, createMockRoutingContext(), idpManager));
+            assertTrue(creatorStarted.await(5, TimeUnit.SECONDS));
+
+            long startNanos = System.nanoTime();
+            Future<?> joinerFuture = executor.submit(() -> strategy.authenticateWithClientCredentials(
+                    credentials, createMockRoutingContext(), idpManager));
+
+            ExecutionException ee = assertThrows(ExecutionException.class,
+                    () -> joinerFuture.get(5, TimeUnit.SECONDS));
+            assertTrue(ee.getCause() instanceof OidcAuthException,
+                    "Expected OidcAuthException on joiner timeout, got: " + ee.getCause());
+            long elapsedMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
+            assertTrue(elapsedMs >= 900 && elapsedMs < 4000,
+                    "Expected joiner to time out around 1s, took " + elapsedMs + "ms");
+
+            releaseCreator.countDown();
+            creatorFuture.get(5, TimeUnit.SECONDS);
+        } finally {
+            releaseCreator.countDown();
+            executor.shutdownNow();
+        }
     }
 
     private static RoutingContext createMockRoutingContext() {

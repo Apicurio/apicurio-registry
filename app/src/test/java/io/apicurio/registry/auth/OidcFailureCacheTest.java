@@ -503,10 +503,11 @@ class OidcFailureCacheTest {
             }
         });
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
-        while (joiner.getState() != Thread.State.WAITING && System.nanoTime() < deadline) {
+        while (joiner.getState() != Thread.State.TIMED_WAITING && System.nanoTime() < deadline) {
             Thread.onSpinWait();
         }
-        assertEquals(Thread.State.WAITING, joiner.getState(), "The joiner should be parked on the future");
+        assertEquals(Thread.State.TIMED_WAITING, joiner.getState(),
+                "The joiner should be parked on the future with a bounded timeout");
 
         releaseCreator.countDown();
         creator.join(TimeUnit.SECONDS.toMillis(10));

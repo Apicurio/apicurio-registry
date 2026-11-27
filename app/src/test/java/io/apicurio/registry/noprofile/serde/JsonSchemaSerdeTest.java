@@ -186,6 +186,80 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
         }
     }
 
+    @ParameterizedTest(name = "testJsonSchemaSerdeAutoRegisterFromJsonNode [{0}]")
+    @MethodSource("isolatedClientFacadeProvider")
+    public void testJsonSchemaSerdeAutoRegisterFromJsonNode(ClientFacadeSupplier clientFacadeSupplier) throws Exception {
+        RegistryClientFacade clientFacade = clientFacadeSupplier.getFacade(this);
+
+        String groupId = TestUtils.generateGroupId();
+        String topic = generateArtifactId();
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        JsonNode payload = objectMapper.readTree("{\"firstName\":\"Claus\",\"lastName\":\"Ibsen\",\"age\":45}");
+
+        try (JsonSchemaKafkaSerializer<JsonNode> serializer = new JsonSchemaKafkaSerializer<>(clientFacade);
+            Deserializer<JsonNode> deserializer = new JsonSchemaKafkaDeserializer<>(clientFacade)) {
+
+            Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
+            config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, true);
+            config.put(SerdeConfig.VALIDATION_ENABLED, true);
+            serializer.configure(config, false);
+
+            deserializer.configure(Collections.emptyMap(), false);
+
+            byte[] bytes = serializer.serialize(topic, payload);
+            Assertions.assertNotNull(bytes);
+
+            JsonNode deserialized = deserializer.deserialize(topic, bytes);
+            Assertions.assertNotNull(deserialized);
+            Assertions.assertEquals("Claus", deserialized.get("firstName").asText());
+            Assertions.assertEquals("Ibsen", deserialized.get("lastName").asText());
+            Assertions.assertEquals(45, deserialized.get("age").asInt());
+
+            // Verify that a payload with a wrong property type fails validation against the auto-registered schema
+            JsonNode invalidPayload = objectMapper.readTree("{\"firstName\":\"Claus\",\"lastName\":\"Ibsen\",\"age\":\"not-an-integer\"}");
+            Assertions.assertThrows(Exception.class, () -> serializer.serialize(topic, invalidPayload));
+        }
+    }
+
+    @ParameterizedTest(name = "testJsonSchemaSerdeAutoRegisterFromMap [{0}]")
+    @MethodSource("isolatedClientFacadeProvider")
+    public void testJsonSchemaSerdeAutoRegisterFromMap(ClientFacadeSupplier clientFacadeSupplier) throws Exception {
+        RegistryClientFacade clientFacade = clientFacadeSupplier.getFacade(this);
+
+        String groupId = TestUtils.generateGroupId();
+        String topic = generateArtifactId();
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("firstName", "Claus");
+        payload.put("lastName", "Ibsen");
+        payload.put("age", 45);
+
+        try (JsonSchemaKafkaSerializer<Map<String, Object>> serializer = new JsonSchemaKafkaSerializer<>(clientFacade);
+            Deserializer<Map<String, Object>> deserializer = new JsonSchemaKafkaDeserializer<>(clientFacade)) {
+
+            Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
+            config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, true);
+            config.put(SerdeConfig.VALIDATION_ENABLED, true);
+            config.put(KafkaSerdeConfig.ENABLE_HEADERS, "true");
+            serializer.configure(config, false);
+
+            deserializer.configure(Collections.singletonMap(KafkaSerdeConfig.ENABLE_HEADERS, "true"), false);
+
+            Headers headers = new RecordHeaders();
+            byte[] bytes = serializer.serialize(topic, headers, payload);
+            Assertions.assertNotNull(bytes);
+
+            Map<String, Object> deserialized = deserializer.deserialize(topic, headers, bytes);
+            Assertions.assertNotNull(deserialized);
+            Assertions.assertEquals("Claus", deserialized.get("firstName"));
+            Assertions.assertEquals("Ibsen", deserialized.get("lastName"));
+            Assertions.assertEquals(45, deserialized.get("age"));
+        }
+    }
+
     @ParameterizedTest(name = "testJsonSchemaSerdeHeaders [{0}]")
     @MethodSource("isolatedClientFacadeProvider")
     public void testJsonSchemaSerdeHeaders(ClientFacadeSupplier clientFacadeSupplier) throws Exception {

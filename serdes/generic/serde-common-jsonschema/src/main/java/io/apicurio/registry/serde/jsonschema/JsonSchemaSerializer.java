@@ -27,7 +27,7 @@ import java.util.Map;
 public class JsonSchemaSerializer<T> extends AbstractSerializer<JsonSchema, T> {
 
     private ObjectMapper mapper;
-    private final JsonSchemaParser<T> parser = new JsonSchemaParser<>();
+    private final JsonSchemaParser<T> parser = new JsonSchemaParser<>(() -> this.mapper != null ? this.mapper : new ObjectMapper());
 
     private Boolean validationEnabled;
 

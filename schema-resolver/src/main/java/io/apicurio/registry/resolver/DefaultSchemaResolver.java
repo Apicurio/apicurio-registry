@@ -139,32 +139,26 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
     private SchemaLookupResult<S> getSchemaFromRegistry(ParsedSchema<S> parsedSchema, Record<T> data,
                                                         ArtifactReference artifactReference) {
         if (autoCreateArtifact) {
-
-            // Check if we have an explicit schema or can extract from data
-            if (parsedSchema != null || schemaParser.supportsExtractSchemaFromData()) {
-
-                if (parsedSchema == null) {
-                    // Check for explicit schema from headers first
-                    Metadata md = data.metadata();
-                    String explicitSchemaContent = md != null ? md.explicitSchemaContent() : null;
-                    if (explicitSchemaContent != null && !explicitSchemaContent.isEmpty()) {
-                        parsedSchema = parseExplicitSchema(explicitSchemaContent);
-                    } else {
-                        parsedSchema = schemaParser.getSchemaFromData(data, serializerDereference);
-                    }
+            if (parsedSchema == null) {
+                Metadata md = data.metadata();
+                String explicitSchemaContent = md != null ? md.explicitSchemaContent() : null;
+                if (explicitSchemaContent != null && !explicitSchemaContent.isEmpty()) {
+                    parsedSchema = parseExplicitSchema(explicitSchemaContent);
+                } else if (config.getExplicitSchemaLocation() != null
+                        && schemaParser.supportsGetSchemaFromLocation()) {
+                    parsedSchema = schemaParser.getSchemaFromLocation(config.getExplicitSchemaLocation());
+                } else if (schemaParser.supportsExtractSchemaFromData()) {
+                    parsedSchema = schemaParser.getSchemaFromData(data, serializerDereference);
                 }
+            }
 
+            if (parsedSchema != null) {
                 List<SchemaLookupResult<S>> schemaLookupResults = List.of();
                 if (parsedSchema.hasReferences()) {
                     // List of references lookup, to be used to create the references for the artifact
                     schemaLookupResults = handleArtifactReferences(data, parsedSchema);
                 }
                 return handleAutoCreateArtifact(parsedSchema, artifactReference, schemaLookupResults);
-
-            } else if (config.getExplicitSchemaLocation() != null
-                    && schemaParser.supportsGetSchemaFromLocation()) {
-                parsedSchema = schemaParser.getSchemaFromLocation(config.getExplicitSchemaLocation());
-                return handleAutoCreateArtifact(parsedSchema, artifactReference, List.of());
             }
         }
 
@@ -184,7 +178,9 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
                     parsedSchema = schemaParser.getSchemaFromData(data, serializerDereference);
                 }
             }
-            return handleResolveSchemaByContent(parsedSchema, artifactReference);
+            if (parsedSchema != null) {
+                return handleResolveSchemaByContent(parsedSchema, artifactReference);
+            }
         }
 
         return resolveSchemaByCoordinates(artifactReference.getGroupId(), artifactReference.getArtifactId(),

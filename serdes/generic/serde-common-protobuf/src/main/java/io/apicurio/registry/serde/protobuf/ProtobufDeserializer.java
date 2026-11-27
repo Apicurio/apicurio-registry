@@ -112,24 +112,21 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
      * reason. See {@link ProtobufDeserializerConfig#FALLBACK_ON_SCHEMA_ERROR}.
      */
     @Override
-    public U deserializeData(String topic, byte[] data) {
-        try {
-            return super.deserializeData(topic, data);
-        } catch (ApiException | UncheckedIOException e) {
+    protected U recoverDeserialization(String topic, byte[] data, RuntimeException error) {
+        if (error instanceof ApiException || error instanceof UncheckedIOException) {
             // ApiException: registry HTTP error. UncheckedIOException: network/IO failure.
             // Both are legitimate transient failures we can recover from.
             // Kiota is already a transitive dependency via the resolver chain, so catching
             // ApiException here is not new coupling.
-            return tryFallback(topic, data, e);
-        } catch (IllegalStateException e) {
-            // ProtobufSchemaParser wraps DescriptorValidationException (missing transitive
-            // import, invalid registry descriptor) as IllegalStateException. Only recover
-            // from that shape; config/state errors from DefaultSchemaResolver must propagate.
-            if (e.getCause() instanceof DescriptorValidationException) {
-                return tryFallback(topic, data, e);
-            }
-            throw e;
+            return tryFallback(topic, data, error);
         }
+        // ProtobufSchemaParser wraps DescriptorValidationException (missing transitive
+        // import, invalid registry descriptor) as IllegalStateException. Only recover
+        // from that shape; config/state errors from DefaultSchemaResolver must propagate.
+        if (error instanceof IllegalStateException && error.getCause() instanceof DescriptorValidationException) {
+            return tryFallback(topic, data, error);
+        }
+        return super.recoverDeserialization(topic, data, error);
     }
 
     /**

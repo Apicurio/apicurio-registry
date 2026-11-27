@@ -66,16 +66,30 @@ public class AuthorizationLookups {
         return remember(RequestAuthorizationLookups::versions, globalId,
                 () -> find(() -> storage.getArtifactVersionWithArtifactMetaData(globalId)).map(read -> {
                     ArtifactMetaDataDto artifact = read.artifact();
+                    ArtifactVersionMetaDataDto version = read.version();
+                    Optional<ArtifactMetaDataDto> present = Optional.of(artifact);
                     rememberIfAbsent(RequestAuthorizationLookups::artifacts,
-                            artifactKey(artifact.getGroupId(), artifact.getArtifactId()), Optional.of(artifact));
-                    return read.version();
+                            artifactKey(artifact.getGroupId(), artifact.getArtifactId()), present);
+                    rememberIfAbsent(RequestAuthorizationLookups::artifacts,
+                            artifactKey(version.getGroupId(), version.getArtifactId()), present);
+                    return version;
                 }));
     }
 
     /**
-     * Reads the metadata of these artifacts together, and remembers it for the current request, so
-     * that the {@link #artifact} lookups that follow need no read each. Resources other than
-     * artifacts, and artifacts already looked up, are skipped. Does nothing without an active
+     * Forgets any remembered lookup for this artifact in the current request, so a subsequent
+     * authorization check re-reads storage (for example after a concurrent creation).
+     */
+    public void forgetArtifact(String groupId, String artifactId) {
+        if (perRequest != null && requestContextActive()) {
+            perRequest.artifacts().remove(artifactKey(groupId, artifactId));
+        }
+    }
+
+    /**
+     * Reads the metadata of these artifacts together, and remembers exact matches for the current
+     * request, so that the {@link #artifact} lookups that follow need no read each. Resources other
+     * than artifacts, and artifacts already looked up, are skipped. Does nothing without an active
      * request context.
      */
     public void prefetchArtifacts(RegistryStorage storage, Collection<AuthorizedResource> resources) {
@@ -106,11 +120,11 @@ public class AuthorizationLookups {
                     .filter(a -> artifactKey(a.getGroupId(), a.getArtifactId()).equals(key)).findFirst();
             if (exact.isPresent()) {
                 rememberIfAbsent(RequestAuthorizationLookups::artifacts, key, exact);
-            } else if (found.stream().noneMatch(a -> sameIgnoringCase(a, key))) {
-                rememberIfAbsent(RequestAuthorizationLookups::artifacts, key, Optional.empty());
             }
-            // Otherwise the database matched another spelling (it compares IDs case-insensitively):
-            // left to the lookup, which reads it as storage matches it
+            // Leave every other key to its own artifact() lookup: databases whose equality is looser
+            // than Java's (e.g. case-insensitive or ignoring trailing spaces on MySQL/SQL Server) may
+            // resolve a requested spelling to a stored artifact that did not match exactly here, so we
+            // must not cache Optional.empty() for it.
         }
     }
 
@@ -143,11 +157,6 @@ public class AuthorizationLookups {
 
     private static List<String> artifactKey(String groupId, String artifactId) {
         return Arrays.asList(groupKey(groupId), artifactId);
-    }
-
-    private static boolean sameIgnoringCase(ArtifactMetaDataDto artifact, List<String> key) {
-        List<String> stored = artifactKey(artifact.getGroupId(), artifact.getArtifactId());
-        return stored.get(0).equalsIgnoreCase(key.get(0)) && stored.get(1).equalsIgnoreCase(key.get(1));
     }
 
     private static boolean requestContextActive() {

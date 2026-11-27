@@ -2,6 +2,7 @@ package io.apicurio.registry.agents.mcpimport;
 
 import io.apicurio.registry.agents.OutboundHeaders;
 import io.apicurio.registry.agents.mcpimport.McpToolsClient.ServerTools;
+import io.apicurio.registry.auth.AuthorizationLookups;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedResource;
 import io.apicurio.registry.auth.ResourceAccessGuard;
@@ -140,6 +141,9 @@ public class McpToolImportService implements McpToolImportHandler {
     ResourceAccessGuard accessGuard;
 
     @Inject
+    AuthorizationLookups lookups;
+
+    @Inject
     MeterRegistry meterRegistry;
 
     @Inject
@@ -227,7 +231,7 @@ public class McpToolImportService implements McpToolImportHandler {
         try {
             String importId = UUID.randomUUID().toString();
             Instant startedOn = Instant.now();
-            statusStore.started(groupId, serverArtifactId, importId, startedOn);
+            startStatus(groupId, serverArtifactId, importId, startedOn);
             SecurityIdentity identity = identityAssociation.getIdentity();
             String sourceIp = auditContext.getSourceIp();
             String forwardedFor = auditContext.getForwardedFor();
@@ -279,8 +283,17 @@ public class McpToolImportService implements McpToolImportHandler {
             String toolGroupId, Map<String, String> headers) {
         String importId = UUID.randomUUID().toString();
         Instant startedOn = Instant.now();
-        statusStore.started(groupId, serverArtifactId, importId, startedOn);
+        startStatus(groupId, serverArtifactId, importId, startedOn);
         return recorded(groupId, serverArtifactId, request, toolGroupId, headers, importId, startedOn);
+    }
+
+    private void startStatus(String groupId, String serverArtifactId, String importId, Instant startedOn) {
+        try {
+            statusStore.started(groupId, serverArtifactId, importId, startedOn);
+        } catch (McpImportException e) {
+            failure(e.getReason());
+            throw e;
+        }
     }
 
     private void requireNotRunning(String groupId, String serverArtifactId) {
@@ -512,10 +525,18 @@ public class McpToolImportService implements McpToolImportHandler {
         return listedNames;
     }
 
-    /** The type of the artifact, or {@code null} when it does not exist: one lookup for both. */
+    /**
+     * The type of the artifact, or {@code null} when it does not exist. Checks existence first so a
+     * new tool does not trigger {@link ArtifactNotFoundException} (which storage metrics and tracing
+     * record as a failed storage call).
+     */
     private String existingType(String groupId, String artifactId) {
+        String rawGroupId = raw(groupId);
+        if (!storage.isArtifactExists(rawGroupId, artifactId)) {
+            return null;
+        }
         try {
-            return storage.getArtifactMetaData(raw(groupId), artifactId).getArtifactType();
+            return storage.getArtifactMetaData(rawGroupId, artifactId).getArtifactType();
         } catch (ArtifactNotFoundException e) {
             return null;
         }
@@ -602,26 +623,32 @@ public class McpToolImportService implements McpToolImportHandler {
             // Exact matching, not canonical: the MCP_TOOL canonicalizer reads numbers as doubles, so
             // two bounds that round to the same double would match and the change skip its rules.
             // The definition is serialized the same way every time, so equal tools match exactly.
-            // A tool the preflight found missing must still be missing: if another request created
-            // the artifact since, it has not been authorized or type-checked, so it is not touched.
-            CreateArtifactResponse response = groups.createArtifact(groupId,
-                    exists ? IfArtifactExists.FIND_OR_CREATE_VERSION : IfArtifactExists.FAIL, false, dryRun,
-                    create);
-            String stored = response.getVersion().getVersion();
-            if (!exists) {
-                result.setStatus(McpToolImportStatus.CREATED);
-                result.setVersion(dryRun ? null : stored);
-            } else if (previousVersions.contains(stored)) {
-                result.setStatus(McpToolImportStatus.UNCHANGED);
-                result.setVersion(stored);
-            } else {
-                result.setStatus(McpToolImportStatus.NEW_VERSION);
-                result.setVersion(dryRun ? null : stored);
+            // A tool the preflight found missing uses FAIL: if another request created the artifact
+            // since, it is type-checked and authorized below before retrying with FIND_OR_CREATE_VERSION.
+            try {
+                CreateArtifactResponse response = groups.createArtifact(groupId,
+                        exists ? IfArtifactExists.FIND_OR_CREATE_VERSION : IfArtifactExists.FAIL, false, dryRun,
+                        create);
+                recordToolOutcome(result, response.getVersion().getVersion(), exists, previousVersions, dryRun);
+            } catch (ArtifactAlreadyExistsException e) {
+                String concurrentType = existingType(groupId, artifactId);
+                if (concurrentType == null) {
+                    result.setStatus(McpToolImportStatus.REJECTED);
+                    result.setCauses(List.of(cause("An artifact with this ID was created while the tools were being"
+                            + " imported.", "/artifactId")));
+                } else if (!ArtifactType.MCP_TOOL.equals(concurrentType)) {
+                    result.setStatus(McpToolImportStatus.REJECTED);
+                    result.setCauses(List.of(cause("An artifact with this ID exists and is not an MCP_TOOL.",
+                            "/artifactType")));
+                } else {
+                    lookups.forgetArtifact(groupId, artifactId);
+                    accessGuard.requireAccess(AuthorizedLevel.Write, AuthorizedResource.artifact(groupId, artifactId));
+                    List<String> concurrentVersions = storage.getArtifactVersions(raw(groupId), artifactId);
+                    CreateArtifactResponse response = groups.createArtifact(groupId,
+                            IfArtifactExists.FIND_OR_CREATE_VERSION, false, dryRun, create);
+                    recordToolOutcome(result, response.getVersion().getVersion(), true, concurrentVersions, dryRun);
+                }
             }
-        } catch (ArtifactAlreadyExistsException e) {
-            result.setStatus(McpToolImportStatus.REJECTED);
-            result.setCauses(List.of(cause("An artifact with this ID was created while the tools were being"
-                    + " imported.", "/artifactId")));
         } catch (RuleViolationException e) {
             result.setStatus(McpToolImportStatus.REJECTED);
             result.setCauses(e.getCauses().stream().map(McpToolImportService::cause).toList());
@@ -632,6 +659,20 @@ public class McpToolImportService implements McpToolImportHandler {
             result.setCauses(List.of(cause(e.getMessage(), "")));
         }
         return result;
+    }
+
+    private static void recordToolOutcome(McpToolImportToolResult result, String stored, boolean existed,
+            List<String> previousVersions, boolean dryRun) {
+        if (!existed) {
+            result.setStatus(McpToolImportStatus.CREATED);
+            result.setVersion(dryRun ? null : stored);
+        } else if (previousVersions.contains(stored)) {
+            result.setStatus(McpToolImportStatus.UNCHANGED);
+            result.setVersion(stored);
+        } else {
+            result.setStatus(McpToolImportStatus.NEW_VERSION);
+            result.setVersion(dryRun ? null : stored);
+        }
     }
 
     /**

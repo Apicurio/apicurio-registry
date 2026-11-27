@@ -584,6 +584,17 @@ public interface RegistryStorage extends DynamicConfigStorage {
     }
 
     /**
+     * Same as {@link #mergeArtifactLabels(String, String, String, Map)}, but only if the
+     * artifact's current labels still have the expected values (see
+     * {@link #compareAndSetArtifactLabels(String, String, Map, Map)}).
+     */
+    default void mergeArtifactLabels(String groupId, String artifactId, String prefix,
+            Map<String, String> labels, Map<String, String> expected) throws RegistryStorageException {
+        throw new RegistryStorageException(
+                "mergeArtifactLabels not supported by this storage implementation");
+    }
+
+    /**
      * Atomically sets labels on an artifact if its current labels still have the expected values:
      * a compare-and-set used to apply a change that was validated against the current state. Labels
      * not in {@code labels} are untouched.

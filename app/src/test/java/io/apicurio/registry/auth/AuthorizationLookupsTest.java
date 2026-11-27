@@ -174,8 +174,9 @@ public class AuthorizationLookupsTest {
     }
 
     /**
-     * Prefetched artifacts, found or missing, need no read each. An artifact the database matched
-     * under another spelling is left to its own lookup, which reads it as storage matches it.
+     * Prefetched exact matches need no read each. Any key without an exact match — missing,
+     * different case, or trailing space — is left to its own lookup so database collation rules
+     * decide whether it exists.
      */
     @Test
     void prefetchedArtifactsAreReadTogether() {
@@ -183,13 +184,18 @@ public class AuthorizationLookupsTest {
         when(storage.getArtifactsMetaData(anyCollection())).thenReturn(List.of(
                 ArtifactMetaDataDto.builder().groupId("g").artifactId("a").owner("alice").build(),
                 ArtifactMetaDataDto.builder().groupId("g").artifactId("stored-case").owner("bob").build()));
+        when(storage.getArtifactMetaData("g", "missing")).thenThrow(new ArtifactNotFoundException("missing"));
+        doReturn(ArtifactMetaDataDto.builder().groupId("g").artifactId("a").owner("alice").build())
+                .when(storage).getArtifactMetaData("g", "a ");
         doReturn(ArtifactMetaDataDto.builder().groupId("g").artifactId("stored-case").owner("bob").build())
                 .when(storage).getArtifactMetaData("g", "STORED-CASE");
         inRequest(() -> {
             lookups.prefetchArtifacts(storage, List.of(AuthorizedResource.artifact("g", "a"),
-                    AuthorizedResource.artifact("g", "missing"), AuthorizedResource.artifact("g", "STORED-CASE"),
-                    AuthorizedResource.group("g")));
+                    AuthorizedResource.artifact("g", "a "), AuthorizedResource.artifact("g", "missing"),
+                    AuthorizedResource.artifact("g", "STORED-CASE"), AuthorizedResource.group("g")));
             assertEquals("alice", lookups.artifact(storage, "g", "a").map(ArtifactMetaDataDto::getOwner)
+                    .orElseThrow());
+            assertEquals("a", lookups.artifact(storage, "g", "a ").map(ArtifactMetaDataDto::getArtifactId)
                     .orElseThrow());
             assertEquals(Optional.empty(), lookups.artifact(storage, "g", "missing"));
             assertEquals("bob", lookups.artifact(storage, "g", "STORED-CASE").map(ArtifactMetaDataDto::getOwner)
@@ -197,8 +203,42 @@ public class AuthorizationLookupsTest {
         });
         verify(storage, times(1)).getArtifactsMetaData(anyCollection());
         verify(storage, never()).getArtifactMetaData("g", "a");
-        verify(storage, never()).getArtifactMetaData("g", "missing");
+        verify(storage, times(1)).getArtifactMetaData("g", "a ");
+        verify(storage, times(1)).getArtifactMetaData("g", "missing");
         verify(storage, times(1)).getArtifactMetaData("g", "STORED-CASE");
+    }
+
+    @Test
+    void aGlobalIdWithDifferentVersionSpellingRemembersStoredArtifactIds() {
+        RegistryStorage storage = mock(RegistryStorage.class);
+        VersionWithArtifactMetaDataDto read = new VersionWithArtifactMetaDataDto(
+                ArtifactVersionMetaDataDto.builder().groupId("team-a").artifactId("foo ").version("2").build(),
+                ArtifactMetaDataDto.builder().groupId("team-a").artifactId("foo").owner("alice").build());
+        when(storage.getArtifactVersionWithArtifactMetaData(99L)).thenReturn(read);
+        inRequest(() -> {
+            assertEquals(new GlobalIdCoordinates("team-a", "foo ", "2"),
+                    lookups.coordinates(storage, 99L).orElseThrow());
+            ArtifactMetaDataDto artifact = lookups.artifact(storage, "team-a", "foo ").orElseThrow();
+            assertEquals("foo", artifact.getArtifactId());
+            assertEquals("alice", artifact.getOwner());
+        });
+        verify(storage, times(1)).getArtifactVersionWithArtifactMetaData(99L);
+        verify(storage, never()).getArtifactMetaData("team-a", "foo ");
+    }
+
+    @Test
+    void forgetArtifactForcesNextLookupToReadStorageAgain() {
+        RegistryStorage storage = mock(RegistryStorage.class);
+        when(storage.getArtifactMetaData("g", "late"))
+                .thenThrow(new ArtifactNotFoundException("late"))
+                .thenReturn(ArtifactMetaDataDto.builder().groupId("g").artifactId("late").owner("bob").build());
+        inRequest(() -> {
+            assertEquals(Optional.empty(), lookups.artifact(storage, "g", "late"));
+            lookups.forgetArtifact("g", "late");
+            assertEquals("bob", lookups.artifact(storage, "g", "late").map(ArtifactMetaDataDto::getOwner)
+                    .orElseThrow());
+        });
+        verify(storage, times(2)).getArtifactMetaData("g", "late");
     }
 
     @Test

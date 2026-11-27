@@ -41,9 +41,6 @@ It ends with `All checks passed.`.
 
 ## Notes
 
-- **Known issues**, shown by the demo:
-  - [#11124](https://github.com/Apicurio/apicurio-registry/issues/11124): `READONLY` mode is stored
-    but not enforced.
 - Confluent's and Apicurio's serdes in the same application, both ways: the `confluent` step of
   [`kafka-serdes`](../kafka-serdes/).
 - **Local only:** no authentication, no TLS.

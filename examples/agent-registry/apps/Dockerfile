@@ -31,4 +31,10 @@ COPY --from=build /src/samples/agent-registry-workflow/orchestrator/target/quark
 # Inside the container every app listens on all interfaces; the compose file publishes only
 # the dashboard, on localhost.
 ENV QUARKUS_HTTP_HOST=0.0.0.0
-ENTRYPOINT ["java", "-jar"]
+# NOTE: -XX:-UseBASE64Intrinsics defensively mitigates CVE-2026-114938 ("Java4Shell"), a memory
+# corruption vulnerability in OpenJDK's Base64 decoder on x86-64 CPUs with AVX-512 VBMI support.
+# eclipse-temurin is a different OpenJDK distribution than the UBI images elsewhere in this repo,
+# built from the same upstream OpenJDK sources, so it plausibly shares the same vulnerable
+# intrinsic; not independently confirmed. Remove once the base image ships a fixed OpenJDK build.
+# See: https://quarkus.io/blog/java4shell/
+ENTRYPOINT ["java", "-XX:-UseBASE64Intrinsics", "-jar"]

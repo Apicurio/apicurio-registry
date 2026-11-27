@@ -3,4 +3,8 @@ USER root
 COPY target/apicurio-registry-perf-comparison-tests-*-jar-with-dependencies.jar /opt/benchmark/benchmark.jar
 RUN mkdir -p /results && chmod -R g+rwX /results /opt/benchmark
 USER 185
-ENTRYPOINT ["java", "-jar", "/opt/benchmark/benchmark.jar"]
+# NOTE: -XX:-UseBASE64Intrinsics mitigates CVE-2026-114938 ("Java4Shell"), a memory corruption
+# vulnerability in the OpenJDK Base64 decoder on x86-64 CPUs with AVX-512 VBMI support. Remove
+# this flag once the base image ships a fixed OpenJDK build.
+# See: https://quarkus.io/blog/java4shell/
+ENTRYPOINT ["java", "-XX:-UseBASE64Intrinsics", "-jar", "/opt/benchmark/benchmark.jar"]

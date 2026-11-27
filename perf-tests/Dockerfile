@@ -9,4 +9,8 @@ COPY target/apicurio-registry-perf-tests-*-jar-with-dependencies.jar /opt/perf-t
 RUN mkdir -p /results && chmod -R g+rwX /results /opt/perf-tests
 USER 185
 
-ENTRYPOINT ["java", "-jar", "/opt/perf-tests/perf-tests.jar"]
+# NOTE: -XX:-UseBASE64Intrinsics mitigates CVE-2026-114938 ("Java4Shell"), a memory corruption
+# vulnerability in the OpenJDK Base64 decoder on x86-64 CPUs with AVX-512 VBMI support. Remove
+# this flag once the base image ships a fixed OpenJDK build.
+# See: https://quarkus.io/blog/java4shell/
+ENTRYPOINT ["java", "-XX:-UseBASE64Intrinsics", "-jar", "/opt/perf-tests/perf-tests.jar"]

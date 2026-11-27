@@ -44,7 +44,23 @@ Full tables: [results-before.md](results-before.md).
 | (c) create, existing group, per create | 38.2 | 8.0 | 59 ms |
 | (d) MCP import, per tool (500 tools) | 45.4 | 10.1 | 20 ms (10.4 s total) |
 
-### Redundant work per request, ranked
+## Results after step 2: one transaction per SQL create
+
+Full tables: [results-after-step2.md](results-after-step2.md).
+
+| Scenario | Statements | Transactions (`xact_commit`) | Wall time |
+| --- | ---: | ---: | ---: |
+| (a) create, new group (one request, incl. noise) | 63 → 59 | 17 → 11 | 216 → 259 ms |
+| (b) new version (one request, incl. noise) | 64 → 59 | 17 → 11 | 132 → 132 ms |
+| (c) create, existing group, per create | 38.2 → 32.2 | 8.0 → 4.0 | 59 → 53 ms |
+| (d) MCP import, per tool (500 tools) | 45.4 → 39.3 | 10.1 → 6.1 | 20 → 14 ms (10.4 → 7.5 s) |
+
+Per create in (c): the storage create is one transaction instead of four; the group existence read
+runs twice instead of three times; the content id is read once. The remaining four transactions
+are the storage create plus three independent REST-layer reads (artifact exists, group rules, global
+rules). (a) and (b) are single requests and noisy (one run each); read them as indicative only.
+
+### Redundant work per request, ranked (before step 2)
 
 From scenario (c), per artifact create (8 transactions, 38 statements):
 

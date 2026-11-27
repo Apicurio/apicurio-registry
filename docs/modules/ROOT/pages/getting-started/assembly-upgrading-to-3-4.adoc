@@ -70,7 +70,7 @@ The upgrade replaces the row-locked `sequences` table, which allocated global ID
 * *Rolling upgrades*: the schema upgrade deliberately drops the `sequences` table, so replicas still running a release earlier than schema version 115 fail every write request as soon as any upgraded replica has migrated the schema. Read requests are unaffected. Complete a rolling rollout promptly, rather than leaving mixed-version replicas running.
 * *SQL Server 2017 or later is required*, because {registry} reads `sys.sequences.last_used_value`.
 * *New database privileges* if {registry} connects at runtime with a less privileged user than the one that runs the schema upgrade: PostgreSQL needs `USAGE`, `SELECT`, and `UPDATE` on the three ID sequences; SQL Server needs `UPDATE` on them; MySQL needs `INSERT`, `DELETE`, and `SELECT` on the ID ticket tables.
-* *`globalId` ordering*: a `globalId` value stays unique, but under concurrent writes it no longer strictly follows commit order, and a rolled-back write leaves a gap. Use the version order, not `globalId` comparisons, to determine the newest version of an artifact.
+* *`globalId` ordering*: a `globalId` value stays unique, but under concurrent writes it no longer strictly follows commit order, and a rolled-back write leaves a gap. Use the version order, not `globalId` comparisons, to determine the newest version of an artifact. {registry} itself now follows this rule: looking up the newest version with given content, by content hash or canonical hash, orders by version order instead of `globalId`.
 
 
 // ref-upgrading-to-3-4-json-schema-compatibility
@@ -158,7 +158,16 @@ Remove them from your configuration.
 
 |`apicurio.usage.dead-threshold-days`
 |It has no effect. A schema version whose last fetch is older than `apicurio.usage.stale-threshold-days` is classified as `DEAD`.
+
+|`apicurio.a2a.agent.name`, `apicurio.ai-catalog.host-name`
+|Replaced by `apicurio.instance.name`, a single display name used in both the A2A Agent Card and the AI Catalog. If both an old property and `apicurio.instance.name` are set, `apicurio.instance.name` takes precedence.
+
+|`apicurio.a2a.agent.protocol-version`, `apicurio.ai-catalog.spec-version`, `apicurio.ard.federation.default`
+|They have no effect. Each lets the registry advertise a protocol version or federation mode it does not implement; the versions {registry} actually implements are fixed constants.
 |===
+
+{registry} 3.4 also adds `apicurio.agents.enabled` (experimental, default `false`), a single switch that turns on A2A, MCP tools, the MCP Registry API, the AI Catalog, ARD, and the console's Agents tab together, and `apicurio.outbound.insecure-http.enabled` / `apicurio.outbound.loopback.enabled` (both default `false`), shared defaults for the equivalent `apicurio.mcp-import.*` and `apicurio.federation.peer.*` properties.
+Every existing per-feature property still works and still overrides these new ones; no existing default changed.
 
 The label limits `apicurio.limits.config.max-artifact-labels` and `apicurio.limits.config.max-label-size.bytes` are now enforced.
 In earlier versions, they could be set but had no effect.
@@ -185,6 +194,10 @@ The core REST API in {registry} 3.4 only adds endpoints, fields, and enum values
 Replacing the versions of a branch::
 `+PUT /groups/{groupId}/artifacts/{artifactId}/branches/{branchId}/versions+` returns HTTP 404 when a listed version does not exist, and HTTP 409 when the same version is listed more than once.
 Before 3.4, both requests failed with HTTP 500.
+
+Stable paging through search results that tie on the sort key::
+With SQL storage, searching artifacts, groups or versions now ends the `ORDER BY` with a unique key, so rows that tie on the requested sort key (for example equal names, or timestamps that fall in the same second on MySQL) come back in the same order on every query.
+Before 3.4, offset paging through a search with ties could repeat or skip a row, because the database was free to order tied rows differently between the query for one page and the next.
 
 Protobuf message indexes::
 The Protobuf serializer writes the message index of the first message type in a schema as the single byte `0x00`, as Confluent serializers do.
@@ -224,6 +237,41 @@ Before 3.4, the v2 API returned the content of a disabled version.
 New `GOVERNANCE` rule type::
 `RuleType` gets a new value, `GOVERNANCE`, for a rule that checks `contract.*` labels on data contract artifacts.
 A client built against an earlier version's enum, including older SDKs and the v2 API, sees an unknown value if a `GOVERNANCE` rule is configured on a registry it talks to.
+
+
+// ref-upgrading-to-3-4-serdes-dereference
+[id="upgrading-to-3-4-serdes-dereference_{context}"]
+== Changes to SerDes schema dereferencing in {registry} 3.4
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+`apicurio.registry.dereference-schema` used to be one switch that controlled both what Avro serializers register and how deserializers fetch schemas.
+{registry} 3.4 splits it into `apicurio.registry.serializer.dereference-schema` and `apicurio.registry.deserializer.dereference-schema`, which each default to the value of the original property, so existing configuration keeps working unchanged.
+
+Set the serializer or deserializer property explicitly to override just that side, for example to dereference on the serializer without changing how the deserializer fetches schemas.
+
+Setting `apicurio.registry.deserializer.dereference-schema` *explicitly* to `true` also enables dereferencing on content-ID and content-hash lookups, which deserializers use by default.
+This needs a 3.4.0 or later server, so it is never turned on implicitly by the shared `apicurio.registry.dereference-schema`: a SerDes-only upgrade against an older server must not start sending a parameter that server ignores.
+It has no effect for Protobuf, whose dereferenced form is not text.
+
+`AbstractSchemaResolver.resolveDereferenced` is deprecated.
+It still holds the value of the shared property, but the resolver no longer reads it; read `serializerDereference()` or `deserializerDereference()` from `SchemaResolverConfig` instead, depending on which side you need.
+
+
+// ref-upgrading-to-3-4-avro-canonicalization
+[id="upgrading-to-3-4-avro-canonicalization_{context}"]
+== Changes to Avro content canonicalization in {registry} 3.4
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+Canonicalizing an Avro schema with a record that repeats, or that references itself, now consistently normalizes every occurrence of that record.
+Before 3.4, a bug could leave a repeated or self-referencing record in its original, unnormalized form in the canonical schema, while every other record was normalized.
+
+This can change the canonical content, and so the canonical content hash, of an affected schema.
+If you registered such a schema before 3.4 and rely on `CANONICAL_HASH`-based content IDs, on the `canonical` compatibility or validity level, or on `findByCanonicalContent`-style lookups, the canonical form {registry} computes for it after the upgrade can differ from what it computed before.
+A schema's own stored content and content ID are not changed by the upgrade; only a canonicalization computed from this point on is affected.
 
 
 // ref-upgrading-to-3-4-artifact-types

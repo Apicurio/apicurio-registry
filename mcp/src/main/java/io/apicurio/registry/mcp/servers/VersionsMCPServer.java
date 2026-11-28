@@ -1,13 +1,12 @@
 package io.apicurio.registry.mcp.servers;
 
+import io.apicurio.registry.mcp.Page;
 import io.apicurio.registry.mcp.RegistryService;
 import io.apicurio.registry.rest.client.models.SearchedVersion;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.quarkiverse.mcp.server.Tool;
 import io.quarkiverse.mcp.server.ToolArg;
 import jakarta.inject.Inject;
-
-import java.util.List;
 
 import static io.apicurio.registry.mcp.Descriptions.ARTIFACT_ID;
 import static io.apicurio.registry.mcp.Descriptions.ARTIFACT_TYPE;
@@ -18,6 +17,8 @@ import static io.apicurio.registry.mcp.Descriptions.GROUP_ID;
 import static io.apicurio.registry.mcp.Descriptions.JSON_LABELS;
 import static io.apicurio.registry.mcp.Descriptions.NAME;
 import static io.apicurio.registry.mcp.Descriptions.ORDER;
+import static io.apicurio.registry.mcp.Descriptions.PAGE_SIZE;
+import static io.apicurio.registry.mcp.Descriptions.PAGE_TOKEN;
 import static io.apicurio.registry.mcp.Descriptions.SEARCH_DESCRIPTION;
 import static io.apicurio.registry.mcp.Descriptions.SEARCH_JSON_LABELS;
 import static io.apicurio.registry.mcp.Descriptions.SEARCH_NAME;
@@ -35,17 +36,21 @@ public class VersionsMCPServer {
 
     @Tool(description = """
             Get a list of versions within an artifact.""")
-    List<SearchedVersion> list_versions(
+    Page<SearchedVersion> list_versions(
             @ToolArg(description = GROUP_ID) String groupId,
             @ToolArg(description = ARTIFACT_ID) String artifactId,
             @ToolArg(description = ORDER) String order,
-            @ToolArg(description = VERSION_ORDER_BY) String versionOrderBy
+            @ToolArg(description = VERSION_ORDER_BY) String versionOrderBy,
+            @ToolArg(description = PAGE_TOKEN, required = false) String pageToken,
+            @ToolArg(description = PAGE_SIZE, required = false) Integer pageSize
     ) {
         return handleError(() -> service.listVersions(
                 groupId,
                 artifactId,
                 order,
-                versionOrderBy
+                versionOrderBy,
+                pageToken,
+                pageSize
         ));
     }
 
@@ -169,7 +174,7 @@ public class VersionsMCPServer {
     @Tool(description = """
             Search for artifact version in the Apicurio Registry server. \
             Returns metadata of the versions that fit the search criteria.""")
-    List<SearchedVersion> search_versions(
+    Page<SearchedVersion> search_versions(
             @ToolArg(description = GROUP_ID) String groupId,
             @ToolArg(description = ARTIFACT_ID, required = false) String artifactId,
             @ToolArg(description = ARTIFACT_TYPE, required = false) String artifactType,
@@ -178,7 +183,9 @@ public class VersionsMCPServer {
             @ToolArg(description = SEARCH_JSON_LABELS, required = false) String jsonLabels,
             @ToolArg(description = VERSION_STATE + " Accepted values (case-insensitive): ENABLED, DISABLED, DEPRECATED, DRAFT.", required = false) String versionState,
             @ToolArg(description = ORDER) String order,
-            @ToolArg(description = VERSION_ORDER_BY) String versionOrderBy
+            @ToolArg(description = VERSION_ORDER_BY) String versionOrderBy,
+            @ToolArg(description = PAGE_TOKEN, required = false) String pageToken,
+            @ToolArg(description = PAGE_SIZE, required = false) Integer pageSize
     ) {
         return handleError(() -> service.searchVersions(
                 groupId,
@@ -189,7 +196,9 @@ public class VersionsMCPServer {
                 jsonLabels,
                 order,
                 versionOrderBy,
-                versionState != null ? java.util.Arrays.stream(io.apicurio.registry.rest.client.models.VersionState.values()).filter(v -> v.name().equalsIgnoreCase(versionState)).findFirst().orElse(null) : null
+                versionState != null ? java.util.Arrays.stream(io.apicurio.registry.rest.client.models.VersionState.values()).filter(v -> v.name().equalsIgnoreCase(versionState)).findFirst().orElse(null) : null,
+                pageToken,
+                pageSize
         ));
     }
 }

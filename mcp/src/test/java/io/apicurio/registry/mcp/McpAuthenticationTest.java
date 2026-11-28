@@ -7,6 +7,10 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -75,12 +79,43 @@ public class McpAuthenticationTest {
 
     @Test
     public void testOAuth2AuthenticationListGroups() {
-        // Test listing groups - this requires authentication
-        var groups = registryService.listGroups("asc", "groupId");
+        // Listing groups requires authentication. Page through them one at a time, so the paging
+        // added for #10641 is checked against a real registry and not only against a mock.
+        String prefix = "mcp-auth-paging-" + System.currentTimeMillis() + "-";
+        List<String> created = List.of(prefix + "a", prefix + "b");
+        try {
+            for (String groupId : created) {
+                registryService.createGroup(groupId, null, null);
+            }
 
-        assertNotNull(groups, "Groups list should not be null");
+            List<String> listed = new ArrayList<>();
+            String token = null;
+            int pages = 0;
+            Integer count;
+            do {
+                var page = registryService.listGroups("asc", "groupId", token, 1);
+                assertEquals(1, page.results().size(), "every page holds exactly one group");
+                count = page.count();
+                page.results().forEach(g -> listed.add(g.getGroupId()));
+                token = page.pageToken();
+                pages++;
+            } while (token != null && pages < 1000);
 
-        log.info("Successfully listed {} groups with OAuth2 authentication", groups.size());
+            assertEquals(count, pages, "one page per group");
+            assertEquals(count, listed.size());
+            assertEquals(listed.size(), new HashSet<>(listed).size(), "no group is listed twice");
+            assertTrue(listed.containsAll(created), "created groups are listed: " + listed);
+
+            log.info("Successfully paged through {} groups with OAuth2 authentication", listed.size());
+        } finally {
+            for (String groupId : created) {
+                try {
+                    registryService.deleteGroup(groupId);
+                } catch (Exception e) {
+                    log.warn("Failed to clean up test group {}", groupId, e);
+                }
+            }
+        }
     }
 
     @Test

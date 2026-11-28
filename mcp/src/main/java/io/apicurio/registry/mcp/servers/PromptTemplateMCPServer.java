@@ -53,7 +53,7 @@ public class PromptTemplateMCPServer {
             List<MCPPrompt> prompts = new ArrayList<>();
 
             // Search for ENABLED PROMPT_TEMPLATE artifacts
-            var versions = service.searchVersions(
+            var versions = service.searchAllVersions(
                     null,  // groupId - search all groups
                     null,  // artifactId
                     PROMPT_TEMPLATE_TYPE,  // artifactType

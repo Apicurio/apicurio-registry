@@ -333,6 +333,8 @@ The {registry} MCP server provides the following tools for LLM clients to call. 
 |Searches the ARD index of {registry} with a text query and optional `type`, `tags`, `capabilities`, and `publisher` filters. Returns the matching A2A agents and MCP tools.
 |===
 
+The `list_groups`, `search_groups`, `list_artifacts`, `search_artifacts`, `list_versions`, `search_versions`, `discover_agents`, and `search_mcp_tools` tools return one page of results at a time. Each result contains `results`, the total number of matches in `count`, and a `pageToken` when more results are available. To get the next page, call the same tool again with the same arguments and that `pageToken`. The optional `pageSize` argument sets the number of results in a page, up to the `apicurio.mcp.paging.limit` value.
+
 The agent and tool discovery tools and the `ard_search` tool call the well-known endpoints of the target {registry} instance, so a tool call fails when the matching feature is disabled there. The `discover_agents` and `get_agent_card` tools need A2A support (`apicurio.a2a.enabled`). The `search_mcp_tools` and `get_mcp_tool` tools need MCP tools support (`apicurio.mcp-tools.enabled`). The `ard_search` tool needs ARD support (`apicurio.ard.enabled`).
 
 You can also use the following MCP prompts in Claude Desktop by clicking the *+* icon and selecting *Add from {registry}*:
@@ -389,12 +391,12 @@ For the Docker method, pass environment variables by using separate `-e` element
 |`apicurio.mcp.paging.limit`
 |`APICURIO_MCP_PAGING_LIMIT`
 |`200`
-|Maximum number of items to return in a single paged result. Increase this value if {registry} contains a large number of objects.
+|Default and maximum number of results in one page of the list and search tools. A client can request smaller pages with the `pageSize` tool argument.
 
 |`apicurio.mcp.paging.limit-error`
 |`APICURIO_MCP_PAGING_LIMIT_ERROR`
 |`true`
-|When the result count exceeds the paging limit, the operation fails. This property helps prevent inaccurate results when you count or list large datasets.
+|Deprecated, has no effect. The list and search tools no longer fail when the number of matches exceeds the paging limit. They return one page and a `pageToken` for the next page instead.
 |===
 
 .Authentication properties
@@ -774,9 +776,6 @@ Replace `<path-to-log-dir>` with the directory where you want to store the log f
 
 |The MCP server cannot connect to {registry}.
 |Verify that {registry} is running and accessible at the configured URL. Check the `REGISTRY_URL` environment variable. If you use Docker or Podman, ensure that the URL is reachable from the container.
-
-|The paging limit error occurs when listing objects.
-|{registry} contains more objects than the configured paging limit. Increase the `apicurio.mcp.paging.limit` property, or set `apicurio.mcp.paging.limit-error` to `false` to allow partial results.
 
 |Authentication fails with OAuth2 credentials.
 |Verify that the token endpoint URL, client ID, and client secret are correct. Ensure that the OAuth2 client is configured for the client credentials grant type.

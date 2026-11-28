@@ -1,13 +1,12 @@
 package io.apicurio.registry.mcp.servers;
 
+import io.apicurio.registry.mcp.Page;
 import io.apicurio.registry.mcp.RegistryService;
 import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.rest.client.models.SearchedArtifact;
 import io.quarkiverse.mcp.server.Tool;
 import io.quarkiverse.mcp.server.ToolArg;
 import jakarta.inject.Inject;
-
-import java.util.List;
 
 import static io.apicurio.registry.mcp.Descriptions.ARTIFACT_ID;
 import static io.apicurio.registry.mcp.Descriptions.ARTIFACT_ORDER_BY;
@@ -17,6 +16,8 @@ import static io.apicurio.registry.mcp.Descriptions.GROUP_ID;
 import static io.apicurio.registry.mcp.Descriptions.JSON_LABELS;
 import static io.apicurio.registry.mcp.Descriptions.NAME;
 import static io.apicurio.registry.mcp.Descriptions.ORDER;
+import static io.apicurio.registry.mcp.Descriptions.PAGE_SIZE;
+import static io.apicurio.registry.mcp.Descriptions.PAGE_TOKEN;
 import static io.apicurio.registry.mcp.Descriptions.SEARCH_DESCRIPTION;
 import static io.apicurio.registry.mcp.Descriptions.SEARCH_JSON_LABELS;
 import static io.apicurio.registry.mcp.Descriptions.SEARCH_NAME;
@@ -29,15 +30,19 @@ public class ArtifactsMCPServer {
 
     @Tool(description = """
             Get a list of artifacts within the group.""")
-    List<SearchedArtifact> list_artifacts(
+    Page<SearchedArtifact> list_artifacts(
             @ToolArg(description = GROUP_ID) String groupId,
             @ToolArg(description = ORDER) String order,
-            @ToolArg(description = ARTIFACT_ORDER_BY) String artifactOrderBy
+            @ToolArg(description = ARTIFACT_ORDER_BY) String artifactOrderBy,
+            @ToolArg(description = PAGE_TOKEN, required = false) String pageToken,
+            @ToolArg(description = PAGE_SIZE, required = false) Integer pageSize
     ) {
         return handleError(() -> service.listArtifacts(
                 groupId,
                 order,
-                artifactOrderBy
+                artifactOrderBy,
+                pageToken,
+                pageSize
         ));
     }
 
@@ -101,7 +106,7 @@ public class ArtifactsMCPServer {
     @Tool(description = """
             Search for artifacts in the Apicurio Registry server. \
             Returns metadata of the artifacts that fit the search criteria.""")
-    List<SearchedArtifact> search_artifacts(
+    Page<SearchedArtifact> search_artifacts(
             @ToolArg(description = GROUP_ID) String groupId,
             @ToolArg(description = ARTIFACT_ID, required = false) String artifactId,
             @ToolArg(description = ARTIFACT_TYPE, required = false) String artifactType,
@@ -109,7 +114,9 @@ public class ArtifactsMCPServer {
             @ToolArg(description = SEARCH_DESCRIPTION, required = false) String description,
             @ToolArg(description = SEARCH_JSON_LABELS, required = false) String jsonLabels,
             @ToolArg(description = ORDER) String order,
-            @ToolArg(description = ARTIFACT_ORDER_BY) String artifactOrderBy
+            @ToolArg(description = ARTIFACT_ORDER_BY) String artifactOrderBy,
+            @ToolArg(description = PAGE_TOKEN, required = false) String pageToken,
+            @ToolArg(description = PAGE_SIZE, required = false) Integer pageSize
     ) {
         return handleError(() -> service.searchArtifacts(
                 groupId,
@@ -119,7 +126,9 @@ public class ArtifactsMCPServer {
                 description,
                 jsonLabels,
                 order,
-                artifactOrderBy
+                artifactOrderBy,
+                pageToken,
+                pageSize
         ));
     }
 }

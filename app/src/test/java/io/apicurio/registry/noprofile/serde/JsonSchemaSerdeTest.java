@@ -54,6 +54,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.lang.reflect.Proxy;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -717,11 +718,11 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
             serializer.setValidationEnabled(false);
             Headers invalidHeaders = new RecordHeaders();
             byte[] invalidBytes = serializer.serialize(artifactId, invalidHeaders, citizen);
-            try {
-                deserializer.deserialize(artifactId, invalidHeaders, invalidBytes);
-                Assertions.fail();
-            } catch (Exception ignored) {
-            }
+            UncheckedIOException ex = Assertions.assertThrows(UncheckedIOException.class,
+                    () -> deserializer.deserialize(artifactId, invalidHeaders, invalidBytes));
+            IOException cause = Assertions.assertInstanceOf(IOException.class, ex.getCause());
+            Assertions.assertTrue(cause.getMessage().contains("Error validating data against json schema"),
+                    cause.getMessage());
         }
     }
 

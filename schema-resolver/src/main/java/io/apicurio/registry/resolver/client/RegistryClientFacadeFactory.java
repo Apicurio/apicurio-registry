@@ -71,6 +71,8 @@ public class RegistryClientFacadeFactory {
 
         configureAuthentication(clientOptions, config);
 
+        configureRequestTimeout(clientOptions, config);
+
         // Defaults for CLIENT_RETRY_* must match RegistryClientOptions#retry()
         // (3 / 250ms / 2.0 / 10000ms); pinned by RegistryClientOptionsRetryDefaultsTest.
         if (config.getClientRetryEnabled()) {
@@ -111,6 +113,21 @@ public class RegistryClientFacadeFactory {
             return RegistryClientOptions.create(baseUrl, vertx).httpAdapter(HttpAdapterType.VERTX);
         } else {
             return RegistryClientOptions.create(baseUrl, vertx);
+        }
+    }
+
+    private static void configureRequestTimeout(RegistryClientOptions clientOptions, SchemaResolverConfig config) {
+        long connectTimeoutMs = config.getHttpConnectTimeoutMs();
+        long readTimeoutMs = config.getHttpReadTimeoutMs();
+        if (connectTimeoutMs > 0 && readTimeoutMs > 0) {
+            clientOptions.requestTimeout(connectTimeoutMs, readTimeoutMs);
+        } else if (logger.isLoggable(Level.WARNING)) {
+            logger.log(Level.WARNING,
+                    "Registry HTTP client request timeouts disabled ({0}={1}, {2}={3}): a lost response "
+                            + "will block the calling thread indefinitely. url={4}",
+                    new Object[]{SchemaResolverConfig.HTTP_CONNECT_TIMEOUT_MS, connectTimeoutMs,
+                            SchemaResolverConfig.HTTP_READ_TIMEOUT_MS, readTimeoutMs,
+                            sanitizeRegistryUrl(config.getRegistryUrl())});
         }
     }
 

@@ -51,6 +51,7 @@ import io.apicurio.registry.rest.v3.beans.UpdateConfigurationProperty;
 import io.apicurio.registry.rest.v3.beans.UpdatePeer;
 import io.apicurio.registry.rest.v3.beans.UpdateRole;
 import io.apicurio.registry.rest.v3.impl.shared.DataExporter;
+import io.apicurio.registry.storage.importing.GitOpsEntityReader;
 import io.apicurio.registry.rules.DefaultRuleDeletionException;
 import io.apicurio.registry.rules.RulesProperties;
 import io.apicurio.registry.storage.PeerValidator;
@@ -364,21 +365,27 @@ public class AdminResourceImpl implements AdminResource {
         // The input should be a ZIP file. Unpack it to the local file system (temp).
         Path tempDirectory = unpackImportZip(data);
         try {
-            // EntityReader reader reads all unpacked entities from the file system
-            final EntityReader reader = new EntityReader(tempDirectory);
-
-            // Check the manifest for the version of the ZIP. We either need to import
-            // or import with upgrade depending on the version.
-            boolean upgrade = isUpgradeRequired(reader);
-
-            // Create an entity input stream to pass to the storage layer
-            EntityInputStream stream = new EntityInputStreamImpl(reader);
-
-            // Import or upgrade the data into the storage
-            if (upgrade) {
-                this.storage.upgradeData(stream, preserveGlobalId, preserveContentId);
-            } else {
+            if (isGitOpsFormat(tempDirectory)) {
+                final GitOpsEntityReader reader = new GitOpsEntityReader(tempDirectory);
+                EntityInputStream stream = reader::readNextEntity;
                 this.storage.importData(stream, preserveGlobalId, preserveContentId);
+            } else {
+                // EntityReader reader reads all unpacked entities from the file system
+                final EntityReader reader = new EntityReader(tempDirectory);
+
+                // Check the manifest for the version of the ZIP. We either need to import
+                // or import with upgrade depending on the version.
+                boolean upgrade = isUpgradeRequired(reader);
+
+                // Create an entity input stream to pass to the storage layer
+                EntityInputStream stream = new EntityInputStreamImpl(reader);
+
+                // Import or upgrade the data into the storage
+                if (upgrade) {
+                    this.storage.upgradeData(stream, preserveGlobalId, preserveContentId);
+                } else {
+                    this.storage.importData(stream, preserveGlobalId, preserveContentId);
+                }
             }
         } finally {
             // Clean up the temp work directory whether the import succeeded or failed.
@@ -448,6 +455,19 @@ public class AdminResourceImpl implements AdminResource {
             } catch (IOException e) {
                 log.warn("Failed to clean up import work directory: {}", tempDirectory, e);
             }
+        }
+    }
+
+    private boolean isGitOpsFormat(Path directory) {
+        final Path registryYaml = directory.resolve("registry.registry.yaml");
+        if (!Files.exists(registryYaml)) {
+            return false;
+        }
+        try {
+            final String content = Files.readString(registryYaml, StandardCharsets.UTF_8);
+            return content.contains("$type:") && content.contains("registry-v0");
+        } catch (IOException e) {
+            return false;
         }
     }
 

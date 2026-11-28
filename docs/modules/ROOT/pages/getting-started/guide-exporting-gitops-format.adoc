@@ -12,9 +12,7 @@ This enables a migration path from a SQL-backed registry to GitOps storage: expo
 IMPORTANT: The GitOps export format (`gitops-v0`) is *experimental* and is intended for migrating to GitOps storage.
 The data format (`*-v0`) might change in future releases.
 The export itself does not require the experimental features gate (`apicurio.features.experimental.enabled`) -- it is primarily used to migrate data from a SQL or KafkaSQL registry to GitOps, where enabling the gate on the source would be unnecessary.
-The GitOps format *cannot* be imported back through the `/admin/import` endpoint -- that endpoint only reads the default export format.
-For backups that can be restored with `/admin/import`, use the default export format (omit the `format` parameter).
-See https://github.com/Apicurio/apicurio-registry/issues/11184[#11184] for planned import support.
+The GitOps format can also be imported back through the `/admin/import` endpoint -- the endpoint auto-detects the format by the presence of `registry.registry.yaml` in the ZIP.
 
 == Prerequisites
 

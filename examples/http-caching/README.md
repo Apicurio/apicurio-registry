@@ -53,9 +53,6 @@ Every port can be changed: `REGISTRY_PORT`, `MANAGEMENT_PORT`, `VARNISH_PORT`, `
 - **Known issues**, shown by the demo:
   - [#11183](https://github.com/Apicurio/apicurio-registry/issues/11183): content by coordinates is
     cached as immutable for 10 days, so a deleted and recreated version is served stale.
-  - [#11207](https://github.com/Apicurio/apicurio-registry/issues/11207): with opaque ETags (the
-    `prod` default), `If-None-Match` never matches, so revalidation always downloads the content.
-    The single-registry stack disables opaque ETags, as the suite needs; the cluster runs `prod`.
 - **Local only:** the VCL allows `PURGE` from anyone and exposes debug headers; see *Operating
   Varnish* in the guide before using it elsewhere.
 

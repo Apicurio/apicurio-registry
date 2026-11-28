@@ -411,9 +411,7 @@ When disabled:
 - Faster ETag computation
 
 **Note**: Hashed ETags (SHA256 of ETag value) are automatically enabled in production profile for security
-(`apicurio.http-caching.opaque-etags-enabled`). Known issue: with hashed ETags, `If-None-Match` never
-matches, so conditional requests always return 200
-([#11207](https://github.com/Apicurio/apicurio-registry/issues/11207)).
+(`apicurio.http-caching.opaque-etags-enabled`).
 
 ### Extra Headers
 

@@ -6,6 +6,7 @@ import io.apicurio.registry.rest.cache.headers.VaryHttpHeader;
 import io.apicurio.registry.rest.cache.headers.XCacheCacheabilityHttpHeader;
 import io.apicurio.registry.rest.cache.strategy.CacheStrategy;
 import jakarta.enterprise.inject.spi.CDI;
+import jakarta.ws.rs.core.EntityTag;
 import jakarta.ws.rs.core.HttpHeaders;
 import org.jboss.resteasy.spi.ResteasyProviderFactory;
 import org.slf4j.Logger;
@@ -72,16 +73,23 @@ public class HttpCaching {
         }
         strategy.evaluate();
         getBean(ResponseCacheContext.class).setStrategy(strategy);
-        checkETag();
+        checkETag(config);
     }
 
-    private void checkETag() {
+    /**
+     * The ETag sent in the response, which If-None-Match is also compared with.
+     */
+    private EntityTag etag(HttpCachingConfig config) {
+        var etagBuilder = strategy.getETagBuilder();
+        return config.getOpaqueETagsEnabled() ? etagBuilder.buildHashed() : etagBuilder.build();
+    }
+
+    private void checkETag(HttpCachingConfig config) {
         var httpHeaders = ofNullable(ResteasyProviderFactory.getInstance().getContextData(HttpHeaders.class))
                 .orElseThrow(() -> new IllegalStateException("This method must be executed in the context of a JAX-RS request."));
         String ifNoneMatch = httpHeaders.getHeaderString(HttpHeaders.IF_NONE_MATCH);
         if (ifNoneMatch != null) {
-            var etag = strategy.getETagBuilder().build();
-            var etagHeader = ETagHttpHeader.builder().etag(etag).build();
+            var etagHeader = ETagHttpHeader.builder().etag(etag(config)).build();
             if (etagHeader.matches(ifNoneMatch)) {
                 throw CacheNotModifiedException.INSTANCE;
             }
@@ -99,10 +107,8 @@ public class HttpCaching {
             // Only add cache headers for 2xx responses:
 
             // Add ETag header
-            var etagBuilder = strategy.getETagBuilder();
-            var etag = config.getOpaqueETagsEnabled() ? etagBuilder.buildHashed() : etagBuilder.build();
             ETagHttpHeader.builder()
-                    .etag(etag)
+                    .etag(etag(config))
                     .build()
                     .apply(adapter);
 

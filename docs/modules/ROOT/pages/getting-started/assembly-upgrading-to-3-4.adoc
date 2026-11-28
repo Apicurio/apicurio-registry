@@ -221,6 +221,10 @@ Disabled versions through the v2 API::
 `GET /apis/registry/v2/ids/globalIds/\{id\}` for a version in state `DISABLED` now returns HTTP 404, matching the v3 API.
 Before 3.4, the v2 API returned the content of a disabled version.
 
+Conditional requests with opaque ETags::
+With HTTP caching and opaque ETags enabled, the default in the `prod` profile, a request whose `If-None-Match` header carries the ETag of the current content now returns HTTP 304 Not Modified.
+Before 3.4, such requests always returned HTTP 200 with the full content, because the header was compared with the unhashed ETag (link:https://github.com/Apicurio/apicurio-registry/issues/11207[#11207]).
+
 New `GOVERNANCE` rule type::
 `RuleType` gets a new value, `GOVERNANCE`, for a rule that checks `contract.*` labels on data contract artifacts.
 A client built against an earlier version's enum, including older SDKs and the v2 API, sees an unknown value if a `GOVERNANCE` rule is configured on a registry it talks to.

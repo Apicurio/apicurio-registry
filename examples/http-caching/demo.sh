@@ -109,9 +109,8 @@ check "replica B has it from the journal" Shared "$(eventually 30 Shared record_
 ea=$(header ETag "$A/groups/$G/artifacts/shared/versions/1/content")
 eb=$(header ETag "$B/groups/$G/artifacts/shared/versions/1/content")
 check "both replicas give the same (hashed) ETag" yes "$([ -n "$ea" ] && [ "$ea" = "$eb" ] && echo yes || echo no)"
-# These replicas run the prod profile, where ETags are hashed; the registry compares If-None-Match with
-# the unhashed value, so conditional requests never match (#11207)
-check "  but a conditional request gets 200, not 304, even on the same replica (should be 304, #11207)" "200 200" \
+# These replicas run the prod profile, where ETags are hashed; If-None-Match is compared with the hashed value
+check "  and a conditional request with it gets 304 from either replica" "304 304" \
   "$(status "$A/groups/$G/artifacts/shared/versions/1/content" -H "If-None-Match: $ea") $(status "$B/groups/$G/artifacts/shared/versions/1/content" -H "If-None-Match: $ea")"
 latest="$CLUSTER/groups/$G/artifacts/shared/versions/branch=latest/content"
 check "branch=latest through the cache: Shared, then cached" "Shared HIT" \

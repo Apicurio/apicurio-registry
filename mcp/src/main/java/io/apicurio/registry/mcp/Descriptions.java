@@ -161,6 +161,14 @@ public final class Descriptions {
     public static final String ARD_SEARCH_PAGE_SIZE = """
             Maximum number of results to return in a single page (defaults to 10 if not provided).""";
 
+    public static final String PAGE_TOKEN = """
+            Opaque token returned as "pageToken" by a previous call of this tool, used to get the next page of results. \
+            Leave empty to get the first page. When a result has no "pageToken", it is the last page.""";
+
+    public static final String PAGE_SIZE = """
+            Maximum number of results in one page. \
+            Defaults to, and is capped at, the server's configured paging limit.""";
+
     private Descriptions() {
     }
 }

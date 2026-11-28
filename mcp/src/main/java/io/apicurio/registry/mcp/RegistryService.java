@@ -39,13 +39,17 @@ import jakarta.inject.Inject;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 @ApplicationScoped
 public class RegistryService {
+
+    private static final String PAGE_TOKEN_PREFIX = "offset:";
 
     @Inject
     McpConfig config;
@@ -64,26 +68,79 @@ public class RegistryService {
         return client().system().info().get();
     }
 
-    public List<SearchedGroup> listGroups(
+    public Page<SearchedGroup> listGroups(
             String order,
-            String groupOrderBy
+            String groupOrderBy,
+            String pageToken,
+            Integer pageSize
     ) {
+        var p = pageRequest(pageToken, pageSize);
         var page = client().groups().get(r -> {
-            r.queryParameters.limit = config.paging().limit() + 1;
+            r.queryParameters.offset = p.offset();
+            r.queryParameters.limit = p.size();
             r.queryParameters.order = parseSortOrder(order);
             r.queryParameters.orderby = parseGroupSortBy(groupOrderBy);
         });
-        checkPagingLimit(page.getCount());
-        return page.getGroups();
+        return toPage(page.getGroups(), page.getCount(), p);
     }
 
-    private void checkPagingLimit(int count) {
-        if (config.paging().limitError() && count > config.paging().limit()) {
-            throw new ToolCallException("""
-                    Apicurio Registry contains more than %s objects, which is the currently configured paging limit. \
-                    Use configuration properties "apicurio.mcp.paging.limit" and "apicurio.mcp.paging.limit-error" to configure how paging is handled."""
-                    .formatted(config.paging().limit()));
+    /**
+     * Paging arguments of one list or search tool call, resolved from its {@code pageToken} and
+     * {@code pageSize}.
+     */
+    record PageRequest(int offset, int size) {
+    }
+
+    /**
+     * Resolves the paging arguments of a list or search tool call. An empty token starts at the first
+     * item. The page size defaults to {@code apicurio.mcp.paging.limit} and is capped at it.
+     */
+    PageRequest pageRequest(String pageToken, Integer pageSize) {
+        if (pageSize != null && pageSize < 1) {
+            throw new ToolCallException("Invalid pageSize " + pageSize + ": it must be 1 or more.");
         }
+        int limit = config.paging().limit();
+        int size = pageSize == null ? limit : Math.min(pageSize, limit);
+        return new PageRequest(decodePageToken(pageToken), size);
+    }
+
+    static String encodePageToken(int offset) {
+        return Base64.getUrlEncoder().withoutPadding()
+                .encodeToString((PAGE_TOKEN_PREFIX + offset).getBytes(StandardCharsets.UTF_8));
+    }
+
+    static int decodePageToken(String pageToken) {
+        if (pageToken == null || pageToken.isBlank()) {
+            return 0;
+        }
+        try {
+            var decoded = new String(Base64.getUrlDecoder().decode(pageToken.trim()), StandardCharsets.UTF_8);
+            if (decoded.startsWith(PAGE_TOKEN_PREFIX)) {
+                int offset = Integer.parseInt(decoded.substring(PAGE_TOKEN_PREFIX.length()));
+                if (offset >= 0) {
+                    return offset;
+                }
+            }
+        } catch (IllegalArgumentException e) {
+            // Not Base64, or not a number (NumberFormatException extends IllegalArgumentException).
+        }
+        throw new ToolCallException("""
+                Invalid pageToken. Pass the pageToken returned by the previous call of the same tool, \
+                or leave it empty to get the first page.""");
+    }
+
+    /**
+     * Builds the page returned to the MCP client. The next-page token is set only when the registry
+     * reports more matches than the client has received so far.
+     */
+    static <T> Page<T> toPage(List<T> results, Integer count, PageRequest request) {
+        List<T> items = results == null ? List.of() : results;
+        if (items.size() > request.size()) {
+            items = items.subList(0, request.size());
+        }
+        int next = request.offset() + items.size();
+        String token = !items.isEmpty() && count != null && next < count ? encodePageToken(next) : null;
+        return new Page<>(items, count, token);
     }
 
     public GroupMetaData createGroup(
@@ -121,18 +178,21 @@ public class RegistryService {
         return client().admin().config().artifactTypes().get();
     }
 
-    public List<SearchedArtifact> listArtifacts(
+    public Page<SearchedArtifact> listArtifacts(
             String groupId,
             String order,
-            String artifactOrderBy
+            String artifactOrderBy,
+            String pageToken,
+            Integer pageSize
     ) {
+        var p = pageRequest(pageToken, pageSize);
         var page = client().groups().byGroupId(groupId).artifacts().get(r -> {
-            r.queryParameters.limit = config.paging().limit() + 1;
+            r.queryParameters.offset = p.offset();
+            r.queryParameters.limit = p.size();
             r.queryParameters.order = parseSortOrder(order);
             r.queryParameters.orderby = parseArtifactSortBy(artifactOrderBy);
         });
-        checkPagingLimit(page.getCount());
-        return page.getArtifacts();
+        return toPage(page.getArtifacts(), page.getCount(), p);
     }
 
     public ArtifactMetaData getArtifactMetadata(
@@ -215,22 +275,25 @@ public class RegistryService {
                 .content().put(vc);
     }
 
-    public List<SearchedVersion> listVersions(
+    public Page<SearchedVersion> listVersions(
             String groupId,
             String artifactId,
             String order,
-            String versionOrderBy
+            String versionOrderBy,
+            String pageToken,
+            Integer pageSize
     ) {
+        var p = pageRequest(pageToken, pageSize);
         var page = client().groups().byGroupId(groupId)
                 .artifacts().byArtifactId(artifactId)
                 .versions()
                 .get(r -> {
-                    r.queryParameters.limit = config.paging().limit() + 1;
+                    r.queryParameters.offset = p.offset();
+                    r.queryParameters.limit = p.size();
                     r.queryParameters.order = parseSortOrder(order);
                     r.queryParameters.orderby = parseVersionSortBy(versionOrderBy);
                 });
-        checkPagingLimit(page.getCount());
-        return page.getVersions();
+        return toPage(page.getVersions(), page.getCount(), p);
     }
 
     public ArtifactMetaData createArtifact(
@@ -334,40 +397,34 @@ public class RegistryService {
                 .state().put(vs);
     }
 
-    public List<SearchedGroup> searchGroups(
+    public Page<SearchedGroup> searchGroups(
             String groupId,
             String description,
             String labels,
             String order,
-            String groupOrderBy
+            String groupOrderBy,
+            String pageToken,
+            Integer pageSize
     ) {
+        var p = pageRequest(pageToken, pageSize);
         var page = client().search().groups().get(r -> {
             r.queryParameters.groupId = groupId;
             r.queryParameters.description = description;
             r.queryParameters.labels = utils.toQueryLabels(labels);
 
-            r.queryParameters.limit = config.paging().limit() + 1;
+            r.queryParameters.offset = p.offset();
+            r.queryParameters.limit = p.size();
             r.queryParameters.order = parseSortOrder(order);
             r.queryParameters.orderby = parseGroupSortBy(groupOrderBy);
         });
-        checkPagingLimit(page.getCount());
-        return page.getGroups();
+        return toPage(page.getGroups(), page.getCount(), p);
     }
 
-    public List<SearchedVersion> searchVersions(
-            String groupId,
-            String artifactId,
-            String artifactType,
-            String name,
-            String description,
-            String jsonLabels,
-            String order,
-            String versionOrderBy
-    ) {
-        return searchVersions(groupId, artifactId, artifactType, name, description, jsonLabels, order, versionOrderBy, (VersionState) null);
-    }
-
-    public List<SearchedVersion> searchVersions(
+    /**
+     * Returns every matching version, following the pages internally. For callers that need the
+     * complete result (such as {@code list_mcp_prompts}), not for tools that return a page to the client.
+     */
+    public List<SearchedVersion> searchAllVersions(
             String groupId,
             String artifactId,
             String artifactType,
@@ -378,6 +435,31 @@ public class RegistryService {
             String versionOrderBy,
             VersionState state
     ) {
+        List<SearchedVersion> all = new ArrayList<>();
+        String pageToken = null;
+        do {
+            var page = searchVersions(groupId, artifactId, artifactType, name, description, jsonLabels,
+                    order, versionOrderBy, state, pageToken, null);
+            all.addAll(page.results());
+            pageToken = page.pageToken();
+        } while (pageToken != null);
+        return all;
+    }
+
+    public Page<SearchedVersion> searchVersions(
+            String groupId,
+            String artifactId,
+            String artifactType,
+            String name,
+            String description,
+            String jsonLabels,
+            String order,
+            String versionOrderBy,
+            VersionState state,
+            String pageToken,
+            Integer pageSize
+    ) {
+        var p = pageRequest(pageToken, pageSize);
         var page = client().search().versions().get(r -> {
             r.queryParameters.groupId = groupId;
             r.queryParameters.artifactId = artifactId;
@@ -389,15 +471,15 @@ public class RegistryService {
                 r.queryParameters.state = state;
             }
 
-            r.queryParameters.limit = config.paging().limit() + 1;
+            r.queryParameters.offset = p.offset();
+            r.queryParameters.limit = p.size();
             r.queryParameters.order = parseSortOrder(order);
             r.queryParameters.orderby = parseVersionSortBy(versionOrderBy);
         });
-        checkPagingLimit(page.getCount());
-        return page.getVersions();
+        return toPage(page.getVersions(), page.getCount(), p);
     }
 
-    public List<SearchedArtifact> searchArtifacts(
+    public Page<SearchedArtifact> searchArtifacts(
             String groupId,
             String artifactId,
             String artifactType,
@@ -405,8 +487,11 @@ public class RegistryService {
             String description,
             String jsonLabels,
             String order,
-            String artifactOrderBy
+            String artifactOrderBy,
+            String pageToken,
+            Integer pageSize
     ) {
+        var p = pageRequest(pageToken, pageSize);
         var page = client().search().artifacts().get(r -> {
             r.queryParameters.groupId = groupId;
             r.queryParameters.artifactId = artifactId;
@@ -415,12 +500,12 @@ public class RegistryService {
             r.queryParameters.description = description;
             r.queryParameters.labels = utils.toQueryLabels(jsonLabels);
 
-            r.queryParameters.limit = config.paging().limit() + 1;
+            r.queryParameters.offset = p.offset();
+            r.queryParameters.limit = p.size();
             r.queryParameters.order = parseSortOrder(order);
             r.queryParameters.orderby = parseArtifactSortBy(artifactOrderBy);
         });
-        checkPagingLimit(page.getCount());
-        return page.getArtifacts();
+        return toPage(page.getArtifacts(), page.getCount(), p);
     }
 
     public List<ConfigurationProperty> listConfigurationProperties() {
@@ -431,9 +516,12 @@ public class RegistryService {
         return client().admin().config().properties().byPropertyName(propertyName).get();
     }
 
-    public String searchAgentCards(String name, String skill, String capability) throws Exception {
+    public String searchAgentCards(String name, String skill, String capability,
+                                   String pageToken, Integer pageSize) throws Exception {
+        var p = pageRequest(pageToken, pageSize);
         var results = client().wellKnown().agents().get(r -> {
-            r.queryParameters.limit = config.paging().limit() + 1;
+            r.queryParameters.offset = p.offset();
+            r.queryParameters.limit = p.size();
             if (name != null && !name.isBlank()) {
                 r.queryParameters.name = name;
             }
@@ -444,8 +532,7 @@ public class RegistryService {
                 r.queryParameters.capability = new String[]{ capability };
             }
         });
-        checkPagingLimit(results.getCount());
-        return utils.toPrettyJson(results);
+        return utils.toPrettyJson(toPage(results.getAgents(), results.getCount(), p));
     }
 
     public String getAgentCard(String groupId, String artifactId) throws Exception {
@@ -457,9 +544,12 @@ public class RegistryService {
         }
     }
 
-    public String searchMcpTools(String name, String parameter) throws Exception {
+    public String searchMcpTools(String name, String parameter,
+                                 String pageToken, Integer pageSize) throws Exception {
+        var p = pageRequest(pageToken, pageSize);
         var results = client().wellKnown().mcpTools().get(r -> {
-            r.queryParameters.limit = config.paging().limit() + 1;
+            r.queryParameters.offset = p.offset();
+            r.queryParameters.limit = p.size();
             if (name != null && !name.isBlank()) {
                 r.queryParameters.name = name;
             }
@@ -467,8 +557,7 @@ public class RegistryService {
                 r.queryParameters.parameter = new String[]{ parameter };
             }
         });
-        checkPagingLimit(results.getCount());
-        return utils.toPrettyJson(results);
+        return utils.toPrettyJson(toPage(results.getTools(), results.getCount(), p));
     }
 
     public String getMcpTool(String groupId, String artifactId) throws Exception {

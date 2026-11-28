@@ -4,8 +4,7 @@
 - **Decision date:** 2026-11-19.
 - **Author:** Apicurio Registry maintainers.
 - **Tracking:** the [`mcp/`](../mcp/) module; open work in
-  [#11094](https://github.com/Apicurio/apicurio-registry/issues/11094) and
-  [#10641](https://github.com/Apicurio/apicurio-registry/issues/10641).
+  [#11094](https://github.com/Apicurio/apicurio-registry/issues/11094).
 - **Scope:** The registry's own MCP server: a separate application that exposes registry operations
   as MCP tools to AI clients, its two transports, how it authenticates to the registry, and its tool
   set. Not covered: the agent-registry features inside the registry application (MCP tool artifacts,
@@ -145,12 +144,14 @@ MCP prompts: `create_new_artifact_version` (`MCPPrompts`) and `render_registry_p
   to detect the type from.
 - **Safe mode** (`apicurio.mcp.safe-mode`, default `true`): `update_configuration_property` may only
   change `apicurio.rest.mutability.artifact-version-content.enabled`.
-- **Paging threshold:** the `list_*` and `search_*` tools for groups, artifacts and versions, plus
-  `discover_agents`, `search_mcp_tools` and `list_mcp_prompts`, request one page of
-  `apicurio.mcp.paging.limit + 1` items. With `limit-error=true` (default) they fail when the
-  registry's total match count exceeds the limit; with `false` they return that page as is (up to
-  `limit + 1` items). `ard_search` pages with `pageSize` and `pageToken`, and
-  `list_configuration_properties` is not limited.
+- **Paging:** the `list_*` and `search_*` tools for groups, artifacts and versions, plus
+  `discover_agents` and `search_mcp_tools`, take optional `pageToken` and `pageSize` arguments, as
+  `ard_search` does. They return `{results, count, pageToken}`; `pageToken` is set only when more
+  matches remain, and is an opaque encoding of the next REST `offset`. `pageSize` defaults to, and is
+  capped at, `apicurio.mcp.paging.limit`, which is kept high so that most results fit in one page.
+  `list_mcp_prompts` follows all pages internally. `list_configuration_properties` is not paged.
+  `apicurio.mcp.paging.limit-error` is deprecated and has no effect
+  ([#10641](https://github.com/Apicurio/apicurio-registry/issues/10641)).
 - There is no read-only mode and no experimental flag on individual tools: what a caller can change
   is decided by the registry's authorization.
 
@@ -167,8 +168,8 @@ Properties come from [`McpConfig`](../mcp/src/main/java/io/apicurio/registry/mcp
 | `apicurio.mcp.auth.enabled` | `false` | OAuth2 client credentials to the registry |
 | `apicurio.mcp.auth.token-endpoint`, `.client-id`, `.client-secret`, `.scope` | (none) | Client-credentials settings; the first three are required when enabled |
 | `apicurio.mcp.safe-mode` | `true` | Whitelist for `update_configuration_property` |
-| `apicurio.mcp.paging.limit` | `200` | Match-count threshold for the limited list and search tools; they request `limit + 1` items |
-| `apicurio.mcp.paging.limit-error` | `true` | Fail when the total match count exceeds the limit; `false` returns the requested page unchanged |
+| `apicurio.mcp.paging.limit` | `200` | Default and maximum page size of the paged list and search tools |
+| `apicurio.mcp.paging.limit-error` | `true` | Deprecated, no effect (the tools page instead of failing) |
 | `apicurio.mcp.tls.trust-all` / `.verify-host` | `false` / `true` | TLS to the registry and token endpoint |
 | `apicurio.mcp.tls.truststore.*`, `.keystore.*` | (none) | JKS, PKCS12 or PEM trust store; JKS or PKCS12 key store for mTLS |
 | `quarkus.mcp.server.stdio.enabled`, `quarkus.mcp.server.http.enabled` | `true`, `true` | Transports compiled in (build time) |
@@ -190,23 +191,20 @@ Properties come from [`McpConfig`](../mcp/src/main/java/io/apicurio/registry/mcp
 
 ## Limitations and open work
 
-1. The limited list and search tools (not `ard_search`) cannot page; above
-   `apicurio.mcp.paging.limit` they fail with `limit-error=true`, or return only the first page with
-   `false` ([#10641](https://github.com/Apicurio/apicurio-registry/issues/10641)).
-2. Tool results include an empty `additionalData` on every object
+1. Tool results include an empty `additionalData` on every object
    ([#10957](https://github.com/Apicurio/apicurio-registry/issues/10957)).
-3. No rule-management tools; only `test_schema_rules`
+2. No rule-management tools; only `test_schema_rules`
    ([#9741](https://github.com/Apicurio/apicurio-registry/issues/9741)).
-4. The stability level of each transport is not stated
+3. The stability level of each transport is not stated
    ([#11094](https://github.com/Apicurio/apicurio-registry/issues/11094)).
-5. The operator does not deploy the MCP server
+4. The operator does not deploy the MCP server
    ([#10295](https://github.com/Apicurio/apicurio-registry/issues/10295)); generating client config is
    an open question ([#9966](https://github.com/Apicurio/apicurio-registry/issues/9966)).
-6. Prompt rendering does not support `{{else}}`/`{{#unless}}` or nested `{{#if}}`
+5. Prompt rendering does not support `{{else}}`/`{{#unless}}` or nested `{{#if}}`
    ([#9753](https://github.com/Apicurio/apicurio-registry/issues/9753),
    [#9461](https://github.com/Apicurio/apicurio-registry/issues/9461)) and is separate from the REST
    path's rendering ([#9483](https://github.com/Apicurio/apicurio-registry/issues/9483)).
-7. Token expiry is checked only for JWTs; in stdio mode every caller shares one service account.
+6. Token expiry is checked only for JWTs; in stdio mode every caller shares one service account.
 
 ## Alternatives
 

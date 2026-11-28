@@ -7,6 +7,8 @@ import jakarta.inject.Inject;
 
 import static io.apicurio.registry.mcp.Descriptions.ARTIFACT_ID;
 import static io.apicurio.registry.mcp.Descriptions.GROUP_ID;
+import static io.apicurio.registry.mcp.Descriptions.PAGE_SIZE;
+import static io.apicurio.registry.mcp.Descriptions.PAGE_TOKEN;
 import static io.apicurio.registry.mcp.Utils.handleError;
 
 public class AgentsMCPServer {
@@ -22,9 +24,11 @@ public class AgentsMCPServer {
     String discover_agents(
             @ToolArg(description = "Filter agents by name (partial match)", required = false) String name,
             @ToolArg(description = "Filter agents by skill ID", required = false) String skill,
-            @ToolArg(description = "Filter agents by capability (e.g. 'streaming:true')", required = false) String capability
+            @ToolArg(description = "Filter agents by capability (e.g. 'streaming:true')", required = false) String capability,
+            @ToolArg(description = PAGE_TOKEN, required = false) String pageToken,
+            @ToolArg(description = PAGE_SIZE, required = false) Integer pageSize
     ) {
-        return handleError(() -> service.searchAgentCards(name, skill, capability));
+        return handleError(() -> service.searchAgentCards(name, skill, capability, pageToken, pageSize));
     }
 
     @Tool(description = """
@@ -43,9 +47,11 @@ public class AgentsMCPServer {
             Returns a list of MCP tools matching the search criteria.""")
     String search_mcp_tools(
             @ToolArg(description = "Filter tools by name (partial match)", required = false) String name,
-            @ToolArg(description = "Filter tools by input parameter name", required = false) String parameter
+            @ToolArg(description = "Filter tools by input parameter name", required = false) String parameter,
+            @ToolArg(description = PAGE_TOKEN, required = false) String pageToken,
+            @ToolArg(description = PAGE_SIZE, required = false) Integer pageSize
     ) {
-        return handleError(() -> service.searchMcpTools(name, parameter));
+        return handleError(() -> service.searchMcpTools(name, parameter, pageToken, pageSize));
     }
 
     @Tool(description = """

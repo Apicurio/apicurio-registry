@@ -56,14 +56,18 @@ public interface McpConfig {
 
     interface Paging {
         /**
-         * Maximum number of items to return in a single page.
+         * Default and maximum page size of the paged list and search tools.
          */
         @WithDefault("200")
         int limit();
 
         /**
-         * Whether to throw an error when the paging limit is exceeded.
+         * No longer used. The list and search tools used to fail when the number of matches was above
+         * {@link #limit()}. They now return one page with a {@code pageToken} for the next one instead.
+         *
+         * @deprecated has no effect; kept so that existing configurations still start
          */
+        @Deprecated
         @WithName("limit-error")
         @WithDefault("true")
         boolean limitError();

@@ -1,11 +1,14 @@
 package io.apicurio.registry.mcp;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.kiota.serialization.ValuedEnum;
 import com.sun.net.httpserver.HttpServer;
 import io.apicurio.registry.rest.client.models.ArtifactSortBy;
 import io.apicurio.registry.rest.client.models.GroupSortBy;
+import io.apicurio.registry.rest.client.models.SearchedGroup;
 import io.apicurio.registry.rest.client.models.SortOrder;
+import io.apicurio.registry.rest.client.models.VersionState;
 import io.apicurio.registry.rest.client.models.VersionSortBy;
 import io.quarkiverse.mcp.server.ToolCallException;
 import jakarta.enterprise.inject.Instance;
@@ -16,15 +19,24 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.URI;
 import java.lang.annotation.Annotation;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.IntFunction;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -35,11 +47,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class RegistryServiceTest {
 
     private static final int DEFAULT_PAGING_LIMIT = 200;
+    private static final ObjectMapper JSON = new ObjectMapper();
 
     private HttpServer server;
     private int port;
     private final Map<String, String> lastHeaders = new ConcurrentHashMap<>();
     private volatile String lastUri;
+    private final List<String> requestUris = new CopyOnWriteArrayList<>();
     private volatile String lastRequestBody;
 
     @BeforeEach
@@ -49,6 +63,7 @@ public class RegistryServiceTest {
 
         server.createContext("/", exchange -> {
             lastUri = exchange.getRequestURI().toString();
+            requestUris.add(lastUri);
             exchange.getRequestHeaders().forEach((k, v) -> {
                 if (!v.isEmpty()) {
                     lastHeaders.put(k.toLowerCase(), v.get(0));
@@ -83,7 +98,9 @@ public class RegistryServiceTest {
             // "overflow" search name is a signal to the mock server to return count > limit (count=3)
             if (path.endsWith("/well-known/agents") || path.contains("/well-known/agents?")) {
                 int count = (query != null && query.contains("name=overflow")) ? 3 : 1;
-                String response = "{\"agents\":[{\"name\":\"test-agent\"}],\"count\":" + count + "}";
+                String response = query != null && query.contains("name=paged")
+                        ? pagedResponse("agents", query, i -> "{\"name\":\"agent-" + i + "\"}")
+                        : "{\"agents\":[{\"name\":\"test-agent\"}],\"count\":" + count + "}";
                 exchange.getResponseHeaders().set("Content-Type", "application/json");
                 exchange.sendResponseHeaders(200, response.length());
                 try (OutputStream os = exchange.getResponseBody()) {
@@ -104,7 +121,9 @@ public class RegistryServiceTest {
 
             if (path.endsWith("/well-known/mcp-tools") || path.contains("/well-known/mcp-tools?")) {
                 int count = (query != null && query.contains("name=overflow")) ? 3 : 1;
-                String response = "{\"tools\":[{\"name\":\"test-tool\"}],\"count\":" + count + "}";
+                String response = query != null && query.contains("name=paged")
+                        ? pagedResponse("tools", query, i -> "{\"name\":\"tool-" + i + "\"}")
+                        : "{\"tools\":[{\"name\":\"test-tool\"}],\"count\":" + count + "}";
                 exchange.getResponseHeaders().set("Content-Type", "application/json");
                 exchange.sendResponseHeaders(200, response.length());
                 try (OutputStream os = exchange.getResponseBody()) {
@@ -162,7 +181,8 @@ public class RegistryServiceTest {
             }
 
             if (path.endsWith("/groups")) {
-                String response = "{\"groups\":[],\"count\":0}";
+                String response = pagedResponse("groups", query,
+                        i -> "{\"groupId\":\"g" + i + "\"}");
                 exchange.getResponseHeaders().set("Content-Type", "application/json");
                 exchange.sendResponseHeaders(200, response.length());
                 try (OutputStream os = exchange.getResponseBody()) {
@@ -172,7 +192,8 @@ public class RegistryServiceTest {
             }
 
             if (path.endsWith("/artifacts")) {
-                String response = "{\"artifacts\":[],\"count\":0}";
+                String response = pagedResponse("artifacts", query,
+                        i -> "{\"groupId\":\"g\",\"artifactId\":\"a" + i + "\"}");
                 exchange.getResponseHeaders().set("Content-Type", "application/json");
                 exchange.sendResponseHeaders(200, response.length());
                 try (OutputStream os = exchange.getResponseBody()) {
@@ -182,7 +203,8 @@ public class RegistryServiceTest {
             }
 
             if (path.endsWith("/versions")) {
-                String response = "{\"versions\":[],\"count\":0}";
+                String response = pagedResponse("versions", query,
+                        i -> "{\"groupId\":\"g\",\"artifactId\":\"a\",\"version\":\"" + i + "\"}");
                 exchange.getResponseHeaders().set("Content-Type", "application/json");
                 exchange.sendResponseHeaders(200, response.length());
                 try (OutputStream os = exchange.getResponseBody()) {
@@ -199,6 +221,42 @@ public class RegistryServiceTest {
         });
 
         server.start();
+    }
+
+    /** Number of groups and of versions the mock registry holds. */
+    private static final int MOCK_TOTAL = 5;
+
+    /**
+     * Builds a search-results body holding the items the {@code offset} and {@code limit} query
+     * parameters select out of {@link #MOCK_TOTAL} items, like the registry does.
+     */
+    private static String pagedResponse(String field, String query, IntFunction<String> item) {
+        int offset = queryInt(query, "offset", 0);
+        int limit = queryInt(query, "limit", 20);
+        String items = IntStream.range(offset, Math.min(offset + limit, MOCK_TOTAL))
+                .mapToObj(item)
+                .collect(Collectors.joining(","));
+        return "{\"" + field + "\":[" + items + "],\"count\":" + MOCK_TOTAL + "}";
+    }
+
+    private static int queryInt(String query, String name, int defaultValue) {
+        if (query != null) {
+            for (String pair : query.split("&")) {
+                if (pair.startsWith(name + "=")) {
+                    try {
+                        return Integer.parseInt(pair.substring(name.length() + 1));
+                    } catch (NumberFormatException e) {
+                        throw new IllegalArgumentException("Query parameter '" + name + "' is not a number: " + pair, e);
+                    }
+                }
+            }
+        }
+        return defaultValue;
+    }
+
+    /** The value of an integer query parameter of the last request, or -1 when it is absent. */
+    private int lastParam(String name) {
+        return queryInt(URI.create(lastUri).getRawQuery(), name, -1);
     }
 
     @AfterEach
@@ -390,7 +448,7 @@ public class RegistryServiceTest {
     @Test
     public void testOAuth2HeaderAttachment() throws Exception {
         RegistryService service = createService("http://localhost:" + port, true);
-        service.searchAgentCards("abc", null, null);
+        service.searchAgentCards("abc", null, null, null, null);
         assertTrue(lastHeaders.containsKey("authorization"));
         assertEquals("Bearer mock-token-123", lastHeaders.get("authorization"));
     }
@@ -398,15 +456,17 @@ public class RegistryServiceTest {
     @Test
     public void testQueryParameterPropagation() throws Exception {
         RegistryService service = createService("http://localhost:" + port, false);
-        int expectedLimit = service.config.paging().limit() + 1;
-        service.searchAgentCards("abc", "java", "streaming");
-        assertTrue(lastUri.contains("limit=" + expectedLimit));
+        int expectedLimit = service.config.paging().limit();
+        service.searchAgentCards("abc", "java", "streaming", null, null);
+        assertEquals(expectedLimit, lastParam("limit"));
+        assertEquals(0, lastParam("offset"));
         assertTrue(lastUri.contains("name=abc"));
         assertTrue(lastUri.contains("skill=java"));
         assertTrue(lastUri.contains("capability=streaming"));
 
-        service.searchMcpTools("mytool", "param1");
-        assertTrue(lastUri.contains("limit=" + expectedLimit));
+        service.searchMcpTools("mytool", "param1", null, null);
+        assertEquals(expectedLimit, lastParam("limit"));
+        assertEquals(0, lastParam("offset"));
         assertTrue(lastUri.contains("name=mytool"));
         assertTrue(lastUri.contains("parameter=param1"));
     }
@@ -431,31 +491,224 @@ public class RegistryServiceTest {
     }
 
     @Test
-    public void testSearchAgentCardsThrowsWhenPagingLimitExceeded() {
+    public void testSearchAgentCardsReturnsPageTokenWhenMoreMatchesExist() throws Exception {
+        // Before #10641 this failed with "contains more than 2 objects" and the agent could not page.
         RegistryService service = createService("http://localhost:" + port, false, 2, true);
-        assertThrows(ToolCallException.class, () -> service.searchAgentCards("overflow", null, null));
+        JsonNode page = JSON.readTree(service.searchAgentCards("overflow", null, null, null, null));
+        assertEquals(1, page.get("results").size());
+        assertEquals("test-agent", page.get("results").get(0).get("name").asText());
+        assertEquals(3, page.get("count").asInt());
+        assertEquals(1, RegistryService.decodePageToken(page.get("pageToken").asText()));
     }
 
     @Test
-    public void testSearchAgentCardsDoesNotThrowWhenCountWithinLimit() throws Exception {
+    public void testSearchAgentCardsLastPageHasNoPageToken() throws Exception {
         RegistryService service = createService("http://localhost:" + port, false, 2, true);
-        String result = service.searchAgentCards("normal", null, null);
-        assertNotNull(result);
+        JsonNode page = JSON.readTree(service.searchAgentCards("normal", null, null, null, null));
+        assertEquals(1, page.get("results").size());
+        assertEquals("test-agent", page.get("results").get(0).get("name").asText());
+        assertEquals(1, page.get("count").asInt());
+        assertTrue(page.path("pageToken").isMissingNode() || page.get("pageToken").isNull(), page.toString());
     }
 
     @Test
-    public void testSearchMcpToolsThrowsWhenPagingLimitExceeded() {
+    public void testSearchMcpToolsReturnsPageTokenWhenMoreMatchesExist() throws Exception {
         RegistryService service = createService("http://localhost:" + port, false, 2, true);
-        assertThrows(ToolCallException.class, () -> service.searchMcpTools("overflow", null));
+        JsonNode page = JSON.readTree(service.searchMcpTools("overflow", null, null, null));
+        assertEquals(1, page.get("results").size());
+        assertEquals("test-tool", page.get("results").get(0).get("name").asText());
+        assertEquals(3, page.get("count").asInt());
+        assertEquals(1, RegistryService.decodePageToken(page.get("pageToken").asText()));
     }
 
     @Test
-    public void testSearchMcpToolsDoesNotThrowWhenCountWithinLimit() throws Exception {
+    public void testSearchMcpToolsLastPageHasNoPageToken() throws Exception {
         RegistryService service = createService("http://localhost:" + port, false, 2, true);
-        String result = service.searchMcpTools("normal", null);
-        assertNotNull(result);
+        JsonNode page = JSON.readTree(service.searchMcpTools("normal", null, null, null));
+        assertEquals(1, page.get("results").size());
+        assertEquals("test-tool", page.get("results").get(0).get("name").asText());
+        assertEquals(1, page.get("count").asInt());
+        assertTrue(page.path("pageToken").isMissingNode() || page.get("pageToken").isNull(), page.toString());
     }
-      
+
+    @Test
+    public void testListGroupsPagesThroughAllMatches() {
+        RegistryService service = createService("http://localhost:" + port, false, 2, true);
+        List<String> seen = new ArrayList<>();
+        String token = null;
+        int calls = 0;
+        do {
+            Page<SearchedGroup> page = service.listGroups("asc", "groupId", token, null);
+            assertEquals(MOCK_TOTAL, page.count());
+            assertEquals(calls * 2, lastParam("offset"));
+            assertEquals(2, lastParam("limit"));
+            page.results().forEach(g -> seen.add(g.getGroupId()));
+            token = page.pageToken();
+            calls++;
+        } while (token != null && calls < 10);
+
+        assertEquals(List.of("g0", "g1", "g2", "g3", "g4"), seen);
+        assertEquals(3, calls);
+    }
+
+    /**
+     * Every paged method must send the offset from the page token and the page size to the registry,
+     * return that page, and return a token for the page after it.
+     */
+    @Test
+    public void testEveryPagedMethodForwardsOffsetAndPageSize() throws Exception {
+        RegistryService service = createService("http://localhost:" + port, false, 3, true);
+        String token = RegistryService.encodePageToken(2);
+
+        Map<String, ThrowingSupplier> methods = new LinkedHashMap<>();
+        methods.put("listGroups", () -> service.listGroups("asc", "groupId", token, 2));
+        methods.put("searchGroups", () -> service.searchGroups(null, null, null, "asc", "groupId", token, 2));
+        methods.put("listArtifacts", () -> service.listArtifacts("g1", "asc", "artifactId", token, 2));
+        methods.put("searchArtifacts", () -> service.searchArtifacts(null, null, null, null, null, null,
+                "asc", "artifactId", token, 2));
+        methods.put("listVersions", () -> service.listVersions("g1", "a1", "asc", "version", token, 2));
+        methods.put("searchVersions", () -> service.searchVersions(null, null, null, null, null, null,
+                "asc", "version", null, token, 2));
+        methods.put("searchAgentCards", () -> JSON.readTree(service.searchAgentCards("paged", null, null, token, 2)));
+        methods.put("searchMcpTools", () -> JSON.readTree(service.searchMcpTools("paged", null, token, 2)));
+
+        for (var method : methods.entrySet()) {
+            String name = method.getKey();
+            Object result = method.getValue().get();
+            assertEquals(2, lastParam("offset"), name + " must send the offset from the page token");
+            assertEquals(2, lastParam("limit"), name + " must send the page size");
+
+            int size;
+            int count;
+            String next;
+            if (result instanceof Page<?> page) {
+                size = page.results().size();
+                count = page.count();
+                next = page.pageToken();
+            } else {
+                JsonNode page = (JsonNode) result;
+                size = page.get("results").size();
+                count = page.get("count").asInt();
+                next = page.get("pageToken").asText();
+            }
+            assertEquals(2, size, name + " page size");
+            assertEquals(MOCK_TOTAL, count, name + " total count");
+            assertEquals(4, RegistryService.decodePageToken(next), name + " next page token");
+        }
+    }
+
+    @FunctionalInterface
+    private interface ThrowingSupplier {
+        Object get() throws Exception;
+    }
+
+    @Test
+    public void testLimitErrorNoLongerChangesTheResult() {
+        // apicurio.mcp.paging.limit-error is deprecated: both values must return the same first page.
+        for (boolean limitError : List.of(true, false)) {
+            RegistryService service = createService("http://localhost:" + port, false, 2, limitError);
+            var page = service.searchGroups(null, null, null, "asc", "groupId", null, null);
+            assertEquals(List.of("g0", "g1"), page.results().stream().map(SearchedGroup::getGroupId).toList());
+            assertEquals(2, RegistryService.decodePageToken(page.pageToken()));
+            assertEquals(2, lastParam("limit"), "must request exactly one page, not limit + 1");
+        }
+    }
+
+    @Test
+    public void testToPageNeverExceedsThePageSize() {
+        var trimmed = RegistryService.toPage(List.of("a", "b", "c"), 10, new RegistryService.PageRequest(0, 2));
+        assertEquals(List.of("a", "b"), trimmed.results());
+        assertEquals(10, trimmed.count());
+        assertEquals(2, RegistryService.decodePageToken(trimmed.pageToken()));
+    }
+
+    @Test
+    public void testToPageReturnsNoTokenWhenThereIsNothingMore() {
+        var request = new RegistryService.PageRequest(4, 2);
+        assertNull(RegistryService.toPage(List.of("e"), 5, request).pageToken(), "last page");
+        // Rows deleted between two calls: an empty page must end paging, not loop.
+        assertNull(RegistryService.toPage(List.of(), 5, request).pageToken(), "empty page");
+        assertNull(RegistryService.toPage(null, 5, request).pageToken(), "no results");
+        assertEquals(List.of(), RegistryService.toPage(null, 5, request).results());
+        assertNull(RegistryService.toPage(List.of("e"), null, request).pageToken(), "unknown count");
+    }
+
+    @Test
+    public void testPageSizeDefaultsToAndIsCappedAtTheLimit() {
+        RegistryService service = createService("http://localhost:" + port, false, 3, true);
+        var defaultPage = service.listVersions("g1", "a1", "asc", "version", null, null);
+        assertEquals(3, lastParam("limit"));
+        assertEquals(3, defaultPage.results().size());
+
+        service.listVersions("g1", "a1", "asc", "version", null, 500);
+        assertEquals(3, lastParam("limit"));
+
+        var smallPage = service.listVersions("g1", "a1", "asc", "version", null, 1);
+        assertEquals(1, lastParam("limit"));
+        assertEquals(1, smallPage.results().size());
+        assertEquals(1, RegistryService.decodePageToken(smallPage.pageToken()));
+    }
+
+    @Test
+    public void testInvalidPagingArgumentsAreRejectedBeforeCallingTheRegistry() {
+        RegistryService service = createService("http://localhost:" + port, false, 3, true);
+        int requestsBefore = requestUris.size();
+
+        for (int badSize : List.of(0, -1)) {
+            ToolCallException ex = assertThrows(ToolCallException.class,
+                    () -> service.listGroups("asc", "groupId", null, badSize));
+            assertTrue(ex.getMessage().contains("Invalid pageSize " + badSize), ex.getMessage());
+        }
+        ToolCallException ex = assertThrows(ToolCallException.class,
+                () -> service.searchArtifacts(null, null, null, null, null, null, "asc", "name", "garbage!", null));
+        assertTrue(ex.getMessage().contains("Invalid pageToken"), ex.getMessage());
+
+        assertEquals(requestsBefore, requestUris.size(), "no request may reach the registry");
+    }
+
+    @Test
+    public void testPageTokenValidation() {
+        assertEquals(0, RegistryService.decodePageToken(null));
+        assertEquals(0, RegistryService.decodePageToken(""));
+        assertEquals(42, RegistryService.decodePageToken(RegistryService.encodePageToken(42)));
+        assertEquals(42, RegistryService.decodePageToken("  " + RegistryService.encodePageToken(42) + " "));
+
+        List<String> bad = List.of(
+                "not a token!",
+                encode("offset:abc"),
+                encode("offset:-1"),
+                encode("page:1"),
+                encode("offset:99999999999"));
+        for (String token : bad) {
+            ToolCallException ex = assertThrows(ToolCallException.class,
+                    () -> RegistryService.decodePageToken(token));
+            assertTrue(ex.getMessage().contains("Invalid pageToken"), token + ": " + ex.getMessage());
+        }
+    }
+
+    private static String encode(String raw) {
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(raw.getBytes(StandardCharsets.UTF_8));
+    }
+
+    @Test
+    public void testSearchAllVersionsFollowsEveryPageWithTheSameFilters() {
+        // list_mcp_prompts needs every enabled prompt template, not only the first page.
+        RegistryService service = createService("http://localhost:" + port, false, 2, true);
+        requestUris.clear();
+        var versions = service.searchAllVersions(null, null, "PROMPT_TEMPLATE", null, null, null,
+                "asc", "artifactId", VersionState.ENABLED);
+
+        assertEquals(List.of("0", "1", "2", "3", "4"), versions.stream().map(v -> v.getVersion()).toList());
+        List<String> searches = requestUris.stream().filter(u -> u.contains("/search/versions")).toList();
+        assertEquals(3, searches.size());
+        for (int i = 0; i < searches.size(); i++) {
+            String query = URI.create(searches.get(i)).getRawQuery();
+            assertEquals(i * 2, queryInt(query, "offset", -1));
+            assertTrue(query.contains("artifactType=PROMPT_TEMPLATE"), query);
+            assertTrue(query.contains("state=ENABLED"), query);
+        }
+    }
+
     @Test
     public void testUpdateVersionStateValidation() throws Exception {
         RegistryService service = createService("http://localhost:" + port, false);
@@ -596,53 +849,53 @@ public class RegistryServiceTest {
         RegistryService service = createService("http://localhost:" + port, false);
 
         // 1. listGroups with mis-cased sort parameters
-        service.listGroups("DESC", "GROUPID");
+        service.listGroups("DESC", "GROUPID", null, null);
         assertNotNull(lastUri);
         assertTrue(lastUri.contains("order=desc"), "listGroups should forward order=desc, got: " + lastUri);
         assertTrue(lastUri.contains("orderby=groupId"), "listGroups should forward orderby=groupId, got: " + lastUri);
 
         // 2. listArtifacts with mis-cased sort parameters
-        service.listArtifacts("g1", "ASC", "ARTIFACTID");
+        service.listArtifacts("g1", "ASC", "ARTIFACTID", null, null);
         assertNotNull(lastUri);
         assertTrue(lastUri.contains("order=asc"), "listArtifacts should forward order=asc, got: " + lastUri);
         assertTrue(lastUri.contains("orderby=artifactId"), "listArtifacts should forward orderby=artifactId, got: " + lastUri);
 
         // 3. listVersions with mis-cased sort parameters
-        service.listVersions("g1", "a1", "DESC", "GLOBALID");
+        service.listVersions("g1", "a1", "DESC", "GLOBALID", null, null);
         assertNotNull(lastUri);
         assertTrue(lastUri.contains("order=desc"), "listVersions should forward order=desc, got: " + lastUri);
         assertTrue(lastUri.contains("orderby=globalId"), "listVersions should forward orderby=globalId, got: " + lastUri);
 
         // 4. searchGroups with mis-cased sort parameters
-        service.searchGroups(null, null, null, "DESC", "GROUPID");
+        service.searchGroups(null, null, null, "DESC", "GROUPID", null, null);
         assertNotNull(lastUri);
         assertTrue(lastUri.contains("order=desc"), "searchGroups should forward order=desc, got: " + lastUri);
         assertTrue(lastUri.contains("orderby=groupId"), "searchGroups should forward orderby=groupId, got: " + lastUri);
 
         // 5. searchArtifacts with mis-cased sort parameters
-        service.searchArtifacts(null, null, null, null, null, null, "ASC", "NAME");
+        service.searchArtifacts(null, null, null, null, null, null, "ASC", "NAME", null, null);
         assertNotNull(lastUri);
         assertTrue(lastUri.contains("order=asc"), "searchArtifacts should forward order=asc, got: " + lastUri);
         assertTrue(lastUri.contains("orderby=name"), "searchArtifacts should forward orderby=name, got: " + lastUri);
 
         // 6. searchVersions with mis-cased sort parameters
-        service.searchVersions(null, null, null, null, null, null, "DESC", "VERSION");
+        service.searchVersions(null, null, null, null, null, null, "DESC", "VERSION", null, null, null);
         assertNotNull(lastUri);
         assertTrue(lastUri.contains("order=desc"), "searchVersions should forward order=desc, got: " + lastUri);
         assertTrue(lastUri.contains("orderby=version"), "searchVersions should forward orderby=version, got: " + lastUri);
 
         // Endpoints reject invalid sort / orderBy parameters with ToolCallException
-        assertThrows(ToolCallException.class, () -> service.listGroups("INVALID", "groupId"));
-        assertThrows(ToolCallException.class, () -> service.listGroups("asc", "INVALID"));
-        assertThrows(ToolCallException.class, () -> service.listArtifacts("g1", "INVALID", "artifactId"));
-        assertThrows(ToolCallException.class, () -> service.listArtifacts("g1", "asc", "INVALID"));
-        assertThrows(ToolCallException.class, () -> service.listVersions("g1", "a1", "INVALID", "globalId"));
-        assertThrows(ToolCallException.class, () -> service.listVersions("g1", "a1", "desc", "INVALID"));
-        assertThrows(ToolCallException.class, () -> service.searchGroups(null, null, null, "INVALID", "groupId"));
-        assertThrows(ToolCallException.class, () -> service.searchGroups(null, null, null, "desc", "INVALID"));
-        assertThrows(ToolCallException.class, () -> service.searchArtifacts(null, null, null, null, null, null, "INVALID", "name"));
-        assertThrows(ToolCallException.class, () -> service.searchArtifacts(null, null, null, null, null, null, "asc", "INVALID"));
-        assertThrows(ToolCallException.class, () -> service.searchVersions(null, null, null, null, null, null, "INVALID", "version"));
-        assertThrows(ToolCallException.class, () -> service.searchVersions(null, null, null, null, null, null, "desc", "INVALID"));
+        assertThrows(ToolCallException.class, () -> service.listGroups("INVALID", "groupId", null, null));
+        assertThrows(ToolCallException.class, () -> service.listGroups("asc", "INVALID", null, null));
+        assertThrows(ToolCallException.class, () -> service.listArtifacts("g1", "INVALID", "artifactId", null, null));
+        assertThrows(ToolCallException.class, () -> service.listArtifacts("g1", "asc", "INVALID", null, null));
+        assertThrows(ToolCallException.class, () -> service.listVersions("g1", "a1", "INVALID", "globalId", null, null));
+        assertThrows(ToolCallException.class, () -> service.listVersions("g1", "a1", "desc", "INVALID", null, null));
+        assertThrows(ToolCallException.class, () -> service.searchGroups(null, null, null, "INVALID", "groupId", null, null));
+        assertThrows(ToolCallException.class, () -> service.searchGroups(null, null, null, "desc", "INVALID", null, null));
+        assertThrows(ToolCallException.class, () -> service.searchArtifacts(null, null, null, null, null, null, "INVALID", "name", null, null));
+        assertThrows(ToolCallException.class, () -> service.searchArtifacts(null, null, null, null, null, null, "asc", "INVALID", null, null));
+        assertThrows(ToolCallException.class, () -> service.searchVersions(null, null, null, null, null, null, "INVALID", "version", null, null, null));
+        assertThrows(ToolCallException.class, () -> service.searchVersions(null, null, null, null, null, null, "desc", "INVALID", null, null, null));
     }
 }

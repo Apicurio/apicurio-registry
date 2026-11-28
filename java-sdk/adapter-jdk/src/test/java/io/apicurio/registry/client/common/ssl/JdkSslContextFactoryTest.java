@@ -2,15 +2,29 @@ package io.apicurio.registry.client.common.ssl;
 
 import io.apicurio.registry.client.common.RegistryClientOptions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
+import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLParameters;
+import javax.net.ssl.X509KeyManager;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.KeyStore;
 import java.security.PrivateKey;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.util.List;
+import java.util.Locale;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -51,6 +65,9 @@ class JdkSslContextFactoryTest {
             "jwDN+T/2DVFlj3/mtAXGCXt2oTShRANCAAQ592DihCE+d22gKWqlPG5x4BNdpLP0\n" +
             "bhGIR7P2EQFer16eJ2gX2dttfOGJw0Si5JIB9nYiGyvgJ28aim7U1P4Y\n" +
             "-----END PRIVATE KEY-----\n";
+
+    private static final String STORE_PASSWORD = "storepass";
+    private static final String KEY_PASSWORD = "keypass";
 
     @Test
     void testHasSslConfigWithNoConfig() {
@@ -283,5 +300,69 @@ class JdkSslContextFactoryTest {
     void testParsePemPrivateKeyWithoutKeyThrows() {
         assertThrows(IllegalArgumentException.class, () ->
                 JdkSslContextFactory.parsePemPrivateKey(CERT_ONE));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"JKS", "PKCS12"})
+    void testCreateSslContextWithSeparateKeyPassword(String type, @TempDir Path dir) throws Exception {
+        Path keystore = writeKeyStore(type, dir);
+        RegistryClientOptions options = withKeyStore(type, keystore, KEY_PASSWORD);
+
+        KeyManager[] keyManagers = JdkSslContextFactory.createKeyManagers(options);
+
+        assertEquals(1, keyManagers.length);
+        PrivateKey key = ((X509KeyManager) keyManagers[0]).getPrivateKey("client");
+        assertNotNull(key, "Private key was not recovered from the key store");
+        assertArrayEquals(JdkSslContextFactory.parsePemPrivateKey(EC_PRIVATE_KEY).getEncoded(), key.getEncoded());
+        assertNotNull(JdkSslContextFactory.createSslContext(options));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"JKS", "PKCS12"})
+    void testCreateSslContextWithoutSeparateKeyPasswordThrows(String type, @TempDir Path dir) throws Exception {
+        Path keystore = writeKeyStore(type, dir);
+        RegistryClientOptions options = withKeyStore(type, keystore, null);
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () ->
+                JdkSslContextFactory.createSslContext(options));
+
+        assertInstanceOf(UnrecoverableKeyException.class, ex.getCause());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"JKS", "PKCS12"})
+    void testCreateSslContextWithWrongKeyPasswordThrows(String type, @TempDir Path dir) throws Exception {
+        Path keystore = writeKeyStore(type, dir);
+        RegistryClientOptions options = withKeyStore(type, keystore, "wrong");
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () ->
+                JdkSslContextFactory.createSslContext(options));
+
+        assertInstanceOf(UnrecoverableKeyException.class, ex.getCause());
+    }
+
+    /**
+     * Writes a key store protected by {@link #STORE_PASSWORD} holding a private key protected by
+     * {@link #KEY_PASSWORD}.
+     */
+    private static Path writeKeyStore(String type, Path dir) throws Exception {
+        KeyStore keyStore = KeyStore.getInstance(type);
+        keyStore.load(null, null);
+        keyStore.setKeyEntry("client", JdkSslContextFactory.parsePemPrivateKey(EC_PRIVATE_KEY),
+                KEY_PASSWORD.toCharArray(),
+                JdkSslContextFactory.parsePemCertificates(CERT_ONE).toArray(new Certificate[0]));
+        Path path = dir.resolve("client-keystore." + type.toLowerCase(Locale.ROOT));
+        try (OutputStream out = Files.newOutputStream(path)) {
+            keyStore.store(out, STORE_PASSWORD.toCharArray());
+        }
+        return path;
+    }
+
+    private static RegistryClientOptions withKeyStore(String type, Path keystore, String keyPassword) {
+        RegistryClientOptions options = RegistryClientOptions.create().registryUrl("https://localhost:8080");
+        if ("JKS".equals(type)) {
+            return options.keystoreJks(keystore.toString(), STORE_PASSWORD, keyPassword);
+        }
+        return options.keystorePkcs12(keystore.toString(), STORE_PASSWORD, keyPassword);
     }
 }

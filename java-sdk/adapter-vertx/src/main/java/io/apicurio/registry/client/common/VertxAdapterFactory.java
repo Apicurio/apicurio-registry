@@ -223,13 +223,15 @@ public final class VertxAdapterFactory {
             case JKS:
                 JksOptions jksKeyStoreOptions = new JksOptions()
                         .setPath(options.getKeyStorePath())
-                        .setPassword(options.getKeyStorePassword());
+                        .setPassword(options.getKeyStorePassword())
+                        .setAliasPassword(options.getKeyPassword());
                 webClientOptions.setKeyCertOptions(jksKeyStoreOptions);
                 break;
             case PKCS12:
                 PfxOptions pfxKeyStoreOptions = new PfxOptions()
                         .setPath(options.getKeyStorePath())
-                        .setPassword(options.getKeyStorePassword());
+                        .setPassword(options.getKeyStorePassword())
+                        .setAliasPassword(options.getKeyPassword());
                 webClientOptions.setKeyCertOptions(pfxKeyStoreOptions);
                 break;
             case PEM:

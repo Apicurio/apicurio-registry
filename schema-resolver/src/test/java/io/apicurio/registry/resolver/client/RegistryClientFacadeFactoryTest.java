@@ -201,6 +201,90 @@ class RegistryClientFacadeFactoryTest {
     }
 
     @Test
+    void testBuildClientOptionsJksWithKeyPassword() {
+        Map<String, Object> originals = new HashMap<>();
+        originals.put(SchemaResolverConfig.REGISTRY_URL, "http://localhost:8080/apis/registry/v3");
+        originals.put(SchemaResolverConfig.TLS_KEYSTORE_LOCATION, "/path/to/keystore.jks");
+        originals.put(SchemaResolverConfig.TLS_KEYSTORE_PASSWORD, "storepassword");
+        originals.put(SchemaResolverConfig.TLS_KEYSTORE_KEY_PASSWORD, "privatekeypassword");
+        originals.put(SchemaResolverConfig.TLS_KEYSTORE_TYPE, "JKS");
+
+        SchemaResolverConfig config = new SchemaResolverConfig(originals);
+        RegistryClientOptions options = RegistryClientFacadeFactory.buildClientOptions(config, null);
+
+        Assertions.assertEquals(KeyStoreType.JKS, options.getKeyStoreType());
+        Assertions.assertEquals("storepassword", options.getKeyStorePassword());
+        Assertions.assertEquals("privatekeypassword", options.getKeyPassword());
+    }
+
+    @Test
+    void testBuildClientOptionsPkcs12WithKeyPassword() {
+        Map<String, Object> originals = new HashMap<>();
+        originals.put(SchemaResolverConfig.REGISTRY_URL, "http://localhost:8080/apis/registry/v3");
+        originals.put(SchemaResolverConfig.TLS_KEYSTORE_LOCATION, "/path/to/keystore.p12");
+        originals.put(SchemaResolverConfig.TLS_KEYSTORE_PASSWORD, "storepassword");
+        originals.put(SchemaResolverConfig.TLS_KEYSTORE_KEY_PASSWORD, "privatekeypassword");
+        originals.put(SchemaResolverConfig.TLS_KEYSTORE_TYPE, "PKCS12");
+
+        SchemaResolverConfig config = new SchemaResolverConfig(originals);
+        RegistryClientOptions options = RegistryClientFacadeFactory.buildClientOptions(config, null);
+
+        Assertions.assertEquals(KeyStoreType.PKCS12, options.getKeyStoreType());
+        Assertions.assertEquals("storepassword", options.getKeyStorePassword());
+        Assertions.assertEquals("privatekeypassword", options.getKeyPassword());
+    }
+
+    @Test
+    void testBuildClientOptionsKeyPasswordDefaultsToNull() {
+        Map<String, Object> originals = new HashMap<>();
+        originals.put(SchemaResolverConfig.REGISTRY_URL, "http://localhost:8080/apis/registry/v3");
+        originals.put(SchemaResolverConfig.TLS_KEYSTORE_LOCATION, "/path/to/keystore.jks");
+        originals.put(SchemaResolverConfig.TLS_KEYSTORE_PASSWORD, "storepassword");
+
+        SchemaResolverConfig config = new SchemaResolverConfig(originals);
+        RegistryClientOptions options = RegistryClientFacadeFactory.buildClientOptions(config, null);
+
+        Assertions.assertEquals(KeyStoreType.JKS, options.getKeyStoreType());
+        Assertions.assertEquals("storepassword", options.getKeyStorePassword());
+        Assertions.assertNull(options.getKeyPassword());
+    }
+
+    @Test
+    void testBuildClientOptionsPemWithKeyPasswordFails() {
+        Map<String, Object> originals = new HashMap<>();
+        originals.put(SchemaResolverConfig.REGISTRY_URL, "http://localhost:8080/apis/registry/v3");
+        originals.put(SchemaResolverConfig.TLS_KEYSTORE_LOCATION, "/path/to/keystore.pem");
+        originals.put(SchemaResolverConfig.TLS_KEYSTORE_TYPE, "PEM");
+        originals.put(SchemaResolverConfig.TLS_CLIENT_KEY, "/path/to/client.key");
+        originals.put(SchemaResolverConfig.TLS_KEYSTORE_KEY_PASSWORD, "privatekeypassword");
+
+        SchemaResolverConfig config = new SchemaResolverConfig(originals);
+        IllegalArgumentException ex = Assertions.assertThrows(IllegalArgumentException.class, () -> {
+            RegistryClientFacadeFactory.buildClientOptions(config, null);
+        });
+        Assertions.assertTrue(ex.getMessage().contains(SchemaResolverConfig.TLS_KEYSTORE_KEY_PASSWORD),
+                "Expected the message to name the key password property, got: " + ex.getMessage());
+    }
+
+    @Test
+    void testBuildClientOptionsKeyPasswordWithoutKeystoreLocationFails() {
+        Map<String, Object> originals = new HashMap<>();
+        originals.put(SchemaResolverConfig.REGISTRY_URL, "http://localhost:8080/apis/registry/v3");
+        originals.put(SchemaResolverConfig.TLS_CLIENT_CERTIFICATE,
+                "-----BEGIN CERTIFICATE-----\ncert-body\n-----END CERTIFICATE-----");
+        originals.put(SchemaResolverConfig.TLS_CLIENT_KEY,
+                "-----BEGIN PRIVATE KEY-----\nkey-body\n-----END PRIVATE KEY-----");
+        originals.put(SchemaResolverConfig.TLS_KEYSTORE_KEY_PASSWORD, "privatekeypassword");
+
+        SchemaResolverConfig config = new SchemaResolverConfig(originals);
+        IllegalArgumentException ex = Assertions.assertThrows(IllegalArgumentException.class, () -> {
+            RegistryClientFacadeFactory.buildClientOptions(config, null);
+        });
+        Assertions.assertTrue(ex.getMessage().contains(SchemaResolverConfig.TLS_KEYSTORE_KEY_PASSWORD),
+                "Expected the message to name the key password property, got: " + ex.getMessage());
+    }
+
+    @Test
     void testBuildClientOptionsPemFilePaths() {
         Map<String, Object> originals = new HashMap<>();
         originals.put(SchemaResolverConfig.REGISTRY_URL, "http://localhost:8080/apis/registry/v3");

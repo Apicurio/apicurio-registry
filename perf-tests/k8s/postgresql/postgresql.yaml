@@ -26,6 +26,7 @@ spec:
       containers:
         - name: postgresql
           image: docker.io/library/postgres:16
+          args: ["-c", "max_connections=500"]
           env:
             - name: POSTGRES_USER
               value: "postgres"

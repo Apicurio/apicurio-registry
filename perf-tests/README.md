@@ -14,7 +14,7 @@ connection - see `k8s/README.md` for details on each:
 - `k8s/kafkasql/` - KafkaSQL storage, Kafka behind Toxiproxy
 
 This module is **not** part of the default Maven build - it's only built when the `perf-tests`
-profile is activated (`-Dperf-tests`), and it's driven end-to-end by
+profile is activated (`-Pperf-tests`), and it's driven end-to-end by
 `.github/workflows/perf-main.yaml`, which runs **only on merges to `main`** (this is too slow/
 expensive to run per-PR; see the workflow file for details) as a matrix job across both scenarios.
 

@@ -65,7 +65,7 @@ check, or run the load generator externally for higher concurrency:
 perf-tests/k8s/common/run-external-load.sh perf-tests/target/apicurio-registry-perf-tests-*-jar-with-dependencies.jar [PERF_USERS] [PERF_DURATION_SECONDS] [PERF_WRITE_RATIO]
 ```
 
-(Build the jar first with `./mvnw -Dperf-tests package -pl perf-tests -am -DskipTests`.)
+(Build the jar first with `./mvnw -Pperf-tests package -pl perf-tests -am -DskipTests`.)
 
 None of these manifests are meant to be used outside of CI/local testing; they intentionally
 hard-code simple credentials/URLs for a throwaway, single-run cluster.

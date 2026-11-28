@@ -1,0 +1,7 @@
+$type: content-v0
+contentId: 5
+references:
+  - groupId: sqlgroup
+    artifactId: address
+    version: "2"
+    name: com.example.Address
